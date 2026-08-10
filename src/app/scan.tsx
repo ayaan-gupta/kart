@@ -105,29 +105,38 @@ export default function ScanScreen() {
     }
   }, [hasPermission, permissionAsked, requestPermission]);
 
-  const handleRegions = Worklets.createRunOnJS(
-    (regions: ReturnType<typeof scanGroceryItem>, width: number, height: number) => {
-      setFrameSize({ width, height });
-      const now = Date.now();
-      const { state, events } = processFrame(pipelineStateRef.current, regions, now, CATALOG);
-      pipelineStateRef.current = state;
-      setLiveCandidates(state.candidates);
+  // Stable identity across renders: react-native-vision-camera requires the frame
+  // processor (and therefore this handler) not to change identity every render, or
+  // the native Frame Processor Context gets torn down and reinstalled repeatedly.
+  // Safe to build once — the body only closes over refs and stable setState/module
+  // imports, none of which need to vary per render.
+  const handleRegions = useMemo(
+    () =>
+      Worklets.createRunOnJS(
+        (regions: ReturnType<typeof scanGroceryItem>, width: number, height: number) => {
+          setFrameSize({ width, height });
+          const now = Date.now();
+          const { state, events } = processFrame(pipelineStateRef.current, regions, now, CATALOG);
+          pipelineStateRef.current = state;
+          setLiveCandidates(state.candidates);
 
-      for (const event of events) {
-        useScanline.getState().addDetection(event.skuCode, event.confidence);
-        lastLockedAtRef.current = now;
-        if (hintActiveRef.current) {
-          hintActiveRef.current = false;
-          useScanline.getState().setHint(null);
-        }
-      }
+          for (const event of events) {
+            useScanline.getState().addDetection(event.skuCode, event.confidence);
+            lastLockedAtRef.current = now;
+            if (hintActiveRef.current) {
+              hintActiveRef.current = false;
+              useScanline.getState().setHint(null);
+            }
+          }
 
-      const { showHint } = evaluateCoverageHint(state.candidates, lastLockedAtRef.current, now, hintActiveRef.current);
-      if (showHint) {
-        hintActiveRef.current = true;
-        useScanline.getState().setHint('Looks like you have more items. Try moving the ones already scanned.');
-      }
-    },
+          const { showHint } = evaluateCoverageHint(state.candidates, lastLockedAtRef.current, now, hintActiveRef.current);
+          if (showHint) {
+            hintActiveRef.current = true;
+            useScanline.getState().setHint('Looks like you have more items. Try moving the ones already scanned.');
+          }
+        },
+      ),
+    [],
   );
 
   const frameProcessor = useFrameProcessor(
