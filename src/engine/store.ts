@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CATALOG, skuByCode } from './catalog';
 import type { Detection, Haul, HaulItem, ScanSession } from './types';
 
@@ -78,53 +80,64 @@ function haulName(date: Date): string {
   return `${daypart} cart`;
 }
 
-export const useScanline = create<ScanlineState>((set, get) => ({
-  hauls: seedHauls(),
-  scan: idleScan,
+export const useScanline = create<ScanlineState>()(
+  persist(
+    (set, get) => ({
+      hauls: seedHauls(),
+      scan: idleScan,
 
-  startScan() {
-    set(() => ({
-      scan: { status: 'scanning', startedAt: Date.now(), detections: [], hint: null },
-    }));
-  },
+      startScan() {
+        set(() => ({
+          scan: { status: 'scanning', startedAt: Date.now(), detections: [], hint: null },
+        }));
+      },
 
-  addDetection(skuCode, confidence) {
-    set((s) => {
-      if (s.scan.status !== 'scanning') return s;
-      const detection: Detection = {
-        id: nextId('det'),
-        skuCode,
-        detectedAt: Date.now(),
-        confidence,
-      };
-      return { scan: { ...s.scan, detections: [...s.scan.detections, detection] } };
-    });
-  },
+      addDetection(skuCode, confidence) {
+        set((s) => {
+          if (s.scan.status !== 'scanning') return s;
+          const detection: Detection = {
+            id: nextId('det'),
+            skuCode,
+            detectedAt: Date.now(),
+            confidence,
+          };
+          return { scan: { ...s.scan, detections: [...s.scan.detections, detection] } };
+        });
+      },
 
-  setHint(hint) {
-    set((s) => (s.scan.status === 'scanning' ? { scan: { ...s.scan, hint } } : s));
-  },
+      setHint(hint) {
+        set((s) => (s.scan.status === 'scanning' ? { scan: { ...s.scan, hint } } : s));
+      },
 
-  discardScan() {
-    set(() => ({ scan: idleScan }));
-  },
+      discardScan() {
+        set(() => ({ scan: idleScan }));
+      },
 
-  finishHaul() {
-    const s = get();
-    const items = aggregate(s.scan.detections);
-    if (items.length === 0) {
-      set(() => ({ scan: idleScan }));
-      return null;
-    }
-    const haul: Haul = {
-      id: nextId('haul'),
-      name: haulName(new Date()),
-      endedAt: Date.now(),
-      items,
-    };
-    set((st) => ({ hauls: [haul, ...st.hauls], scan: idleScan }));
-    return haul.id;
-  },
-}));
+      finishHaul() {
+        const s = get();
+        const items = aggregate(s.scan.detections);
+        if (items.length === 0) {
+          set(() => ({ scan: idleScan }));
+          return null;
+        }
+        const haul: Haul = {
+          id: nextId('haul'),
+          name: haulName(new Date()),
+          endedAt: Date.now(),
+          items,
+        };
+        set((st) => ({ hauls: [haul, ...st.hauls], scan: idleScan }));
+        return haul.id;
+      },
+    }),
+    {
+      name: 'kart-hauls',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only hauls persist. Scan sessions are always transient, in-progress
+      // work should not survive a restart, and re-seeding it is meaningless.
+      partialize: (state) => ({ hauls: state.hauls }),
+    },
+  ),
+);
 
 export { CATALOG };
