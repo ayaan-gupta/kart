@@ -1,10 +1,10 @@
-import { useEventListener } from 'expo';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import { useVideoPlayer } from 'expo-video';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Camera, runAtTargetFps, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
+import { Worklets } from 'react-native-worklets-core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
@@ -15,21 +15,21 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
   type ExitAnimationsValues,
 } from 'react-native-reanimated';
 import { BagTray } from '../components/BagTray';
+import { Button } from '../components/Button';
 import { DetectionRow } from '../components/DetectionRow';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
-import { ScanFeed } from '../components/ScanFeed';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
-import { onVideoTime, startScanEngine, stopScanEngine } from '../engine/scanEngine';
+import { CATALOG } from '../engine/catalog';
+import { evaluateCoverageHint } from '../engine/liveVision/coverageHint';
+import { scanGroceryItem } from '../engine/liveVision/frameProcessor';
+import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
 import { aggregate, haulCount, useScanline } from '../engine/store';
-
-const scanVideo = require('../../assets/videos/scan.mp4');
 
 const VISIBLE_MS = 6000;
 
@@ -89,24 +89,61 @@ export default function ScanScreen() {
   const discardScan = useScanline((s) => s.discardScan);
   const [tick, setTick] = useState(Date.now());
 
-  const player = useVideoPlayer(scanVideo, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.timeUpdateEventInterval = 0.2;
-    p.play();
-  });
-
-  // Detections fire in sync with where the vision model saw each item, and
-  // the highlight layer follows the footage's slow camera drift.
-  const timeSv = useSharedValue(0);
-  useEventListener(player, 'timeUpdate', (e) => {
-    timeSv.value = e.currentTime;
-    onVideoTime(e.currentTime);
-  });
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('back');
+  const pipelineStateRef = useRef(createPipelineState());
+  const lastLockedAtRef = useRef<number | null>(null);
+  const hintActiveRef = useRef(false);
+  const [liveCandidates, setLiveCandidates] = useState(pipelineStateRef.current.candidates);
+  const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
+  const [permissionAsked, setPermissionAsked] = useState(false);
 
   useEffect(() => {
-    startScanEngine();
-    return () => stopScanEngine();
+    if (!hasPermission && !permissionAsked) {
+      setPermissionAsked(true);
+      requestPermission();
+    }
+  }, [hasPermission, permissionAsked, requestPermission]);
+
+  const handleRegions = Worklets.createRunOnJS(
+    (regions: ReturnType<typeof scanGroceryItem>, width: number, height: number) => {
+      setFrameSize({ width, height });
+      const now = Date.now();
+      const { state, events } = processFrame(pipelineStateRef.current, regions, now, CATALOG);
+      pipelineStateRef.current = state;
+      setLiveCandidates(state.candidates);
+
+      for (const event of events) {
+        useScanline.getState().addDetection(event.skuCode, event.confidence);
+        lastLockedAtRef.current = now;
+        if (hintActiveRef.current) {
+          hintActiveRef.current = false;
+          useScanline.getState().setHint(null);
+        }
+      }
+
+      const { showHint } = evaluateCoverageHint(state.candidates, lastLockedAtRef.current, now, hintActiveRef.current);
+      if (showHint) {
+        hintActiveRef.current = true;
+        useScanline.getState().setHint('Looks like you have more items. Try moving the ones already scanned.');
+      }
+    },
+  );
+
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      'worklet';
+      runAtTargetFps(4, () => {
+        'worklet';
+        const regions = scanGroceryItem(frame);
+        handleRegions(regions, frame.width, frame.height);
+      });
+    },
+    [handleRegions],
+  );
+
+  useEffect(() => {
+    useScanline.getState().startScan();
   }, []);
 
   useEffect(() => {
@@ -127,7 +164,6 @@ export default function ScanScreen() {
 
   const close = () => {
     const leave = () => {
-      stopScanEngine();
       discardScan();
       router.back();
     };
@@ -142,7 +178,6 @@ export default function ScanScreen() {
   };
 
   const finish = () => {
-    stopScanEngine();
     const haulId = finishHaul();
     if (haulId) {
       router.replace({ pathname: '/haul/[id]', params: { id: haulId } });
@@ -154,7 +189,25 @@ export default function ScanScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScanFeed player={player} timeSv={timeSv} detections={scan.detections} />
+      {device != null && hasPermission ? (
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+          frameProcessor={frameProcessor}
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.permissionFallback]}>
+          <Sub color={color.onFeedSub} style={styles.permissionText}>
+            {hasPermission === false && permissionAsked
+              ? 'Kart needs camera access to scan your cart. Enable it in Settings to continue.'
+              : 'Requesting camera access…'}
+          </Sub>
+          {hasPermission === false && permissionAsked ? (
+            <Button label="Open Settings" onPress={() => Linking.openSettings()} />
+          ) : null}
+        </View>
+      )}
 
       <View style={[styles.topBar, { top: insets.top + space.s }]}>
         <IconButton symbol="xmark" fallback="✕" accessibilityLabel="Close the scan" onPress={close} scheme="dark" />
@@ -236,5 +289,15 @@ const styles = StyleSheet.create({
     left: space.xl,
     right: space.xl,
     gap: space.l,
+  },
+  permissionFallback: {
+    backgroundColor: color.feed,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space.xl,
+    gap: space.l,
+  },
+  permissionText: {
+    textAlign: 'center',
   },
 });
