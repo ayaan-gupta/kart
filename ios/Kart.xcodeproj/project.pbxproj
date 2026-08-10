@@ -10,16 +10,17 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2D848F413214CABB948E3A5E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CB45A6A1C816FF3171899DC3 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		6820A163860240F2B0F79525 /* KartVisionFrameProcessorPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */; };
 		803F3B8287A14EFBA07D9458 /* expo.icon in Resources */ = {isa = PBXBuildFile; fileRef = 667697EC73CE45C1998F47B4 /* expo.icon */; };
 		869CDA1CAB2019EA8AC80E35 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6FFD698208F2296E97F3905 /* ExpoModulesProvider.swift */; };
+		897C575DEFD8466BAB533AA9 /* KartVisionFrameProcessorPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		E67E7BC5496907FB395130BA /* libPods-Kart.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9B941B1A8D60C4CD7DC08A3 /* libPods-Kart.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		6820A163860240F2B0F79525 /* KartVisionFrameProcessorPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */; };
-		897C575DEFD8466BAB533AA9 /* KartVisionFrameProcessorPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.objc; name = KartVisionFrameProcessorPlugin.m; path = Kart/KartVisionFrameProcessorPlugin.m; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Kart.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kart.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Kart/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Kart/Info.plist; sourceTree = "<group>"; };
@@ -28,14 +29,13 @@
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Kart/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		CB45A6A1C816FF3171899DC3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Kart/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = KartVisionFrameProcessorPlugin.swift; path = Kart/KartVisionFrameProcessorPlugin.swift; sourceTree = "<group>"; };
 		D9B941B1A8D60C4CD7DC08A3 /* libPods-Kart.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Kart.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6FFD698208F2296E97F3905 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Kart/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Kart/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Kart-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Kart-Bridging-Header.h"; path = "Kart/Kart-Bridging-Header.h"; sourceTree = "<group>"; };
 		F1EE9E3B32EAACFA878A9B80 /* Pods-Kart.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kart.debug.xcconfig"; path = "Target Support Files/Pods-Kart/Pods-Kart.debug.xcconfig"; sourceTree = "<group>"; };
-		D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */ = {isa = PBXFileReference; name = "KartVisionFrameProcessorPlugin.swift"; path = "Kart/KartVisionFrameProcessorPlugin.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
-		0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */ = {isa = PBXFileReference; name = "KartVisionFrameProcessorPlugin.m"; path = "Kart/KartVisionFrameProcessorPlugin.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -248,7 +248,6 @@
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesCore/ExpoModulesCore.framework/ExpoModulesCore",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/ExpoModulesJSI.framework/ExpoModulesJSI",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesWorklets/ExpoModulesWorklets.framework/ExpoModulesWorklets",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoVideo/ExpoVideo.framework/ExpoVideo",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
@@ -266,7 +265,6 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesCore.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesJSI.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesWorklets.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoVideo.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",

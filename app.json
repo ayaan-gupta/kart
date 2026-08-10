@@ -41,7 +41,6 @@
           "imageWidth": 76
         }
       ],
-      "expo-video",
       [
         "react-native-vision-camera",
         {
