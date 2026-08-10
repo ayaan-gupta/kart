@@ -15,6 +15,8 @@
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		E67E7BC5496907FB395130BA /* libPods-Kart.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9B941B1A8D60C4CD7DC08A3 /* libPods-Kart.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		6820A163860240F2B0F79525 /* KartVisionFrameProcessorPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */; };
+		897C575DEFD8466BAB533AA9 /* KartVisionFrameProcessorPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +34,8 @@
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Kart/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Kart-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Kart-Bridging-Header.h"; path = "Kart/Kart-Bridging-Header.h"; sourceTree = "<group>"; };
 		F1EE9E3B32EAACFA878A9B80 /* Pods-Kart.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kart.debug.xcconfig"; path = "Target Support Files/Pods-Kart/Pods-Kart.debug.xcconfig"; sourceTree = "<group>"; };
+		D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */ = {isa = PBXFileReference; name = "KartVisionFrameProcessorPlugin.swift"; path = "Kart/KartVisionFrameProcessorPlugin.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */ = {isa = PBXFileReference; name = "KartVisionFrameProcessorPlugin.m"; path = "Kart/KartVisionFrameProcessorPlugin.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +61,8 @@
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				667697EC73CE45C1998F47B4 /* expo.icon */,
 				CB45A6A1C816FF3171899DC3 /* PrivacyInfo.xcprivacy */,
+				D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */,
+				0E027A7931414B798BB2290D /* KartVisionFrameProcessorPlugin.m */,
 			);
 			name = Kart;
 			sourceTree = "<group>";
@@ -361,6 +367,8 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				869CDA1CAB2019EA8AC80E35 /* ExpoModulesProvider.swift in Sources */,
+				6820A163860240F2B0F79525 /* KartVisionFrameProcessorPlugin.swift in Sources */,
+				897C575DEFD8466BAB533AA9 /* KartVisionFrameProcessorPlugin.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
