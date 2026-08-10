@@ -5,3 +5,10 @@ export interface Box {
   w: number;
   h: number;
 }
+
+export interface MatchResult {
+  skuCode: string | null;
+  /** 0-1. How confident this match is, combining the model's label confidence and, for
+   * ambiguous labels, how well the OCR text matched the winning candidate's name. */
+  matchConfidence: number;
+}
