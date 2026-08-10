@@ -3,6 +3,26 @@ import VisionCamera
 import Vision
 import CoreVideo
 
+/// `Frame.orientation` is a `UIImage.Orientation` describing the rotation needed to make the
+/// raw sensor buffer appear upright. `VNImageRequestHandler` wants the equivalent
+/// `CGImagePropertyOrientation`. The two enums are NOT raw-value compatible (their cases are
+/// ordered differently), so this needs an explicit mapping rather than a cast.
+private extension CGImagePropertyOrientation {
+  init(_ uiOrientation: UIImage.Orientation) {
+    switch uiOrientation {
+    case .up: self = .up
+    case .upMirrored: self = .upMirrored
+    case .down: self = .down
+    case .downMirrored: self = .downMirrored
+    case .left: self = .left
+    case .leftMirrored: self = .leftMirrored
+    case .right: self = .right
+    case .rightMirrored: self = .rightMirrored
+    @unknown default: self = .up
+    }
+  }
+}
+
 @objc(KartVisionFrameProcessorPlugin)
 public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
   public override init(proxy: VisionCameraProxyHolder, options: [AnyHashable: Any]!) {
@@ -12,7 +32,15 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
   public override func callback(_ frame: Frame, withArguments arguments: [AnyHashable: Any]?) -> Any? {
     guard let pixelBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else { return [] }
 
-    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+    // Give Vision the frame's actual orientation so saliency/classify/text requests all operate
+    // on an upright image instead of the raw (often landscape) sensor buffer. Once the handler
+    // is given this, every Vision request's own boundingBox/regionOfInterest coordinates are
+    // already reported in the corrected, upright normalized space — no further rotation math
+    // is needed on the Vision side. (The JS side still needs to know the corrected frame
+    // dimensions to map those normalized boxes to screen pixels; see frameSize handling in
+    // scan.tsx, since `frame.width`/`frame.height` themselves stay raw/unrotated.)
+    let orientation = CGImagePropertyOrientation(frame.orientation)
+    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
 
     let saliencyRequest = VNGenerateObjectnessBasedSaliencyImageRequest()
     do {
@@ -54,15 +82,22 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
 
       try? handler.perform([classifyRequest, textRequest])
 
-      let topLabel = classifyRequest.results?.max { $0.confidence < $1.confidence }
+      // Vision's classifier returns ~1300 hierarchical labels; the single top-1 result is very
+      // often a generic hypernym ("food", "produce", "material") with no catalog mapping even
+      // when a more specific, correct label was returned right behind it. Return the top 5 so
+      // the JS-side matcher can fall through to a lower-ranked candidate.
+      let topLabels = (classifyRequest.results ?? [])
+        .sorted { $0.confidence > $1.confidence }
+        .prefix(5)
+        .map { ["label": $0.identifier, "confidence": Double($0.confidence)] as [String: Any] }
+
       let ocrText = (textRequest.results ?? [])
         .compactMap { $0.topCandidates(1).first?.string }
         .joined(separator: " ")
 
       results.append([
         "box": appBox,
-        "label": topLabel?.identifier ?? "",
-        "confidence": Double(topLabel?.confidence ?? 0),
+        "labels": topLabels,
         "ocrText": ocrText,
       ])
     }

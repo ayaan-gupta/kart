@@ -146,13 +146,26 @@ export default function ScanScreen() {
       runAtTargetFps(4, () => {
         'worklet';
         const regions = scanGroceryItem(frame);
-        handleRegions(regions, frame.width, frame.height);
+        // `frame.width`/`frame.height` always report the raw, unrotated sensor buffer
+        // dimensions (e.g. 1920x1080 even when the phone is held in portrait). The native
+        // plugin now gives Vision the frame's real orientation, so the regions' normalized box
+        // coordinates are already reported in the corrected, upright space. Swap width/height
+        // here to match that same upright space whenever the frame needs a 90/270 rotation to
+        // become upright, so ItemHighlights scales boxes against the right aspect ratio.
+        const rotated = frame.orientation === 'landscape-left' || frame.orientation === 'landscape-right';
+        const width = rotated ? frame.height : frame.width;
+        const height = rotated ? frame.width : frame.height;
+        handleRegions(regions, width, height);
       });
     },
     [handleRegions],
   );
 
   useEffect(() => {
+    // Seed with the scan's actual start time, not null (which evaluateCoverageHint treats as
+    // epoch 0 internally) — otherwise `now - 0` is always far past the idle threshold and the
+    // hint banner fires almost immediately, before the user has scanned anything.
+    lastLockedAtRef.current = Date.now();
     useScanline.getState().startScan();
   }, []);
 
