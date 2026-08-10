@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CATALOG, skuByCode } from './catalog';
 import type { Detection, Haul, HaulItem, ScanSession } from './types';
 
@@ -61,6 +63,10 @@ function seedHauls(): Haul[] {
 interface ScanlineState {
   hauls: Haul[];
   scan: ScanSession;
+  /** True once the persist middleware has finished reading AsyncStorage (or failed and fell
+   * back to seed data). False for the brief window right after app launch where `hauls` is
+   * still the synchronous seeded demo data, before any real persisted carts have loaded. */
+  hasHydrated: boolean;
 
   startScan(): void;
   addDetection(skuCode: string, confidence?: number): void;
@@ -68,6 +74,7 @@ interface ScanlineState {
   discardScan(): void;
   /** Ends the session and saves it as a haul. Returns the new haul id, or null when the bag is empty. */
   finishHaul(): string | null;
+  setHasHydrated(value: boolean): void;
 }
 
 const idleScan: ScanSession = { status: 'idle', startedAt: null, detections: [], hint: null };
@@ -78,53 +85,76 @@ function haulName(date: Date): string {
   return `${daypart} cart`;
 }
 
-export const useScanline = create<ScanlineState>((set, get) => ({
-  hauls: seedHauls(),
-  scan: idleScan,
+export const useScanline = create<ScanlineState>()(
+  persist(
+    (set, get) => ({
+      hauls: seedHauls(),
+      scan: idleScan,
+      hasHydrated: false,
 
-  startScan() {
-    set(() => ({
-      scan: { status: 'scanning', startedAt: Date.now(), detections: [], hint: null },
-    }));
-  },
+      startScan() {
+        set(() => ({
+          scan: { status: 'scanning', startedAt: Date.now(), detections: [], hint: null },
+        }));
+      },
 
-  addDetection(skuCode, confidence) {
-    set((s) => {
-      if (s.scan.status !== 'scanning') return s;
-      const detection: Detection = {
-        id: nextId('det'),
-        skuCode,
-        detectedAt: Date.now(),
-        confidence,
-      };
-      return { scan: { ...s.scan, detections: [...s.scan.detections, detection] } };
-    });
-  },
+      addDetection(skuCode, confidence) {
+        set((s) => {
+          if (s.scan.status !== 'scanning') return s;
+          const detection: Detection = {
+            id: nextId('det'),
+            skuCode,
+            detectedAt: Date.now(),
+            confidence,
+          };
+          return { scan: { ...s.scan, detections: [...s.scan.detections, detection] } };
+        });
+      },
 
-  setHint(hint) {
-    set((s) => (s.scan.status === 'scanning' ? { scan: { ...s.scan, hint } } : s));
-  },
+      setHint(hint) {
+        set((s) => (s.scan.status === 'scanning' ? { scan: { ...s.scan, hint } } : s));
+      },
 
-  discardScan() {
-    set(() => ({ scan: idleScan }));
-  },
+      discardScan() {
+        set(() => ({ scan: idleScan }));
+      },
 
-  finishHaul() {
-    const s = get();
-    const items = aggregate(s.scan.detections);
-    if (items.length === 0) {
-      set(() => ({ scan: idleScan }));
-      return null;
-    }
-    const haul: Haul = {
-      id: nextId('haul'),
-      name: haulName(new Date()),
-      endedAt: Date.now(),
-      items,
-    };
-    set((st) => ({ hauls: [haul, ...st.hauls], scan: idleScan }));
-    return haul.id;
-  },
-}));
+      finishHaul() {
+        const s = get();
+        const items = aggregate(s.scan.detections);
+        if (items.length === 0) {
+          set(() => ({ scan: idleScan }));
+          return null;
+        }
+        const haul: Haul = {
+          id: nextId('haul'),
+          name: haulName(new Date()),
+          endedAt: Date.now(),
+          items,
+        };
+        set((st) => ({ hauls: [haul, ...st.hauls], scan: idleScan }));
+        return haul.id;
+      },
+
+      setHasHydrated(value) {
+        set(() => ({ hasHydrated: value }));
+      },
+    }),
+    {
+      name: 'kart-hauls',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only hauls persist. Scan sessions are always transient, in-progress
+      // work should not survive a restart, and re-seeding it is meaningless.
+      partialize: (state) => ({ hauls: state.hauls }),
+      onRehydrateStorage: () => (state) => {
+        // Runs whether rehydration found stored data or not (and even after a storage read
+        // failure, per zustand's persist middleware falling back to initial state) — this is
+        // the one signal that the async AsyncStorage read has settled, so hauls now reflects
+        // reality instead of the synchronous seed data.
+        state?.setHasHydrated(true);
+      },
+    },
+  ),
+);
 
 export { CATALOG };
