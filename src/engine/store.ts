@@ -63,6 +63,10 @@ function seedHauls(): Haul[] {
 interface ScanlineState {
   hauls: Haul[];
   scan: ScanSession;
+  /** True once the persist middleware has finished reading AsyncStorage (or failed and fell
+   * back to seed data). False for the brief window right after app launch where `hauls` is
+   * still the synchronous seeded demo data, before any real persisted carts have loaded. */
+  hasHydrated: boolean;
 
   startScan(): void;
   addDetection(skuCode: string, confidence?: number): void;
@@ -70,6 +74,7 @@ interface ScanlineState {
   discardScan(): void;
   /** Ends the session and saves it as a haul. Returns the new haul id, or null when the bag is empty. */
   finishHaul(): string | null;
+  setHasHydrated(value: boolean): void;
 }
 
 const idleScan: ScanSession = { status: 'idle', startedAt: null, detections: [], hint: null };
@@ -85,6 +90,7 @@ export const useScanline = create<ScanlineState>()(
     (set, get) => ({
       hauls: seedHauls(),
       scan: idleScan,
+      hasHydrated: false,
 
       startScan() {
         set(() => ({
@@ -129,6 +135,10 @@ export const useScanline = create<ScanlineState>()(
         set((st) => ({ hauls: [haul, ...st.hauls], scan: idleScan }));
         return haul.id;
       },
+
+      setHasHydrated(value) {
+        set(() => ({ hasHydrated: value }));
+      },
     }),
     {
       name: 'kart-hauls',
@@ -136,6 +146,13 @@ export const useScanline = create<ScanlineState>()(
       // Only hauls persist. Scan sessions are always transient, in-progress
       // work should not survive a restart, and re-seeding it is meaningless.
       partialize: (state) => ({ hauls: state.hauls }),
+      onRehydrateStorage: () => (state) => {
+        // Runs whether rehydration found stored data or not (and even after a storage read
+        // failure, per zustand's persist middleware falling back to initial state) — this is
+        // the one signal that the async AsyncStorage read has settled, so hauls now reflects
+        // reality instead of the synchronous seed data.
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );
