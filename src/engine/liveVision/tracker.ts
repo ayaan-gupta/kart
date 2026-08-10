@@ -41,6 +41,19 @@ export function updateTracker(
     let bestIou = 0;
     matchedRegions.forEach((region, index) => {
       if (claimedRegions.has(index)) return;
+      if (
+        candidate.state === 'locked' &&
+        candidate.skuCode !== null &&
+        region.skuCode !== null &&
+        region.skuCode !== candidate.skuCode
+      ) {
+        // A different, resolved SKU now occupies roughly the same spot as this already-locked
+        // candidate (the counted item was physically swapped out for another one). Don't let
+        // the lock silently absorb it forever — leave the region unclaimed so it can start a
+        // fresh candidate of its own below. An unresolved region (skuCode null) or one that
+        // still agrees with this candidate's SKU keeps the existing locked-wins behavior.
+        return;
+      }
       const iou = intersectionOverUnion(candidate.box, region.box);
       if (iou > bestIou) {
         bestIou = iou;

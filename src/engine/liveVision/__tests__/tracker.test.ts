@@ -84,4 +84,56 @@ describe('updateTracker', () => {
     expect(after[0].state).toBe('locked');
     expect(events).toHaveLength(0);
   });
+
+  it('does not absorb a region with a different resolved SKU into an already-locked candidate', () => {
+    const box = { x: 0, y: 0, w: 0.1, h: 0.1 };
+    let state = createTrackerState();
+
+    // Lock a candidate for SKU A (grapes) at `box`.
+    ({ candidates: state } = updateTracker(state, [region(box, '0417', 0.7)], 0, CONFIG));
+    ({ candidates: state } = updateTracker(state, [region(box, '0417', 0.7)], 600, CONFIG));
+    expect(state).toHaveLength(1);
+    expect(state[0].state).toBe('locked');
+    const lockedId = state[0].id;
+
+    // The counted item is physically removed and a different, high-confidence item (chips) is
+    // placed in roughly the same spot within the loss-tolerance window.
+    let events;
+    ({ candidates: state, events } = updateTracker(state, [region(box, '5561', 0.7)], 700, CONFIG));
+    expect(events).toHaveLength(0); // not held long enough yet, and doesn't absorb into the lock
+    expect(state).toHaveLength(2); // a brand new candidate, not a mutation of the locked one
+    const newCandidate = state.find((c) => c.id !== lockedId);
+    expect(newCandidate).toBeDefined();
+    expect(newCandidate!.skuCode).toBe('5561');
+    expect(newCandidate!.state).not.toBe('locked');
+
+    // Given enough dwell time, the new candidate independently locks and fires its own event —
+    // it was never absorbed into candidate A's lock.
+    ({ candidates: state, events } = updateTracker(state, [region(box, '5561', 0.7)], 1300, CONFIG));
+    const lockEvents = events.filter((e) => e.type === 'locked');
+    expect(lockEvents).toHaveLength(1);
+    expect(lockEvents[0].skuCode).toBe('5561');
+    expect(lockEvents[0].candidateId).toBe(newCandidate!.id);
+  });
+
+  it('still lets a locked candidate keep tracking a region with the same SKU or an unresolved read', () => {
+    const box = { x: 0, y: 0, w: 0.1, h: 0.1 };
+    let state = createTrackerState();
+    ({ candidates: state } = updateTracker(state, [region(box, '0417', 0.7)], 0, CONFIG));
+    ({ candidates: state } = updateTracker(state, [region(box, '0417', 0.7)], 600, CONFIG));
+    const lockedId = state[0].id;
+
+    // Same SKU again: still just position tracking, no new candidate, no re-fire.
+    let events;
+    ({ candidates: state, events } = updateTracker(state, [region(box, '0417', 0.7)], 700, CONFIG));
+    expect(state).toHaveLength(1);
+    expect(state[0].id).toBe(lockedId);
+    expect(events).toHaveLength(0);
+
+    // Unresolved read (skuCode null) in the same spot: also absorbed, not a new candidate.
+    ({ candidates: state, events } = updateTracker(state, [region(box, null, 0)], 800, CONFIG));
+    expect(state).toHaveLength(1);
+    expect(state[0].id).toBe(lockedId);
+    expect(events).toHaveLength(0);
+  });
 });
