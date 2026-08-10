@@ -47,10 +47,17 @@ export interface TrackerEvent {
   confidence: number;
 }
 
-export interface RawRegion {
-  box: Box;
+/** One candidate label the classifier proposed for a region, most confident first. */
+export interface LabelCandidate {
   label: string;
   confidence: number;
+}
+
+export interface RawRegion {
+  box: Box;
+  /** Candidate labels in descending confidence order. The top entry is often a generic
+   * hypernym with no catalog mapping, so consumers should try each in order. */
+  labels: LabelCandidate[];
   ocrText?: string;
 }
 

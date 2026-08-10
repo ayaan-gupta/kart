@@ -15,7 +15,11 @@ export function processFrame(
 ): { state: PipelineState; events: TrackerEvent[] } {
   const matchedRegions = rawRegions.map((region) => {
     const match = matchRegion(region, catalog);
-    return { box: region.box, skuCode: match.skuCode, confidence: match.skuCode ? region.confidence : 0 };
+    // Use the matcher's own combined confidence (classifier confidence blended with the OCR
+    // overlap score for ambiguous packaged-goods matches), not the raw classifier confidence.
+    // Otherwise a weak, barely-matching OCR read gets treated the same as a strong one, and OCR
+    // disambiguation never actually influences the tracker's tentative/locked decision.
+    return { box: region.box, skuCode: match.skuCode, confidence: match.matchConfidence };
   });
 
   const { candidates, events } = updateTracker(state.candidates, matchedRegions, now);
