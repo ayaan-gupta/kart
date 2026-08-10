@@ -23,6 +23,7 @@ import { Button } from '../components/Button';
 import { DetectionRow } from '../components/DetectionRow';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
+import { ItemHighlights } from '../components/ItemHighlights';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
 import { CATALOG } from '../engine/catalog';
@@ -199,12 +200,15 @@ export default function ScanScreen() {
     <View style={styles.screen}>
       <StatusBar style="light" />
       {device != null && hasPermission ? (
-        <Camera
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={true}
-          frameProcessor={frameProcessor}
-        />
+        <>
+          <Camera
+            style={StyleSheet.absoluteFill}
+            device={device}
+            isActive={true}
+            frameProcessor={frameProcessor}
+          />
+          <ItemHighlights candidates={liveCandidates} frameSize={frameSize} />
+        </>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.permissionFallback]}>
           <Sub color={color.onFeedSub} style={styles.permissionText}>
