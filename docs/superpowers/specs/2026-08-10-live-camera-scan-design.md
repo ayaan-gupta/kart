@@ -1,201 +1,183 @@
-# Live camera scanning + real cart persistence
-
-Date: 2026-08-10
-Status: Approved for planning
+# Live camera scan — design
 
 ## Problem
 
-Kart's scan screen currently plays a bundled demo video (`assets/videos/scan.mp4`) and
-replays a hardcoded, pre-computed recognition track (`src/engine/recognitionTrack.ts`) keyed
-to the video's playback clock. It never looks at what the user is actually holding the camera
-over. Separately, cart history (`hauls`) lives only in an in-memory zustand store and
-`seedHauls()` reseeds the same six demo carts on every app launch, so nothing a user actually
-scans survives a restart.
+Kart's scan screen currently replays a bundled video (`assets/videos/scan.mp4`) against a
+hand-baked recognition track (`src/engine/recognitionTrack.ts`) produced offline by
+`scripts/classify-regions.swift`. It looks live but recognizes nothing in real time — there is
+no camera involved. The goal of this work is to make the scan screen use the phone's actual
+camera and Apple's Vision framework to detect and classify real items in real time, replacing
+the simulated pipeline on iOS.
 
-This spec replaces both with the real thing: live camera capture with on-device visual
-recognition matched against the product catalog, and persisted cart history.
+## Constraints and scope decisions
 
-## Goals
-
-- Point the phone's camera at a real cart and have real items get recognized, live, no canned
-  video, no barcodes.
-- Multiple identical products (two bags of the same chips) each count as their own unit, not
-  collapsed into one.
-- Recognized items behave like the current demo's UX: outline on first sighting, tint once
-  counted, a hint when it looks like items remain unscanned.
-- Low-confidence reads get a distinct "look again" state instead of either silently guessing
-  wrong or silently doing nothing.
-- Finished carts persist across app restarts.
-
-## Non-goals (this pass)
-
-- Barcode/UPC scanning. Decided explicitly against it: the product goal is items being
-  recognized visually, the way a person would recognize them, not scanned.
-- A custom-trained model on Kart's own catalog. Planned as a later phase once this ships and
-  real accuracy gaps are known; collecting the training photos that would require is its own
-  project.
-- Robust re-identification of the same physical item across a broken camera track (see
-  "Duplicate counting" below for the accepted limitation and its mitigation).
+- **iOS only.** Vision is an Apple framework; there is no equivalent live pipeline for
+  Android or web in this iteration. Those platforms keep the existing bundled-video simulated
+  scan unchanged (see "Platform split" below).
+- **No Simulator support.** The iOS Simulator has no camera hardware. This feature can only be
+  built and tested on a physical iPhone, connected via Xcode (free Apple ID / personal-team
+  signing, consistent with the earlier distribution work). Claude cannot visually verify scan
+  accuracy itself — it has no way to point a camera at real groceries. Verification is a
+  build → user tests on-device → reports findings → retune loop, not a one-shot.
+- **Multi-item, simultaneous detection** (like the demo), not one-item-at-a-time scanning.
+- **Camera-only.** No manual search/add fallback for items Vision can't recognize. Items that
+  don't resolve simply stay uncounted, consistent with the existing "model failure becomes UX"
+  framing (garlic, mango, jalapenos in the demo).
+- **Catalog matching is best-effort across the full 42-SKU catalog**, but only produce-like
+  items (bananas, apples, avocados, tomatoes, onions, grapes, citrus, peppers, corn, garlic,
+  berries, melon, pineapple — roughly SKU codes `04xx`) are expected to reliably resolve.
+  Vision's general classifier is not trained to distinguish packaged goods (milk vs. oat milk,
+  which cereal box, which canned good) by appearance alone, so dairy/bakery/meat/pantry/snacks/
+  beverages/household/pet items will mostly stay unrecognized. This is expected, not a bug to
+  chase in this iteration.
 
 ## Architecture
 
-Live camera + Vision inference must run in native Swift; plain Expo/RN has no access to raw
-camera frames. This adds **react-native-vision-camera** (works under Expo via its config
-plugin) rather than a fully bespoke native camera module, it already solves capture session
-lifecycle, permissions, and preview rendering. The only new native code is a small Swift
-**Frame Processor Plugin** that runs Vision on a throttled subset of frames (roughly 3-4 times
-per second, not all 30fps, real-time-every-frame inference has no accuracy benefit here and
-burns battery) and returns plain data to JS: for each of the frame's top few salient regions,
-a bounding box, a classify label with confidence, and any OCR text found in that region.
-
-A JS-side recognition pipeline turns that raw, noisy, per-frame stream into stable state,
-matches it to the catalog, and calls the existing `store.addDetection(skuCode, confidence)`,
-so the store, bag tray, and cart-detail screens don't change, only what feeds them does.
-
 ```
-Camera frames (throttled ~3-4/sec)
-  -> Swift Frame Processor Plugin
-       - VNGenerateObjectnessBasedSaliencyImageRequest (top ~3 salient regions)
-       - VNClassifyImageRequest per region
-       - VNRecognizeTextRequest per region (for OCR-assisted matching)
-  -> JS: raw regions [{ box, label, confidence, ocrText }]
-  -> Tracker (IoU-matches regions to active candidates across frames)
-  -> Label matcher (label + OCR text -> catalog SKU)
-  -> Candidate state machine (forming -> yellow -> locked)
-  -> store.addDetection() on lock, exactly once per candidate
+AVCaptureSession (via react-native-vision-camera)
+  → Frame Processor (JS worklet, throttled to ~2.5 passes/sec)
+      → native Swift plugin: KartItemDetector
+          1. VNGenerateForegroundInstanceMaskRequest → N instance masks
+          2. per instance: bounding box → crop → VNClassifyImageRequest
+          3. return [{ box, label, confidence }]
+  → JS: liveScanEngine.ts
+      1. track boxes across passes (proximity match → stable trackId)
+      2. match label → SKU via keyword table
+      3. require 2 consecutive matching passes before committing
+      4. store.addDetection(skuCode, confidence)   ← existing store API, unchanged
+  → UI: ScanFeed (RNVC <Camera>) + ItemHighlights (now driven by live tracked boxes)
 ```
 
-### New modules
+The existing `src/engine/store.ts` (`useScanline`, `addDetection`, `aggregate`, `finishHaul`,
+etc.) is unchanged — this was already a clean seam. Everything upstream of `addDetection` is new.
 
-- `src/engine/liveVision/types.ts` — shared types: `RawRegion`, `TrackedCandidate`,
-  `CandidateState`.
-- `src/engine/liveVision/tracker.ts` — IoU-based frame-to-frame candidate tracking and the
-  confidence state machine. Pure logic, no camera or native dependency, unit-testable without
-  hardware.
-- `src/engine/liveVision/labelMatcher.ts` — keyword table mapping Vision labels to catalog
-  SKUs, plus fuzzy OCR-text matching against catalog names for visually ambiguous packaged
-  goods. Extends the mapping pattern already started for the garlic/onion case in the old
-  recognition track.
-- `src/engine/liveVision/frameProcessor.ts` — thin wrapper invoking the native Frame Processor
-  Plugin from a VisionCamera `useFrameProcessor` worklet.
-- ios native: a Frame Processor Plugin (Swift) implementing the Vision requests above.
+## Components
 
-### Changed modules
+### 1. Native: `ios/KartItemDetector` (new Swift frame processor plugin)
 
-- `src/app/scan.tsx` — swap the `expo-video` player and `onVideoTime` polling for
-  VisionCamera's `<Camera>` view driving the tracker pipeline.
-- `src/components/ItemHighlights.tsx` — render three tint states (was two: outline, green) and
-  take live, camera-relative box coordinates each frame instead of the old fixed
-  video-timeline boxes.
-- `src/engine/store.ts` — add persistence (below); no change to `addDetection`/`aggregate`,
-  they already support multiple detections of the same SKU correctly.
+- Registered as an RNVC Frame Processor Plugin, callable from a JS worklet as
+  `detectItems(frame)`.
+- Input: a `Frame` (RNVC's wrapper around `CMSampleBuffer`).
+- Pipeline per invocation:
+  1. Convert/downscale the frame to a manageable size for Vision (target ~640px on the long
+     edge — full sensor resolution is unnecessary cost for classification).
+  2. Run `VNGenerateForegroundInstanceMaskRequest` via `VNImageRequestHandler`.
+  3. For each returned instance (cap at 8, largest area first): derive a normalized bounding
+     box from the instance mask, crop that region from the frame.
+  4. Run `VNClassifyImageRequest` on each crop; keep the top label if confidence ≥ 0.15.
+  5. Return an array of plain objects: `{ box: {x,y,w,h} (0..1 normalized), label: string,
+     confidence: number }`.
+- Defensive: wrap the whole pipeline in try/catch; on any native error, return `[]` for that
+  pass rather than throwing (a dropped pass is invisible to the user; a crash is not).
+- Throttling lives in the JS worklet that calls this plugin (see below), not in the plugin
+  itself — the plugin always does full work when invoked.
 
-### Retired
+### 2. JS: `src/engine/liveScanEngine.ts` (new, parallel to existing `scanEngine.ts`)
 
-- `src/engine/scanEngine.ts`, `src/engine/recognitionTrack.ts`, and the scan screen's use of
-  `assets/videos/scan.mp4` are no longer wired into the live scan flow. `scripts/classify-regions.swift`
-  stays in the repo; it's still useful for offline calibration when tuning thresholds against
-  new sample footage.
+Responsibilities, replacing what `scanEngine.ts` does for video playback:
 
-## Label matching
+- **Throttle**: only invoke the native frame processor roughly every 400ms (~2.5Hz), not
+  every camera frame. Exact mechanism (fps-capped `useFrameProcessor` vs. a manual
+  timestamp guard inside the worklet) is an implementation detail to confirm against the
+  installed RNVC version's docs during implementation.
+- **Tracking**: maintain a list of live tracks (`{ trackId, box, label, confidence, streak,
+  committed }`). On each pass, match new raw detections to existing tracks by center-distance
+  or IoU; unmatched new detections start a new track; unmatched old tracks that miss a couple
+  of passes in a row are dropped (handles items leaving frame).
+- **Smoothing**: track positions feed Reanimated shared values with `withSpring` so the UI
+  doesn't jump discretely every ~400ms even though detection itself is not per-frame.
+- **Catalog matching**: `matchLabelToSku(label: string): Sku | null` — keyword/synonym lookup
+  against `CATALOG` names (new small table living next to this function, e.g. `"bell pepper" →
+  "0423"`, `"garlic" → "0425"`). Returns `null` for anything unmatched; unmatched tracks are
+  still drawn (so the highlight can appear) but never committed.
+- **Commit rule**: a track must resolve to the *same* SKU across 2 consecutive passes
+  (~800ms) before it fires `store.addDetection(skuCode, confidence)`, and fires at most once
+  per track — mirrors the existing lock-on (white outline) → counted (green tint) UX, just
+  driven by real tracking instead of a fixed script index.
+- Exposes `startLiveScan()` / `stopLiveScan()` mirroring the existing `startScanEngine()` /
+  `stopScanEngine()` shape, plus a live boxes accessor the UI reads from (shared value or
+  small zustand slice — implementation detail).
 
-Vision's classifier returns generic labels ("grape," "corn," "bottle," "box"), the same
-classifier already validated in the offline pipeline. A keyword table maps labels to catalog
-SKUs. Produce matches on label alone, shape and color are usually distinctive enough. Packaged
-goods (Pantry, Household, Beverages, categories where multiple SKUs share a generic silhouette
-like "bottle" or "box") add the OCR text pulled from the same crop as a tiebreaker, fuzzy-matched
-against catalog names, this is how a person actually tells two boxes apart too, by reading them,
-not by outline.
+### 3. UI changes
 
-## Candidate tracking and confidence tiers
+- **`ScanFeed.tsx`**: replace `expo-video`'s `<VideoView>` with RNVC's `<Camera>` component
+  (same `StyleSheet.absoluteFill`, same scrim gradients layered on top unchanged). Camera
+  permission is requested before mounting the camera; a denied state shows a clear message
+  instead of a blank/crashed feed.
+- **`ItemHighlights.tsx`**: remove the hard dependency on `RECOGNITION_TRACK` / `SCAN_VIDEO` /
+  `timeSv`. New props take a live list of boxes: `{ trackId, skuCode, box: {x,y,w,h}
+  (0..1 normalized to the camera frame), locked: boolean }[]`. The existing per-box animation
+  (white outline → spring in → green tint + checkmark badge after commit) is preserved as-is;
+  only the data source changes. The current `contentFit: cover`-style frame-to-view mapping
+  logic is generalized (today it's hardcoded to `SCAN_VIDEO`'s fixed 496×1080 dims; it needs
+  to use the live camera frame's actual dimensions instead, which RNVC exposes).
+- **`scan.tsx`**: swap `useVideoPlayer` / `onVideoTime` / `startScanEngine` /
+  `stopScanEngine` calls for camera-permission handling + `startLiveScan()` /
+  `stopLiveScan()`. `RecordChip` (elapsed-time indicator) is unaffected — it already just
+  reads `startedAt` from the store.
 
-Each throttled frame produces zero to three raw regions. A tracker maintains a list of active
-candidates:
+### 4. Platform split
 
-- A raw region is matched to an existing active candidate if their boxes overlap above an IoU
-  threshold; if matched, the candidate's label history and last-seen box update. If unmatched,
-  a new candidate is created.
-- A candidate not matched by any region for longer than a short tolerance (allowing brief
-  occlusion or a dropped frame, on the order of half a second) is considered lost and removed
-  from active tracking.
-- Each candidate's rolling label history drives its visual/logical state:
-  - **Forming** (white outline): seen, not yet stable. Not counted.
-  - **Tentative** (yellow tint): a stable label with confidence below the "confident"
-    threshold, or an ambiguous packaged-goods match. Not yet added to the bag. The scan
-    screen's existing hint banner nudges the user to bring it closer or hold the label
-    steadier for a better OCR read. If confidence later crosses the confident threshold, it
-    promotes to locked. If the candidate is lost while still tentative, it's dropped
-    uncounted, no wrong add, no penalty, it can be picked up as a fresh candidate later.
-  - **Locked** (green tint): confidence crossed the confident threshold and held for a short
-    minimum dwell time. `store.addDetection(skuCode, confidence)` fires exactly once, at the
-    moment of the forming/tentative -> locked transition. Stays green while tracked; once
-    lost, nothing further happens, it's already counted.
-- Exact confidence thresholds (yellow floor, confident threshold, dwell time, IoU match
-  threshold, loss tolerance) are starting points to tune against real items on a physical
-  device during implementation; they are not fixed requirements of this spec.
+`scan.tsx` (or a thin wrapper) branches on `Platform.OS`:
+- **iOS**: the new live camera pipeline described above.
+- **Android / web**: unchanged — the existing bundled-video + `recognitionTrack.ts` +
+  `scanEngine.ts` path stays exactly as it is today. This keeps the web build already
+  deployed at kart-preview.vercel.app working as a demo, and gives Android a reasonable
+  (simulated) experience rather than nothing.
 
-### Duplicate counting
+`recognitionTrack.ts`, `scanEngine.ts`, `classify-regions.swift`, and the bundled video are
+**not deleted** — they become the non-iOS code path instead of the only path.
 
-Because locking happens per tracked candidate, not per SKU, two physically distinct bags of
-the same chips in view (whether simultaneously or swept over one after another) each get their
-own candidate, each independently locks, each independently calls `addDetection`. The store's
-existing `aggregate()` already sums same-SKU detections into a quantity, so two bags of chips
-correctly become qty 2 with no change needed at the store layer.
+## Data flow summary
 
-**Accepted limitation**: if a single physical item is fully lost from tracking after being
-counted (leaves the frame, or is occluded past the loss tolerance) and the camera later sweeps
-back over that same, still-unmoved item, the tracker has no way to tell it apart from a
-genuinely new one, there's no barcode or persistent identity to check against. This can
-double-count an item the user never actually duplicated. The mitigation is the workflow this
-whole design was built around: physically moving counted (green) items out of the main pile as
-they lock, so the camera doesn't pass back over them. This is a real limit of vision-only
-recognition, not something a smarter threshold fixes; true re-identification is a
-P2B-class problem alongside the custom-trained-model phase.
+```
+camera frame → (throttled) native Vision pass → raw detections
+  → JS tracking (stable trackId, smoothed position)
+  → label→SKU match
+  → 2-pass stability gate
+  → store.addDetection(skuCode, confidence)   [existing, unchanged]
+  → existing UI (BagTray, DetectionRow, cart totals) unchanged downstream of the store
+```
 
-## Coverage hint
-
-The current hint banner fires once, hardcoded to a fixed timestamp about the garlic. This
-becomes dynamic: if the camera keeps finding candidates but nothing new has locked to green
-(or a tentative candidate lingers unresolved) for a few seconds, the same top hint banner UI
-fires a generic "looks like you have more items, try moving what's already scanned" message.
-
-## Persistence
-
-Wrap the existing zustand store with the `persist` middleware (`zustand/middleware`, already
-available in the installed zustand version) backed by `@react-native-async-storage/async-storage`
-(new dependency). `hauls` serializes to storage on every change. `seedHauls()` runs only when
-storage is genuinely empty (first-ever launch), never on subsequent launches, so a finished
-cart survives an app restart.
+Everything from `store.addDetection` onward (bag tray, totals, finish-cart flow, cart detail)
+is already built and does not change.
 
 ## Error handling
 
-- Camera permission denied: standard friendly explanation with a settings deep link, matching
-  platform conventions.
-- A Vision request failing on a given frame (malformed frame, momentary resource pressure):
-  skip that frame's results, don't crash, the next throttled frame tries again.
-- AsyncStorage read failure on boot: fall back to seed data rather than crashing, log the
-  failure.
-- No network dependency anywhere in this pipeline, everything is on-device, so there's no
-  offline/connectivity error path to handle.
+- **Camera permission denied**: scan screen shows a message + a way to open Settings, instead
+  of an empty/broken feed. Does not crash.
+- **No instances in frame**: zero boxes rendered — same as the current idle/empty state, not
+  an error.
+- **Native Vision pipeline error on a given pass**: caught in Swift, that pass returns `[]`,
+  next pass tries again. Never propagates as a crash.
+- **Frame processor plugin missing/unregistered** (e.g. prebuild didn't pick it up): should
+  fail loudly in development (console error) rather than silently doing nothing, so it's
+  obvious during the build → test loop.
+- **Device below iOS 17** (no `VNGenerateForegroundInstanceMaskRequest`): out of scope to
+  handle gracefully in this iteration — the app already positions itself as "best on iOS 26,"
+  so this is a documented minimum rather than a soft-degrade path.
 
-## Testing
+## Testing / verification plan
 
-This is heavily hardware-dependent (no live camera in the iOS Simulator), so testing splits
-into what can be verified without a device and what can't:
+Given the Simulator cannot exercise a camera at all, verification is necessarily different
+from prior work in this project:
 
-- **Without hardware** (unit tests): the tracker's IoU matching and state transitions, the
-  label matcher's keyword/OCR fuzzy matching, and the persistence serialization round-trip.
-  All pure logic, no camera or native code involved.
-- **On physical hardware only**: pointing the camera at real groceries and confirming the
-  white -> yellow -> green progression, the coverage hint firing appropriately, duplicate
-  items counting as separate quantities, and confidence thresholds actually behaving
-  reasonably against real lighting and real products. This cannot be meaningfully faked in the
-  simulator or with synthetic test images; it needs a real device and real items.
+1. `npx expo prebuild --platform ios` (picks up the new RNVC config plugin + native module).
+2. `npx expo run:ios --device` to the connected physical iPhone (free Apple ID / personal
+   team, per the earlier distribution conversation; re-signs weekly as needed).
+3. Claude verifies: app launches without crashing, camera permission prompt appears correctly,
+   denied-state UI works if permission is refused, and (via console/log output, not visual
+   inspection) that detection passes are firing and reaching `store.addDetection`.
+4. **Recognition accuracy itself must be verified by the user**, phone in hand, pointed at
+   real groceries. Expect to report back what resolved, what didn't, and any obviously wrong
+   matches — that feedback drives retuning the keyword-match table and confidence/stability
+   thresholds. This is an iterative loop, not a single pass.
 
-## Open items to tune during implementation
+## Out of scope (this iteration)
 
-- Actual threshold values (yellow floor, confident threshold, dwell time, IoU match, loss
-  tolerance) — start with reasonable defaults, tune against real-device testing.
-- The label-to-SKU keyword table and OCR fuzzy-match rules — will grow as real-device testing
-  surfaces mismatches, same iterative process the offline pipeline already went through for
-  the garlic/onion case.
+- Manual add/search fallback for unrecognized items.
+- Android or web live camera detection.
+- Per-frame optical-flow tracking (`VNTrackObjectRequest`) for smoother inter-pass motion —
+  spring-smoothed interpolation between ~400ms passes is the v1 bar; revisit if it feels too
+  laggy in practice.
+- Handling devices below iOS 17.
