@@ -12,3 +12,37 @@ export interface MatchResult {
    * ambiguous labels, how well the OCR text matched the winning candidate's name. */
   matchConfidence: number;
 }
+
+export type CandidateState = 'forming' | 'tentative' | 'locked';
+
+export interface TrackedCandidate {
+  id: string;
+  box: Box;
+  skuCode: string | null;
+  confidence: number;
+  state: CandidateState;
+  lastSeenAt: number;
+  /** When the current skuCode guess first reached greenConfidence, continuously. Null if not currently above it. */
+  stableSince: number | null;
+}
+
+export interface TrackerConfig {
+  iouMatchThreshold: number;
+  lossToleranceMs: number;
+  yellowConfidence: number;
+  greenConfidence: number;
+  minDwellMs: number;
+}
+
+export interface MatchedRegion {
+  box: Box;
+  skuCode: string | null;
+  confidence: number;
+}
+
+export interface TrackerEvent {
+  type: 'locked';
+  candidateId: string;
+  skuCode: string;
+  confidence: number;
+}
