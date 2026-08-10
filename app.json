@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "scanline",
+    "name": "Kart",
     "slug": "scanline",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scanline",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F2F4F5",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -28,11 +29,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#F2F4F5",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
