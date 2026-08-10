@@ -46,3 +46,14 @@ export interface TrackerEvent {
   skuCode: string;
   confidence: number;
 }
+
+export interface RawRegion {
+  box: Box;
+  label: string;
+  confidence: number;
+  ocrText?: string;
+}
+
+export interface PipelineState {
+  candidates: TrackedCandidate[];
+}
