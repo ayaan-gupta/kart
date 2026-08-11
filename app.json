@@ -13,7 +13,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Kart needs your camera to scan items as you shop."
       },
-      "bundleIdentifier": "com.anonymous.scanline"
+      "bundleIdentifier": "dev.ayaangupta.kart"
     },
     "android": {
       "adaptiveIcon": {
