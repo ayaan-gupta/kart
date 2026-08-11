@@ -1,70 +1,74 @@
-# Kart
+<p align="center">
+  <img src="assets/images/kart-logo.svg" width="72" alt="Kart logo" />
+</p>
 
-Scan your groceries as you shop. Point the camera at your cart, watch items get recognized with
-their real photos and added to your bag live, then finish the cart and keep a history of every
-trip.
+<h1 align="center">Kart</h1>
+<p align="center">Scan your groceries as you shop, live, with your camera.</p>
 
-Built with Expo (React Native). The scan is genuinely live: `react-native-vision-camera` feeds
-throttled camera frames to a native Swift Frame Processor Plugin that runs Apple Vision on-device
-— saliency detection to find items in frame, the image classifier to read what they are, and text
-recognition to disambiguate packaged goods by their label — no barcodes anywhere. A JS pipeline
-matches that output against the product catalog and tracks each item across frames with a
-forming (white outline) → tentative (amber, low confidence) → locked (green, counted) state
-machine, so two physically distinct items of the same SKU each count on their own. Finished carts
-persist across restarts via AsyncStorage. `scripts/classify-regions.swift` remains in the repo as
-an offline calibration tool for validating the classifier against sample footage ahead of tuning
-live thresholds, but it no longer drives the app itself.
+<p align="center">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-iOS-black">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
+</p>
 
-## Run it
+Point your phone's camera over your cart and Kart recognizes what's in it in real time. No
+barcodes, no manual entry. Each item gets outlined the moment the camera finds it, tints green
+once it's confidently counted, and drops into your bag with its real product photo and price.
+Finish the cart and it joins your trip history, persisted across launches.
+
+## How it works
+
+Kart runs Apple's Vision framework on-device, live, through a native Swift frame processor:
+
+1. **Find**: `VNGenerateObjectnessBasedSaliencyImageRequest` locates the most salient regions
+   in each throttled camera frame.
+2. **Read**: each region is classified (`VNClassifyImageRequest`) and OCR'd
+   (`VNRecognizeTextRequest`) to disambiguate packaged goods that look alike.
+3. **Track**: a JS-side IoU tracker follows each item across frames through a forming →
+   tentative → locked confidence state machine, so two of the same product each count as their
+   own unit.
+4. **Match**: labels and OCR text resolve against the product catalog; a lock fires exactly
+   once per physical item.
+
+No barcode scanning, no cloud calls. Everything runs on-device.
+
+## Features
+
+- Live camera recognition with real-time item outlines and confidence states
+- Real product photos and pricing pulled into every scan
+- Cart history that persists across app restarts
+- Native iOS 26 Liquid Glass chrome
+
+## Tech stack
+
+- **Expo (React Native)** + Expo Router, TypeScript
+- **react-native-vision-camera** for the camera pipeline and frame processors
+- **Apple Vision** (Swift) for on-device saliency detection, classification, and text recognition
+- **Zustand** with AsyncStorage for state and persistence
+- **Reanimated** for the interface
+
+## Getting started
 
 ```bash
 npm install
 npx expo run:ios
 ```
 
-Requires a custom dev build, not Expo Go — the live camera pipeline needs the native Vision frame
-processor plugin (`ios/`, committed to this repo), which isn't in Expo Go's prebuilt binary. The
-simulator has no real camera, so the scan feature's actual recognition can only be verified on a
-physical device; everything else (including the whole app on the simulator) works normally.
-Best on an iOS 26 device, where the floating chrome uses genuine Liquid Glass.
+Requires a custom dev build, not Expo Go, and a physical iOS device. The Simulator has no
+camera, so live recognition can only be verified on real hardware; everything else runs fine in
+the Simulator. Best on iOS 26, where the floating chrome uses genuine Liquid Glass.
 
-## The app
-
-- **Home**: the Kart logo up top, monthly spend at a glance, your latest cart, and earlier trips
-  as photo-collage cards.
-- **Scan** (the orange plus): a live camera view over the groceries, like holding your phone above
-  the cart. Items get a white outline as the model first notices them, amber if the read is still
-  too unsure to trust, then a green tint once it's confidently counted; whatever is untinted is
-  still left to scan. Recognized items pop up cardless with their photo, an orange check, name,
-  and price, then drop into the bag. The bag is a white tray fixed to the bottom edge of the
-  screen; tap or swipe it up and the full bag expands out of it, live, with a total and "Finish
-  cart". A hint appears at the top, never blocking, if items seem to still be waiting to be
-  scanned.
-- **Cart detail**: every item with its photo, quantity, and price, plus the trip total.
-
-## Structure
+## Project structure
 
 ```
 src/
-  design/      tokens.ts, type.tsx (system font scale)
-  engine/      catalog.ts, store.ts (carts + scan session, persisted via AsyncStorage)
-  engine/liveVision/  geometry.ts, labelCatalog.ts, labelMatcher.ts, tracker.ts, pipeline.ts,
-                       coverageHint.ts, frameProcessor.ts (the live recognition pipeline)
-  components/  BagTray, DetectionRow, ItemHighlights, ProductImage, HaulCard,
-               FloatingNav, GlassSurface, KartLogo, SkuTile, Button, IconButton, PressableScale
-  app/         index (home), hauls (all carts), scan, haul/[id]
-ios/
-  Kart/        KartVisionFrameProcessorPlugin.swift/.m (native Vision frame processor)
+  app/                 Screens: home, hauls, scan, cart detail
+  components/          BagTray, ItemHighlights, HaulCard, GlassSurface, ...
+  design/              Design tokens and type scale
+  engine/              Catalog, store (carts + scan session, persisted)
+  engine/liveVision/   The live recognition pipeline: tracker, label matcher, coverage hints
+ios/Kart/              Native Swift Vision frame processor
 ```
 
-## Media
+## License
 
-- Logo: kart-logo.svg and kart-logo-animated.svg, provided by the owner. The animated version
-  drives the launch loader (AnimatedKartLogo).
-- Product photos: spoonacular ingredient CDN and Open Food Facts / Open Products Facts
-  (community photos, CC licensed), fetched by scripts/fetch-images.mjs into assets/products.
-  Demo use; recheck licenses before any commercial release.
-
-Design notes: off-white surfaces, system font with weight-driven hierarchy, Kart orange as the
-single accent, real product photos on white tiles, Liquid Glass only for floating chrome, springs
-with no bounce, 44pt touch floor.
+MIT. See [LICENSE](LICENSE).
