@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { compositeMarks, placeLabel, type Mark } from "../src/compositor.js";
+import {
+  compositeMarks,
+  placeLabel,
+  resolveLabelPositions,
+  BADGE_DIAMETER_PX,
+  type Mark,
+} from "../src/compositor.js";
 
 async function blankImage(w: number, h: number): Promise<Buffer> {
   return sharp({
@@ -54,5 +60,68 @@ describe("compositeMarks", () => {
   it("handles zero marks without throwing", async () => {
     const src = await blankImage(800, 600);
     await expect(compositeMarks(src, [], 800)).resolves.toBeInstanceOf(Buffer);
+  });
+});
+
+describe("resolveLabelPositions", () => {
+  it("keeps a single isolated mark exactly where placeLabel puts it", () => {
+    const box = { x: 0.3, y: 0.3, w: 0.2, h: 0.2 };
+    const marks: Mark[] = [{ id: 1, box }];
+
+    const resolved = resolveLabelPositions(marks, 1000, 1000);
+    const expected = placeLabel(box, 1000, 1000);
+
+    expect(resolved).toEqual([{ id: 1, x: expected.x, y: expected.y }]);
+  });
+
+  it("gives every mark a badge, even when boxes are packed tightly together", () => {
+    const marks: Mark[] = [
+      { id: 1, box: { x: 0.1, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 2, box: { x: 0.18, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 3, box: { x: 0.26, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 4, box: { x: 0.34, y: 0.3, w: 0.08, h: 0.2 } },
+    ];
+
+    const resolved = resolveLabelPositions(marks, 400, 400);
+
+    expect(resolved).toHaveLength(marks.length);
+    expect(resolved.map((p) => p.id)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("keeps every resolved badge at least a badge diameter from every other, for touching adjacent boxes", () => {
+    // Four product-sized (8% wide), touching boxes on a small frame: their preferred
+    // (placeLabel) centres alone would land closer together than a badge diameter, so this
+    // only passes if the de-confliction pass actually nudges the later badges apart.
+    const marks: Mark[] = [
+      { id: 1, box: { x: 0.1, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 2, box: { x: 0.18, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 3, box: { x: 0.26, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 4, box: { x: 0.34, y: 0.3, w: 0.08, h: 0.2 } },
+    ];
+
+    const resolved = resolveLabelPositions(marks, 400, 400);
+
+    for (let i = 0; i < resolved.length; i++) {
+      for (let j = i + 1; j < resolved.length; j++) {
+        const dx = resolved[i].x - resolved[j].x;
+        const dy = resolved[i].y - resolved[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        expect(dist).toBeGreaterThanOrEqual(BADGE_DIAMETER_PX);
+      }
+    }
+  });
+
+  it("is deterministic: the same marks in the same order resolve to identical positions every time", () => {
+    const marks: Mark[] = [
+      { id: 1, box: { x: 0.1, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 2, box: { x: 0.18, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 3, box: { x: 0.26, y: 0.3, w: 0.08, h: 0.2 } },
+      { id: 4, box: { x: 0.34, y: 0.3, w: 0.08, h: 0.2 } },
+    ];
+
+    const first = resolveLabelPositions(marks, 400, 400);
+    const second = resolveLabelPositions(marks, 400, 400);
+
+    expect(second).toEqual(first);
   });
 });

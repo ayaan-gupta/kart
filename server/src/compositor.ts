@@ -25,6 +25,107 @@ export function placeLabel(box: Box, imgW: number, imgH: number): { x: number; y
   };
 }
 
+/** Badge diameter in pixels, exposed so callers (and tests) can reason about spacing without duplicating LABEL_R. */
+export const BADGE_DIAMETER_PX = LABEL_R * 2;
+
+/** Small buffer added on top of the badge diameter so adjacent badges get a visible gap, not just a graze. */
+const MIN_BADGE_GAP_PX = 4;
+const MIN_BADGE_SEPARATION_PX = BADGE_DIAMETER_PX + MIN_BADGE_GAP_PX;
+
+export type LabelPosition = { id: number; x: number; y: number };
+
+function clampToFrame(x: number, y: number, imgW: number, imgH: number): { x: number; y: number } {
+  return {
+    x: Math.min(Math.max(x, LABEL_R + 2), imgW - LABEL_R - 2),
+    y: Math.min(Math.max(y, LABEL_R + 2), imgH - LABEL_R - 2),
+  };
+}
+
+function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/**
+ * Candidate badge anchors for a single box, in priority order: placeLabel's own preferred
+ * spot first, then the box's four corners, then its remaining edge midpoints. Each candidate
+ * is clamped into the frame the same way placeLabel clamps its result, so every candidate is
+ * independently a valid, fully visible badge position for this box; the only question
+ * resolveLabelPositions has to answer is which one avoids already-placed neighbours.
+ */
+function candidateAnchors(box: Box, imgW: number, imgH: number): { x: number; y: number }[] {
+  const left = box.x * imgW;
+  const top = box.y * imgH;
+  const right = (box.x + box.w) * imgW;
+  const bottom = (box.y + box.h) * imgH;
+  const cx = (left + right) / 2;
+  const cy = (top + bottom) / 2;
+
+  const raw = [
+    placeLabel(box, imgW, imgH), // preferred: centred, just inside the top edge
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: left, y: bottom },
+    { x: right, y: bottom },
+    { x: cx, y: bottom },
+    { x: left, y: cy },
+    { x: right, y: cy },
+  ];
+  return raw.map((p) => clampToFrame(p.x, p.y, imgW, imgH));
+}
+
+/**
+ * Resolves a non-overlapping badge centre for every mark.
+ *
+ * placeLabel's contract is deliberately single-box: given one box, where should its badge go.
+ * It has no visibility into any other mark, so two marks with nearby or touching boxes (common
+ * in a cart photo, where products sit side by side) can both prefer the same spot and land on
+ * top of each other. That is the only thing this function adds: it calls placeLabel for each
+ * mark's first choice, then walks the marks in order and, whenever a mark's candidate badge
+ * would land within MIN_BADGE_SEPARATION_PX of a badge already placed, tries the next anchor
+ * on that mark's own box (its corners, then its remaining edge midpoints) until one clears the
+ * gap. If none of a box's candidates clear the gap, for example because several boxes are
+ * packed tightly enough that no arrangement is fully collision-free, the candidate with the
+ * largest distance to its nearest already-placed neighbour is kept instead of dropping the
+ * mark: a crowded badge can still be read as "some number is here"; a missing badge means the
+ * model is silently never asked about that region at all, which is strictly worse.
+ *
+ * Deterministic: this is a single left-to-right pass over `marks` with no randomness and no
+ * dependence on anything but each mark's own box and the positions already chosen earlier in
+ * the same pass, so the same marks in the same order always resolve to the same positions.
+ * That matters because the eval harness compares runs.
+ */
+export function resolveLabelPositions(
+  marks: Mark[],
+  imgW: number,
+  imgH: number,
+): LabelPosition[] {
+  const placed: LabelPosition[] = [];
+
+  for (const mark of marks) {
+    const candidates = candidateAnchors(mark.box, imgW, imgH);
+
+    let best = candidates[0];
+    let bestMinDist = -Infinity;
+
+    for (const candidate of candidates) {
+      const minDist = placed.reduce((min, p) => Math.min(min, distance(p, candidate)), Infinity);
+      if (minDist >= MIN_BADGE_SEPARATION_PX) {
+        best = candidate;
+        bestMinDist = minDist;
+        break;
+      }
+      if (minDist > bestMinDist) {
+        bestMinDist = minDist;
+        best = candidate;
+      }
+    }
+
+    placed.push({ id: mark.id, x: best.x, y: best.y });
+  }
+
+  return placed;
+}
+
 /**
  * Burns numbered Set-of-Mark badges and region outlines onto the image.
  *
@@ -49,13 +150,15 @@ export async function compositeMarks(
   const resized = await base.resize(w, h, { fit: "fill" }).jpeg({ quality: 88 }).toBuffer();
   if (marks.length === 0) return resized;
 
+  const positions = resolveLabelPositions(marks, w, h);
+
   const shapes = marks
-    .map((m) => {
+    .map((m, i) => {
       const rx = m.box.x * w;
       const ry = m.box.y * h;
       const rw = m.box.w * w;
       const rh = m.box.h * h;
-      const { x, y } = placeLabel(m.box, w, h);
+      const { x, y } = positions[i];
       return `
         <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}"
               width="${rw.toFixed(1)}" height="${rh.toFixed(1)}"
