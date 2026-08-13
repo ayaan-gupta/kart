@@ -10,10 +10,22 @@ vi.mock("../src/recognize.js", () => ({
 }));
 
 const { runCensus } = await import("../src/recognize.js");
-const { default: handler } = await import("../api/census.js");
+const { default: handler, parseMarks } = await import("../api/census.js");
 const { REQUEST_TIMEOUT_MS } = await import("../src/http.js");
 
 const runCensusMock = runCensus as unknown as ReturnType<typeof vi.fn>;
+
+// vi.useFakeTimers() and vi.advanceTimersByTimeAsync do not reliably service a REAL
+// pending async operation (assertReasonablePixelDimensions's sharp().metadata() call,
+// which resolves via a genuine libuv/thread-pool completion, not a JS timer) that is
+// already in flight when fake time is advanced: confirmed by direct repro, advancing
+// fake timers alone left that promise permanently unresolved and the test timed out.
+// A short real-time delay, using the real setTimeout captured here before any test
+// fakes it, gives that genuine async work a chance to complete on its own first.
+const realSetTimeout = globalThis.setTimeout;
+function realDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => realSetTimeout(resolve, ms));
+}
 
 async function tinyJpegBase64(): Promise<string> {
   const buf = await sharp({
@@ -207,17 +219,29 @@ describe("POST /api/census: marks validation", () => {
     expect(res.status).toBe(400);
   });
 
-  it("rejects a NaN box coordinate (NaN compares false to both < 0 and > 1)", async () => {
-    const marks = [{ id: 1, box: { x: NaN, y: 0, w: 0.1, h: 0.1 } }];
-    const res = await handler(post({ image: validImage, marks }));
+  it("rejects an Infinity box coordinate sent as a genuine numeric-overflow JSON literal", async () => {
+    // JSON has no NaN literal, but it does allow exponent literals whose value overflows a
+    // double to Infinity: JSON.parse("1e400") really does yield Infinity. Building the request
+    // body as raw JSON text (not JSON.stringify of a JS object containing the JS value
+    // Infinity, which JSON.stringify silently turns into the text "null") is what makes this
+    // test exercise the real wire format a hostile client could actually send.
+    const rawBody = '{"image":' + JSON.stringify(validImage) + ',"marks":[{"id":1,"box":{"x":1e400,"y":0,"w":0.1,"h":0.1}}]}';
+    const res = await handler(post(rawBody));
     expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Bad request" });
   });
 
-  it("rejects an Infinity box coordinate", async () => {
-    const marks = [{ id: 1, box: { x: Infinity, y: 0, w: 0.1, h: 0.1 } }];
-    const res = await handler(post({ image: validImage, marks }));
-    expect(res.status).toBe(400);
-  });
+  it(
+    "parseMarks unit test (not reachable via HTTP JSON, defence in depth only): rejects a literal NaN box coordinate",
+    () => {
+      // No valid JSON document can ever produce a literal NaN (RFC 8259 has no NaN token, and
+      // JSON.stringify(NaN) serialises to the text "null", which the earlier typeof check
+      // already rejects before this code path is reached). This calls parseMarks directly with
+      // a real JS NaN value to prove the Number.isFinite guard itself is correct, without
+      // implying an attacker can reach it this way over HTTP.
+      expect(() => parseMarks([{ id: 1, box: { x: NaN, y: 0, w: 0.1, h: 0.1 } }])).toThrow();
+    },
+  );
 
   it("rejects a negative box coordinate", async () => {
     const marks = [{ id: 1, box: { x: -0.1, y: 0, w: 0.1, h: 0.1 } }];
@@ -251,6 +275,48 @@ describe("POST /api/census: marks validation", () => {
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
     expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks);
+  });
+});
+
+describe("POST /api/census: pixel-dimension guard", () => {
+  it(
+    "rejects an image whose decoded pixel dimensions exceed the ceiling, before runCensus is called",
+    async () => {
+      // 9000 x 7000 = 63,000,000 pixels, over the 60,000,000 ceiling, while a solid-colour JPEG
+      // at that quality compresses to a tiny file: proves this is the *pixel*-dimension guard
+      // catching it, not the earlier 12MB compressed-byte-size check.
+      const oversized = await sharp({
+        create: { width: 9000, height: 7000, channels: 3, background: { r: 120, g: 120, b: 120 } },
+      })
+        .jpeg({ quality: 60 })
+        .toBuffer();
+      expect(oversized.length).toBeLessThan(12 * 1024 * 1024);
+
+      const res = await handler(post({ image: oversized.toString("base64"), marks: [] }));
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: "Bad request" });
+      // The point of this test: the guard must run, and reject, before the expensive
+      // recognition call, not merely produce the same status code some other way.
+      expect(runCensusMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("accepts an image at a realistic modern phone camera resolution (48MP, 8064x6048)", async () => {
+    runCensusMock.mockResolvedValueOnce({
+      marks: [],
+      unmarkedItems: [],
+      inViewCounts: [],
+      occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+    });
+    const phonePhoto = await sharp({
+      create: { width: 8064, height: 6048, channels: 3, background: { r: 90, g: 90, b: 90 } },
+    })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+    const res = await handler(post({ image: phonePhoto.toString("base64"), marks: [] }));
+    expect(res.status).toBe(200);
+    expect(runCensusMock).toHaveBeenCalled();
   });
 });
 
@@ -289,6 +355,9 @@ describe("POST /api/census: upstream failure never leaks", () => {
       runCensusMock.mockImplementationOnce(() => new Promise(() => {}));
       const marks = [{ id: 1, box: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } }];
       const resPromise = handler(post({ image: validImage, marks }));
+      // Let the handler's real (unmocked) assertReasonablePixelDimensions call resolve on its
+      // own real-time tick before advancing fake time; see realDelay's comment above.
+      await realDelay(50);
       await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 500);
       const res = await resPromise;
       expect(res.status).toBe(500);

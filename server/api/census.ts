@@ -4,6 +4,7 @@ import {
   assertJsonContentType,
   assertJsonObject,
   assertReasonableContentLength,
+  assertReasonablePixelDimensions,
   decodeBase64Image,
   fail,
   json,
@@ -20,7 +21,9 @@ export const config = { runtime: "nodejs" };
  */
 const MAX_MARKS = 40;
 
-function parseMarks(value: unknown): Mark[] {
+/** Exported so tests can exercise malformed box coordinates (e.g. NaN) directly as JS
+ * values, bypassing JSON.stringify, which cannot produce a literal NaN over the wire. */
+export function parseMarks(value: unknown): Mark[] {
   if (!Array.isArray(value)) throw new Error("marks must be an array");
   if (value.length > MAX_MARKS) throw new Error("too many marks");
 
@@ -37,10 +40,13 @@ function parseMarks(value: unknown): Mark[] {
     seenIds.add(m.id);
     for (const k of ["x", "y", "w", "h"] as const) {
       const v = b[k];
-      // Number.isFinite (not just typeof "number" with a range comparison) is required here:
-      // NaN compares false to both `< 0` and `> 1`, so a plain range check silently lets NaN
-      // through. Infinity and -Infinity are already caught by the range comparison, but
-      // Number.isFinite covers all three in one call and is the clearer guard to read.
+      // Number.isFinite, not just typeof "number" with a range comparison, is belt-and-braces
+      // defence in depth: NaN compares false to both `< 0` and `> 1`, so a plain range check
+      // alone would silently let NaN through. No valid JSON-over-HTTP body can actually produce
+      // a literal NaN here (JSON has no NaN literal, per RFC 8259), so this specific case is not
+      // reachable over the wire; Infinity is reachable (e.g. the source text `1e400`, which
+      // overflows to Infinity) and is already caught by the plain `v > 1` comparison on its own.
+      // Number.isFinite is kept anyway because it costs nothing and covers both in one guard.
       if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1) {
         throw new Error(`marks[${i}].box.${k} must be a finite number between 0 and 1`);
       }
@@ -63,6 +69,7 @@ export default async function handler(req: Request): Promise<Response> {
     const body = await req.json();
     assertJsonObject(body);
     image = decodeBase64Image(body.image, "image");
+    await assertReasonablePixelDimensions(image);
     marks = parseMarks(body.marks ?? []);
   } catch (err) {
     return fail(err, 400);

@@ -4,6 +4,7 @@ import {
   assertJsonContentType,
   assertJsonObject,
   assertReasonableContentLength,
+  assertReasonablePixelDimensions,
   decodeBase64Image,
   fail,
   json,
@@ -219,6 +220,55 @@ describe("assertJsonObject", () => {
     expect(() => assertJsonObject(42)).toThrow();
     expect(() => assertJsonObject(true)).toThrow();
   });
+});
+
+describe("assertReasonablePixelDimensions", () => {
+  it("does not throw for a realistic small image", async () => {
+    const buf = await sharp({
+      create: { width: 4, height: 4, channels: 3, background: { r: 100, g: 100, b: 100 } },
+    })
+      .jpeg()
+      .toBuffer();
+    await expect(assertReasonablePixelDimensions(buf)).resolves.toBeUndefined();
+  });
+
+  it("does not throw at a realistic modern phone camera resolution (48MP, 8064x6048)", async () => {
+    const buf = await sharp({
+      create: { width: 8064, height: 6048, channels: 3, background: { r: 90, g: 90, b: 90 } },
+    })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+    await expect(assertReasonablePixelDimensions(buf)).resolves.toBeUndefined();
+  });
+
+  it("throws for a small-byte-size image whose decoded pixel count exceeds the ceiling", async () => {
+    // 9000 x 7000 = 63,000,000 pixels, over the 60,000,000 ceiling, compressed to a tiny file:
+    // exactly the shape of the reviewer's crafted decompression-bomb attack image.
+    const buf = await sharp({
+      create: { width: 9000, height: 7000, channels: 3, background: { r: 120, g: 120, b: 120 } },
+    })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+    expect(buf.length).toBeLessThan(1 * 1024 * 1024);
+    await expect(assertReasonablePixelDimensions(buf)).rejects.toThrow();
+  });
+
+  it(
+    "throws a generic message, never a raw libvips decode error, for bytes with a valid JPEG signature but corrupt body",
+    async () => {
+      // Passes decodeBase64Image's magic-byte sniff (starts with FF D8 FF) but is not a real,
+      // fully decodable JPEG, so sharp's own metadata parsing fails internally. The point of
+      // this test is that whatever libvips says about why stays inside the catch block: the
+      // thrown Error's message must not be sharp/libvips's own text, since that internal detail
+      // has never been reviewed for being safe to expose and fail() logs it, never echoes it,
+      // but this function is a second, independent line of defence for the same property.
+      const corrupt = Buffer.concat([
+        Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
+        Buffer.from("not actually a valid jpeg body, just garbage bytes after a real signature", "utf8"),
+      ]);
+      await expect(assertReasonablePixelDimensions(corrupt)).rejects.toThrow("image could not be read");
+    },
+  );
 });
 
 describe("withTimeout", () => {

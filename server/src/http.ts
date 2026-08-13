@@ -1,3 +1,5 @@
+import sharp from "sharp";
+
 export type Json = Record<string, unknown>;
 
 export function json(body: Json, status = 200): Response {
@@ -130,6 +132,45 @@ export function decodeBase64Image(value: unknown, field: string): Buffer {
   if (buf.length > MAX_IMAGE_BYTES) throw new Error(`${field} is too large`);
   if (!looksLikeImage(buf)) throw new Error(`${field} does not look like a supported image`);
   return buf;
+}
+
+/**
+ * Ceiling on decoded pixel count (width * height), independent of the compressed byte size
+ * check above. A crafted solid-colour JPEG can be well under the 12MB compressed-size ceiling
+ * while still decoding to hundreds of millions of pixels: sharp/libvips's own default safety
+ * limit (around 268 million pixels) is a last-resort backstop, not a sane operating ceiling,
+ * and compositing a near-that-limit image has been measured (see task-8 review) at roughly
+ * 1.68GB peak RSS, most of this function's 2048MB budget, for a single request.
+ *
+ * 60 megapixels is the chosen ceiling. A modern 48MP phone camera photo (the largest
+ * mainstream case this service needs to accept, for example an 8064x6048 iPhone capture, about
+ * 48.8 million pixels) clears this with roughly 20% headroom, while staying more than 4x below
+ * sharp/libvips's own default 268 million pixel safety limit and nowhere near the memory
+ * profile that made the crafted attack image dangerous.
+ */
+const MAX_PIXELS = 60_000_000;
+
+/**
+ * Rejects an image whose decoded pixel dimensions would be dangerous to composite, before any
+ * of the expensive decode work in compositeMarks/sharp's resize pipeline runs. sharp's
+ * `.metadata()` reads container/header fields only; for JPEG, PNG, WEBP, and the ISO base
+ * media formats this service accepts, that means it does not decode full pixel data, so this
+ * check stays cheap even against a maximal-size attack payload.
+ */
+export async function assertReasonablePixelDimensions(buf: Buffer): Promise<void> {
+  let width: number | undefined;
+  let height: number | undefined;
+  try {
+    ({ width, height } = await sharp(buf).metadata());
+  } catch {
+    throw new Error("image could not be read");
+  }
+  if (!width || !height) {
+    throw new Error("image dimensions could not be determined");
+  }
+  if (width * height > MAX_PIXELS) {
+    throw new Error("image dimensions are too large");
+  }
 }
 
 /**

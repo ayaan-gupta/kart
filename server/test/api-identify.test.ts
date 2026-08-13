@@ -14,6 +14,18 @@ const { REQUEST_TIMEOUT_MS } = await import("../src/http.js");
 
 const runIdentifyMock = runIdentify as unknown as ReturnType<typeof vi.fn>;
 
+// vi.useFakeTimers() and vi.advanceTimersByTimeAsync do not reliably service a REAL
+// pending async operation (assertReasonablePixelDimensions's sharp().metadata() call,
+// which resolves via a genuine libuv/thread-pool completion, not a JS timer) that is
+// already in flight when fake time is advanced: confirmed by direct repro, advancing
+// fake timers alone left that promise permanently unresolved and the test timed out.
+// A short real-time delay, using the real setTimeout captured here before any test
+// fakes it, gives that genuine async work a chance to complete on its own first.
+const realSetTimeout = globalThis.setTimeout;
+function realDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => realSetTimeout(resolve, ms));
+}
+
 async function tinyJpegBase64(): Promise<string> {
   const buf = await sharp({
     create: { width: 4, height: 4, channels: 3, background: { r: 100, g: 100, b: 100 } },
@@ -113,6 +125,41 @@ describe("POST /api/identify: image validation", () => {
   });
 });
 
+describe("POST /api/identify: pixel-dimension guard", () => {
+  it(
+    "rejects an image whose decoded pixel dimensions exceed the ceiling, before runIdentify is called",
+    async () => {
+      // Same construction as the census test: a solid-colour JPEG compresses to a tiny file
+      // despite huge pixel dimensions, so this specifically exercises the pixel-dimension guard,
+      // not the earlier compressed-byte-size ceiling.
+      const oversized = await sharp({
+        create: { width: 9000, height: 7000, channels: 3, background: { r: 120, g: 120, b: 120 } },
+      })
+        .jpeg({ quality: 60 })
+        .toBuffer();
+      expect(oversized.length).toBeLessThan(12 * 1024 * 1024);
+
+      const res = await handler(post({ image: oversized.toString("base64") }));
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: "Bad request" });
+      expect(runIdentifyMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("accepts an image at a realistic modern phone camera resolution (48MP, 8064x6048)", async () => {
+    runIdentifyMock.mockResolvedValueOnce(sampleResult);
+    const phonePhoto = await sharp({
+      create: { width: 8064, height: 6048, channels: 3, background: { r: 90, g: 90, b: 90 } },
+    })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+    const res = await handler(post({ image: phonePhoto.toString("base64") }));
+    expect(res.status).toBe(200);
+    expect(runIdentifyMock).toHaveBeenCalled();
+  });
+});
+
 describe("POST /api/identify: hint handling", () => {
   it("passes null when hint is omitted", async () => {
     runIdentifyMock.mockResolvedValueOnce(sampleResult);
@@ -174,6 +221,9 @@ describe("POST /api/identify: upstream failure never leaks", () => {
     try {
       runIdentifyMock.mockImplementationOnce(() => new Promise(() => {}));
       const resPromise = handler(post({ image: validImage }));
+      // Let the handler's real (unmocked) assertReasonablePixelDimensions call resolve on its
+      // own real-time tick before advancing fake time; see realDelay's comment above.
+      await realDelay(50);
       await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 500);
       const res = await resPromise;
       expect(res.status).toBe(500);

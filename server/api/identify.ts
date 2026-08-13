@@ -3,6 +3,7 @@ import {
   assertJsonContentType,
   assertJsonObject,
   assertReasonableContentLength,
+  assertReasonablePixelDimensions,
   decodeBase64Image,
   fail,
   json,
@@ -24,6 +25,7 @@ export default async function handler(req: Request): Promise<Response> {
     const body = await req.json();
     assertJsonObject(body);
     crop = decodeBase64Image(body.image, "image");
+    await assertReasonablePixelDimensions(crop);
     hint =
       typeof body.hint === "string" && body.hint.length > 0
         ? body.hint.slice(0, MAX_HINT_CHARS)
