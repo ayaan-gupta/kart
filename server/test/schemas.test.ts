@@ -4,6 +4,7 @@ import {
   identifyJsonSchema,
   CensusResponse,
   IdentifyResponse,
+  InViewCount,
   productKey,
 } from "../src/schemas.js";
 
@@ -86,6 +87,21 @@ describe("productKey", () => {
   });
 });
 
+describe("productKey accent folding", () => {
+  it("folds accented characters to their base letter, not just stripping them", () => {
+    expect(productKey("Café Bustelo", null)).toBe(productKey("Cafe Bustelo", null));
+  });
+
+  it("folds a tilde-accented letter the same way", () => {
+    expect(productKey("Jalapeño", null)).toBe(productKey("Jalapeno", null));
+  });
+
+  it("still applies every other normalisation rule unchanged: case, apostrophes, whitespace", () => {
+    expect(productKey("  Froot  Loops  ", "  Kellogg's  ")).toBe("kelloggs::froot loops");
+    expect(productKey("FROOT LOOPS", "KELLOGG'S")).toBe("kelloggs::froot loops");
+  });
+});
+
 /**
  * The zod schema (used to validate what comes back) and the hand-written JSON Schema (sent
  * to OpenAI to constrain what it produces) are two independent descriptions of the same
@@ -142,10 +158,53 @@ function walkAligned(zodNode: any, jsonNode: any, path: string): void {
   }
 
   if (t === "number") {
-    const isInt = (zodNode.def.checks ?? []).some((c: any) =>
-      String(c?.def?.format ?? "").toLowerCase().includes("int"),
-    );
+    // zod v4 represents `.int()`, `.min()`, and `.max()` as separate check objects on
+    // `def.checks`, each exposing its own def under `._zod.def` (some check classes also
+    // mirror it on a plain `.def` getter, so fall back to that). Pull out whatever bounds
+    // are actually enforced at runtime so they can be compared against the wire schema.
+    const checks: any[] = zodNode.def.checks ?? [];
+    let isInt = false;
+    let min: number | undefined;
+    let max: number | undefined;
+    for (const c of checks) {
+      const d = c?._zod?.def ?? c?.def;
+      if (!d) continue;
+      if (d.check === "number_format" && String(d.format ?? "").toLowerCase().includes("int")) {
+        isInt = true;
+      } else if (d.check === "greater_than" && d.inclusive) {
+        min = d.value;
+      } else if (d.check === "less_than" && d.inclusive) {
+        max = d.value;
+      }
+    }
+
     expect(jsonNode.type, path).toBe(isInt ? "integer" : "number");
+
+    if (isInt) {
+      // Known, intentional asymmetry: OpenAI's structured-outputs docs explicitly document
+      // `minimum`/`maximum` support for JSON Schema type "number" but never mention type
+      // "integer" in that list (see the comment on InViewCount.count in schemas.ts), so we
+      // do not claim support we have not verified against a live API. zod still enforces
+      // whatever bound it declares at runtime; the JSON Schema side must stay bound-less.
+      // This branch protects both directions: if the JSON Schema node ever grows a
+      // minimum/maximum without that being verified, or if zod's own bound silently
+      // disappears, this assertion set changes and the test breaks instead of drifting
+      // silently.
+      expect(jsonNode.minimum, `${path} must not declare "minimum" (see schemas.ts comment)`).toBeUndefined();
+      expect(jsonNode.maximum, `${path} must not declare "maximum" (see schemas.ts comment)`).toBeUndefined();
+      return;
+    }
+
+    if (min !== undefined) {
+      expect(jsonNode.minimum, `${path} minimum should mirror the zod .min()`).toBe(min);
+    } else {
+      expect(jsonNode.minimum, `${path} has no zod lower bound, so the JSON Schema must not declare one`).toBeUndefined();
+    }
+    if (max !== undefined) {
+      expect(jsonNode.maximum, `${path} maximum should mirror the zod .max()`).toBe(max);
+    } else {
+      expect(jsonNode.maximum, `${path} has no zod upper bound, so the JSON Schema must not declare one`).toBeUndefined();
+    }
     return;
   }
 
@@ -159,5 +218,35 @@ describe("zod schema and JSON Schema stay in sync", () => {
 
   it("identify: every field, nesting level, and nullability matches", () => {
     walkAligned(IdentifyResponse, identifyJsonSchema, "identify");
+  });
+
+  it("census: confidence bounds (0 to 1) are mirrored in the wire JSON Schema", () => {
+    const confidenceNode = (censusJsonSchema.properties.marks.items.properties as any).confidence;
+    expect(confidenceNode).toEqual({ type: "number", minimum: 0, maximum: 1 });
+
+    const unmarkedConfidenceNode = (censusJsonSchema.properties.unmarkedItems.items.properties as any)
+      .confidence;
+    expect(unmarkedConfidenceNode).toEqual({ type: "number", minimum: 0, maximum: 1 });
+  });
+
+  it("identify: confidence bounds (0 to 1) are mirrored in the wire JSON Schema", () => {
+    expect((identifyJsonSchema.properties as any).confidence).toEqual({
+      type: "number",
+      minimum: 0,
+      maximum: 1,
+    });
+  });
+
+  it("documents, explicitly, the one known asymmetry: InViewCount.count", () => {
+    // zod enforces count >= 0 at parse time...
+    expect(() => InViewCount.parse({ productKey: "x::y", count: -1 })).toThrow();
+    expect(() => InViewCount.parse({ productKey: "x::y", count: 0 })).not.toThrow();
+
+    // ...but the wire JSON Schema deliberately does not carry that floor, because OpenAI's
+    // docs confirm minimum/maximum support for type "number" but not for type "integer",
+    // and it cannot be verified live right now (see the comment on InViewCount.count and
+    // on censusJsonSchema.inViewCounts.items.properties.count in schemas.ts).
+    const countNode = (censusJsonSchema.properties.inViewCounts.items.properties as any).count;
+    expect(countNode).toEqual({ type: "integer" });
   });
 });
