@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
-import { APIError } from "openai";
+import { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import type { Mark } from "../src/compositor.js";
 import { censusJsonSchema, identifyJsonSchema, productKey } from "../src/schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
+import type { CensusDiagnostics } from "../src/recognize.js";
 
 // The real ./openai.ts throws at import time when OPENAI_API_KEY is unset (by design, so a
 // misconfigured deployment fails loudly). Tests never set that variable, and never should
@@ -342,6 +343,216 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
   });
 });
 
+describe("malformed raw productKey shapes are repaired, not naively re-derived", () => {
+  it("a key with no separator is matched to the mark by name, not defaulted to no-brand", async () => {
+    // Before this fix: naive re-derivation of "Froot Loops" (no "::") assumed no brand and
+    // produced "::froot loops", silently discarding the real brand "Kellogg's".
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "Froot Loops", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    // After: matched to the one mark whose name matches, brand included.
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+  });
+
+  it("a key with more than one separator preserves the word boundary instead of concatenating", async () => {
+    // Before this fix: naive re-derivation stripped every "::" with no boundary, turning
+    // "Kellogg's::Froot::Loops" into "kelloggs::frootloops", which never matches the mark.
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "Kellogg's::Froot::Loops", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    // After: the stray "::" becomes a space, matching the mark's real canonical key.
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+  });
+
+  it("a no-separator key with no unambiguous name match falls back to a no-brand guess, not a false match", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const otherMark = { ...wellFormedMark, id: 2, name: "Corn Flakes" };
+    mockOutput({
+      marks: [wellFormedMark, otherMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "Some Unrelated Snack", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+      { id: 2, box: { x: 0.5, y: 0.5, w: 0.2, h: 0.2 } },
+    ]);
+    expect(result.inViewCounts[0].productKey).toBe("::some unrelated snack");
+    warn.mockRestore();
+  });
+});
+
+describe("CensusDiagnostics: distinguishing a legitimate case from a real failure", () => {
+  it("classifies an already-correct or drift-corrected key as repaired", async () => {
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "Kellogg's::Froot  Loops", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+    expect(diagnostics.repaired).toEqual([
+      { raw: "Kellogg's::Froot  Loops", canonical: "kelloggs::froot loops" },
+    ]);
+    expect(diagnostics.plausiblyUnmarked).toEqual([]);
+    expect(diagnostics.unrepaired).toEqual([]);
+  });
+
+  it("classifies a key matching an unmarkedItems description as plausiblyUnmarked, and does not warn", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockOutput({
+      marks: [wellFormedMark],
+      // CENSUS_SYSTEM_PROMPT rule 10 asks for description to name the product "the same way
+      // name would for a marked item", i.e. brand-free, matching the name segment of a
+      // productKey (see productKey()'s own brand/name split in schemas.ts).
+      unmarkedItems: [
+        { description: "Flavor Pack", approxLocation: "top shelf", confidence: 0.6 },
+      ],
+      inViewCounts: [{ productKey: "SodaStream::Flavor Pack", count: 3 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    const result = await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+
+    expect(result.inViewCounts.find((c) => c.productKey === "sodastream::flavor pack")).toBeTruthy();
+    expect(diagnostics.plausiblyUnmarked).toEqual([
+      { raw: "SodaStream::Flavor Pack", canonical: "sodastream::flavor pack" },
+    ]);
+    expect(diagnostics.unrepaired).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("classifies a key matching nothing at all as unrepaired, and still warns", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "SodaStream::Flavor Pack", count: 3 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+
+    expect(diagnostics.unrepaired).toEqual([
+      { raw: "SodaStream::Flavor Pack", canonical: "sodastream::flavor pack" },
+    ]);
+    expect(diagnostics.plausiblyUnmarked).toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("leaves diagnostics untouched when the caller does not opt in (backward compatible)", async () => {
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    // Two-argument call, exactly as every prior test in this file uses it.
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+  });
+});
+
+describe("duplicate inViewCounts entries that re-derive to the same key are merged", () => {
+  it("sums the counts of two differently-phrased raw entries for one product into a single entry", async () => {
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [
+        { productKey: "Kellogg's::Froot Loops", count: 2 },
+        { productKey: "kelloggs::froot   loops", count: 1 },
+      ],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    const result = await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+
+    expect(result.inViewCounts).toHaveLength(1);
+    expect(result.inViewCounts[0]).toEqual({ productKey: "kelloggs::froot loops", count: 3 });
+    expect(diagnostics.merged).toEqual([
+      {
+        canonical: "kelloggs::froot loops",
+        rawKeys: ["Kellogg's::Froot Loops", "kelloggs::froot   loops"],
+        count: 3,
+      },
+    ]);
+  });
+
+  it("does not report a merge for a product that only had one entry", async () => {
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+    expect(diagnostics.merged).toEqual([]);
+  });
+});
+
 describe("runIdentify normalises an empty-string brand to null", () => {
   it("converts brand '' to null in the returned response", async () => {
     mockOutput({
@@ -425,8 +636,58 @@ describe("errors are surfaced usefully without leaking the API key", () => {
     ).rejects.toThrow(/runIdentify.*500/);
   });
 
-  it("redacts a key-shaped substring even from a generic, non-APIError failure", async () => {
-    create.mockRejectedValueOnce(new Error("connect failed near key sk-abcdefghijklmnopqrstuvwx"));
+  // The two tests below used to construct a plain `new Error(...)` to stand in for a network
+  // failure. The real SDK never throws a plain Error for that: fetch failures, resets, and
+  // DNS errors all come back as APIConnectionError (node_modules/openai/client.mjs), so a
+  // plain Error exercised a branch that never actually runs for connectivity problems. Both
+  // are rewritten below to construct the real SDK error classes instead.
+
+  it("gives a specific, distinguishable message for a connection timeout", async () => {
+    create.mockRejectedValueOnce(new APIConnectionTimeoutError());
+    await expect(
+      runCensus(await blankJpeg(), [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }]),
+    ).rejects.toThrow(/runCensus.*timed out/i);
+  });
+
+  it("surfaces a short, safe reason for a real connection failure, not the collapsed generic message", async () => {
+    // Mirrors the shape Node's fetch actually produces: a low-level error carrying a short
+    // `.code` such as "ECONNRESET", reachable via APIConnectionError's `.cause`.
+    const netCause = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+    create.mockRejectedValueOnce(new APIConnectionError({ cause: netCause }));
+
+    let caught: unknown;
+    try {
+      await runCensus(await blankJpeg(), [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }]);
+    } catch (err) {
+      caught = err;
+    }
+
+    const message = (caught as Error).message;
+    expect(message).toContain("runCensus");
+    expect(message).toContain("ECONNRESET");
+    // Before this fix every connection failure collapsed to this exact byte-identical string.
+    expect(message).not.toBe("runCensus: OpenAI request failed (unknown status api_error)");
+  });
+
+  it("gives a different message for a timeout than for a plain connection error", async () => {
+    create.mockRejectedValueOnce(new APIConnectionTimeoutError());
+    const timeoutMessage = await runIdentify(await blankJpeg(), null).catch(
+      (e: Error) => e.message,
+    );
+
+    create.mockRejectedValueOnce(new APIConnectionError({ cause: new Error("boom") }));
+    const connectionMessage = await runIdentify(await blankJpeg(), null).catch(
+      (e: Error) => e.message,
+    );
+
+    expect(timeoutMessage).not.toBe(connectionMessage);
+  });
+
+  it("redacts a key-shaped substring even if one ends up in a connection error's cause code", async () => {
+    const netCause = Object.assign(new Error("boom"), {
+      code: "sk-abcdefghijklmnopqrstuvwx",
+    });
+    create.mockRejectedValueOnce(new APIConnectionError({ cause: netCause }));
 
     let caught: unknown;
     try {
@@ -438,8 +699,8 @@ describe("errors are surfaced usefully without leaking the API key", () => {
     expect((caught as Error).message).toContain("[redacted]");
   });
 
-  it("surfaces a plain network error's message so failures are still debuggable", async () => {
-    create.mockRejectedValueOnce(new Error("fetch failed: ECONNRESET"));
-    await expect(runIdentify(await blankJpeg(), null)).rejects.toThrow(/fetch failed: ECONNRESET/);
+  it("still produces a safe, prefixed message for a completely unexpected thrown value", async () => {
+    create.mockRejectedValueOnce("boom, not even an Error instance");
+    await expect(runIdentify(await blankJpeg(), null)).rejects.toThrow(/runIdentify:.*boom/);
   });
 });
