@@ -382,25 +382,39 @@ npx vercel deploy --prod
 
 ## Open Food Facts attribution (needed by a later plan)
 
+**The licensing details below were written from general knowledge, not from any source in
+this repository.** No file under `server/`, and nothing else in this repo, documents Open
+Food Facts' license terms. Treat every claim in this section as unverified until whoever
+implements the barcode lookup confirms it directly against Open Food Facts' current license
+page. Do not let any code or attribution text depend on this section alone.
+
 This service does not call Open Food Facts today; nothing in `server/` depends on it. A later
 plan is expected to add a barcode fast path (on-device `VNDetectBarcodesRequest`, resolved
 through Open Food Facts) as a free, no-API-key shortcut that skips the vision model when a UPC
-is available. Whoever builds that needs to satisfy Open Food Facts' license:
+is available. Whoever builds that needs to satisfy Open Food Facts' license. As best as can be
+recalled without a source to check against:
 
-- The Open Food Facts database is licensed under the **Open Database License (ODbL) v1.0**.
-  Its data records are additionally available under the Database Contents License; product
-  photos are separately licensed, commonly under Creative Commons Attribution-ShareAlike.
-- ODbL's core obligations are attribution, share-alike, and keep-open: you must credit Open
+- The Open Food Facts database is said to be licensed under the **Open Database License
+  (ODbL) v1.0**. Its data records are said to be additionally available under the Database
+  Contents License; product photos are said to be separately licensed, commonly under
+  Creative Commons Attribution-ShareAlike. Confirm all three before citing any of them.
+- ODbL's core obligations are said to be attribution, share-alike, and keep-open: credit Open
   Food Facts and its contributors wherever you display data drawn from it; if you publicly
   produce a derivative database built from OFF data, that derivative must also be offered
   under ODbL; and you may not apply technical restrictions (like DRM) that would prevent
-  others from exercising the same rights ODbL grants you.
-- In practice for Kart, this means any screen that shows a product name, brand, or image
-  resolved via an Open Food Facts barcode lookup needs a visible attribution to Open Food
-  Facts near that data, and any local cache or derived dataset built from OFF responses needs
-  to stay open under the same terms rather than becoming a private, closed catalog.
-- Confirm current terms directly against Open Food Facts' own license page before shipping;
-  this section is a starting point for that later plan, not a substitute for reading it.
+  others from exercising the same rights ODbL grants you. Confirm the exact obligations and
+  their wording on Open Food Facts' own license page; do not copy the paraphrase above into
+  a legal notice or an app store listing without checking it first.
+- If the above is accurate, this would mean for Kart that any screen showing a product name,
+  brand, or image resolved via an Open Food Facts barcode lookup needs a visible attribution
+  to Open Food Facts near that data, and any local cache or derived dataset built from OFF
+  responses would need to stay open under the same terms rather than becoming a private,
+  closed catalog. This is reasoning from the unverified claims above, not a separately
+  confirmed fact.
+
+This section exists as a starting point and a reminder that the obligation exists, not as a
+substitute for reading Open Food Facts' own license page before shipping anything that
+depends on it.
 
 ## What this service does not do
 
