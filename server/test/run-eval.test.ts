@@ -263,3 +263,108 @@ describe("runEval: visible-only occlusion reporting", () => {
     }
   });
 });
+
+describe("runEval: corpus-wide mean precision and recall", () => {
+  it("computes the macro-averaged mean by hand for a clean multi-image run with differing per-image scores", async () => {
+    const recognize = vi.fn<Recognizer>();
+    recognize.mockImplementationOnce(async () =>
+      census({ marks: [bananaMark, { ...froskMark, name: "Motor Oil", brand: "Castrol" }] }),
+    );
+    recognize.mockImplementationOnce(async () => census({ marks: [bananaMark] }));
+
+    const truth = {
+      "imageA.jpg": [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+      "imageB.jpg": [
+        { name: "Bananas", brand: null, qty: 1, occluded: false },
+        { name: "Froot Loops", brand: "Kellogg's", qty: 1, occluded: false },
+        { name: "Rice Krispies", brand: "Kellogg's", qty: 1, occluded: false },
+      ],
+    };
+    const outcome = await runEval(["imageA.jpg", "imageB.jpg"], truth, stubLoadImage, recognize);
+
+    // imageA: predicted Bananas (hit) plus Motor Oil (hallucination) against 1 truth item.
+    //   precision = 1/2 = 0.5, recall = 1/1 = 1
+    // imageB: predicted Bananas only against 3 truth items (Bananas, Froot Loops, Rice Krispies).
+    //   precision = 1/1 = 1, recall = 1/3 = 0.3333...
+    // mean precision = (0.5 + 1) / 2 = 0.75
+    // mean recall = (1 + 0.3333...) / 2 = 0.6666...
+    const a = outcome.results[0];
+    const b = outcome.results[1];
+    expect(a.ok && a.score.precision).toBe(0.5);
+    expect(a.ok && a.score.recall).toBe(1);
+    expect(b.ok && b.score.precision).toBe(1);
+    expect(b.ok && b.score.recall).toBeCloseTo(1 / 3);
+
+    expect(outcome.exitCode).toBe(0);
+    expect(outcome.stdout).toContain("mean precision 0.750, mean recall 0.667, over 2 image(s)");
+    expect(outcome.reportMarkdown).toContain("mean precision 0.750, mean recall 0.667, over 2 image(s)");
+  });
+
+  it("excludes errored images from the mean's denominator in a mixed run", async () => {
+    const recognize = vi.fn<Recognizer>();
+    recognize.mockImplementationOnce(async () => census({ marks: [bananaMark] }));
+    recognize.mockImplementationOnce(async () => census({ marks: [bananaMark] }));
+    recognize.mockRejectedValueOnce(new Error("runCensus: OpenAI request failed (429 rate_limited)"));
+
+    const truth = {
+      "good1.jpg": [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+      "good2.jpg": [
+        { name: "Bananas", brand: null, qty: 1, occluded: false },
+        { name: "Froot Loops", brand: "Kellogg's", qty: 1, occluded: false },
+      ],
+      "bad.jpg": [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+    };
+    const outcome = await runEval(
+      ["good1.jpg", "good2.jpg", "bad.jpg"],
+      truth,
+      stubLoadImage,
+      recognize,
+    );
+
+    // good1: predicted Bananas only, matches the single truth item exactly. precision 1, recall 1.
+    // good2: predicted Bananas only against 2 truth items. precision 1, recall 0.5.
+    // bad: errors before scoring, must not appear in the denominator at all.
+    // If the denominator were files.length (3) instead of scoredCount (2), mean precision
+    // would read 0.667 and mean recall 0.5 instead of the correct 1.000 and 0.750 below.
+    expect(outcome.scoredCount).toBe(2);
+    expect(outcome.erroredCount).toBe(1);
+    expect(outcome.exitCode).toBe(2);
+    expect(outcome.stdout).toContain(
+      "mean precision 1.000, mean recall 0.750, over 2 image(s), 1 image(s) errored and were excluded",
+    );
+    expect(outcome.reportMarkdown).toContain(
+      "mean precision 1.000, mean recall 0.750, over 2 image(s), 1 image(s) errored and were excluded",
+    );
+  });
+
+  it("also excludes a file skipped for missing ground truth from the denominator, not only errored ones", async () => {
+    const recognize = vi.fn<Recognizer>();
+    recognize.mockImplementationOnce(async () =>
+      census({ marks: [bananaMark, { ...froskMark, name: "Motor Oil", brand: "Castrol" }] }),
+    );
+    recognize.mockImplementationOnce(async () => census({ marks: [bananaMark] }));
+
+    const truth = {
+      "imageA.jpg": [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+      "imageB.jpg": [
+        { name: "Bananas", brand: null, qty: 1, occluded: false },
+        { name: "Froot Loops", brand: "Kellogg's", qty: 1, occluded: false },
+        { name: "Rice Krispies", brand: "Kellogg's", qty: 1, occluded: false },
+      ],
+    };
+    // orphan.jpg has no ground truth entry at all: skipped, not scored, not errored. If the
+    // mean's denominator were files.length (3) instead of scoredCount (2), this would silently
+    // change the reported numbers exactly the way an errored image would, without any API
+    // failure involved at all.
+    const outcome = await runEval(
+      ["imageA.jpg", "imageB.jpg", "orphan.jpg"],
+      truth,
+      stubLoadImage,
+      recognize,
+    );
+
+    expect(outcome.scoredCount).toBe(2);
+    expect(outcome.erroredCount).toBe(0);
+    expect(outcome.stdout).toContain("mean precision 0.750, mean recall 0.667, over 2 image(s)");
+  });
+});
