@@ -22,18 +22,25 @@
  * can be correctly identified and badly counted, or missing entirely and irrelevant to count
  * accuracy.
  *
- * The orchestration logic below (describeCorpus, runEval) takes plain data and a recognizer
- * function as parameters and performs no filesystem or network I/O itself, so it is testable
- * with synthetic data and a stub recognizer; see test/run-eval.test.ts. main(), the only part
- * that touches disk, dynamic-imports, or process.exitCode, is a thin wrapper around it and
- * only runs when this file is executed directly, not when it is imported by a test.
+ * Output is streamed, not buffered. A real run calls a paid API once per photo across a
+ * corpus that can run to ten or twenty images, taking minutes, so two things matter: progress
+ * has to be visible while it happens, and a run killed partway must not lose everything paid
+ * for already. Two things are injected into runEval to make that possible without losing
+ * testability: `emit` (console-shaped, one line at a time, per-file success and error lines
+ * interleaved in the order they actually happen, defaults to the real console so production
+ * needs no wiring) and `writeResult` (disk-shaped, one markdown chunk at a time, appended as
+ * each image finishes, required rather than defaulted since main() has to prepare the file
+ * first). Tests pass collectors for both and assert on order and content; production passes a
+ * real file-appending writer and lets emit default to the real console. Neither runEval nor
+ * describeCorpus performs any other filesystem or network access, so both stay testable with
+ * synthetic data and a stub recognizer; see test/run-eval.test.ts.
  *
  * recognize.js (and transitively openai.js, which throws at import time if OPENAI_API_KEY is
  * unset) is imported dynamically, only after the corpus is confirmed non-empty. This is what
  * lets an empty corpus print a clean, actionable message and exit instead of crashing on a
  * missing key that would not even matter yet.
  */
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -64,7 +71,7 @@ function listImageFiles(): string[] {
 
 // ---------------------------------------------------------------------------
 // Pure orchestration logic. No fs/network calls below this line except inside main() and
-// the loadImage/recognize functions main() passes in.
+// the loadImage/recognize/writeResult functions main() passes in.
 // ---------------------------------------------------------------------------
 
 export type CorpusInfo = {
@@ -166,6 +173,22 @@ export type Recognizer = (
   diagnostics?: CensusDiagnostics,
 ) => Promise<CensusResponse>;
 
+/** One line of live progress. `stream` mirrors console.log/console.error: "stdout" for normal
+ * progress, "stderr" for warnings and per-image errors. The default emitter (see defaultEmit
+ * below) sends each straight to the real console, immediately, as it is produced; tests pass
+ * a collector instead to assert on order and content without touching the real console. */
+export type Emit = (line: string, stream: "stdout" | "stderr") => void;
+
+const defaultEmit: Emit = (line, stream) => {
+  if (stream === "stdout") console.log(line);
+  else console.error(line);
+};
+
+/** Appends one markdown chunk to the results file, immediately, as soon as it is ready. No
+ * default: main() has to create/truncate the file before the first call, so callers must
+ * supply this explicitly, the same way loadImage and recognize are explicit. */
+export type ResultsWriter = (chunk: string) => void;
+
 export type ImageResult =
   | {
       file: string;
@@ -188,33 +211,57 @@ export type EvalOutcome = {
    *    this the same as a clean run.
    */
   exitCode: 0 | 1 | 2;
+  /** Everything sent to `emit` with stream "stdout", in emission order. A courtesy copy for
+   * callers that want to inspect content after the run finishes; the real, live output during
+   * the run happens through `emit`, not through this array. */
   stdout: string[];
+  /** Same as `stdout` but for stream "stderr". */
   stderr: string[];
-  /** Content that should be written to eval/results/latest.md, or null when nothing meaningful
-   * was produced and writing a results file would only be a stale, misleading artifact. */
+  /** The exact concatenation of every chunk passed to `writeResult`, in write order, so it
+   * matches on-disk content exactly. Non-null whenever at least one image was attempted
+   * (evaluable.length > 0), including a run where every image errored: that case still writes
+   * a file, ending in a total-failure note instead of real numbers, since durability matters
+   * more than an all-or-nothing artifact once real work (a paid API call) was attempted. Null
+   * only for a fully empty corpus, where nothing was attempted and writeResult is never
+   * called at all. */
   reportMarkdown: string | null;
   results: ImageResult[];
   scoredCount: number;
   erroredCount: number;
 };
 
+function chunkOf(lines: string[]): string {
+  return lines.join("\n") + "\n\n";
+}
+
 /**
- * Runs the corpus through `recognize` and scores every result, entirely in memory: no
- * filesystem or network access happens in this function itself, `loadImage` and `recognize`
- * are the only places that could do either, and tests pass stubs for both. This is what makes
- * the empty-corpus message, the partial-corpus warnings, the per-image error handling, the
- * exit code scheme, and the count-accuracy section all independently testable without a real
- * corpus directory or a real OpenAI key.
+ * Runs the corpus through `recognize` and scores every result. `loadImage`, `recognize`,
+ * `writeResult`, and (when overridden) `emit` are the only places this function touches
+ * anything outside its own arguments, so tests can observe and control all of it with plain
+ * stub functions, no real files, no real network, and no real console.
+ *
+ * Per-image progress streams as it happens: `emit` is called for each image's result line the
+ * moment that image finishes (success or error), in the same order the images were processed
+ * in, so a per-image error is never reordered relative to the successes around it the way a
+ * "collect everything, print all stdout then all stderr" scheme would. `writeResult` is called
+ * the same way, once for a header before the loop starts, once per image as it completes, and
+ * once for a closing summary after the loop ends, so a process killed partway through leaves
+ * every already-completed image's section on disk; only the closing summary, written last, is
+ * lost, and its absence is exactly the signal that the run did not finish (see the header
+ * chunk written below for how this is explained to a reader of the file itself).
  */
 export async function runEval(
   files: string[],
   truth: Record<string, TruthItem[]>,
   loadImage: (file: string) => Buffer,
   recognize: Recognizer,
+  writeResult: ResultsWriter,
+  emit: Emit = defaultEmit,
 ): Promise<EvalOutcome> {
   const corpus = describeCorpus(files, truth);
 
   if (corpus.evaluable.length === 0) {
+    emit(corpus.emptyMessage, "stderr");
     return {
       exitCode: 1,
       stdout: [],
@@ -228,8 +275,37 @@ export async function runEval(
 
   const stdout: string[] = [];
   const stderr: string[] = [];
+  const chunks: string[] = [];
   const results: ImageResult[] = [];
-  const reportSections: string[] = [];
+
+  function send(line: string, stream: "stdout" | "stderr"): void {
+    emit(line, stream);
+    (stream === "stdout" ? stdout : stderr).push(line);
+  }
+
+  function persist(lines: string[]): void {
+    const text = chunkOf(lines);
+    writeResult(text);
+    chunks.push(text);
+  }
+
+  persist([
+    "# Eval",
+    "",
+    "Exit codes: 0 means a clean run, every evaluable image scored with zero errors. 1 means " +
+      "a total failure. An empty corpus never reaches this file at all, nothing is written " +
+      "for that case. Every evaluable image erroring does still write this file, ending in a " +
+      "total-failure note instead of real numbers. 2 means a partial failure, at least one " +
+      "image scored and at least one errored; the closing summary's numbers only cover the " +
+      "images that actually scored.",
+    "",
+    "Sections below appear in the order each image finishes, which is completion order, not " +
+      "necessarily file order, and each is written to disk as soon as it is ready, so an " +
+      "interrupted run keeps whatever completed before it stopped. The closing summary " +
+      "section is written last, only once every evaluable image has been attempted. If this " +
+      "file ends right after a per-image section with no summary section beneath it, the run " +
+      "was interrupted before finishing.",
+  ]);
 
   let totalP = 0;
   let totalR = 0;
@@ -249,7 +325,7 @@ export async function runEval(
   for (const file of files) {
     const expected = truth[file];
     if (!expected) {
-      stderr.push(`skipping ${file}, no ground truth`);
+      send(`skipping ${file}, no ground truth`, "stderr");
       continue;
     }
 
@@ -266,12 +342,13 @@ export async function runEval(
       census = await recognize(image, [{ id: 1, box: { x: 0, y: 0, w: 1, h: 1 } }], diagnostics);
     } catch (err) {
       // toSafeError (recognize.ts) redacts anything key-shaped from an OpenAI request
-      // failure before it becomes err.message, so this is safe to print. One image failing
-      // (a bad file, a dropped connection, an expired key) does not lose the rest of the
-      // corpus's results, and the run's exit code (see below) still reflects the failure.
+      // failure before it becomes err.message, so this is safe to print and persist. One
+      // image failing (a bad file, a dropped connection, an expired key) does not lose the
+      // rest of the corpus's results: its error section is written immediately, and the loop
+      // continues to the next file.
       const message = err instanceof Error ? err.message : String(err);
-      stderr.push(`${file}  ERROR  ${message}`);
-      reportSections.push(`## ${file}`, `error: ${message}`, "");
+      send(`${file}  ERROR  ${message}`, "stderr");
+      persist([`## ${file}`, `error: ${message}`]);
       erroredCount += 1;
       results.push({ file, ok: false, message });
       continue;
@@ -315,7 +392,7 @@ export async function runEval(
       diagnostics,
     });
 
-    reportSections.push(
+    persist([
       `## ${file}`,
       `precision ${s.precision.toFixed(2)}  recall ${s.recall.toFixed(2)}  (all ${expected.length} ground truth item(s))`,
       `precision ${sVisible.precision.toFixed(2)}  recall ${sVisible.recall.toFixed(2)}  (${visible.length} non-occluded item(s) only)`,
@@ -324,18 +401,23 @@ export async function runEval(
       `hallucinated: ${s.hallucinated.join(", ") || "none"}`,
       formatCountSection(cs),
       formatDiagnostics(diagnostics),
-      "",
-    );
-    stdout.push(`${file}  P ${s.precision.toFixed(2)}  R ${s.recall.toFixed(2)}`);
+    ]);
+    send(`${file}  P ${s.precision.toFixed(2)}  R ${s.recall.toFixed(2)}`, "stdout");
   }
 
   if (scoredCount === 0) {
-    const message =
-      erroredCount > 0
-        ? `All ${erroredCount} evaluable image(s) failed with an error before producing a score. See above.`
-        : "No image produced a score.";
-    stderr.push(message);
-    return { exitCode: 1, stdout, stderr, reportMarkdown: null, results, scoredCount, erroredCount };
+    const message = `All ${erroredCount} evaluable image(s) failed with an error before producing a score. See above.`;
+    send(message, "stderr");
+    persist(["## Summary", "", message, "", "This run's exit code: 1."]);
+    return {
+      exitCode: 1,
+      stdout,
+      stderr,
+      reportMarkdown: chunks.join(""),
+      results,
+      scoredCount,
+      erroredCount,
+    };
   }
 
   const exitCode: 0 | 2 = erroredCount > 0 ? 2 : 0;
@@ -344,12 +426,6 @@ export async function runEval(
     `mean precision ${(totalP / scoredCount).toFixed(3)}, mean recall ${(totalR / scoredCount).toFixed(3)}, ` +
     `over ${scoredCount} image(s)` +
     (erroredCount > 0 ? `, ${erroredCount} image(s) errored and were excluded` : "");
-  const exitCodeNote =
-    "Exit codes: 0 means a clean run, every evaluable image scored with zero errors. 1 means " +
-    "a total failure, an empty corpus or every evaluable image errored; no results file is " +
-    "written for exit code 1, so a file existing at all means the run did not exit 1. 2 means " +
-    "a partial failure, at least one image scored and at least one errored; the results below " +
-    `are real but incomplete. This run's exit code: ${exitCode}.`;
   const methodNote =
     "Averaging method: macro-averaged, the mean of each image's own precision and recall. " +
     "An image with many ground truth items counts the same as an image with few. This is not " +
@@ -379,31 +455,40 @@ export async function runEval(
     `total missing from truth (model reported an inViewCounts entry not in ground truth): ${totalMissingFromTruth}`,
   ];
 
-  stdout.push("", summary, methodNote, visibleSummary, ...countSummaryLines);
+  send("", "stdout");
+  for (const line of [summary, methodNote, visibleSummary, ...countSummaryLines]) {
+    send(line, "stdout");
+  }
 
-  const reportMarkdown = [
-    "# Eval",
+  persist([
+    "## Summary",
     "",
     summary,
     "",
-    exitCodeNote,
+    `This run's exit code: ${exitCode}. (0 means clean, 1 means total failure, 2 means ` +
+      "partial failure; see the top of this file for the full explanation of each.)",
     "",
     methodNote,
     "",
     visibleSummary,
     "",
     countSummaryLines.join("\n"),
-    "",
-    reportSections.join("\n"),
-  ].join("\n");
+  ]);
 
-  return { exitCode, stdout, stderr, reportMarkdown, results, scoredCount, erroredCount };
+  return { exitCode, stdout, stderr, reportMarkdown: chunks.join(""), results, scoredCount, erroredCount };
 }
 
 // ---------------------------------------------------------------------------
-// Entry point. Only main() touches the filesystem outside of loadImage/recognize, only
-// main() dynamic-imports recognize.js, and it only runs when this file is executed directly.
+// Entry point. Only main() touches the filesystem outside of loadImage/recognize/writeResult,
+// only main() dynamic-imports recognize.js, and it only runs when this file is executed
+// directly.
 // ---------------------------------------------------------------------------
+
+function makeFileResultsWriter(path: string): ResultsWriter {
+  return (chunk: string) => {
+    appendFileSync(path, chunk);
+  };
+}
 
 async function main(): Promise<void> {
   const truth = loadGroundTruth();
@@ -422,15 +507,23 @@ async function main(): Promise<void> {
   // one image to actually run.
   const { runCensus } = await import("../src/recognize.js");
 
-  const outcome = await runEval(files, truth, (file) => readFileSync(join(IMAGES, file)), runCensus);
+  mkdirSync(OUT, { recursive: true });
+  const resultsPath = join(OUT, "latest.md");
+  // Start this run's file empty. Every write from here on, including the very first one
+  // inside runEval, is an append, so the file grows durably as the run progresses rather than
+  // being assembled in memory and written once at the end.
+  writeFileSync(resultsPath, "");
+  const writeResult = makeFileResultsWriter(resultsPath);
 
-  for (const line of outcome.stdout) console.log(line);
-  for (const line of outcome.stderr) console.error(line);
-
-  if (outcome.reportMarkdown !== null) {
-    mkdirSync(OUT, { recursive: true });
-    writeFileSync(join(OUT, "latest.md"), outcome.reportMarkdown);
-  }
+  // emit is left at its default (the real console), so per-image progress prints live as
+  // runEval produces it; main() does not need to loop over any buffered output afterward.
+  const outcome = await runEval(
+    files,
+    truth,
+    (file) => readFileSync(join(IMAGES, file)),
+    runCensus,
+    writeResult,
+  );
 
   process.exitCode = outcome.exitCode;
 }
