@@ -1,8 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
 import type { Mark } from "../src/compositor.js";
+import {
+  MarkIdentification,
+  UnmarkedItem,
+  InViewCount,
+  Occlusion,
+  CensusResponse,
+  IdentifyResponse,
+} from "../src/schemas.js";
 
 const DASHES = /[—–]/;
+
+/**
+ * Asserts `field` appears in `prompt` as a standalone token (word-boundary match), not merely
+ * as a substring of some unrelated word (e.g. the field "id" must not be satisfied by the
+ * prompt merely containing the word "identify").
+ */
+function expectPromptNamesField(prompt: string, field: string): void {
+  const re = new RegExp(`\\b${field}\\b`);
+  expect(re.test(prompt), `expected prompt to mention field "${field}" as a standalone token`).toBe(true);
+}
 
 describe("censusUserText", () => {
   it("tells the model to use unmarkedItems when no regions were detected", () => {
@@ -69,28 +87,36 @@ describe("system prompts", () => {
     expect(IDENTIFY_SYSTEM_PROMPT).toBe(IDENTIFY_SYSTEM_PROMPT.trim());
   });
 
-  it("CENSUS_SYSTEM_PROMPT names every field of the census schema it instructs the model to fill", () => {
-    for (const field of [
-      "needsCloserLook",
-      "confidence",
-      "unmarkedItems",
-      "inViewCounts",
-      "productKey",
-      "occlusion",
-    ]) {
-      expect(CENSUS_SYSTEM_PROMPT).toContain(field);
+  it("CENSUS_SYSTEM_PROMPT names every field the census schema requires, read from schemas.ts at runtime", () => {
+    // Union of every required field across the whole census response tree, pulled from the
+    // live zod schemas rather than hand-typed here, so a field added, removed, or renamed in
+    // schemas.ts changes this list automatically instead of leaving a stale literal behind.
+    const fields = new Set<string>([
+      ...Object.keys(CensusResponse.shape),
+      ...Object.keys(MarkIdentification.shape),
+      ...Object.keys(UnmarkedItem.shape),
+      ...Object.keys(InViewCount.shape),
+      ...Object.keys(Occlusion.shape),
+    ]);
+    expect(fields.size).toBeGreaterThan(0); // guard against a refactor silently emptying this
+    for (const field of fields) {
+      expectPromptNamesField(CENSUS_SYSTEM_PROMPT, field);
     }
   });
 
-  it("CENSUS_SYSTEM_PROMPT's occlusion severity values match the schema's enum exactly", () => {
-    expect(CENSUS_SYSTEM_PROMPT).toContain('"none"');
-    expect(CENSUS_SYSTEM_PROMPT).toContain('"some"');
-    expect(CENSUS_SYSTEM_PROMPT).toContain('"many"');
+  it("CENSUS_SYSTEM_PROMPT's occlusion severity values match the schema's enum exactly, read from schemas.ts at runtime", () => {
+    const severityValues = Object.keys(Occlusion.shape.severity.def.entries);
+    expect(severityValues.length).toBeGreaterThan(0); // guard against a refactor silently emptying this
+    for (const value of severityValues) {
+      expect(CENSUS_SYSTEM_PROMPT).toContain(`"${value}"`);
+    }
   });
 
-  it("IDENTIFY_SYSTEM_PROMPT names every field of the identify schema it instructs the model to fill", () => {
-    for (const field of ["confidence", "stillUnclear"]) {
-      expect(IDENTIFY_SYSTEM_PROMPT).toContain(field);
+  it("IDENTIFY_SYSTEM_PROMPT names every field the identify schema requires, read from schemas.ts at runtime", () => {
+    const fields = Object.keys(IdentifyResponse.shape);
+    expect(fields.length).toBeGreaterThan(0); // guard against a refactor silently emptying this
+    for (const field of fields) {
+      expectPromptNamesField(IDENTIFY_SYSTEM_PROMPT, field);
     }
   });
 });
