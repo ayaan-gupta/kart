@@ -40,3 +40,6 @@ example
 
 # generated native folders
 /android
+
+# Superpowers SDD scratch
+.superpowers/
