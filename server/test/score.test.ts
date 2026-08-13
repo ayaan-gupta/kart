@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scoreImage, type TruthItem } from "../eval/score.js";
+import { scoreImage, scoreCounts, type TruthItem, type PredictedCount } from "../eval/score.js";
 
 const truth: TruthItem[] = [
   { name: "Bananas", brand: null, qty: 1, occluded: false },
@@ -124,5 +124,134 @@ describe("scoreImage", () => {
     const s = scoreImage([], []);
     expect(s.precision).toBe(0);
     expect(s.recall).toBe(0);
+  });
+});
+
+describe("scoreCounts", () => {
+  it("scores exact agreement as a match with zero signed error", () => {
+    const s = scoreCounts(
+      [{ productKey: "::bananas", count: 1 }],
+      [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.exactMatches).toBe(1);
+    expect(s.meanSignedError).toBe(0);
+    expect(s.overCounted).toEqual([]);
+    expect(s.underCounted).toEqual([]);
+    expect(s.comparisons).toEqual([
+      { productKey: "::bananas", truthQty: 1, predictedCount: 1, signedError: 0, exactMatch: true },
+    ]);
+  });
+
+  it("records a positive signed error and overCounted when the model over-counts, this is the shipped bug's exact shape", () => {
+    // Ground truth: one bunch of bananas. Model: three. This is the exact regression this
+    // function exists to catch.
+    const s = scoreCounts(
+      [{ productKey: "::bananas", count: 3 }],
+      [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.exactMatches).toBe(0);
+    expect(s.meanSignedError).toBe(2);
+    expect(s.overCounted).toEqual(["::bananas"]);
+    expect(s.underCounted).toEqual([]);
+  });
+
+  it("records a negative signed error and underCounted when the model under-counts", () => {
+    const s = scoreCounts(
+      [{ productKey: "::bananas", count: 1 }],
+      [{ name: "Bananas", brand: null, qty: 3, occluded: false }],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.exactMatches).toBe(0);
+    expect(s.meanSignedError).toBe(-2);
+    expect(s.underCounted).toEqual(["::bananas"]);
+    expect(s.overCounted).toEqual([]);
+  });
+
+  it("reports a truth product with no inViewCounts entry as missingFromPredicted, not as a count of zero", () => {
+    const s = scoreCounts(
+      [],
+      [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+    );
+    expect(s.missingFromPredicted).toEqual(["::bananas"]);
+    expect(s.totalCompared).toBe(0);
+    expect(s.meanSignedError).toBe(0);
+    expect(s.comparisons).toEqual([
+      { productKey: "::bananas", truthQty: 1, predictedCount: null, signedError: null, exactMatch: false },
+    ]);
+  });
+
+  it("reports an inViewCounts entry with no matching ground-truth product as missingFromTruth", () => {
+    const s = scoreCounts([{ productKey: "::motor oil", count: 1 }], []);
+    expect(s.missingFromTruth).toEqual(["::motor oil"]);
+    expect(s.totalCompared).toBe(0);
+    expect(s.comparisons).toEqual([
+      { productKey: "::motor oil", truthQty: null, predictedCount: 1, signedError: null, exactMatch: false },
+    ]);
+  });
+
+  it("treats a predicted count of zero as a real, comparable value, not as a missing entry", () => {
+    const s = scoreCounts(
+      [{ productKey: "::bananas", count: 0 }],
+      [{ name: "Bananas", brand: null, qty: 1, occluded: false }],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.missingFromPredicted).toEqual([]);
+    expect(s.underCounted).toEqual(["::bananas"]);
+    expect(s.comparisons[0].signedError).toBe(-1);
+  });
+
+  it("sums duplicate predicted keys instead of overwriting or rejecting them", () => {
+    const s = scoreCounts(
+      [
+        { productKey: "::bananas", count: 1 },
+        { productKey: "::bananas", count: 2 },
+      ],
+      [{ name: "Bananas", brand: null, qty: 3, occluded: false }],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.exactMatches).toBe(1);
+    expect(s.comparisons[0].predictedCount).toBe(3);
+  });
+
+  it("sums duplicate ground-truth keys instead of overwriting or rejecting them", () => {
+    const s = scoreCounts(
+      [{ productKey: "::bananas", count: 3 }],
+      [
+        { name: "Bananas", brand: null, qty: 1, occluded: false },
+        { name: "bananas", brand: null, qty: 2, occluded: false },
+      ],
+    );
+    expect(s.totalCompared).toBe(1);
+    expect(s.exactMatches).toBe(1);
+    expect(s.comparisons[0].truthQty).toBe(3);
+  });
+
+  it("returns zero totals, not NaN, for an empty image on both sides", () => {
+    const s = scoreCounts([], []);
+    expect(s.totalCompared).toBe(0);
+    expect(s.exactMatches).toBe(0);
+    expect(s.meanSignedError).toBe(0);
+    expect(s.overCounted).toEqual([]);
+    expect(s.underCounted).toEqual([]);
+    expect(s.missingFromPredicted).toEqual([]);
+    expect(s.missingFromTruth).toEqual([]);
+  });
+
+  it("averages signed error only over comparable keys, mixing over- and under-counts", () => {
+    const predicted: PredictedCount[] = [
+      { productKey: "::bananas", count: 3 }, // truth 1, error +2
+      { productKey: "kelloggs::froot loops", count: 1 }, // truth 1, error 0
+    ];
+    const truthMixed: TruthItem[] = [
+      { name: "Bananas", brand: null, qty: 1, occluded: false },
+      { name: "Froot Loops", brand: "Kellogg's", qty: 1, occluded: false },
+      { name: "Rice Krispies", brand: "Kellogg's", qty: 5, occluded: false }, // no predicted entry
+    ];
+    const s = scoreCounts(predicted, truthMixed);
+    expect(s.totalCompared).toBe(2);
+    expect(s.meanSignedError).toBe(1);
+    expect(s.missingFromPredicted).toEqual(["kelloggs::rice krispies"]);
   });
 });
