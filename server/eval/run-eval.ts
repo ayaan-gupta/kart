@@ -338,10 +338,18 @@ export async function runEval(
     return { exitCode: 1, stdout, stderr, reportMarkdown: null, results, scoredCount, erroredCount };
   }
 
+  const exitCode: 0 | 2 = erroredCount > 0 ? 2 : 0;
+
   const summary =
     `mean precision ${(totalP / scoredCount).toFixed(3)}, mean recall ${(totalR / scoredCount).toFixed(3)}, ` +
     `over ${scoredCount} image(s)` +
     (erroredCount > 0 ? `, ${erroredCount} image(s) errored and were excluded` : "");
+  const exitCodeNote =
+    "Exit codes: 0 means a clean run, every evaluable image scored with zero errors. 1 means " +
+    "a total failure, an empty corpus or every evaluable image errored; no results file is " +
+    "written for exit code 1, so a file existing at all means the run did not exit 1. 2 means " +
+    "a partial failure, at least one image scored and at least one errored; the results below " +
+    `are real but incomplete. This run's exit code: ${exitCode}.`;
   const methodNote =
     "Averaging method: macro-averaged, the mean of each image's own precision and recall. " +
     "An image with many ground truth items counts the same as an image with few. This is not " +
@@ -378,6 +386,8 @@ export async function runEval(
     "",
     summary,
     "",
+    exitCodeNote,
+    "",
     methodNote,
     "",
     visibleSummary,
@@ -386,8 +396,6 @@ export async function runEval(
     "",
     reportSections.join("\n"),
   ].join("\n");
-
-  const exitCode: 0 | 2 = erroredCount > 0 ? 2 : 0;
 
   return { exitCode, stdout, stderr, reportMarkdown, results, scoredCount, erroredCount };
 }

@@ -244,6 +244,32 @@ describe("runEval: averaging method disclosure", () => {
   });
 });
 
+describe("runEval: exit-code scheme disclosure", () => {
+  it("states what 0, 1, and 2 mean in the written report, next to this run's own exit code", async () => {
+    const recognize = vi.fn<Recognizer>().mockResolvedValue(census({ marks: [bananaMark] }));
+    const outcome = await runEval(["cart1.jpg"], { "cart1.jpg": bananaTruth }, stubLoadImage, recognize);
+
+    expect(outcome.exitCode).toBe(0);
+    expect(outcome.reportMarkdown).toContain("Exit codes:");
+    expect(outcome.reportMarkdown).toContain("0 means a clean run");
+    expect(outcome.reportMarkdown).toContain("1 means a total failure");
+    expect(outcome.reportMarkdown).toContain("2 means a partial failure");
+    expect(outcome.reportMarkdown).toContain("This run's exit code: 0.");
+  });
+
+  it("names the actual exit code (2) for a partial-failure run in the written report", async () => {
+    const recognize = vi.fn<Recognizer>();
+    recognize.mockResolvedValueOnce(census({ marks: [bananaMark] }));
+    recognize.mockRejectedValueOnce(new Error("runCensus: OpenAI connection failed (ECONNRESET)"));
+
+    const truth = { "good.jpg": bananaTruth, "bad.jpg": bananaTruth };
+    const outcome = await runEval(["good.jpg", "bad.jpg"], truth, stubLoadImage, recognize);
+
+    expect(outcome.exitCode).toBe(2);
+    expect(outcome.reportMarkdown).toContain("This run's exit code: 2.");
+  });
+});
+
 describe("runEval: visible-only occlusion reporting", () => {
   it("computes a second score excluding occluded ground truth items", async () => {
     const recognize = vi.fn<Recognizer>().mockResolvedValue(census({ marks: [bananaMark] }));
