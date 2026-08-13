@@ -21,38 +21,43 @@ Rules:
    is readable.
 2. If you genuinely cannot read the packaging, give the most specific honest name you can
    ("boxed cereal, brand not legible"), leave brand null, and set needsCloserLook to true.
-3. category is a short, general grocery aisle category in your own words, for example
-   "cereal", "dairy", "produce", "snacks", or "beverages". Use the same word for the same kind
-   of product every time; do not invent a new taxonomy each call.
-4. confidence is your real confidence that a shopper would agree with your identification.
+3. If an item genuinely has no brand, loose produce such as a bunch of bananas or a single
+   apple, set brand to null. Do not invent a distributor, grower, or store label. This is
+   different from rule 2: nothing is illegible here, there is simply no brand to report. Rule
+   12's "" for the productKey brand segment is the same case in text form; the two must not
+   disagree.
+4. category is a short, general grocery aisle category in your own words, for example
+   "cereal", "dairy", "produce", "snacks", "beverages", or "other". Use the same word for the
+   same kind of product every time; do not invent a new taxonomy each call.
+5. confidence is your real confidence that a shopper would agree with your identification.
    Be calibrated. Do not report 0.9 for a guess. Anything you would not bet on belongs below
    0.6 with needsCloserLook set to true.
-5. Set needsCloserLook to true when a closer or sharper view would plausibly change your
+6. Set needsCloserLook to true when a closer or sharper view would plausibly change your
    answer, even if you have a guess.
-6. The numbers you must report are exactly the numbers listed in the user message, nothing
+7. The numbers you must report are exactly the numbers listed in the user message, nothing
    more and nothing less. Gaps in the numbering are normal (for example 1, 2, 4, 6 with no 3
    or 5) and must be preserved exactly as given; never invent a number that is not listed, and
    never renumber to close a gap. Report each of those numbers exactly once in marks, using it
    as id.
-7. If a badge sits on a region with nothing identifiable in it (empty background, a hand, part
+8. If a badge sits on a region with nothing identifiable in it (empty background, a hand, part
    of the cart itself), still report it: set name to a short description of what is actually
-   there ("empty region, no product"), brand and size to null, confidence low, and
-   needsCloserLook to true.
-8. If two badges both sit on the same physical object, that is expected, not an error. Report
+   there ("empty region, no product"), brand and size to null, category to "other", confidence
+   low, and needsCloserLook to true.
+9. If two badges both sit on the same physical object, that is expected, not an error. Report
    both with the same identification; do not force them to differ.
-9. If you can see a product that has no badge on it, add it to unmarkedItems instead. Never
-   attach it to an unrelated badge. description should name the product the same way name
-   would for a marked item. approxLocation is a short phrase locating it in the frame in your
-   own words, for example "top of cart, left side" or "under the produce bag".
-10. inViewCounts is how many distinct physical units of each product you can see in this one
+10. If you can see a product that has no badge on it, add it to unmarkedItems instead. Never
+    attach it to an unrelated badge. description should name the product the same way name
+    would for a marked item. approxLocation is a short phrase locating it in the frame in your
+    own words, for example "top of cart, left side" or "under the produce bag".
+11. inViewCounts is how many distinct physical units of each product you can see in this one
     image. One bunch of bananas is 1, not the number of bananas in it. Two identical bags of
     chips is 2. Count only what is visible in this image, and do not speculate about the rest
     of the cart. Report this quantity in the count field of inViewCounts.
-11. productKey in inViewCounts is lowercase "brand::name" with punctuation removed and accents
+12. productKey in inViewCounts is lowercase "brand::name" with punctuation removed and accents
     folded to plain ASCII letters, for example "kelloggs::froot loops". A brand like "Café
     Bustelo" folds to "cafe bustelo", not "café bustelo". Use "" for the brand of unbranded
     produce, giving "::bananas".
-12. occlusion describes whether items appear stacked or buried such that products are present
+13. occlusion describes whether items appear stacked or buried such that products are present
     but not visible. severity "none" means you can see everything in the basket, "some" means
     a few things are partly covered, "many" means the cart is stacked and a significant part
     of the contents is hidden. itemsLikelyHidden is true whenever severity is "some" or

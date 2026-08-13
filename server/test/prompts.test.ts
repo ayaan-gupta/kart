@@ -119,4 +119,22 @@ describe("system prompts", () => {
       expectPromptNamesField(IDENTIFY_SYSTEM_PROMPT, field);
     }
   });
+
+  it("CENSUS_SYSTEM_PROMPT gives every required field, including category, for a badge with nothing identifiable in it", () => {
+    // Fix round 2, Finding A: marks[].category is required and non-nullable, so the rule
+    // covering an empty/non-product badge must pin a literal value, not leave it improvised.
+    expect(CENSUS_SYSTEM_PROMPT).toContain('category to "other"');
+  });
+
+  it("CENSUS_SYSTEM_PROMPT gives explicit brand guidance for a genuinely brandless item, distinct from the illegible-packaging case", () => {
+    // Fix round 2, Finding B: loose produce (bananas) has no brand at all, which is a
+    // different situation from rule 2's "brand is present but illegible". The prompt must
+    // cover this case by name, with a concrete value, not leave it to be inferred.
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/genuinely has no brand/);
+    expect(CENSUS_SYSTEM_PROMPT).toContain("set brand to null");
+    expect(CENSUS_SYSTEM_PROMPT).toContain("bananas");
+    // And it must be reconcilable with rule 12's "" convention for the same case in the
+    // productKey string, not merely present in isolation.
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/productKey brand segment/);
+  });
 });
