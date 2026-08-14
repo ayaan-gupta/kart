@@ -130,7 +130,13 @@ const SQUARE: Polygon = [0.2, 0.2, 0.4, 0.2, 0.4, 0.6, 0.2, 0.6];
 
 describe('polygonBounds', () => {
   it('returns the tight box around the vertices', () => {
-    expect(polygonBounds(SQUARE)).toEqual({ x: 0.2, y: 0.2, w: 0.2, h: 0.4 });
+    // Per-field toBeCloseTo, not toEqual: 0.6 - 0.2 is 0.39999999999999997 in IEEE754,
+    // so an exact-equality assertion on h could never pass.
+    const box = polygonBounds(SQUARE);
+    expect(box.x).toBeCloseTo(0.2, 6);
+    expect(box.y).toBeCloseTo(0.2, 6);
+    expect(box.w).toBeCloseTo(0.2, 6);
+    expect(box.h).toBeCloseTo(0.4, 6);
   });
 
   it('returns a zero box for an empty polygon', () => {
@@ -174,7 +180,9 @@ describe('fitPolygonToBox', () => {
     const out = fitPolygonToBox(SQUARE, from, to);
     expect(out[0]).toBeCloseTo(0.2, 6);
     expect(out[2]).toBeCloseTo(0.6, 6);
-    expect(out[5]).toBeCloseTo(0.2, 6);
+    // SQUARE vertices 2 and 3 share the same source y (0.6), so out[5] and out[7] must
+    // agree. sy is 2, so both land at 0.2 + (0.6 - 0.2) * 2 = 1.0.
+    expect(out[5]).toBeCloseTo(1.0, 6);
     expect(out[7]).toBeCloseTo(1.0, 6);
   });
 
