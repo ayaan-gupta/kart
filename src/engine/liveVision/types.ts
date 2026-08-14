@@ -1,3 +1,5 @@
+import type { BoxFilter } from './kalman';
+
 /** Normalized to the camera frame, origin top-left, values 0-1. */
 export interface Box {
   x: number;
@@ -13,61 +15,47 @@ export interface Box {
  */
 export type Polygon = number[];
 
-export interface MatchResult {
-  skuCode: string | null;
-  /** 0-1. How confident this match is, combining the model's label confidence and, for
-   * ambiguous labels, how well the OCR text matched the winning candidate's name. */
-  matchConfidence: number;
+/** One class-agnostic instance from the detector. The detector never names anything. */
+export interface DetectedInstance {
+  box: Box;
+  polygon: Polygon;
+  /** Detector confidence that this region is a distinct object, 0 to 1. Not a class score. */
+  score: number;
 }
 
-export type CandidateState = 'forming' | 'tentative' | 'locked';
+export type TrackState = 'tentative' | 'confirmed' | 'lost';
 
-export interface TrackedCandidate {
+/**
+ * One physical item, followed across frames. The id is the unit of quantity in Plan 3, so it
+ * must be stable for as long as the item is the same item, and never reused.
+ */
+export interface Track {
   id: string;
   box: Box;
-  skuCode: string | null;
-  confidence: number;
-  state: CandidateState;
+  polygon: Polygon;
+  score: number;
+  state: TrackState;
+  hits: number;
   lastSeenAt: number;
-  /** When the current skuCode guess first reached greenConfidence, continuously. Null if not currently above it. */
-  stableSince: number | null;
+  /** Decoded UPC if the barcode fast path saw one over this track. Resolved in Plan 3. */
+  barcode: string | null;
+  filter: BoxFilter;
 }
 
-export interface TrackerConfig {
-  iouMatchThreshold: number;
-  lossToleranceMs: number;
-  yellowConfidence: number;
-  greenConfidence: number;
-  minDwellMs: number;
+export interface TrackerState {
+  tracks: Track[];
+  nextId: number;
 }
 
-export interface MatchedRegion {
-  box: Box;
-  skuCode: string | null;
-  confidence: number;
-}
-
-export interface TrackerEvent {
-  type: 'locked';
-  candidateId: string;
-  skuCode: string;
-  confidence: number;
-}
-
-/** One candidate label the classifier proposed for a region, most confident first. */
-export interface LabelCandidate {
-  label: string;
-  confidence: number;
-}
-
-export interface RawRegion {
-  box: Box;
-  /** Candidate labels in descending confidence order. The top entry is often a generic
-   * hypernym with no catalog mapping, so consumers should try each in order. */
-  labels: LabelCandidate[];
-  ocrText?: string;
-}
-
-export interface PipelineState {
-  candidates: TrackedCandidate[];
+export interface ByteTrackConfig {
+  /** At or above this score a detection can both match and seed a track. */
+  highThreshold: number;
+  /** Below this score a detection is discarded outright. */
+  lowThreshold: number;
+  /** Minimum IoU for a track and a detection to be allowed to pair. */
+  minIou: number;
+  /** How long a confirmed track survives with no detection before it is removed. */
+  maxLostMs: number;
+  /** Detections needed before a track is trusted enough to be confirmed. */
+  minHits: number;
 }
