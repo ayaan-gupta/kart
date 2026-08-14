@@ -6,6 +6,13 @@ export interface Box {
   h: number;
 }
 
+/**
+ * A closed outline, flat as `[x0, y0, x1, y1, ...]`, normalized to the frame with origin
+ * top-left. Flat rather than an array of points because this crosses the JSI boundary on
+ * every detection, where one contiguous number array is markedly cheaper than N objects.
+ */
+export type Polygon = number[];
+
 export interface MatchResult {
   skuCode: string | null;
   /** 0-1. How confident this match is, combining the model's label confidence and, for
