@@ -57,7 +57,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "test:swift": "swiftc -O ios/Kart/KartDetector.swift ios/Kart/MaskContour.swift scripts/swift-tests/main.swift -o /tmp/kart-swift-tests && /tmp/kart-swift-tests"
   },
   "jest": {
     "preset": "jest-expo",
