@@ -1,5 +1,5 @@
-import { intersectionOverUnion } from '../geometry';
-import type { Box } from '../types';
+import { fitPolygonToBox, intersectionOverUnion, polygonBounds, polygonCentroid } from '../geometry';
+import type { Box, Polygon } from '../types';
 
 describe('intersectionOverUnion', () => {
   it('returns 1 for identical boxes', () => {
@@ -21,9 +21,6 @@ describe('intersectionOverUnion', () => {
     expect(intersectionOverUnion(a, b)).toBeCloseTo(1 / 3, 5);
   });
 });
-
-import { fitPolygonToBox, polygonBounds, polygonCentroid } from '../geometry';
-import type { Polygon } from '../types';
 
 const SQUARE: Polygon = [0.2, 0.2, 0.4, 0.2, 0.4, 0.6, 0.2, 0.6];
 
