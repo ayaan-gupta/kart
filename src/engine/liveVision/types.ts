@@ -59,3 +59,29 @@ export interface ByteTrackConfig {
   /** Detections needed before a track is trusted enough to be confirmed. */
   minHits: number;
 }
+
+export interface KeyframeSignals {
+  /** Variance of the Laplacian over the luma plane. Higher is sharper. Not normalized. */
+  sharpness: number;
+  /** Mean absolute luma difference against the previous frame, 0 to 1. Higher is more motion. */
+  motion: number;
+  trackCount: number;
+  now: number;
+}
+
+export interface KeyframeState {
+  lastFiredAt: number;
+  lastTrackCount: number;
+}
+
+export type KeyframeReason = 'fire' | 'blurry' | 'moving' | 'too-soon' | 'nothing-to-see';
+
+export interface KeyframeConfig {
+  minSharpness: number;
+  maxMotion: number;
+  minIntervalMs: number;
+  /** Change in track count that counts as a new scene worth an early look. */
+  sceneChangeCount: number;
+  /** Floor on the interval even for a scene change, so a churning detector cannot spam. */
+  sceneChangeIntervalMs: number;
+}
