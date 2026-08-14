@@ -51,6 +51,13 @@ export function solveAssignment(cost: number[][]): [number, number][] {
         }
       }
 
+      if (delta === Infinity) {
+        throw new Error(
+          'solveAssignment: cost matrix has no feasible assignment (every remaining ' +
+            'augmenting path is blocked by an infinite cost)',
+        );
+      }
+
       for (let j = 0; j <= size; j += 1) {
         if (used[j]) {
           u[columnRow[j]] += delta;

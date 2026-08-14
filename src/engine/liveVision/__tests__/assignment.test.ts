@@ -80,4 +80,16 @@ describe('solveAssignment', () => {
     ];
     expect(totalCost(cost, solveAssignment(cost))).toBe(-8);
   });
+
+  it(
+    'throws instead of hanging on an infeasible cost matrix',
+    () => {
+      const cost = [
+        [Infinity, Infinity],
+        [Infinity, Infinity],
+      ];
+      expect(() => solveAssignment(cost)).toThrow(/no feasible assignment/);
+    },
+    2000,
+  );
 });
