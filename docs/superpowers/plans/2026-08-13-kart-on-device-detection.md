@@ -575,7 +575,7 @@ ByteTrack matches tracks to detections by solving a linear assignment problem. G
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `function solveAssignment(cost: number[][]): Array<[number, number]>` returning `[rowIndex, columnIndex]` pairs of minimum total cost. Handles rectangular matrices in either orientation and returns at most `min(rows, cols)` pairs.
+- Produces: `function solveAssignment(cost: number[][]): [number, number][]` returning `[rowIndex, columnIndex]` pairs of minimum total cost. Handles rectangular matrices in either orientation and returns at most `min(rows, cols)` pairs.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -584,7 +584,7 @@ Create `src/engine/liveVision/__tests__/assignment.test.ts`:
 ```ts
 import { solveAssignment } from '../assignment';
 
-function totalCost(cost: number[][], pairs: Array<[number, number]>): number {
+function totalCost(cost: number[][], pairs: [number, number][]): number {
   return pairs.reduce((sum, [r, c]) => sum + cost[r][c], 0);
 }
 
@@ -684,7 +684,7 @@ Create `src/engine/liveVision/assignment.ts`:
  * Rectangular input is handled by padding to a square with zeros and discarding any pair
  * that lands on padding, which is valid because padded cells are identical in every column.
  */
-export function solveAssignment(cost: number[][]): Array<[number, number]> {
+export function solveAssignment(cost: number[][]): [number, number][] {
   const rows = cost.length;
   const cols = rows === 0 ? 0 : cost[0].length;
   if (rows === 0 || cols === 0) return [];
@@ -749,7 +749,7 @@ export function solveAssignment(cost: number[][]): Array<[number, number]> {
     } while (j0 !== 0);
   }
 
-  const pairs: Array<[number, number]> = [];
+  const pairs: [number, number][] = [];
   for (let j = 1; j <= size; j += 1) {
     const i = columnRow[j] - 1;
     if (i >= 0 && i < rows && j - 1 < cols) pairs.push([i, j - 1]);
@@ -1040,7 +1040,7 @@ function associate(
   tracks: Track[],
   detections: DetectedInstance[],
   minIou: number,
-): Array<[number, number]> {
+): [number, number][] {
   if (tracks.length === 0 || detections.length === 0) return [];
 
   const cost = tracks.map((track) =>

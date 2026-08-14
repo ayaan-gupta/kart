@@ -203,7 +203,7 @@ const mark = (id: number, name: string, brand: string | null = null, conf = 0.9,
   id, name, brand, size: null, category: 'Produce', confidence: conf, needsCloserLook: closer,
 });
 
-const census = (marks: ReturnType<typeof mark>[], counts: Array<[string, number]>): CensusResult => ({
+const census = (marks: ReturnType<typeof mark>[], counts: [string, number][]): CensusResult => ({
   marks,
   inViewCounts: counts.map(([productKey, count]) => ({ productKey, count })),
 });
@@ -238,7 +238,7 @@ describe('productKey', () => {
           .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
       return `${brand ? norm(brand) : ''}::${norm(name)}`;
     };
-    const cases: Array<[string, string | null]> = [
+    const cases: [string, string | null][] = [
       ['Bananas', null], ['Café Bustelo', 'Café'], ['Häagen-Dazs', null],
       ['2% Milk, 1 gal', 'Great Value'], ['jalapeño peppers', null], ['', ''],
       ['100% Juice', null], ['naïve crème brûlée', "Trader Joe's"],
@@ -521,7 +521,7 @@ export interface CensusMark {
 
 export interface CensusResult {
   marks: CensusMark[];
-  inViewCounts: Array<{ productKey: string; count: number }>;
+  inViewCounts: { productKey: string; count: number }[];
 }
 
 export interface FusionState {
@@ -1036,7 +1036,7 @@ The hard requirement here is that a failure never breaks the scan. The overlay i
 - Produces:
   - `type ClientFailure = 'offline' | 'timeout' | 'unconfigured' | 'rejected' | 'server' | 'malformed'`
   - `type ClientResult<T> = { ok: true; value: T } | { ok: false; failure: ClientFailure }`
-  - `interface CensusRequest { imageBase64: string; marks: Array<{ id: number; box: Box }> }`
+  - `interface CensusRequest { imageBase64: string; marks: { id: number; box: Box }[] }`
   - `interface IdentifyRequest { imageBase64: string; box: Box | null; hint: string | null }`
   - `interface IdentifyResult { name, brand, size, category, confidence, stillUnclear }`
   - `type CensusPayload = CensusResult & { occlusion: OcclusionReport; unmarkedItems: UnmarkedItem[] }`
@@ -1265,7 +1265,7 @@ export type CensusPayload = CensusResult & {
 
 export interface CensusRequest {
   imageBase64: string;
-  marks: Array<{ id: number; box: Box }>;
+  marks: { id: number; box: Box }[];
 }
 
 export interface IdentifyRequest {
@@ -1799,9 +1799,9 @@ Gets pixels off the device. Two additions to the existing plugin, no new native 
 - Consumes: `KartImageTools` from Task 4; `FrameMetrics`, `KartDetector` from Plan 2.
 - Produces: the plugin's return value gains two fields, and `FrameScan` gains their bound forms:
   - `keyframe: string | null` (base64 JPEG, non-null only on a frame that passed both halves of the gate)
-  - `crops: Array<{ id: string; jpeg: string }>` (base64 JPEGs, one per requested track that was still in frame)
+  - `crops: { id: string; jpeg: string }[]` (base64 JPEGs, one per requested track that was still in frame)
   - `function scanCart(frame: Frame, request: ScanRequest): FrameScan` (a worklet)
-  - `interface ScanRequest { wantKeyframe: boolean; cropTrackIds: Array<{ id: string; box: Box }> }`
+  - `interface ScanRequest { wantKeyframe: boolean; cropTrackIds: { id: string; box: Box }[] }`
 
 - [ ] **Step 1: Add the gate thresholds to config**
 
@@ -2004,7 +2004,7 @@ export interface ThumbnailCrop {
 
 export interface ScanRequest {
   wantKeyframe: boolean;
-  cropTrackIds: Array<{ id: string; box: Box }>;
+  cropTrackIds: { id: string; box: Box }[];
 }
 ```
 
@@ -2692,10 +2692,10 @@ The structure is deliberately split. Every decision is a pure function that can 
 - Produces:
   - `interface SessionState { fusion, occlusion, thumbnails, amberSince, censusCalls, identifyCalls }`
   - `function createSessionState(): SessionState`
-  - `function marksFor(tracks: Track[], limit?: number): { marks: Array<{ id: number; box: Box }>; markToTrack: Record<number, string> }`
+  - `function marksFor(tracks: Track[], limit?: number): { marks: { id: number; box: Box }[]; markToTrack: Record<number, string> }`
   - `function amberTrackIds(state: SessionState, tracks: Track[]): string[]`
   - `function persistentAmber(state: SessionState, tracks: Track[], now: number): boolean`
-  - `function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): Array<{ id: string; box: Box }>`
+  - `function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): { id: string; box: Box }[]`
   - `class RecognitionSession` with `state`, `wantsKeyframe(tracks)`, `onKeyframe(...)`, `onCrops(...)`, `onBarcodes(...)`, `dispose()`
   - `const AMBER_DWELL_MS` (`GREEN_CONFIDENCE` lives in `./config`, so UI components do not have to import the orchestrator to read a threshold)
 
@@ -3093,13 +3093,13 @@ export function createSessionState(): SessionState {
 export function marksFor(
   tracks: Track[],
   limit = MAX_MARKS,
-): { marks: Array<{ id: number; box: Box }>; markToTrack: Record<number, string> } {
+): { marks: { id: number; box: Box }[]; markToTrack: Record<number, string> } {
   const eligible = tracks
     .filter((t) => t.state === 'confirmed')
     .sort((a, b) => b.box.w * b.box.h - a.box.w * a.box.h)
     .slice(0, limit);
 
-  const marks: Array<{ id: number; box: Box }> = [];
+  const marks: { id: number; box: Box }[] = [];
   const markToTrack: Record<number, string> = {};
   eligible.forEach((t, index) => {
     // Mark ids start at 1: a zero badge reads as an "O" against some packaging.
@@ -3132,8 +3132,8 @@ export function persistentAmber(state: SessionState, tracks: Track[], now: numbe
 }
 
 /** Counted items whose product does not have a photo yet. */
-export function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): Array<{ id: string; box: Box }> {
-  const wanted: Array<{ id: string; box: Box }> = [];
+export function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): { id: string; box: Box }[] {
+  const wanted: { id: string; box: Box }[] = [];
   const claimed = new Set<string>();
   for (const t of tracks) {
     if (t.state !== 'confirmed') continue;
@@ -3149,7 +3149,7 @@ export function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): Ar
 
 export interface SessionDeps {
   requestCensus: (
-    req: { imageBase64: string; marks: Array<{ id: number; box: Box }> },
+    req: { imageBase64: string; marks: { id: number; box: Box }[] },
     signal?: AbortSignal,
   ) => Promise<ClientResult<CensusPayload>>;
   requestIdentify: (
@@ -3304,7 +3304,7 @@ export class RecognitionSession {
   }
 
   /** Files the pictures the plugin cut for us. */
-  async onCrops(crops: Array<{ id: string; jpeg: string }>): Promise<void> {
+  async onCrops(crops: { id: string; jpeg: string }[]): Promise<void> {
     for (const crop of crops) {
       if (this.disposed) return;
       const identity = this.state.fusion.identities[crop.id];
@@ -3319,7 +3319,7 @@ export class RecognitionSession {
   }
 
   /** Resolves any newly decoded barcode and attaches it to its track. */
-  async onBarcodes(hits: Array<{ trackId: string; payload: string }>): Promise<void> {
+  async onBarcodes(hits: { trackId: string; payload: string }[]): Promise<void> {
     for (const hit of hits) {
       if (this.disposed) return;
       const seen = `${hit.trackId}:${hit.payload}`;
@@ -3369,7 +3369,7 @@ This task also owns thumbnail files, because their lifetime is the haul's lifeti
   - `store.setBag(lines: BagLine[], thumbnails: Record<string, string>): void`
   - `store.finishHaul(): string | null`
   - `function saveThumbnail(key: string, base64: string): Promise<string | null>`
-  - `function deleteHaulThumbnails(uris: Array<string | null>): Promise<void>`
+  - `function deleteHaulThumbnails(uris: (string | null)[]): Promise<void>`
   - `function migrateHaulItems(raw: unknown): HaulItem[]`
   - `haulCount(items)` stays; **`haulTotal` and every price path leave the scan and bag flow**
 
@@ -3534,7 +3534,7 @@ export async function saveThumbnail(key: string, base64: string): Promise<string
 }
 
 /** Removes the photos a deleted haul owned, so they do not accumulate forever. */
-export async function deleteHaulThumbnails(uris: Array<string | null>): Promise<void> {
+export async function deleteHaulThumbnails(uris: (string | null)[]): Promise<void> {
   for (const uri of uris) {
     if (!uri) continue;
     try {
