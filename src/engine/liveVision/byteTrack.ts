@@ -97,14 +97,19 @@ export function updateTracks(
     if (!matchedTracks.has(t)) leftoverTracks.push(t);
   }
 
+  // Only confirmed and lost tracks get the low-score second chance. A tentative track is
+  // more likely a detector artefact, and letting faint detections recover it would let noise
+  // promote it to confirmed, which everything downstream counts as a real item.
+  const recoverable = leftoverTracks.filter((t) => predicted[t].state !== 'tentative');
+
   const recovered = associate(
-    leftoverTracks.map((t) => predicted[t]),
+    recoverable.map((t) => predicted[t]),
     low,
     config.minIou,
   );
   const recoveredTracks = new Set<number>();
   for (const [i, d] of recovered) {
-    const t = leftoverTracks[i];
+    const t = recoverable[i];
     next.push(applyDetection(predicted[t], low[d], now, config));
     recoveredTracks.add(t);
   }
@@ -127,7 +132,7 @@ export function updateTracks(
     const filter = createBoxFilter(detection.box);
     next.push({
       id: `track_${nextId}`,
-      box: detection.box,
+      box: filterToBox(filter),
       polygon: detection.polygon,
       score: detection.score,
       state: config.minHits <= 1 ? 'confirmed' : 'tentative',
