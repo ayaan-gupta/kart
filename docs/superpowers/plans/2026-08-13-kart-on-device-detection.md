@@ -909,9 +909,10 @@ describe('updateTracks', () => {
   });
 
   it('keeps two neighbouring items apart without swapping identities', () => {
-    // Two items close enough that each track overlaps both detections. Greedy matching gives
-    // the first track its global best and strands the second; the assignment solver keeps
-    // both pairings, which is why one is used.
+    // Two items tracked side by side over 8 frames, drifting at the same rate. This confirms
+    // ids stay attached to their own item and neither track absorbs the other's detection.
+    // Note it does NOT discriminate the assignment solver from greedy matching, because each
+    // track's own detection is unambiguously its best here. The test below does.
     const { state } = run(createTrackerState(), 8, (i) => [
       detection(0.30 + i * 0.005, 0.4),
       detection(0.38 + i * 0.005, 0.4),
@@ -921,6 +922,55 @@ describe('updateTracks', () => {
     expect(sorted[0].id).toBe('track_1');
     expect(sorted[1].id).toBe('track_2');
     expect(sorted[0].box.x).toBeLessThan(sorted[1].box.x);
+  });
+
+  it('resolves a genuine assignment conflict without swapping identities', () => {
+    // A scenario that actually discriminates the Hungarian solver from a greedy per-track
+    // matcher, verified against a greedy substitute in a throwaway scratch script (not
+    // committed): two confirmed tracks sit close together, then the left item jumps far away
+    // in the same frame the right item barely moves. Now both tracks want the right-hand
+    // detection. The solver picks the globally cheaper total assignment: track_2 (already
+    // closer) keeps the right-hand item, track_1 gets nothing within minIou and goes lost,
+    // and a new track seeds at the jumped position. A greedy matcher, which lets track_1
+    // claim its locally-best option first, instead steals the right-hand item out from under
+    // track_2, an identity swap this tracker exists to prevent.
+    let { state, now } = run(createTrackerState(), 3, () => [
+      detection(0.44, 0.4),
+      detection(0.49, 0.4),
+    ]);
+    expect(state.tracks.every((t) => t.state === 'confirmed')).toBe(true);
+
+    state = updateTracks(state, [detection(0.2, 0.4), detection(0.5, 0.4)], now);
+
+    const track1 = state.tracks.find((t) => t.id === 'track_1');
+    const track2 = state.tracks.find((t) => t.id === 'track_2');
+    const track3 = state.tracks.find((t) => t.id === 'track_3');
+
+    expect(state.tracks).toHaveLength(3);
+    expect(track2?.state).toBe('confirmed');
+    expect(track2?.box.x).toBeCloseTo(0.5, 1);
+    expect(track1?.state).toBe('lost');
+    expect(track1?.box.x).toBeCloseTo(0.44, 1);
+    expect(track3?.state).toBe('tentative');
+    expect(track3?.box.x).toBeCloseTo(0.2, 1);
+  });
+
+  it('does not let low-score detections promote a tentative track to confirmed', () => {
+    // A tentative track is one hit old and unproven, more likely a detector artefact (a
+    // shadow, a fold in a bag) than a real item. It must not get the second-stage recovery
+    // that a confirmed track gets: two low-score hits in the same spot must never be enough,
+    // on their own, to build hits toward confirmation and mint a phantom item downstream.
+    let state = updateTracks(createTrackerState(), [detection(0.3, 0.3)], 1000);
+    expect(state.tracks).toHaveLength(1);
+    expect(state.tracks[0].state).toBe('tentative');
+
+    // Excluded from second-stage recovery, the tentative track counts this as a miss like
+    // any other, and a tentative track is dropped the moment it misses (see the dedicated
+    // test below), so it does not linger either. Either way it never reaches 'confirmed'.
+    state = updateTracks(state, [detection(0.3, 0.3, 0.15)], 1300);
+    state = updateTracks(state, [detection(0.3, 0.3, 0.15)], 1600);
+    expect(state.tracks.some((t) => t.state === 'confirmed')).toBe(false);
+    expect(state.tracks).toHaveLength(0);
   });
 
   it('starts a second track when a genuinely new item appears', () => {
@@ -1111,14 +1161,19 @@ export function updateTracks(
     if (!matchedTracks.has(t)) leftoverTracks.push(t);
   }
 
+  // Only confirmed and lost tracks get the low-score second chance. A tentative track is
+  // more likely a detector artefact, and letting faint detections recover it would let noise
+  // promote it to confirmed, which everything downstream counts as a real item.
+  const recoverable = leftoverTracks.filter((t) => predicted[t].state !== 'tentative');
+
   const recovered = associate(
-    leftoverTracks.map((t) => predicted[t]),
+    recoverable.map((t) => predicted[t]),
     low,
     config.minIou,
   );
   const recoveredTracks = new Set<number>();
   for (const [i, d] of recovered) {
-    const t = leftoverTracks[i];
+    const t = recoverable[i];
     next.push(applyDetection(predicted[t], low[d], now, config));
     recoveredTracks.add(t);
   }
@@ -1141,7 +1196,7 @@ export function updateTracks(
     const filter = createBoxFilter(detection.box);
     next.push({
       id: `track_${nextId}`,
-      box: detection.box,
+      box: filterToBox(filter),
       polygon: detection.polygon,
       score: detection.score,
       state: config.minHits <= 1 ? 'confirmed' : 'tentative',
