@@ -93,3 +93,27 @@ export function fitPolygonToBox(polygon: Polygon, from: Box, to: Box): Polygon {
 
   return out;
 }
+
+/**
+ * Converts a normalized polygon into an SVG path in view coordinates.
+ *
+ * Coordinates are rounded to whole pixels. Sub-pixel precision costs path string length on
+ * every track on every update and buys nothing at the size these outlines are drawn.
+ */
+export function polygonToSvgPath(
+  polygon: Polygon,
+  width: number,
+  height: number,
+  offsetX = 0,
+  offsetY = 0,
+): string {
+  if (polygon.length < 6) return '';
+
+  let path = '';
+  for (let i = 0; i < polygon.length - 1; i += 2) {
+    const x = Math.round(offsetX + polygon[i] * width);
+    const y = Math.round(offsetY + polygon[i + 1] * height);
+    path += `${i === 0 ? 'M' : 'L'}${x} ${y}`;
+  }
+  return `${path}Z`;
+}

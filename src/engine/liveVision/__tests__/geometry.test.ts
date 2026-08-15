@@ -1,4 +1,4 @@
-import { fitPolygonToBox, intersectionOverUnion, polygonBounds, polygonCentroid } from '../geometry';
+import { fitPolygonToBox, intersectionOverUnion, polygonBounds, polygonCentroid, polygonToSvgPath } from '../geometry';
 import type { Box, Polygon } from '../types';
 
 describe('intersectionOverUnion', () => {
@@ -95,5 +95,32 @@ describe('fitPolygonToBox', () => {
 
   it('returns an empty polygon unchanged', () => {
     expect(fitPolygonToBox([], { x: 0, y: 0, w: 1, h: 1 }, { x: 0, y: 0, w: 2, h: 2 })).toEqual([]);
+  });
+});
+
+describe('polygonToSvgPath', () => {
+  it('builds a closed path in view coordinates', () => {
+    const path = polygonToSvgPath([0, 0, 0.5, 0, 0.5, 0.5], 100, 200);
+    expect(path).toBe('M0 0L50 0L50 100Z');
+  });
+
+  it('applies the offset for a cover-fit camera', () => {
+    // Three points, not two: the brief's original fixture here was [0, 0, 1, 1], a two-point
+    // line that the < 3 points guard below correctly rejects (see the "fewer than three
+    // points" case), which contradicted this test's own expectation of a non-empty path.
+    // Same shape as SQUARE's first three vertices, scaled 100x100 and offset by (10, 20).
+    expect(polygonToSvgPath([0, 0, 1, 0, 1, 1], 100, 100, 10, 20)).toBe('M10 20L110 20L110 120Z');
+  });
+
+  it('returns an empty string for a polygon with fewer than three points', () => {
+    expect(polygonToSvgPath([0.1, 0.1, 0.2, 0.2], 100, 100)).toBe('');
+    expect(polygonToSvgPath([], 100, 100)).toBe('');
+  });
+
+  it('drops a trailing unpaired coordinate instead of crashing on malformed device data', () => {
+    // A traced contour should never come off the pipeline with an odd coordinate count, but
+    // this guards the SVG path builder against it anyway: the stray final value is ignored
+    // rather than read as a y with no x (or worse, indexed out of bounds).
+    expect(polygonToSvgPath([0, 0, 1, 0, 1, 1, 0.9], 100, 100)).toBe('M0 0L100 0L100 100Z');
   });
 });
