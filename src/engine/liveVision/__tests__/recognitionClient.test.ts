@@ -52,6 +52,15 @@ describe('requestCensus', () => {
     expect(f).not.toHaveBeenCalled();
   });
 
+  it('never touches the network when the caller signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const f = mockFetch(jest.fn());
+    const res = await requestCensus(req, controller.signal);
+    expect(res).toEqual({ ok: false, failure: 'timeout' });
+    expect(f).not.toHaveBeenCalled();
+  });
+
   it('reports offline when fetch itself rejects', async () => {
     mockFetch(jest.fn().mockRejectedValue(new TypeError('Network request failed')));
     expect(await requestCensus(req)).toEqual({ ok: false, failure: 'offline' });
@@ -73,6 +82,11 @@ describe('requestCensus', () => {
 
   it('reports malformed when the body is not the shape we expect', async () => {
     mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { marks: 'nope' } }) }));
+    expect(await requestCensus(req)).toEqual({ ok: false, failure: 'malformed' });
+  });
+
+  it('reports malformed when a 200 response carries an envelope that says ok: false', async () => {
+    mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: false, error: 'not actually ok' }) }));
     expect(await requestCensus(req)).toEqual({ ok: false, failure: 'malformed' });
   });
 

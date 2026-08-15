@@ -10,7 +10,13 @@ import type { Box } from './types';
  *  - `offline`:      the request never reached a server. Retrying later is reasonable.
  *  - `timeout`:      it reached a server but took too long. Retrying later is reasonable.
  *  - `rejected`:     the server refused the request (4xx). Our bug. Retrying sends the same bug.
- *  - `server`:       the server failed (5xx). Retrying later is reasonable.
+ *  - `server`:       the server failed (5xx). Often transient and safe to retry later, but
+ *                     not always: a request whose fields are each individually valid but
+ *                     combine into something the server cannot act on (an off-frame crop box,
+ *                     for example) can produce a deterministic 500 that repeats on every
+ *                     identical retry. A caller must bound retries by the session call ceiling
+ *                     (`MAX_CENSUS_CALLS_PER_SESSION` / `MAX_IDENTIFY_CALLS_PER_SESSION`), not
+ *                     by retrying `server` until it succeeds.
  *  - `malformed`:    a 2xx whose body was not what we expect. Treated as a bug, not retried.
  */
 export type ClientFailure = 'offline' | 'timeout' | 'unconfigured' | 'rejected' | 'server' | 'malformed';
@@ -69,6 +75,12 @@ async function post<T>(
 ): Promise<ClientResult<T>> {
   const base = apiBaseUrl();
   if (base === '') return { ok: false, failure: 'unconfigured' };
+
+  // A signal that is already aborted when we're called (a session torn down while this request
+  // was queued) must never reach the network. AbortSignal does not replay a past abort to a
+  // listener added after the fact, so `addEventListener` below would never fire for it; this has
+  // to be a synchronous check up front instead.
+  if (signal?.aborted) return { ok: false, failure: 'timeout' };
 
   // Two abort sources: our own timeout, and the caller ending the scan session. AbortSignal.any
   // is not available in the Hermes runtime, so the timeout drives a controller that the
