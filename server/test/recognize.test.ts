@@ -18,7 +18,7 @@ vi.mock("../src/openai.js", () => ({
 }));
 
 const { openai, MODELS } = await import("../src/openai.js");
-const { runCensus, runIdentify } = await import("../src/recognize.js");
+const { runCensus, runIdentify, cropToBox } = await import("../src/recognize.js");
 
 const create = openai.responses.create as unknown as ReturnType<typeof vi.fn>;
 
@@ -702,5 +702,50 @@ describe("errors are surfaced usefully without leaking the API key", () => {
   it("still produces a safe, prefixed message for a completely unexpected thrown value", async () => {
     create.mockRejectedValueOnce("boom, not even an Error instance");
     await expect(runIdentify(await blankJpeg(), null)).rejects.toThrow(/runIdentify:.*boom/);
+  });
+});
+
+async function solid(w: number, h: number): Promise<Buffer> {
+  return sharp({ create: { width: w, height: h, channels: 3, background: { r: 10, g: 20, b: 30 } } })
+    .jpeg()
+    .toBuffer();
+}
+
+describe("cropToBox", () => {
+  it("cuts out the requested fraction of the image", async () => {
+    const out = await cropToBox(await solid(1000, 800), { x: 0.25, y: 0.5, w: 0.5, h: 0.25 }, 0);
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBe(500);
+    expect(meta.height).toBe(200);
+  });
+
+  it("pads outward so the crop carries some context", async () => {
+    const out = await cropToBox(await solid(1000, 1000), { x: 0.4, y: 0.4, w: 0.2, h: 0.2 }, 0.5);
+    const meta = await sharp(out).metadata();
+    // 0.2 wide, padded by half its width on each side, is 0.4 of a 1000px image.
+    expect(meta.width).toBe(400);
+  });
+
+  it("clamps a box that runs off the edge instead of throwing", async () => {
+    // A tracked item half out of frame is normal, not an error. sharp's extract() throws on an
+    // out-of-bounds region, so the clamp has to happen before it is called.
+    //
+    // Box x=0.9 w=0.5 spans 0.9..1.4, i.e. only 0.9..1.0 (100px of a 1000px image) is actually
+    // inside the frame. Padding widens the box by 0.2 of its own (raw, pre-clamp) width, 0.1
+    // fraction (100px) on each side, giving an unclamped span of 0.8..1.5; clamped to the image
+    // that is 0.8..1.0, i.e. 200px. That is comfortably less than the image's full 1000px width,
+    // which is what demonstrates the overhanging box was clamped rather than left to error out.
+    const out = await cropToBox(await solid(1000, 1000), { x: 0.9, y: 0.9, w: 0.5, h: 0.5 }, 0.2);
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBeGreaterThan(0);
+    expect(meta.width).toBe(200);
+  });
+
+  it("rejects a box with no area", async () => {
+    await expect(cropToBox(await solid(100, 100), { x: 0.5, y: 0.5, w: 0, h: 0 }, 0)).rejects.toThrow();
+  });
+
+  it("rejects a box entirely outside the image", async () => {
+    await expect(cropToBox(await solid(100, 100), { x: 3, y: 3, w: 0.1, h: 0.1 }, 0)).rejects.toThrow();
   });
 });

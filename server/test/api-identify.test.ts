@@ -164,20 +164,20 @@ describe("POST /api/identify: hint handling", () => {
   it("passes null when hint is omitted", async () => {
     runIdentifyMock.mockResolvedValueOnce(sampleResult);
     await handler(post({ image: validImage }));
-    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null);
+    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null, null);
   });
 
   it("passes null when hint is an empty string", async () => {
     runIdentifyMock.mockResolvedValueOnce(sampleResult);
     await handler(post({ image: validImage, hint: "" }));
-    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null);
+    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null, null);
   });
 
   it("ignores a non-string hint rather than failing the request", async () => {
     runIdentifyMock.mockResolvedValueOnce(sampleResult);
     const res = await handler(post({ image: validImage, hint: 12345 }));
     expect(res.status).toBe(200);
-    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null);
+    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), null, null);
   });
 
   it("truncates a hint longer than 200 characters", async () => {
@@ -191,7 +191,7 @@ describe("POST /api/identify: hint handling", () => {
   it("passes a short hint through unchanged", async () => {
     runIdentifyMock.mockResolvedValueOnce(sampleResult);
     await handler(post({ image: validImage, hint: "looked like cereal" }));
-    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), "looked like cereal");
+    expect(runIdentifyMock).toHaveBeenCalledWith(expect.any(Buffer), "looked like cereal", null);
   });
 });
 
@@ -231,5 +231,29 @@ describe("POST /api/identify: upstream failure never leaks", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("POST /api/identify box validation", () => {
+  it("rejects a box with a coordinate outside 0..1", async () => {
+    const res = await handler(
+      new Request("http://x/api/identify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ image: validImage, box: { x: -1, y: 0, w: 0.5, h: 0.5 } }),
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a box that is not an object", async () => {
+    const res = await handler(
+      new Request("http://x/api/identify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ image: validImage, box: "middle" }),
+      }),
+    );
+    expect(res.status).toBe(400);
   });
 });

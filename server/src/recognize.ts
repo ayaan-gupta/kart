@@ -1,6 +1,7 @@
+import sharp from "sharp";
 import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import { openai, MODELS } from "./openai.js";
-import { compositeMarks, type Mark } from "./compositor.js";
+import { compositeMarks, type Box, type Mark } from "./compositor.js";
 import {
   CensusResponse,
   IdentifyResponse,
@@ -14,6 +15,44 @@ const CENSUS_LONG_EDGE = 1024;
 
 function dataUrl(jpeg: Buffer): string {
   return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+}
+
+/**
+ * Cuts a normalized, origin top-left box out of an image.
+ *
+ * The box is clamped to the image rather than rejected when it overhangs an edge. A tracked
+ * item that is half out of frame is a normal thing for the client to ask about, and sharp's
+ * extract() throws on an out-of-bounds region, so the clamp has to happen before it is called.
+ *
+ * `padding` widens the box by that fraction of its own size on every side. A tight crop of a
+ * cereal box with the brand mark clipped off is measurably harder to identify than the same
+ * crop with a little of the shelf around it.
+ */
+export async function cropToBox(image: Buffer, box: Box, padding = 0.08): Promise<Buffer> {
+  const base = sharp(image).rotate(); // honour EXIF orientation, as compositeMarks does
+  const meta = await base.metadata();
+  if (!meta.width || !meta.height) throw new Error("Could not read image dimensions");
+
+  const padX = box.w * padding;
+  const padY = box.h * padding;
+  const left = Math.max(0, Math.min(1, box.x - padX));
+  const top = Math.max(0, Math.min(1, box.y - padY));
+  const right = Math.max(0, Math.min(1, box.x + box.w + padX));
+  const bottom = Math.max(0, Math.min(1, box.y + box.h + padY));
+
+  const px = {
+    left: Math.floor(left * meta.width),
+    top: Math.floor(top * meta.height),
+    width: Math.round((right - left) * meta.width),
+    height: Math.round((bottom - top) * meta.height),
+  };
+  if (px.width < 1 || px.height < 1) throw new Error("box has no area inside the image");
+  // Rounding can push the far edge one pixel past the image on a box flush with the border.
+  px.width = Math.min(px.width, meta.width - px.left);
+  px.height = Math.min(px.height, meta.height - px.top);
+  if (px.width < 1 || px.height < 1) throw new Error("box has no area inside the image");
+
+  return base.extract(px).jpeg({ quality: 90 }).toBuffer();
 }
 
 // ---------------------------------------------------------------------------
@@ -360,8 +399,22 @@ export async function runCensus(
   return normalizeCensusResponse(parsed, diagnostics);
 }
 
-/** Resolves one uncertain item from a tight, high-resolution crop. */
-export async function runIdentify(crop: Buffer, hint: string | null): Promise<IdentifyResponse> {
+/**
+ * Resolves one uncertain item from a tight, high-resolution crop.
+ *
+ * `image` is the full keyframe the client already uploaded; when `box` is given, it is
+ * cropped down to that region here (see cropToBox) before being sent to the model. Without a
+ * box, `image` is sent as-is, which is what every existing caller of this function still does.
+ */
+export async function runIdentify(
+  image: Buffer,
+  hint: string | null,
+  box: Box | null = null,
+): Promise<IdentifyResponse> {
+  // Cropping here rather than on the device means one upload per keyframe instead of one per
+  // uncertain item, and the crop is taken at the frame's full resolution.
+  const crop = box ? await cropToBox(image, box) : image;
+
   const text = hint
     ? `An earlier pass guessed: "${hint}". Confirm or correct it.`
     : "Identify this product.";
