@@ -7,7 +7,14 @@ export function createPipelineState(): PipelineState {
 }
 
 /**
- * Assigns each decoded barcode to the track it sits on top of.
+ * Assigns each decoded barcode to at most one track: the smallest box that contains its
+ * centre, the best guess at the item actually carrying the label.
+ *
+ * Boxes are axis-aligned, so stacked or adjacent cart items overlap routinely even when their
+ * masks do not. Without a claim, a single physical UPC would attach to every track whose box
+ * happens to cover it, turning one physical item into several counted products. A lost track
+ * (a Kalman prediction of an item not actually seen this frame) never claims one either, so a
+ * barcode read off an item still in view cannot bind to something that already left.
  *
  * A barcode already attached to a track is never cleared by a frame that failed to decode it.
  * Barcodes read intermittently as the cart shifts, and a decoded UPC is the only certain
@@ -16,21 +23,39 @@ export function createPipelineState(): PipelineState {
 function attachBarcodes(tracks: Track[], barcodes: BarcodeHit[]): Track[] {
   if (barcodes.length === 0) return tracks;
 
-  return tracks.map((track) => {
-    if (track.barcode !== null) return track;
+  const claimedTracks = new Set<number>();
+  const assignments = new Map<number, string>();
 
-    const hit = barcodes.find((barcode) => {
-      const cx = barcode.box.x + barcode.box.w / 2;
-      const cy = barcode.box.y + barcode.box.h / 2;
-      return (
+  for (const barcode of barcodes) {
+    const cx = barcode.box.x + barcode.box.w / 2;
+    const cy = barcode.box.y + barcode.box.h / 2;
+
+    let bestIndex = -1;
+    let bestArea = Infinity;
+    tracks.forEach((track, index) => {
+      if (track.barcode !== null || track.state === 'lost' || claimedTracks.has(index)) return;
+      const contains =
         cx >= track.box.x &&
         cx <= track.box.x + track.box.w &&
         cy >= track.box.y &&
-        cy <= track.box.y + track.box.h
-      );
+        cy <= track.box.y + track.box.h;
+      if (!contains) return;
+
+      const area = track.box.w * track.box.h;
+      if (area < bestArea) {
+        bestArea = area;
+        bestIndex = index;
+      }
     });
 
-    return hit ? { ...track, barcode: hit.payload } : track;
+    if (bestIndex === -1) continue;
+    claimedTracks.add(bestIndex);
+    assignments.set(bestIndex, barcode.payload);
+  }
+
+  return tracks.map((track, index) => {
+    const payload = assignments.get(index);
+    return payload !== undefined ? { ...track, barcode: payload } : track;
   });
 }
 
@@ -42,14 +67,13 @@ export function processFrame(
   const tracker = updateTracks(state.tracker, scan.instances, now);
   const tracks = attachBarcodes(tracker.tracks, scan.barcodes);
 
-  // The gate counts every currently tracked item, tentative or confirmed. ByteTrack's minHits
-  // means a real item stays tentative for its first couple of hits, so gating on confirmed-only
-  // would leave the shutter closed for the first several frames of every single item, including
-  // a lone item that was scanned once, sharply, and never moved.
+  // The gate counts confirmed tracks, not raw detections. A frame whose only content is
+  // unconfirmed noise is not worth an upload.
+  const confirmed = tracks.filter((track) => track.state === 'confirmed').length;
   const keyframe = evaluateKeyframe(state.keyframe, {
     sharpness: scan.sharpness,
     motion: scan.motion,
-    trackCount: tracks.length,
+    trackCount: confirmed,
     now,
   });
 
