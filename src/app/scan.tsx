@@ -29,7 +29,7 @@ import { Caption, Sub } from '../design/type';
 import { DETECT_TARGET_FPS } from '../engine/liveVision/config';
 import { scanCart } from '../engine/liveVision/frameProcessor';
 import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
-import type { FrameScan, Track } from '../engine/liveVision/types';
+import type { FrameScan, KeyframeReason, Track } from '../engine/liveVision/types';
 import { aggregate, haulCount, useScanline } from '../engine/store';
 
 const VISIBLE_MS = 6000;
@@ -93,7 +93,15 @@ export default function ScanScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
   const pipelineStateRef = useRef(createPipelineState());
-  const keyframeCountRef = useRef(0);
+  const keyframeReasonsRef = useRef<Record<KeyframeReason, number>>({
+    fire: 0,
+    blurry: 0,
+    moving: 0,
+    'too-soon': 0,
+    'nothing-to-see': 0,
+  });
+  const lastKeyframeReasonRef = useRef<KeyframeReason | null>(null);
+  const reportedErrorsRef = useRef<Set<string>>(new Set());
   const [tracks, setTracks] = useState<Track[]>([]);
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [permissionAsked, setPermissionAsked] = useState(false);
@@ -126,10 +134,33 @@ export default function ScanScreen() {
         pipelineStateRef.current = result.state;
         setTracks(result.tracks);
 
-        // Plan 2 only decides that a frame is worth uploading. Plan 3 is what uploads it. The
-        // counter exists so the gate can be shown to be opening on real hardware rather than
-        // assumed to be.
-        if (result.keyframe.fire) keyframeCountRef.current += 1;
+        // Plan 2 only decides that a frame is worth uploading. Plan 3 is what uploads it, so
+        // until then the only evidence that the gate works on real hardware is watching why it
+        // is holding. A bare count of fires could not tell a gate stuck on 'blurry' from one
+        // stuck on 'moving' or one that never sees a confirmed track, and it could not tell any
+        // of those from a gate that is simply correct. Logging the histogram whenever the
+        // reason changes says which, and carrying the raw signals alongside it is what makes
+        // minSharpness and maxMotion tunable against a real camera at all.
+        const reason = result.keyframe.reason;
+        keyframeReasonsRef.current[reason] += 1;
+        if (reason !== lastKeyframeReasonRef.current) {
+          lastKeyframeReasonRef.current = reason;
+          const counts = keyframeReasonsRef.current;
+          console.log(
+            `[kart] keyframe ${reason}: fire=${counts.fire} blurry=${counts.blurry} ` +
+              `moving=${counts.moving} too-soon=${counts['too-soon']} ` +
+              `nothing-to-see=${counts['nothing-to-see']} | sharpness=${scan.sharpness.toFixed(0)} ` +
+              `motion=${scan.motion.toFixed(3)} tracks=${result.tracks.length}`,
+          );
+        }
+
+        // A detector that throws on every frame reports zero instances, which is exactly what
+        // an empty cart reports. Once per distinct message, because at three frames a second a
+        // permanent failure would otherwise bury the log it is supposed to make readable.
+        if (scan.error != null && !reportedErrorsRef.current.has(scan.error)) {
+          reportedErrorsRef.current.add(scan.error);
+          console.warn(`[kart] frame processor error: ${scan.error}`);
+        }
       }),
     [],
   );
@@ -152,10 +183,17 @@ export default function ScanScreen() {
     useScanline.getState().startScan();
   }, []);
 
+  // The tick exists only to expire detection rows as they pass VISIBLE_MS. This plan never puts
+  // anything in that list (naming belongs to Plan 3), so with no detections the timer re-renders
+  // the whole screen once a second, during a live camera session, to recompute an empty array,
+  // on top of the three renders a second the tracker already causes. Nothing is deleted here:
+  // the moment Plan 3 puts a detection in the list the timer starts itself again.
+  const hasDetections = scan.detections.length > 0;
   useEffect(() => {
+    if (!hasDetections) return;
     const t = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [hasDetections]);
 
   const items = useMemo(() => aggregate(scan.detections), [scan.detections]);
   const count = haulCount(items);

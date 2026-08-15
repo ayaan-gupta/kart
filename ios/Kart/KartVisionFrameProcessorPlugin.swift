@@ -47,7 +47,7 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     _ frame: Frame, withArguments arguments: [AnyHashable: Any]?
   ) -> Any? {
     guard let pixelBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else {
-      return Self.empty(width: 0, height: 0)
+      return Self.empty(width: 0, height: 0, error: "frame carried no image buffer")
     }
 
     let orientation = CGImagePropertyOrientation(frame.orientation)
@@ -55,7 +55,21 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     let height = orientation.swapsDimensions ? frame.width : frame.height
 
     let measured = metrics.measure(pixelBuffer: pixelBuffer)
-    let instances = (try? detector.detect(pixelBuffer: pixelBuffer, orientation: orientation)) ?? []
+
+    // A detector that throws on every frame and an empty cart must not look the same.
+    //
+    // `try?` collapsed them, and on the phone there is no report.json to check afterwards: both
+    // present as an app that quietly finds nothing, which is also what a working detector aimed
+    // at an empty cart looks like, and what a detector scoring under the tracker's threshold
+    // looks like. Three different causes, one symptom, no way to tell them apart. The message
+    // rides back with the frame so the JavaScript side can say which one it is.
+    var instances: [DetectedInstance] = []
+    var error: String? = nil
+    do {
+      instances = try detector.detect(pixelBuffer: pixelBuffer, orientation: orientation)
+    } catch let thrown {
+      error = "\(detector.name): \(thrown)"
+    }
 
     var barcodes: [[String: Any]] = []
     if (arguments?["barcodes"] as? Bool) ?? false {
@@ -77,13 +91,17 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
       "motion": measured.motion,
       "width": width,
       "height": height,
+      // VisionCamera's JSI bridge turns NSNull into `undefined`, and the shape guard in
+      // frameProcessor.ts normalizes that to null. Plain data either way: no Vision type, no
+      // NSError, just a string a maintainer can read out of a device log.
+      "error": error ?? NSNull(),
     ]
   }
 
-  private static func empty(width: Int, height: Int) -> [String: Any] {
+  private static func empty(width: Int, height: Int, error: String?) -> [String: Any] {
     [
       "instances": [], "barcodes": [], "sharpness": 0.0, "motion": 1.0,
-      "width": width, "height": height,
+      "width": width, "height": height, "error": error ?? NSNull(),
     ]
   }
 

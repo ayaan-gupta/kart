@@ -20,6 +20,7 @@ const EMPTY: FrameScan = {
   motion: 1,
   width: 0,
   height: 0,
+  error: null,
 };
 
 export function scanCart(frame: Frame): FrameScan {
@@ -42,5 +43,8 @@ export function scanCart(frame: Frame): FrameScan {
     motion: raw.motion ?? 1,
     width: raw.width ?? 0,
     height: raw.height ?? 0,
+    // Native sends NSNull for a healthy frame, which arrives here as undefined. Both mean the
+    // same thing and both normalize to null, so a caller only ever has to check for a string.
+    error: raw.error ?? null,
   };
 }

@@ -101,6 +101,12 @@ export interface FrameScan {
   /** Upright frame dimensions, already corrected for sensor rotation natively. */
   width: number;
   height: number;
+  /**
+   * Why this frame produced no instances, when the reason was a failure rather than an empty
+   * cart. Null on a healthy frame. A plain string, never a native error object: a detector that
+   * throws every frame is otherwise indistinguishable from one that works and sees nothing.
+   */
+  error: string | null;
 }
 
 export interface PipelineState {
