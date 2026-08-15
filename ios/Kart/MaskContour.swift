@@ -5,8 +5,24 @@ import Foundation
 
 /// Ceiling on polygon vertices after simplification. An overlay outline does not read
 /// better beyond this many points, it is far above the 8 vertices an L-shape trace needs,
-/// and it bounds what crosses the JSI boundary and gets re-fit by the tracker every frame.
+/// and it bounds what any one instance costs to cross the JSI boundary and be re-fit by the
+/// tracker every frame. It bounds nothing about how many instances there are; that is
+/// `MAX_INSTANCES` below.
 private let MAX_POLYGON_VERTICES = 64
+
+/// Ceiling on how many instances one mask may yield, largest first.
+///
+/// The label grid runs 1..255, and nothing else stops all 255 surviving. The per-instance
+/// vertex ceiling does not: 255 instances at 64 vertices is roughly 34k doubles crossing JSI
+/// every frame, and `byteTrack.ts` then runs an O(n^3) padded-square Hungarian solve twice per
+/// frame on the JS thread, which at 255 would block React badly at three detections a second.
+///
+/// 64 is generous for a cart and deliberately equal to nothing in particular: a real cart holds
+/// tens of items, so a mask yielding more than this is over-segmenting, which is precisely the
+/// documented failure mode of the SAM-family detectors this protocol exists to make swappable.
+/// Keeping the largest is the right tie-break because over-segmentation shatters an item into
+/// fragments smaller than the items it splits.
+private let MAX_INSTANCES = 64
 
 public struct MaskInstance {
   public let index: Int
@@ -108,9 +124,23 @@ public enum MaskContour {
 
     let minPixels = Int((Double(width * height) * minPixelFraction).rounded())
     let epsilonPixels = simplifyEpsilon * Double(max(width, height))
+
+    // The cap is applied to the label list, before any boundary is traced, so it bounds the
+    // work as well as the output. Ties break on the label so the selection is deterministic;
+    // the kept labels are then put back in ascending order, because callers downstream read
+    // instances in label order.
+    var selected = (1..<256).filter { counts[$0] > 0 && counts[$0] >= max(minPixels, 3) }
+    if selected.count > MAX_INSTANCES {
+      selected = Array(
+        selected
+          .sorted { counts[$0] == counts[$1] ? $0 < $1 : counts[$0] > counts[$1] }
+          .prefix(MAX_INSTANCES)
+      ).sorted()
+    }
+
     var out: [MaskInstance] = []
 
-    for label in 1..<256 where counts[label] > 0 && counts[label] >= max(minPixels, 3) {
+    for label in selected {
       guard
         let traced = traceBoundary(
           labels: labels, width: width, height: height, label: UInt8(label),

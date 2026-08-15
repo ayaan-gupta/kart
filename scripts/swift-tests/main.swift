@@ -239,6 +239,58 @@ suite("MaskContour.instances polygon vertex ceiling") {
   }
 }
 
+suite("MaskContour.instances instance ceiling") {
+  // 80 squares, one per label, areas strictly increasing with the label. A Vision mask can
+  // carry all 255 labels, and nothing but this cap stops them: the vertex ceiling bounds one
+  // outline, not how many outlines there are, and byteTrack.ts runs an O(n^3) Hungarian solve
+  // twice a frame on whatever it is handed.
+  let cell = 100
+  let columns = 10
+  let width = cell * columns
+  let height = cell * 8
+  var labels = [UInt8](repeating: 0, count: width * height)
+  for k in 0..<80 {
+    let side = 10 + k  // 10x10 up to 89x89, so no two labels share an area
+    let originX = (k % columns) * cell + 2
+    let originY = (k / columns) * cell + 2
+    for y in originY..<(originY + side) {
+      for x in originX..<(originX + side) { labels[y * width + x] = UInt8(k + 1) }
+    }
+  }
+
+  // 0.0001 of 800000 pixels is 80, under the 100-pixel area of the smallest square, so the
+  // size floor rejects nothing and the cap is the only thing doing any work here.
+  let found = MaskContour.instances(
+    labels: labels, width: width, height: height, minPixelFraction: 0.0001,
+    simplifyEpsilon: 0.004)
+
+  check(found.count == 64, "caps the instance count at 64 (got \(found.count))")
+
+  let kept = Set(found.map(\.index))
+  // Areas increase with the label, so the 64 largest are labels 17 through 80 exactly.
+  check(kept == Set(17...80), "keeps the 64 largest instances and drops the smallest 16")
+  check(
+    found.map(\.index) == found.map(\.index).sorted(),
+    "still returns the kept instances in label order")
+
+  let smallestKept = found.map(\.pixelCount).min() ?? 0
+  check(
+    smallestKept == 26 * 26,
+    "the smallest kept instance is larger than every dropped one (got \(smallestKept))")
+
+  // Under the cap nothing is selected away, which is the case every real cart hits.
+  var few = [UInt8](repeating: 0, count: width * height)
+  for k in 0..<5 {
+    let originX = k * cell + 2
+    for y in 2..<40 {
+      for x in originX..<(originX + 38) { few[y * width + x] = UInt8(k + 1) }
+    }
+  }
+  let underCap = MaskContour.instances(
+    labels: few, width: width, height: height, minPixelFraction: 0.0001, simplifyEpsilon: 0.004)
+  check(underCap.count == 5, "leaves a mask under the ceiling untouched")
+}
+
 suite("FrameMetricsMath.varianceOfLaplacian") {
   let flat = [UInt8](repeating: 128, count: 64 * 64)
   check(
