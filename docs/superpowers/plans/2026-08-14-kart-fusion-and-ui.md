@@ -1681,14 +1681,21 @@ public enum KartImageTools {
       return (CGAffineTransform(scaleX: -1, y: -1).translatedBy(x: -w, y: -h), CGSize(width: w, height: h))
     case .downMirrored:
       return (CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -h), CGSize(width: w, height: h))
+    // Verified against CGImageSourceCreateThumbnailAtIndex(..., kCGImageSourceCreateThumbnailWithTransform: true),
+    // which applies Apple's own EXIF-orientation correction: EXIF 6 (.right) is "rotate 90 CW to
+    // correct", EXIF 8 (.left) is "rotate 90 CCW to correct". CGAffineTransform(rotationAngle:) is
+    // positive-CCW in CG's y-up user space, so .right needs the negative angle and .left the
+    // positive one. An earlier version of this file had the two swapped, confirmed by running a
+    // known test card through both this function and Apple's own thumbnail transform and diffing
+    // which corner the marker landed on for all eight orientation cases.
     case .left:
-      return (CGAffineTransform(rotationAngle: -.pi / 2).translatedBy(x: -w, y: 0), CGSize(width: h, height: w))
-    case .leftMirrored:
-      return (CGAffineTransform(rotationAngle: -.pi / 2).scaledBy(x: -1, y: 1), CGSize(width: h, height: w))
-    case .right:
       return (CGAffineTransform(rotationAngle: .pi / 2).translatedBy(x: 0, y: -h), CGSize(width: h, height: w))
-    case .rightMirrored:
+    case .leftMirrored:
       return (CGAffineTransform(rotationAngle: .pi / 2).scaledBy(x: -1, y: 1).translatedBy(x: -w, y: -h), CGSize(width: h, height: w))
+    case .right:
+      return (CGAffineTransform(rotationAngle: -.pi / 2).translatedBy(x: -w, y: 0), CGSize(width: h, height: w))
+    case .rightMirrored:
+      return (CGAffineTransform(rotationAngle: -.pi / 2).scaledBy(x: -1, y: 1), CGSize(width: h, height: w))
     @unknown default:
       return (.identity, CGSize(width: w, height: h))
     }
