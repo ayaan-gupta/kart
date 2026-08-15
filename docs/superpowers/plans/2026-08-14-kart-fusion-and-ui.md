@@ -157,6 +157,22 @@ The counting rule change above is the big one and has its own section. Three sma
 
 ### Task 1: Identity and the counting rule
 
+> **Correction applied during implementation (commit `8869956`).** The code in this task as
+> originally written had three reachable paths that produced the wrong count, all found by
+> review and reproduced against the real module. Read `src/engine/liveVision/fusion.ts` as the
+> source of truth, not the blocks below.
+>
+> 1. `addAlias` clobbered an existing alias and migrated the quantity only once, so two
+>    different barcodes under one generic model name ("Yogurt" on two flavours) reported three
+>    items for two. Now a conflicting alias is dropped and both keys re-accumulate.
+> 2. A single model misread on a barcode-confirmed track permanently welded an unrelated
+>    product into that barcode's line, reporting two items for three and hiding a whole product.
+>    Aliasing now requires the same model key on two distinct censuses.
+> 3. Clamp merges were permanent, so one glare-occluded keyframe pinned six apples at one for
+>    the rest of the session. An explicit `inViewCounts` entry now releases that key's merges
+>    before clamping, while a census that omits the count still cannot re-inflate a split item.
+
+
 The load-bearing task. Everything else in this plan is plumbing around it. This is where the duplicate-bananas bug is actually fixed, and where quantity stops being a running sum.
 
 Read `docs/counting-rule.md` (created in Step 6) before changing any logic here.
