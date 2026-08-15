@@ -54,22 +54,28 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     let width = orientation.swapsDimensions ? frame.height : frame.width
     let height = orientation.swapsDimensions ? frame.width : frame.height
 
-    let measured = metrics.measure(pixelBuffer: pixelBuffer)
-
-    // A detector that throws on every frame and an empty cart must not look the same.
+    // Everything that went wrong this frame, joined into one message. Two independent things
+    // can fail, and either one alone produces a frame that reports nothing.
     //
-    // `try?` collapsed them, and on the phone there is no report.json to check afterwards: both
+    // A detector that throws on every frame and an empty cart must not look the same. `try?`
+    // collapsed them, and on the phone there is no report.json to check afterwards: both
     // present as an app that quietly finds nothing, which is also what a working detector aimed
     // at an empty cart looks like, and what a detector scoring under the tracker's threshold
-    // looks like. Three different causes, one symptom, no way to tell them apart. The message
-    // rides back with the frame so the JavaScript side can say which one it is.
+    // looks like. Several causes, one symptom, no way to tell them apart. The message rides
+    // back with the frame so the JavaScript side can say which one it is.
+    var problems: [String] = []
+
+    let measured = metrics.measure(pixelBuffer: pixelBuffer)
+    if let metricsError = measured.error { problems.append(metricsError) }
+
     var instances: [DetectedInstance] = []
-    var error: String? = nil
     do {
       instances = try detector.detect(pixelBuffer: pixelBuffer, orientation: orientation)
     } catch let thrown {
-      error = "\(detector.name): \(thrown)"
+      problems.append("\(detector.name): \(thrown)")
     }
+
+    let error = problems.isEmpty ? nil : problems.joined(separator: "; ")
 
     var barcodes: [[String: Any]] = []
     if (arguments?["barcodes"] as? Bool) ?? false {

@@ -234,10 +234,17 @@ for file in files {
   // offers to tune `maxMotion` at all. See docs/detector-measurement.md.
   var sharpness = 0.0
   var motion = 1.0
+  var metricsFailure: String? = nil
   if let gray = makeBuffer(image, gray: true) {
     let measured = metrics.measure(pixelBuffer: gray)
     sharpness = measured.sharpness
     motion = measured.motion
+    // Same rule as the detector throw above: a metric that could not be computed must not be
+    // printed as a zero, which reads as a measurement of a very blurry image.
+    if let metricsError = measured.error {
+      print("\(file.lastPathComponent): metrics failed: \(metricsError)")
+      metricsFailure = metricsError
+    }
   }
 
   annotate(image, instances: instances, to: outputURL.appendingPathComponent(
@@ -283,6 +290,7 @@ for file in files {
     },
   ]
   if let detectionError { row["error"] = detectionError }
+  if let metricsFailure { row["metricsError"] = metricsFailure }
   rows.append(row)
 }
 

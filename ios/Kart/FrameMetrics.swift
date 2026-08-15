@@ -90,7 +90,15 @@ public final class FrameMetrics {
     previous = nil
   }
 
-  public func measure(pixelBuffer: CVPixelBuffer) -> (sharpness: Double, motion: Double) {
+  /// Sharpness and motion for one frame, plus why they are missing when they are.
+  ///
+  /// The error is not decoration. A buffer this cannot read reports sharpness 0 and motion 1,
+  /// which jams the gate shut on every frame for the life of the session and looks exactly like
+  /// a user who never holds the phone still. Returning silently would route that around the
+  /// error channel the plugin exists to feed.
+  public func measure(pixelBuffer: CVPixelBuffer)
+    -> (sharpness: Double, motion: Double, error: String?)
+  {
     let read = FrameMetrics.withLumaPlane(pixelBuffer) { plane in
       (
         sharpness: FrameMetrics.sharpness(of: plane),
@@ -100,7 +108,7 @@ public final class FrameMetrics {
 
     guard let read else {
       previous = nil
-      return (0, 1.0)
+      return (0, 1.0, FrameMetrics.unreadableReason(pixelBuffer))
     }
 
     // The first frame of a session has nothing to compare against. Reporting maximum motion
@@ -108,7 +116,28 @@ public final class FrameMetrics {
     let motion = previous.map { FrameMetricsMath.meanAbsoluteDifference($0, read.sample) } ?? 1.0
     previous = read.sample
 
-    return (read.sharpness, motion)
+    return (read.sharpness, motion, nil)
+  }
+
+  /// Why `withLumaPlane` refused a buffer, in words a maintainer can act on from a device log.
+  ///
+  /// Unreachable today, because VisionCamera resolves to a biplanar YUV format whenever a frame
+  /// processor is installed. Enabling HDR or buffer compression changes that, and the whole
+  /// point of finding 5's error channel is that the first device session should be diagnosable
+  /// rather than a shrug.
+  private static func unreadableReason(_ pixelBuffer: CVPixelBuffer) -> String {
+    let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+    let bytes = [
+      UInt8(truncatingIfNeeded: format >> 24), UInt8(truncatingIfNeeded: format >> 16),
+      UInt8(truncatingIfNeeded: format >> 8), UInt8(truncatingIfNeeded: format),
+    ]
+    // Most CoreVideo formats are four-character codes like '420v' or 'BGRA'; a few are plain
+    // small integers, which are only readable as hex.
+    let printable = bytes.allSatisfy { $0 >= 32 && $0 < 127 }
+    let described =
+      printable
+      ? "'\(String(decoding: bytes, as: UTF8.self))'" : String(format: "0x%08X", format)
+    return "frame metrics: unsupported pixel format \(described), sharpness and motion unavailable"
   }
 
   // MARK: - Luma access
@@ -124,9 +153,10 @@ public final class FrameMetrics {
   /// Locks the buffer, locates its luma bytes and hands them to `body`.
   ///
   /// The format is checked rather than assumed, the way `MaskContour.labels` checks its mask
-  /// format. An unknown format returns nil, which surfaces as sharpness 0 and motion 1, and the
-  /// gate holds. Reading a BGRA buffer as though it were luma would index interleaved channels
-  /// as pixels and quietly report a metric computed on a quarter of the image.
+  /// format. An unknown format returns nil, which `measure` turns into sharpness 0, motion 1
+  /// and an error string, so the gate holds and says why. Reading a BGRA buffer as though it
+  /// were luma would index interleaved channels as pixels and quietly report a metric computed
+  /// on a quarter of the image.
   private static func withLumaPlane<T>(_ pixelBuffer: CVPixelBuffer, _ body: (LumaPlane) -> T) -> T? {
     CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
     defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }

@@ -34,6 +34,16 @@ import { aggregate, haulCount, useScanline } from '../engine/store';
 
 const VISIBLE_MS = 6000;
 
+/**
+ * Ceiling on distinct frame processor error messages logged per scan session. Deduping by
+ * message assumes the messages repeat; one carrying a frame-specific value would not, and
+ * would both spam the log and grow the set unboundedly at three frames a second.
+ */
+const MAX_REPORTED_ERRORS = 20;
+
+/** How often the keyframe histogram prints even when the reason has not changed. */
+const KEYFRAME_LOG_INTERVAL_MS = 5000;
+
 function RecordChip({ startedAt }: { startedAt: number | null }) {
   const reducedMotion = useReducedMotion();
   const [now, setNow] = useState(Date.now());
@@ -101,7 +111,9 @@ export default function ScanScreen() {
     'nothing-to-see': 0,
   });
   const lastKeyframeReasonRef = useRef<KeyframeReason | null>(null);
+  const lastKeyframeLogAtRef = useRef(0);
   const reportedErrorsRef = useRef<Set<string>>(new Set());
+  const errorCapNotedRef = useRef(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [permissionAsked, setPermissionAsked] = useState(false);
@@ -138,13 +150,19 @@ export default function ScanScreen() {
         // until then the only evidence that the gate works on real hardware is watching why it
         // is holding. A bare count of fires could not tell a gate stuck on 'blurry' from one
         // stuck on 'moving' or one that never sees a confirmed track, and it could not tell any
-        // of those from a gate that is simply correct. Logging the histogram whenever the
-        // reason changes says which, and carrying the raw signals alongside it is what makes
-        // minSharpness and maxMotion tunable against a real camera at all.
+        // of those from a gate that is simply correct. Logging the histogram says which, and
+        // carrying the raw signals alongside it is what makes minSharpness and maxMotion
+        // tunable against a real camera at all.
+        //
+        // On a transition OR every few seconds. Transitions alone are the wrong trigger for the
+        // case that matters most: a gate stuck on one reason prints a single early line with
+        // counts near zero and then goes silent forever, which is exactly the failure you need
+        // to watch. The interval turns it into the rolling sample a tuning session needs.
         const reason = result.keyframe.reason;
         keyframeReasonsRef.current[reason] += 1;
-        if (reason !== lastKeyframeReasonRef.current) {
+        if (reason !== lastKeyframeReasonRef.current || now - lastKeyframeLogAtRef.current >= KEYFRAME_LOG_INTERVAL_MS) {
           lastKeyframeReasonRef.current = reason;
+          lastKeyframeLogAtRef.current = now;
           const counts = keyframeReasonsRef.current;
           console.log(
             `[kart] keyframe ${reason}: fire=${counts.fire} blurry=${counts.blurry} ` +
@@ -157,9 +175,21 @@ export default function ScanScreen() {
         // A detector that throws on every frame reports zero instances, which is exactly what
         // an empty cart reports. Once per distinct message, because at three frames a second a
         // permanent failure would otherwise bury the log it is supposed to make readable.
+        //
+        // Capped, because dedupe by message only works while the messages repeat. An error
+        // carrying a frame-specific value (a timestamp, a buffer address) is distinct every
+        // frame, which degrades to logging all of them and grows the set for the life of the
+        // screen. The cap notice is what stops that looking like the errors simply stopped.
         if (scan.error != null && !reportedErrorsRef.current.has(scan.error)) {
-          reportedErrorsRef.current.add(scan.error);
-          console.warn(`[kart] frame processor error: ${scan.error}`);
+          if (reportedErrorsRef.current.size < MAX_REPORTED_ERRORS) {
+            reportedErrorsRef.current.add(scan.error);
+            console.warn(`[kart] frame processor error: ${scan.error}`);
+          } else if (!errorCapNotedRef.current) {
+            errorCapNotedRef.current = true;
+            console.warn(
+              `[kart] frame processor errors exceeded ${MAX_REPORTED_ERRORS} distinct messages, silencing`,
+            );
+          }
         }
       }),
     [],

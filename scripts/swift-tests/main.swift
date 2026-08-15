@@ -520,6 +520,13 @@ suite("FrameMetrics.measure through a real pixel buffer") {
     let measured = FrameMetrics().measure(pixelBuffer: bgra)
     check(measured.sharpness == 0, "refuses an unsupported pixel format instead of guessing")
     check(measured.motion == 1.0, "holds the gate shut on an unsupported pixel format")
+    // Holding the gate silently would route this straight around the error channel the plugin
+    // exists to feed: every frame scores 0 forever and nothing anywhere says why.
+    check(
+      measured.error != nil, "says why it refused rather than jamming the gate shut in silence")
+    if let reason = measured.error {
+      check(reason.contains("BGRA"), "names the offending pixel format (\(reason))")
+    }
   } else {
     check(false, "could not create a BGRA pixel buffer")
   }
