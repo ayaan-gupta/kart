@@ -3243,7 +3243,10 @@ export function polygonToSvgPath(
   offsetX = 0,
   offsetY = 0,
 ): string {
-  if (polygon.length < 6) return '';
+  // Length alone is not enough. Polygons arrive from the device pipeline, where a
+  // degenerate filter state can yield NaN or Infinity, and those would render as a
+  // literal "LNaN 50" inside the path data rather than being skipped.
+  if (polygon.length < 6 || polygon.some((n) => !Number.isFinite(n))) return '';
 
   let path = '';
   for (let i = 0; i < polygon.length - 1; i += 2) {
