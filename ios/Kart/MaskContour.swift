@@ -3,6 +3,11 @@ import CoreGraphics
 import CoreVideo
 import Foundation
 
+/// Ceiling on polygon vertices after simplification. An overlay outline does not read
+/// better beyond this many points, it is far above the 8 vertices an L-shape trace needs,
+/// and it bounds what crosses the JSI boundary and gets re-fit by the tracker every frame.
+private let MAX_POLYGON_VERTICES = 64
+
 public struct MaskInstance {
   public let index: Int
   public let pixelCount: Int
@@ -112,7 +117,8 @@ public enum MaskContour {
           minX: minX[label], minY: minY[label], maxX: maxX[label], maxY: maxY[label])
       else { continue }
 
-      let simplified = simplify(traced, epsilon: epsilonPixels)
+      let simplified = simplifyBounded(
+        traced, epsilon: epsilonPixels, maxVertices: MAX_POLYGON_VERTICES)
       guard simplified.count >= 3 else { continue }
 
       var polygon = [Float]()
@@ -223,6 +229,47 @@ public enum MaskContour {
   }
 
   // MARK: - Simplification
+
+  /// Simplifies a closed contour to at most `maxVertices` points.
+  ///
+  /// Escalates `epsilon` first, since coarsening the tolerance is what turns a jagged
+  /// trace into a clean outline, and doubling converges fast. Uniform decimation is a
+  /// last-resort fallback for the rare contour escalation cannot tame in a bounded number
+  /// of attempts (or a caller-supplied epsilon so small doubling cannot catch up), so the
+  /// ceiling is guaranteed rather than merely likely. Decimation is not the primary
+  /// strategy because picking every Nth point deforms a shape instead of coarsening it.
+  private static func simplifyBounded(_ points: [Point], epsilon: Double, maxVertices: Int) -> [Point] {
+    var result = simplify(points, epsilon: epsilon)
+    if result.count <= maxVertices { return result }
+
+    // A non-positive epsilon means simplify() left the contour untouched, so doubling it
+    // would multiply zero by two forever. Start escalation from a nominal floor instead.
+    var currentEpsilon = epsilon > 0 ? epsilon : 0.5
+    for _ in 0..<8 {
+      currentEpsilon *= 2
+      result = simplify(points, epsilon: currentEpsilon)
+      if result.count <= maxVertices { return result }
+    }
+
+    return decimate(result, maxVertices: maxVertices)
+  }
+
+  /// Keeps every Nth point of a closed contour so the result is guaranteed to fit within
+  /// `maxVertices`. Used only once escalating epsilon has failed to converge, because
+  /// picking points by position rather than by geometric significance can land on an
+  /// awkward vertex instead of a genuine corner.
+  private static func decimate(_ points: [Point], maxVertices: Int) -> [Point] {
+    guard points.count > maxVertices, maxVertices >= 3 else { return points }
+    var out: [Point] = []
+    out.reserveCapacity(maxVertices)
+    let step = Double(points.count) / Double(maxVertices)
+    var cursor = 0.0
+    for _ in 0..<maxVertices {
+      out.append(points[Int(cursor) % points.count])
+      cursor += step
+    }
+    return out
+  }
 
   /// Ramer-Douglas-Peucker on a closed contour, applied to the open run and then re-closed.
   private static func simplify(_ points: [Point], epsilon: Double) -> [Point] {

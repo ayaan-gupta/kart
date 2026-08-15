@@ -34,6 +34,26 @@ func grid(width: Int, height: Int, rect: (x: Int, y: Int, w: Int, h: Int), value
   return labels
 }
 
+/// Builds a mask whose top edge is a deliberately irregular staircase rather than a
+/// straight line: no two neighbouring columns share the same jitter, so the raw traced
+/// boundary carries far more vertices than the ceiling permits and cannot be swallowed by
+/// simplification the way a smooth curve would be.
+func jaggedGrid(width: Int, height: Int, value: UInt8) -> [UInt8] {
+  var labels = [UInt8](repeating: 0, count: width * height)
+  let left = 10
+  let right = width - 10
+  let baseTop = height / 2
+  let bottom = height - 10
+  for x in left..<right {
+    let jitter = (x * 37) % 9
+    let top = max(0, baseTop - jitter)
+    for y in top..<bottom {
+      labels[y * width + x] = value
+    }
+  }
+  return labels
+}
+
 suite("MaskContour.instances") {
   let labels = grid(width: 100, height: 100, rect: (20, 30, 40, 20), value: 1)
   let found = MaskContour.instances(
@@ -169,6 +189,52 @@ suite("MaskContour.instances self-touching mask") {
     let centerB = pointInPolygon(0.26, 0.16, only.polygon)
     check(centerA, "encloses lobe A's center")
     check(centerB, "encloses lobe B's center")
+  }
+}
+
+suite("MaskContour.instances polygon vertex ceiling") {
+  let width = 240
+  let height = 240
+  let jagged = jaggedGrid(width: width, height: height, value: 1)
+
+  // Default epsilon: the escalation loop in simplifyBounded must bring a genuinely messy
+  // trace under the ceiling on its own.
+  let found = MaskContour.instances(
+    labels: jagged, width: width, height: height, minPixelFraction: 0.001, simplifyEpsilon: 0.004)
+  check(found.count == 1, "still finds exactly one instance in a jagged mask")
+  if let only = found.first {
+    let points = only.polygon.count / 2
+    check(points <= 64, "caps a jagged boundary at the vertex ceiling under default epsilon")
+    check(points >= 3, "still returns a usable polygon after capping")
+  }
+
+  // An epsilon so small that eight doublings still cannot reach a useful tolerance forces
+  // the deterministic decimation fallback, not just the escalation loop, proving the cap
+  // is guaranteed rather than merely likely.
+  let forcedFallback = MaskContour.instances(
+    labels: jagged, width: width, height: height, minPixelFraction: 0.001,
+    simplifyEpsilon: 0.0000001)
+  if let only = forcedFallback.first {
+    let points = only.polygon.count / 2
+    // decimate() always emits exactly maxVertices points once triggered, so landing on
+    // exactly 64 here (not merely under it) is the fingerprint of the fallback actually
+    // firing, not of escalation getting lucky.
+    check(points == 64, "decimation fallback lands on exactly the vertex ceiling")
+  } else {
+    check(false, "still returns an instance when escalation cannot converge")
+  }
+
+  // A shape well under the ceiling must pass through simplifyBounded unchanged: no
+  // escalation triggers, so this is the same result the plain rectangle suite above
+  // already exercises. Restated here so the no-distortion guarantee sits next to the
+  // ceiling checks it is a counterpart to.
+  let plain = grid(width: 100, height: 100, rect: (20, 30, 40, 20), value: 1)
+  let plainFound = MaskContour.instances(
+    labels: plain, width: 100, height: 100, minPixelFraction: 0.001, simplifyEpsilon: 0.004)
+  if let only = plainFound.first {
+    check(
+      only.polygon.count / 2 <= 20,
+      "leaves a simple rectangle's point count unaffected by the ceiling")
   }
 }
 

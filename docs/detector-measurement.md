@@ -54,3 +54,11 @@ Two candidates, and the licence is the deciding factor between them:
 - Apple's segmenter reports one confidence for the whole observation, so every instance carries
   the same score and ByteTrack's second-stage recovery never engages. A detector with real
   per-instance scores would enable it.
+- A jagged mask edge does not always simplify down on its own. One smoke test against a
+  non-cart image produced a single 9168-point outline at the default `simplifyEpsilon =
+  0.004`. `MaskContour.simplify` now enforces a 64-vertex ceiling per instance, escalating
+  epsilon first and falling back to uniform decimation only if escalation cannot converge,
+  so a future measurement cannot repeat that number. Still read the `points` column, not
+  only `instanceCount`, when judging a result: an outline sitting at the cap is still a
+  messier shape than one that settled well under it, even though neither can exceed 64
+  points anymore.

@@ -165,10 +165,30 @@ let outputURL = URL(fileURLWithPath: outputPath)
 try? FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
 
 let extensions: Set<String> = ["jpg", "jpeg", "png", "heic", "heif"]
-let files =
-  ((try? FileManager.default.contentsOfDirectory(at: inputURL, includingPropertiesForKeys: nil)) ?? [])
-  .filter { extensions.contains($0.pathExtension.lowercased()) }
-  .sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+// A missing or unreadable --input directory is a different problem from a directory that
+// exists and genuinely has no photos in it yet. Collapsing both into "no images found"
+// would hide a typo'd path behind the same honest message an empty corpus prints, so the
+// two are told apart before the empty-corpus check ever runs.
+var isDirectory: ObjCBool = false
+let inputExists = FileManager.default.fileExists(atPath: inputURL.path, isDirectory: &isDirectory)
+guard inputExists, isDirectory.boolValue else {
+  print("Input directory not found: \(inputPath)")
+  print("Check the --input path. This is a missing directory, not an empty corpus.")
+  exit(2)
+}
+
+let files: [URL]
+do {
+  files =
+    try FileManager.default.contentsOfDirectory(at: inputURL, includingPropertiesForKeys: nil)
+    .filter { extensions.contains($0.pathExtension.lowercased()) }
+    .sorted { $0.lastPathComponent < $1.lastPathComponent }
+} catch {
+  print("Could not read input directory: \(inputPath)")
+  print("\(error)")
+  exit(2)
+}
 
 if files.isEmpty {
   print("No images found in \(inputPath).")
@@ -197,7 +217,17 @@ for file in files {
   }
 
   let started = Date()
-  let instances = (try? detector.detect(pixelBuffer: colour, orientation: .up)) ?? []
+  // A thrown Vision error and a genuine zero-instance result must not look identical: a
+  // crashing detector is the single most misleading thing this instrument could report as
+  // "found nothing", since that reads as a clean negative rather than a failure.
+  var instances: [DetectedInstance] = []
+  var detectionError: String? = nil
+  do {
+    instances = try detector.detect(pixelBuffer: colour, orientation: .up)
+  } catch {
+    detectionError = String(describing: error)
+    print("\(file.lastPathComponent): detection failed: \(error)")
+  }
   let elapsedMs = Date().timeIntervalSince(started) * 1000
 
   var sharpness = 0.0
@@ -213,16 +243,18 @@ for file in files {
   let averagePoints =
     instances.isEmpty ? 0 : instances.map { $0.polygon.count / 2 }.reduce(0, +) / instances.count
 
+  let itemsColumn = detectionError != nil ? "ERR" : "\(instances.count)"
   print(
-    pad(file.lastPathComponent, 32) + padLeft("\(instances.count)", 7)
+    pad(file.lastPathComponent, 32) + padLeft(itemsColumn, 7)
       + padLeft(String(format: "%.1f", elapsedMs), 9)
       + padLeft(String(format: "%.0f", sharpness), 9) + padLeft("\(averagePoints)", 10))
 
-  rows.append([
+  var row: [String: Any] = [
     "image": file.lastPathComponent,
     "width": image.width,
     "height": image.height,
     "detector": detector.name,
+    "succeeded": detectionError == nil,
     "instanceCount": instances.count,
     "detectMs": elapsedMs,
     "sharpness": sharpness,
@@ -237,10 +269,17 @@ for file in files {
         ],
       ] as [String: Any]
     },
-  ])
+  ]
+  if let detectionError { row["error"] = detectionError }
+  rows.append(row)
 }
 
-let counts = rows.compactMap { $0["instanceCount"] as? Int }
+// Only successful detections count toward the summary. A failed detection's placeholder
+// instanceCount of 0 is not a true negative, and folding it in would understate the mean.
+let counts = rows.compactMap { row -> Int? in
+  guard (row["succeeded"] as? Bool) == true else { return nil }
+  return row["instanceCount"] as? Int
+}
 print(String(repeating: "-", count: 67))
 if !counts.isEmpty {
   // Double, not integer division. An integer mean reads 0 for any run averaging under one
