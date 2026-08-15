@@ -7,17 +7,34 @@ import Foundation
 /// and makes it nearly free at camera frame rate.
 private let MOTION_SAMPLE_EDGE = 96
 
-/// The side of the centre crop sharpness is measured over, in native pixels.
+/// The side of one sharpness tile, and how many tiles per axis, in native pixels.
 ///
-/// Sharpness must not be measured on the decimated motion sample. Variance-of-Laplacian
+/// Two separate things are going on here.
+///
+/// First, sharpness must not be measured on the decimated motion sample. Variance-of-Laplacian
 /// measures energy at the pixel scale, and a 20x nearest-neighbour decimation (1080p down to a
 /// 96px edge) is exactly what destroys that energy, replacing it with aliasing that barely
-/// moves with focus. Measured here on a synthetic 1920x1080 photo-like image under progressive
-/// box blur, the decimated path scored 5177 sharp, 647 at 2px of blur and 92 at 16px, so a
-/// badly defocused frame sat at the `minSharpness` of 100 rather than far below it. The same
-/// images at native resolution scored 5064, 103 and 2.0. A bounded window keeps the cost
-/// trivial: about 65k pixels, three times a second.
-private let SHARPNESS_WINDOW = 256
+/// moves with focus. Measured on a synthetic 1920x1080 photo-like image under progressive box
+/// blur, the decimated path scored 5177 sharp, 647 at 2px of blur and 92 at 16px, so a badly
+/// defocused frame sat at the `minSharpness` of 100 rather than far below it. The same images
+/// at native resolution scored 5064, 103 and 2.0.
+///
+/// Second, it must not be measured on one window either. A single 256x256 centre window covers
+/// roughly a 13cm square of a bird's-eye cart scene, which is smaller than a cereal box face, a
+/// pizza box, a case of water or a carrier bag. Landing wholly inside one flat item is an
+/// ordinary frame, not a corner case, and variance-of-Laplacian is contrast-relative, so a
+/// bright denoised white surface reads near zero while being perfectly in focus. The cost that
+/// actually decides it: with one window, `minSharpness` is untunable in principle, because its
+/// value depends on which three percent of the cart happens to sit under the reticle.
+///
+/// So: a 3x3 grid of 128x128 tiles at the centres of a thirds partition, reduced with `max`.
+/// About 147k pixels against 65k, still nothing three times a second. `max` is the right
+/// reducer because the question the gate asks is "is anything in this frame in focus": a
+/// genuinely defocused frame has no sharp tile anywhere, and blur suppresses specular edges
+/// too, so the usual false-positive worry does not really bite. It also damps the
+/// frame-to-frame jitter a single window produces as the phone drifts.
+private let SHARPNESS_TILE = 128
+private let SHARPNESS_GRID = 3
 
 public enum FrameMetricsMath {
 
@@ -147,24 +164,41 @@ public final class FrameMetrics {
         width: width, height: height))
   }
 
-  /// Variance of the Laplacian over a centre crop of native-resolution pixels.
+  /// Variance of the Laplacian over a grid of native-resolution tiles, reduced with `max`.
   ///
-  /// The crop is centred because that is where a cart being held up to the camera is, and it is
-  /// bounded because the metric only needs enough pixels to estimate a variance. A source
-  /// smaller than the window is measured whole.
+  /// Tiles rather than one window because any single window is small enough to land wholly
+  /// inside one flat item, and `max` because the gate is asking whether anything in the frame
+  /// is in focus. A source smaller than one tile is measured whole.
   private static func sharpness(of plane: LumaPlane) -> Double {
-    let cropWidth = min(SHARPNESS_WINDOW, plane.width)
-    let cropHeight = min(SHARPNESS_WINDOW, plane.height)
-    let originX = (plane.width - cropWidth) / 2
-    let originY = (plane.height - cropHeight) / 2
+    // One square side for every tile, so a frame narrower or shorter than the tile still
+    // produces a usable window rather than an empty one. A frame smaller than the grid simply
+    // yields overlapping tiles, which costs a little repeated work and breaks nothing.
+    let side = min(SHARPNESS_TILE, plane.width, plane.height)
+    guard side > 2 else { return 0 }
 
-    var crop = [UInt8](repeating: 0, count: cropWidth * cropHeight)
-    for y in 0..<cropHeight {
-      let row = plane.base.advanced(by: (originY + y) * plane.bytesPerRow + originX)
-      for x in 0..<cropWidth { crop[y * cropWidth + x] = row[x] }
+    var tile = [UInt8](repeating: 0, count: side * side)
+    var best = 0.0
+
+    for row in 0..<SHARPNESS_GRID {
+      for column in 0..<SHARPNESS_GRID {
+        // Tile centres sit at the middle of each cell of a thirds partition, so the set spans
+        // the frame without ever reaching the extreme edge, where vignetting and lens softness
+        // would drag a corner tile down for reasons that have nothing to do with focus.
+        let centreX = plane.width * (2 * column + 1) / (2 * SHARPNESS_GRID)
+        let centreY = plane.height * (2 * row + 1) / (2 * SHARPNESS_GRID)
+        let originX = min(max(0, centreX - side / 2), plane.width - side)
+        let originY = min(max(0, centreY - side / 2), plane.height - side)
+
+        for y in 0..<side {
+          let source = plane.base.advanced(by: (originY + y) * plane.bytesPerRow + originX)
+          for x in 0..<side { tile[y * side + x] = source[x] }
+        }
+
+        best = max(best, FrameMetricsMath.varianceOfLaplacian(tile, width: side, height: side))
+      }
     }
 
-    return FrameMetricsMath.varianceOfLaplacian(crop, width: cropWidth, height: cropHeight)
+    return best
   }
 
   /// Nearest-neighbour downsample of the whole luma plane, for the motion comparison.

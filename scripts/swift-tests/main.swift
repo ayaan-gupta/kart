@@ -454,16 +454,52 @@ suite("FrameMetrics.measure through a real pixel buffer") {
     sharp > blurred * 200,
     String(format: "separates sharp from blurred by a wide margin (%.0fx)", sharp / max(blurred, 0.0001)))
 
-  // Sharpness comes off a centre crop, so a source smaller than the window must be measured
+  // Sharpness comes off fixed-size tiles, so a source smaller than one tile must be measured
   // whole rather than fall off an edge or report nothing.
   if let small = makePixelBuffer(
     photoLike(width: 64, height: 48), width: 64, height: 48,
     format: kCVPixelFormatType_OneComponent8)
   {
     let value = FrameMetrics().measure(pixelBuffer: small).sharpness
-    check(value > 100, String(format: "measures a source smaller than the crop window (%.1f)", value))
+    check(value > 100, String(format: "measures a source smaller than one tile (%.1f)", value))
   } else {
     check(false, "could not create a sub-window pixel buffer")
+  }
+
+  // The case the tile grid exists for, and the reason a single window could not stay.
+  //
+  // A sharp frame whose centre is a bright, aggressively denoised flat surface: a pizza box, a
+  // case of water or a carrier bag filling the middle of a bird's-eye shot, which is an ordinary
+  // frame rather than a corner case. The flat patch is 700x500, enough to swallow any single
+  // centre window whole while leaving the outer tiles textured. Measured through this same path,
+  // a 256x256 centre window scored this frame 13.4 and the gate refused it as blurry while it
+  // was perfectly in focus. Worse than the false negative: with one window `minSharpness` is
+  // untunable in principle, because its value depends on which three percent of the cart happens
+  // to sit under the reticle.
+  var flatCentre = sharpImage
+  var flatSeed: UInt64 = 0x0123_4567
+  let flatWidth = 700
+  let flatHeight = 500
+  let flatX = (width - flatWidth) / 2
+  let flatY = (height - flatHeight) / 2
+  for y in flatY..<(flatY + flatHeight) {
+    for x in flatX..<(flatX + flatWidth) {
+      flatSeed ^= flatSeed << 13
+      flatSeed ^= flatSeed >> 7
+      flatSeed ^= flatSeed << 17
+      // Near-white with barely a bit of dither, so its own variance is nowhere near the gate.
+      flatCentre[y * width + x] = UInt8(239 + Int(flatSeed % 3))
+    }
+  }
+  if let flatBuffer = makePixelBuffer(
+    flatCentre, width: width, height: height, format: kCVPixelFormatType_OneComponent8)
+  {
+    let value = FrameMetrics().measure(pixelBuffer: flatBuffer).sharpness
+    check(
+      value > 1000,
+      String(format: "keeps a sharp frame with a flat centre well above the threshold (%.1f)", value))
+  } else {
+    check(false, "could not create a flat-centre pixel buffer")
   }
 
   // Motion is still the whole-frame comparison, and it still needs a previous frame.
