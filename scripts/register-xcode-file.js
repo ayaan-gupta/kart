@@ -9,7 +9,16 @@ project.parseSync();
 const target = project.getFirstTarget().uuid;
 const groupKey = project.findPBXGroupKey({ name: 'Kart' });
 
-for (const file of ['KartVisionFrameProcessorPlugin.swift', 'KartVisionFrameProcessorPlugin.m']) {
+const FILES = [
+  'KartVisionFrameProcessorPlugin.swift',
+  'KartVisionFrameProcessorPlugin.m',
+  'KartDetector.swift',
+  'MaskContour.swift',
+  'FrameMetrics.swift',
+  'AppleInstanceMaskDetector.swift',
+];
+
+for (const file of FILES) {
   const relativePath = `Kart/${file}`;
   const alreadyPresent = Object.values(project.hash.project.objects.PBXFileReference || {}).some(
     // `path` values may retain literal surrounding quotes from the pbxproj serialization

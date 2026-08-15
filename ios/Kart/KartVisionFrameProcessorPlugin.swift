@@ -1,10 +1,10 @@
 // ios/Kart/KartVisionFrameProcessorPlugin.swift
-import VisionCamera
-import Vision
 import CoreVideo
+import Vision
+import VisionCamera
 
-/// `Frame.orientation` is a `UIImage.Orientation` describing the rotation needed to make the
-/// raw sensor buffer appear upright. `VNImageRequestHandler` wants the equivalent
+/// `Frame.orientation` is a `UIImage.Orientation` describing the rotation needed to make the raw
+/// sensor buffer appear upright. `VNImageRequestHandler` wants the equivalent
 /// `CGImagePropertyOrientation`. The two enums are NOT raw-value compatible (their cases are
 /// ordered differently), so this needs an explicit mapping rather than a cast.
 private extension CGImagePropertyOrientation {
@@ -21,87 +21,105 @@ private extension CGImagePropertyOrientation {
     @unknown default: self = .up
     }
   }
+
+  /// True when making the buffer upright swaps its width and height.
+  var swapsDimensions: Bool {
+    switch self {
+    case .left, .leftMirrored, .right, .rightMirrored: return true
+    default: return false
+    }
+  }
 }
 
 @objc(KartVisionFrameProcessorPlugin)
 public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
+
+  /// The one place a concrete detector is named. Swapping in a Core ML detector, once the
+  /// benchmark says to, is a change to this line and nothing else.
+  private let detector: KartDetector = AppleInstanceMaskDetector()
+  private let metrics = FrameMetrics()
+
   public override init(proxy: VisionCameraProxyHolder, options: [AnyHashable: Any]!) {
     super.init(proxy: proxy, options: options)
   }
 
-  public override func callback(_ frame: Frame, withArguments arguments: [AnyHashable: Any]?) -> Any? {
-    guard let pixelBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else { return [] }
+  public override func callback(
+    _ frame: Frame, withArguments arguments: [AnyHashable: Any]?
+  ) -> Any? {
+    guard let pixelBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else {
+      return Self.empty(width: 0, height: 0)
+    }
 
-    // Give Vision the frame's actual orientation so saliency/classify/text requests all operate
-    // on an upright image instead of the raw (often landscape) sensor buffer. Once the handler
-    // is given this, every Vision request's own boundingBox/regionOfInterest coordinates are
-    // already reported in the corrected, upright normalized space — no further rotation math
-    // is needed on the Vision side. (The JS side still needs to know the corrected frame
-    // dimensions to map those normalized boxes to screen pixels; see frameSize handling in
-    // scan.tsx, since `frame.width`/`frame.height` themselves stay raw/unrotated.)
     let orientation = CGImagePropertyOrientation(frame.orientation)
-    let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+    let width = orientation.swapsDimensions ? frame.height : frame.width
+    let height = orientation.swapsDimensions ? frame.width : frame.height
 
-    let saliencyRequest = VNGenerateObjectnessBasedSaliencyImageRequest()
-    do {
-      try handler.perform([saliencyRequest])
-    } catch {
-      return []
+    let measured = metrics.measure(pixelBuffer: pixelBuffer)
+    let instances = (try? detector.detect(pixelBuffer: pixelBuffer, orientation: orientation)) ?? []
+
+    var barcodes: [[String: Any]] = []
+    if (arguments?["barcodes"] as? Bool) ?? false {
+      barcodes = Self.readBarcodes(pixelBuffer: pixelBuffer, orientation: orientation)
     }
 
-    guard
-      let observation = saliencyRequest.results?.first,
-      let salientObjects = observation.salientObjects
-    else {
-      return []
-    }
+    return [
+      "instances": instances.map { instance in
+        [
+          "box": Self.box(instance.box),
+          // Bridged as Double rather than Float: JSI numbers are doubles, and converting once
+          // here avoids a per-element boxing surprise on the JavaScript side.
+          "polygon": instance.polygon.map { Double($0) },
+          "score": Double(instance.score),
+        ] as [String: Any]
+      },
+      "barcodes": barcodes,
+      "sharpness": measured.sharpness,
+      "motion": measured.motion,
+      "width": width,
+      "height": height,
+    ]
+  }
 
-    let topRegions = salientObjects
-      .sorted { $0.confidence > $1.confidence }
-      .prefix(3)
+  private static func empty(width: Int, height: Int) -> [String: Any] {
+    [
+      "instances": [], "barcodes": [], "sharpness": 0.0, "motion": 1.0,
+      "width": width, "height": height,
+    ]
+  }
 
-    var results: [[String: Any]] = []
+  /// `MaskContour` computes this box directly from mask pixel rows, never through Vision's
+  /// normalized reporting, so it is already origin top-left. No flip here.
+  private static func box(_ rect: CGRect) -> [String: Any] {
+    ["x": rect.minX, "y": rect.minY, "w": rect.width, "h": rect.height]
+  }
 
-    for region in topRegions {
-      // Vision's coordinate space is normalized with origin bottom-left.
-      // Flip to top-left origin to match the app's Box convention.
-      let visionBox = region.boundingBox
-      let appBox: [String: Any] = [
-        "x": visionBox.origin.x,
-        "y": 1 - visionBox.origin.y - visionBox.height,
-        "w": visionBox.width,
-        "h": visionBox.height,
+  /// Vision reports normalized boxes with origin bottom-left. Everything above the native
+  /// boundary uses origin top-left, so the flip happens here, once, for observations that come
+  /// straight from a Vision request (barcodes). `box(_:)` above does not flip because its input
+  /// never passes through Vision's coordinate convention.
+  private static func visionBox(_ rect: CGRect) -> [String: Any] {
+    ["x": rect.minX, "y": 1 - rect.minY - rect.height, "w": rect.width, "h": rect.height]
+  }
+
+  private static func readBarcodes(
+    pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation
+  ) -> [[String: Any]] {
+    let request = VNDetectBarcodesRequest()
+    // Retail symbologies only. Every extra symbology is scan time spent on formats that will
+    // never appear on a grocery item.
+    request.symbologies = [.ean13, .ean8, .upce, .code128]
+
+    let handler = VNImageRequestHandler(
+      cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+    guard (try? handler.perform([request])) != nil else { return [] }
+
+    return (request.results ?? []).compactMap { observation in
+      guard let payload = observation.payloadStringValue, !payload.isEmpty else { return nil }
+      return [
+        "payload": payload,
+        "symbology": observation.symbology.rawValue,
+        "box": visionBox(observation.boundingBox),
       ]
-
-      let classifyRequest = VNClassifyImageRequest()
-      classifyRequest.regionOfInterest = visionBox
-
-      let textRequest = VNRecognizeTextRequest()
-      textRequest.recognitionLevel = .fast
-      textRequest.regionOfInterest = visionBox
-
-      try? handler.perform([classifyRequest, textRequest])
-
-      // Vision's classifier returns ~1300 hierarchical labels; the single top-1 result is very
-      // often a generic hypernym ("food", "produce", "material") with no catalog mapping even
-      // when a more specific, correct label was returned right behind it. Return the top 5 so
-      // the JS-side matcher can fall through to a lower-ranked candidate.
-      let topLabels = (classifyRequest.results ?? [])
-        .sorted { $0.confidence > $1.confidence }
-        .prefix(5)
-        .map { ["label": $0.identifier, "confidence": Double($0.confidence)] as [String: Any] }
-
-      let ocrText = (textRequest.results ?? [])
-        .compactMap { $0.topCandidates(1).first?.string }
-        .joined(separator: " ")
-
-      results.append([
-        "box": appBox,
-        "labels": topLabels,
-        "ocrText": ocrText,
-      ])
     }
-
-    return results
   }
 }
