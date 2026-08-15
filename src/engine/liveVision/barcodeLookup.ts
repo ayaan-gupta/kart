@@ -10,25 +10,19 @@
  * stricter licence than the ODbL that covers the database, so this file never requests one.
  */
 
+import {
+  BARCODE_RATE_WINDOW_MS,
+  BARCODE_TIMEOUT_MS,
+  MAX_BARCODE_REQUESTS_PER_MINUTE,
+  OPEN_FOOD_FACTS_ENDPOINT,
+  OPEN_FOOD_FACTS_USER_AGENT,
+} from './config';
+
 /** Shown wherever an item's facts came from this database. Required by the ODbL. */
 export const OPEN_FOOD_FACTS_ATTRIBUTION = 'Product data from Open Food Facts, licensed under ODbL';
 
-/** Their policy asks for AppName/Version (ContactEmail) so they can identify heavy clients. */
-const USER_AGENT = 'Kart/1.0 (support@kart.app)';
-
-const ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product';
-
 /** Only the fields that are actually used. Asking for the whole record wastes their bandwidth. */
 const FIELDS = 'code,product_name,brands,quantity,categories_tags';
-
-/**
- * Their documented ceiling is 15 reads per minute per IP. Staying under it matters more than
- * it looks: on shared shop wifi the IP is not only this user's.
- */
-const MAX_REQUESTS_PER_MINUTE = 15;
-const WINDOW_MS = 60_000;
-
-const REQUEST_TIMEOUT_MS = 6_000;
 
 export interface ResolvedProduct {
   name: string;
@@ -51,8 +45,8 @@ export function createLookupCache(): LookupCache {
 }
 
 function withinBudget(cache: LookupCache, now: number): boolean {
-  while (cache.recent.length > 0 && now - cache.recent[0] > WINDOW_MS) cache.recent.shift();
-  return cache.recent.length < MAX_REQUESTS_PER_MINUTE;
+  while (cache.recent.length > 0 && now - cache.recent[0] > BARCODE_RATE_WINDOW_MS) cache.recent.shift();
+  return cache.recent.length < MAX_BARCODE_REQUESTS_PER_MINUTE;
 }
 
 /** `"Nutella, Ferrero, Yum yum"` is a real response. The first entry is the one that matters. */
@@ -74,14 +68,14 @@ function firstCategory(tags: unknown): string {
 
 async function fetchProduct(payload: string, signal?: AbortSignal): Promise<ResolvedProduct | null> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), BARCODE_TIMEOUT_MS);
   const onAbort = () => controller.abort();
   signal?.addEventListener('abort', onAbort);
 
   try {
-    const url = `${ENDPOINT}/${encodeURIComponent(payload)}?fields=${FIELDS}`;
+    const url = `${OPEN_FOOD_FACTS_ENDPOINT}/${encodeURIComponent(payload)}?fields=${FIELDS}`;
     const response = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      headers: { 'User-Agent': OPEN_FOOD_FACTS_USER_AGENT, Accept: 'application/json' },
       signal: controller.signal,
     });
     if (!response.ok) return null;

@@ -82,3 +82,27 @@ export const THUMBNAIL_PADDING = 0.08;
  * trip the guide by itself; two of the three must agree.
  */
 export const OCCLUSION_THRESHOLD = 0.5;
+
+/** Base URL for Open Food Facts product reads. No trailing slash; callers append `/{barcode}`. */
+export const OPEN_FOOD_FACTS_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product';
+
+/** Their policy asks for AppName/Version (ContactEmail) so they can identify heavy clients. */
+export const OPEN_FOOD_FACTS_USER_AGENT = 'Kart/1.0 (support@kart.app)';
+
+/**
+ * Their documented ceiling is 15 reads per minute per IP. Staying under it matters more than
+ * it looks: on shared shop wifi the IP is not only this user's.
+ */
+export const MAX_BARCODE_REQUESTS_PER_MINUTE = 15;
+
+/** Sliding window the rate limiter counts requests over, matching Open Food Facts' "per minute". */
+export const BARCODE_RATE_WINDOW_MS = 60_000;
+
+/**
+ * How long a single Open Food Facts lookup may take before it is abandoned. Deliberately
+ * shorter than the shared `REQUEST_TIMEOUT_MS` above: that one bounds a recognition call that
+ * uploads an image and waits on a model, while this is a single indexed lookup by barcode
+ * against a public database, so a slow response is worth giving up on sooner rather than
+ * blocking the fast path it exists to serve.
+ */
+export const BARCODE_TIMEOUT_MS = 6_000;

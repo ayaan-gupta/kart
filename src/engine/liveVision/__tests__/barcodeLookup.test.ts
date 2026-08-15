@@ -25,6 +25,20 @@ describe('lookupBarcode', () => {
     expect(p?.size).toBe('347 g');
   });
 
+  it('passes a 13 digit EAN-13-with-leading-zero payload through unmodified and resolves normally', async () => {
+    // Apple's Vision framework has no UPC-A symbology: a physical UPC-A barcode always arrives
+    // here as the 13 digit EAN-13 string Vision decodes it as, the original 12 digit UPC-A
+    // prefixed with a leading zero. This module must forward that string opaquely rather than
+    // assume a 12 digit UPC, so nothing here may normalize or truncate it.
+    const ean13FromUpcA = '0016000275270';
+    const f = mockFetch(jest.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => found({ code: ean13FromUpcA }),
+    }));
+    const p = await lookupBarcode(createLookupCache(), ean13FromUpcA);
+    expect(f.mock.calls[0][0]).toContain(ean13FromUpcA);
+    expect(p?.brand).toBe('General Mills');
+  });
+
   it('treats status 0 as a miss even though the HTTP code is 200', async () => {
     // This is the trap. Open Food Facts answers 200 for an unknown barcode. Checking response.ok
     // alone reports every miss as a successful lookup with an undefined name.
