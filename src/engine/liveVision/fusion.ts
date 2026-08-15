@@ -9,6 +9,14 @@ export interface Identity {
   confidence: number;
   needsCloserLook: boolean;
   source: IdentitySource;
+  /**
+   * True only for a barcode identity whose name is the synthetic "Scanned item" fallback: the
+   * UPC decoded but nothing, not Open Food Facts and not a prior model guess, has actually named
+   * it yet. The key is still ground truth for counting, but the name carries no information, so
+   * unlike a real barcode identity it is not protected: the next census mark is free to replace
+   * it outright. Always false for a vlm-sourced identity and for a barcode that did resolve.
+   */
+  placeholder: boolean;
 }
 
 export interface CensusMark {
@@ -162,7 +170,28 @@ export function applyCensus(
     if (trackId === undefined) continue;
 
     const existing = working.identities[trackId];
-    // A barcode is ground truth. Never let a later VLM guess overwrite one.
+
+    // A barcode identity that never got a real name (the lookup missed, was offline, or was
+    // rate limited) is not ground truth for anything except its key. "Scanned item" carries no
+    // information worth protecting, so the next guess, however uncertain, replaces it outright.
+    // The key and the barcode source stay exactly as they were, so the UPC keeps doing its job
+    // as the stable counting key and this identity falls back to full protection immediately
+    // afterward, same as any barcode that resolved on the first try.
+    if (existing?.source === 'barcode' && existing.placeholder) {
+      working.identities[trackId] = {
+        ...existing,
+        name: mark.name,
+        brand: mark.brand,
+        size: mark.size,
+        category: mark.category,
+        confidence: mark.confidence,
+        needsCloserLook: mark.needsCloserLook,
+        placeholder: false,
+      };
+      continue;
+    }
+
+    // A resolved barcode is ground truth. Never let a later VLM guess overwrite one.
     if (existing?.source === 'barcode') {
       const candidateKey = productKey(mark.name, mark.brand);
       const pending = working.pendingAlias[trackId];
@@ -194,6 +223,7 @@ export function applyCensus(
       confidence: mark.confidence,
       needsCloserLook: mark.needsCloserLook,
       source: 'vlm',
+      placeholder: false,
     };
   }
 
@@ -271,6 +301,12 @@ export function applyBarcode(
     working = addAlias(working, productKey(vlmNameForAlias.name, vlmNameForAlias.brand), key);
   }
 
+  // True only when neither Open Food Facts nor a prior VLM guess actually named this item, so
+  // the name below falls back to the synthetic "Scanned item" text. That text is not ground
+  // truth and applyCensus's barcode branch treats it as freely replaceable; a resolved lookup or
+  // an already-known VLM name is real information and stays fully protected like any barcode.
+  const isPlaceholder = resolved === null && !(previous && previous.source === 'vlm');
+
   const identities = { ...working.identities };
   identities[trackId] = {
     key,
@@ -280,9 +316,13 @@ export function applyBarcode(
     brand: resolved?.brand ?? previous?.brand ?? null,
     size: resolved?.size ?? previous?.size ?? null,
     category: resolved?.category ?? previous?.category ?? 'Grocery',
-    confidence: 1,
+    // A placeholder starts at confidence 0 rather than 1: the UPC match is the ground truth
+    // here, not this name, so the item should read amber and draw a crop identify like any
+    // other uncertain item, rather than sit at full confidence under a name that means nothing.
+    confidence: isPlaceholder ? 0 : 1,
     needsCloserLook: false,
     source: 'barcode',
+    placeholder: isPlaceholder,
   };
 
   return { ...working, identities };

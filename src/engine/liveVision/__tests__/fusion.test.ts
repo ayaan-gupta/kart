@@ -316,6 +316,32 @@ describe('barcode identity', () => {
     expect(bagLines(state)).toHaveLength(0);
   });
 
+  it('lets a confident census correct a barcode that never resolved a name', () => {
+    // Regression: an unresolved lookup (offline, rate limited, or a real database miss) used to
+    // set confidence 1 on the "Scanned item" placeholder, which is high enough that applyCensus's
+    // barcode protection froze it there forever. The fix is to make an unresolved barcode's name
+    // freely replaceable while its key stays put, so the UPC keeps doing its job as the counting
+    // key even while the display name is still catching up.
+    let state = createFusionState();
+    state = applyBarcode(state, 't1', '021130126026', null);
+    expect(state.identities['t1'].name).toBe('Scanned item');
+    expect(state.identities['t1'].confidence).toBeLessThan(1);
+
+    state = applyCensus(state, census([mark(1, 'Pringles', 'Pringles', 0.95)], []), { 1: 't1' }, ['t1']);
+
+    expect(state.identities['t1'].name).toBe('Pringles');
+    expect(state.identities['t1'].confidence).toBe(0.95);
+    // Still the barcode's own key, not a productKey derived from the guess: the UPC is what a
+    // sibling track's own barcode read, or a future alias, needs to land on the same line.
+    expect(state.identities['t1'].key).toBe('upc:021130126026');
+    expect(state.identities['t1'].source).toBe('barcode');
+
+    // Now that it has a real name, it is protected exactly like any other barcode identity: one
+    // misread does not un-name it.
+    state = applyCensus(state, census([mark(1, 'Corn Flakes', 'Kellogg')], []), { 1: 't1' }, ['t1']);
+    expect(state.identities['t1'].name).toBe('Pringles');
+  });
+
   it('does not overcount two different barcodes that shared one generic model name', () => {
     // Regression for a defect found in review: addAlias used to clobber an existing redirect
     // unconditionally, so scanning the second of two differently-flavoured cups (both named

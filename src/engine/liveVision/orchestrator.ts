@@ -31,6 +31,11 @@ export interface SessionState {
   amberSince: Record<string, number>;
   censusCalls: number;
   identifyCalls: number;
+  /** Plain-string message from the most recent rejecting dependency, or null. Never a native
+   * error object, matching `FrameScan.error`: a session that throws every call is otherwise
+   * indistinguishable from one that works. Not cleared automatically; it is a diagnostic, not a
+   * transient banner. */
+  lastError: string | null;
 }
 
 export function createSessionState(): SessionState {
@@ -41,6 +46,7 @@ export function createSessionState(): SessionState {
     amberSince: {},
     censusCalls: 0,
     identifyCalls: 0,
+    lastError: null,
   };
 }
 
@@ -87,16 +93,19 @@ export function amberTrackIds(state: SessionState, tracks: Track[]): string[] {
 /**
  * True when some amber item has been amber long enough to be worth telling the user about.
  *
- * Deliberately checks presence in the current `tracks` list rather than recomputing
- * `amberTrackIds`: an entry only ever lands in `amberSince` because it was amber at the moment
- * the dwell clock started, so re-deriving "is it still amber right now" here would require this
- * frame to also carry a fresh identity for it, which a frame between census calls never does.
- * All this needs to know is whether the track has since left the frame.
+ * Checks the track's live identity, not a re-derived membership in `amberTrackIds`: `fusion`
+ * persists across frames and outlives any single census, so an identity that has since gone
+ * green (a barcode resolving it, for instance) is visible right here and must clear the dwell
+ * clock's verdict. A track with no identity at all is treated as still amber: nothing has
+ * contradicted the clock, so there is no reason to clear it early. A track that has left the
+ * frame is ignored outright; the notice is about something the user can still act on.
  */
 export function persistentAmber(state: SessionState, tracks: Track[], now: number): boolean {
-  const present = new Set(tracks.filter((t) => t.state !== 'lost').map((t) => t.id));
+  const live = new Map(tracks.filter((t) => t.state !== 'lost').map((t) => [t.id, t] as const));
   for (const [trackId, since] of Object.entries(state.amberSince)) {
-    if (present.has(trackId) && now - since >= AMBER_DWELL_MS) return true;
+    if (!live.has(trackId) || now - since < AMBER_DWELL_MS) continue;
+    const identity = state.fusion.identities[trackId];
+    if (!identity || identity.needsCloserLook || identity.confidence < GREEN_CONFIDENCE) return true;
   }
   return false;
 }
@@ -146,6 +155,10 @@ export class RecognitionSession {
   /** Set once the endpoint proves to be unconfigured. Retrying that can never succeed. */
   private permanentlyUnavailable = false;
   private readonly resolvedBarcodes = new Set<string>();
+  /** Product keys with a save in flight, so two overlapping crops for the same product cannot
+   * both see an empty thumbnail slot and both write. Claimed before the await, mirroring
+   * `resolvedBarcodes`. */
+  private readonly savingThumbnails = new Set<string>();
   private readonly controller = new AbortController();
 
   constructor(private readonly deps: SessionDeps) {}
@@ -154,6 +167,21 @@ export class RecognitionSession {
   dispose(): void {
     this.disposed = true;
     this.controller.abort();
+  }
+
+  /**
+   * Turns a rejection into the plain-string error shape the rest of this branch uses (see
+   * `FrameScan.error` in `types.ts`) and files it on state so the UI can surface it.
+   *
+   * The frame loop never awaits `onKeyframe`, `onCrops` or `onBarcodes`, so a dependency that
+   * rejects instead of resolving would otherwise become an unhandled rejection inside a frame
+   * handler. `requestCensus`, `requestIdentify` and the real `lookupBarcode` all promise never to
+   * throw, but `saveThumbnail` writes to disk and can reject on a full disk or a permissions
+   * problem, so every public method that awaits a dependency needs this backstop regardless.
+   */
+  private recordError(error: unknown): void {
+    const message = error instanceof Error ? error.message : 'recognition step failed';
+    this.state = { ...this.state, lastError: message };
   }
 
   /**
@@ -201,6 +229,8 @@ export class RecognitionSession {
       this.state = { ...this.state, fusion, occlusion, amberSince: this.nextAmberSince(fusion, tracks, now) };
 
       await this.resolveUncertain(imageBase64, tracks, now);
+    } catch (error) {
+      this.recordError(error);
     } finally {
       this.censusInFlight = false;
     }
@@ -280,11 +310,22 @@ export class RecognitionSession {
       const identity = this.state.fusion.identities[crop.id];
       if (!identity) continue;
       const key = resolveKey(this.state.fusion, identity.key);
-      if (this.state.thumbnails[key]) continue;
+      // Claim the slot before the await, not after: `tracksNeedingThumbnail` keeps returning the
+      // same track every frame until the save actually lands in state, and the frame loop calls
+      // this without awaiting it, so two overlapping saves for the same product are routine, not
+      // a rare interleaving. Reading `thumbnails` alone would let both see it empty.
+      if (this.state.thumbnails[key] || this.savingThumbnails.has(key)) continue;
+      this.savingThumbnails.add(key);
 
-      const uri = await this.deps.saveThumbnail(key, crop.jpeg);
-      if (uri === null || this.disposed) continue;
-      this.state = { ...this.state, thumbnails: { ...this.state.thumbnails, [key]: uri } };
+      try {
+        const uri = await this.deps.saveThumbnail(key, crop.jpeg);
+        if (uri === null || this.disposed) continue;
+        this.state = { ...this.state, thumbnails: { ...this.state.thumbnails, [key]: uri } };
+      } catch (error) {
+        this.recordError(error);
+      } finally {
+        this.savingThumbnails.delete(key);
+      }
     }
   }
 
@@ -296,9 +337,13 @@ export class RecognitionSession {
       if (this.resolvedBarcodes.has(seen)) continue;
       this.resolvedBarcodes.add(seen);
 
-      const resolved = await this.deps.lookupBarcode(hit.payload, this.controller.signal);
-      if (this.disposed) return;
-      this.state = { ...this.state, fusion: applyBarcode(this.state.fusion, hit.trackId, hit.payload, resolved) };
+      try {
+        const resolved = await this.deps.lookupBarcode(hit.payload, this.controller.signal);
+        if (this.disposed) return;
+        this.state = { ...this.state, fusion: applyBarcode(this.state.fusion, hit.trackId, hit.payload, resolved) };
+      } catch (error) {
+        this.recordError(error);
+      }
     }
   }
 }

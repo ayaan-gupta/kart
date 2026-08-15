@@ -316,4 +316,77 @@ describe('RecognitionSession', () => {
     await s.onKeyframe('AAAA', [track('a')], 0);
     expect(d.requestCensus).not.toHaveBeenCalled();
   });
+
+  it('clears the "come closer" notice once a barcode resolves an amber track', async () => {
+    // Regression: persistentAmber used to check only track presence, so an item that went
+    // amber from a low-confidence census and was then resolved by its barcode kept showing the
+    // notice for the rest of the scan, since no census ever runs again to refresh amberSince.
+    const d = deps({
+      lookupBarcode: jest.fn().mockResolvedValue({ name: 'Pringles', brand: 'Pringles', size: '5.2 oz', category: 'Snacks' }),
+    });
+    const s = new RecognitionSession(d);
+    s.state = {
+      ...s.state,
+      fusion: applyCensus(
+        createFusionState(),
+        {
+          marks: [{ id: 1, name: 'Something', brand: null, size: null, category: 'x', confidence: 0.3, needsCloserLook: false }],
+          inViewCounts: [{ productKey: productKey('Something', null), count: 1 }],
+        },
+        { 1: 'a' },
+        ['a'],
+      ),
+      amberSince: { a: 0 },
+    };
+    expect(persistentAmber(s.state, [track('a')], AMBER_DWELL_MS + 1)).toBe(true);
+
+    await s.onBarcodes([{ trackId: 'a', payload: '038000138416' }]);
+
+    expect(persistentAmber(s.state, [track('a')], AMBER_DWELL_MS + 1)).toBe(false);
+  });
+
+  it('does not save the same thumbnail twice for two overlapping crops of one product', async () => {
+    // Regression: the thumbnail slot was claimed by reading `thumbnails` before the await and
+    // writing it after, so two overlapping onCrops calls for the same product both saw an empty
+    // slot and both saved. The frame loop calls onCrops without awaiting it, so this is routine,
+    // not a rare interleaving.
+    let resolveSave: (v: string | null) => void = () => {};
+    const saveThumbnail = jest.fn().mockReturnValue(new Promise<string | null>((r) => { resolveSave = r; }));
+    const s = new RecognitionSession(deps({ saveThumbnail }));
+    await s.onKeyframe('AAAA', [track('a')], 0);
+
+    const first = s.onCrops([{ id: 'a', jpeg: 'BBBB' }]);
+    const second = s.onCrops([{ id: 'a', jpeg: 'CCCC' }]);
+    resolveSave('file:///thumb.jpg');
+    await Promise.all([first, second]);
+
+    expect(saveThumbnail).toHaveBeenCalledTimes(1);
+    expect(s.state.thumbnails[productKey('Bananas', null)]).toBe('file:///thumb.jpg');
+  });
+
+  it('does not let a rejecting requestCensus escape onKeyframe as an unhandled rejection', async () => {
+    const d = deps({ requestCensus: jest.fn().mockRejectedValue(new Error('network blew up')) });
+    const s = new RecognitionSession(d);
+    await expect(s.onKeyframe('AAAA', [track('a')], 0)).resolves.toBeUndefined();
+    expect(s.state.lastError).toBe('network blew up');
+    // The in-flight flag still clears on a throw, so the session can try again next keyframe.
+    expect(s.wantsKeyframe([track('a')])).toBe(true);
+  });
+
+  it('does not let a rejecting saveThumbnail escape onCrops as an unhandled rejection', async () => {
+    const d = deps({ saveThumbnail: jest.fn().mockRejectedValue(new Error('disk full')) });
+    const s = new RecognitionSession(d);
+    await s.onKeyframe('AAAA', [track('a')], 0);
+    await expect(s.onCrops([{ id: 'a', jpeg: 'BBBB' }])).resolves.toBeUndefined();
+    expect(s.state.lastError).toBe('disk full');
+    expect(Object.keys(s.state.thumbnails)).toHaveLength(0);
+  });
+
+  it('does not let a rejecting lookupBarcode escape onBarcodes as an unhandled rejection', async () => {
+    const d = deps({ lookupBarcode: jest.fn().mockRejectedValue(new Error('offline')) });
+    const s = new RecognitionSession(d);
+    await expect(s.onBarcodes([{ trackId: 'a', payload: '038000138416' }])).resolves.toBeUndefined();
+    expect(s.state.lastError).toBe('offline');
+    expect(s.state.fusion.identities['a']).toBeUndefined();
+  });
 });
