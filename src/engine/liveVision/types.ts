@@ -85,3 +85,25 @@ export interface KeyframeConfig {
   /** Floor on the interval even for a scene change, so a churning detector cannot spam. */
   sceneChangeIntervalMs: number;
 }
+
+export interface BarcodeHit {
+  payload: string;
+  symbology: string;
+  box: Box;
+}
+
+/** Exactly what the native frame processor returns for one frame. */
+export interface FrameScan {
+  instances: DetectedInstance[];
+  barcodes: BarcodeHit[];
+  sharpness: number;
+  motion: number;
+  /** Upright frame dimensions, already corrected for sensor rotation natively. */
+  width: number;
+  height: number;
+}
+
+export interface PipelineState {
+  tracker: TrackerState;
+  keyframe: KeyframeState;
+}

@@ -1,75 +1,85 @@
 import { createPipelineState, processFrame } from '../pipeline';
-import { CATALOG } from '../../catalog';
-import type { RawRegion } from '../types';
+import type { FrameScan } from '../types';
+
+function scan(overrides: Partial<FrameScan> = {}): FrameScan {
+  return {
+    instances: [
+      {
+        box: { x: 0.2, y: 0.2, w: 0.2, h: 0.2 },
+        polygon: [0.2, 0.2, 0.4, 0.2, 0.4, 0.4, 0.2, 0.4],
+        score: 0.9,
+      },
+    ],
+    barcodes: [],
+    sharpness: 400,
+    motion: 0.003,
+    width: 1080,
+    height: 1920,
+    ...overrides,
+  };
+}
 
 describe('processFrame', () => {
-  it('turns two distinct chip-bag sightings into two separate lock events', () => {
-    const regionA: RawRegion = {
-      box: { x: 0, y: 0, w: 0.1, h: 0.1 },
-      labels: [{ label: 'chips', confidence: 0.7 }],
-    };
-    const regionB: RawRegion = {
-      box: { x: 0.5, y: 0.5, w: 0.1, h: 0.1 },
-      labels: [{ label: 'chips', confidence: 0.7 }],
-    };
-
-    let state = createPipelineState();
-    let events;
-    ({ state, events } = processFrame(state, [regionA, regionB], 0, CATALOG));
-    expect(events).toHaveLength(0); // not held long enough yet
-
-    ({ state, events } = processFrame(state, [regionA, regionB], 600, CATALOG));
-    expect(events).toHaveLength(2);
-    expect(events.every((e) => e.skuCode === '5561')).toBe(true);
-    expect(events[0].candidateId).not.toBe(events[1].candidateId);
+  it('turns detections into tracks', () => {
+    const { tracks } = processFrame(createPipelineState(), scan(), 1000);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].polygon).toHaveLength(8);
   });
 
-  it('never locks a region with no catalog match', () => {
-    const region: RawRegion = {
-      box: { x: 0, y: 0, w: 0.1, h: 0.1 },
-      labels: [{ label: 'shoe', confidence: 0.95 }],
-    };
-    let state = createPipelineState();
-    let events;
-    ({ state, events } = processFrame(state, [region], 0, CATALOG));
-    ({ state, events } = processFrame(state, [region], 600, CATALOG));
-    expect(events).toHaveLength(0);
-    expect(state.candidates[0].state).toBe('forming');
+  it('opens the keyframe gate on a sharp, still frame', () => {
+    // A fresh keyframe state starts lastFiredAt at 0, and evaluateKeyframe requires
+    // minIntervalMs (2000ms) to elapse before it will fire again. `now` has to clear that from
+    // a zero baseline for a first-ever frame to fire, the same convention keyframe.test.ts uses
+    // for its own "fires on the first sharp frame" case.
+    const { keyframe } = processFrame(createPipelineState(), scan(), 3000);
+    expect(keyframe.fire).toBe(true);
   });
 
-  it('falls through to a lower-ranked label when the top classifier label has no catalog mapping', () => {
-    // "shoe" has no LABEL_TO_SKU entry, but the classifier's 2nd-ranked guess "grape" does.
-    const region: RawRegion = {
-      box: { x: 0, y: 0, w: 0.1, h: 0.1 },
-      labels: [
-        { label: 'shoe', confidence: 0.6 },
-        { label: 'grape', confidence: 0.55 },
-      ],
-    };
-    let state = createPipelineState();
-    let events;
-    ({ state, events } = processFrame(state, [region], 0, CATALOG));
-    ({ state, events } = processFrame(state, [region], 600, CATALOG));
-    expect(events).toHaveLength(1);
-    expect(events[0].skuCode).toBe('0417');
+  it('holds the gate on a blurry frame but still tracks', () => {
+    const { keyframe, tracks } = processFrame(createPipelineState(), scan({ sharpness: 5 }), 1000);
+    expect(keyframe.fire).toBe(false);
+    expect(keyframe.reason).toBe('blurry');
+    expect(tracks).toHaveLength(1);
   });
 
-  it('does not lock a weak OCR-disambiguated match even though the raw classifier confidence alone is high', () => {
-    // "bottle" is ambiguous (five candidate SKUs). High classifier confidence (0.9), but the
-    // OCR text only weakly overlaps one candidate's name ("cold" out of five tokens in "Cold
-    // brew concentrate, 32 oz" -> matchConfidence 0.2), well below the lock threshold — even
-    // though the raw classifier confidence of 0.9 would have cleared it easily.
-    const region: RawRegion = {
-      box: { x: 0, y: 0, w: 0.1, h: 0.1 },
-      labels: [{ label: 'bottle', confidence: 0.9 }],
-      ocrText: 'COLD SOMETHING ELSE',
+  it('attaches a barcode whose centre falls inside a track', () => {
+    const hit = {
+      payload: '0038000138416',
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.26, y: 0.26, w: 0.06, h: 0.03 },
     };
-    let state = createPipelineState();
-    let events;
-    ({ state, events } = processFrame(state, [region], 0, CATALOG));
-    ({ state, events } = processFrame(state, [region], 600, CATALOG));
-    expect(events).toHaveLength(0);
-    expect(state.candidates[0].state).not.toBe('locked');
-    expect(state.candidates[0].skuCode).toBe('5565');
+    const { tracks } = processFrame(createPipelineState(), scan({ barcodes: [hit] }), 1000);
+    expect(tracks[0].barcode).toBe('0038000138416');
+  });
+
+  it('ignores a barcode that falls outside every track', () => {
+    const hit = {
+      payload: '0038000138416',
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.8, y: 0.8, w: 0.06, h: 0.03 },
+    };
+    const { tracks } = processFrame(createPipelineState(), scan({ barcodes: [hit] }), 1000);
+    expect(tracks[0].barcode).toBeNull();
+  });
+
+  it('keeps a barcode once seen, even when the next frame cannot read it', () => {
+    // Barcodes decode intermittently as the cart shifts. Forgetting one the instant it stops
+    // decoding would throw away the only certain identification the pipeline ever gets.
+    const hit = {
+      payload: '0038000138416',
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.26, y: 0.26, w: 0.06, h: 0.03 },
+    };
+    let result = processFrame(createPipelineState(), scan({ barcodes: [hit] }), 1000);
+    result = processFrame(result.state, scan(), 1300);
+    expect(result.tracks[0].barcode).toBe('0038000138416');
+  });
+
+  it('carries tracker and keyframe state forward', () => {
+    let result = processFrame(createPipelineState(), scan(), 1000);
+    result = processFrame(result.state, scan(), 1300);
+    expect(result.tracks).toHaveLength(1);
+    expect(result.tracks[0].hits).toBe(2);
+    expect(result.keyframe.fire).toBe(false);
   });
 });
