@@ -99,6 +99,12 @@ export function fitPolygonToBox(polygon: Polygon, from: Box, to: Box): Polygon {
  *
  * Coordinates are rounded to whole pixels. Sub-pixel precision costs path string length on
  * every track on every update and buys nothing at the size these outlines are drawn.
+ *
+ * Rejects a polygon carrying a NaN or an Infinity outright rather than rounding it into the
+ * path string: `Math.round` passes both through unchanged, and either one lands in `d` as a
+ * literal "NaN" or "Infinity" token, which is not valid SVG path data. The detector, the
+ * Kalman filter and fitPolygonToBox can all produce one under degenerate input, so this is a
+ * guard against real upstream failure modes, not a hypothetical.
  */
 export function polygonToSvgPath(
   polygon: Polygon,
@@ -107,7 +113,7 @@ export function polygonToSvgPath(
   offsetX = 0,
   offsetY = 0,
 ): string {
-  if (polygon.length < 6) return '';
+  if (polygon.length < 6 || polygon.some((n) => !Number.isFinite(n))) return '';
 
   let path = '';
   for (let i = 0; i < polygon.length - 1; i += 2) {

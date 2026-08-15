@@ -123,4 +123,27 @@ describe('polygonToSvgPath', () => {
     // rather than read as a y with no x (or worse, indexed out of bounds).
     expect(polygonToSvgPath([0, 0, 1, 0, 1, 1, 0.9], 100, 100)).toBe('M0 0L100 0L100 100Z');
   });
+
+  it('returns an empty string for a polygon carrying a NaN coordinate', () => {
+    // Math.round(NaN) is NaN, and NaN stringifies into `d` as the literal text "NaN", which is
+    // not valid SVG path data. The detector, the Kalman filter and fitPolygonToBox can all
+    // produce one under degenerate input, so this has to be caught before rounding, not after.
+    expect(polygonToSvgPath([0, 0, NaN, 0.5, 1, 1], 100, 100)).toBe('');
+  });
+
+  it('returns an empty string for a polygon carrying an Infinity or -Infinity coordinate', () => {
+    // Same failure mode as NaN: Math.round leaves Infinity/-Infinity untouched, and either one
+    // stringifies into `d` as a non-numeric token.
+    expect(polygonToSvgPath([0, 0, Infinity, 0.5, 1, 1], 100, 100)).toBe('');
+    expect(polygonToSvgPath([-Infinity, 0, 0.5, 0.5, 1, 1], 100, 100)).toBe('');
+  });
+
+  it('pins the current behavior for finite but out-of-range coordinates', () => {
+    // Not a defect: a polygon that runs outside 0..1 (predicted slightly past the frame edge,
+    // say) produces a syntactically valid path that overflows the view. <Svg> clips to its own
+    // bounds per the SVG spec, so this is deliberately left unrejected. Pinned here so the
+    // count-malformed guard above and the value-malformed guard below stay distinct and this
+    // in-range-vs-finite boundary cannot quietly get conflated with either one later.
+    expect(polygonToSvgPath([-0.5, -0.5, 1.5, 0, 1, 1], 100, 100)).toBe('M-50 -50L150 0L100 100Z');
+  });
 });
