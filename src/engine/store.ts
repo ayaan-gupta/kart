@@ -1,31 +1,64 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CATALOG, skuByCode } from './catalog';
-import type { Detection, Haul, HaulItem, ScanSession } from './types';
+import { CATALOG } from './catalog';
+import type { BagLine } from './liveVision/fusion';
+import { deleteHaulThumbnails } from './thumbnails';
+import type { Haul, HaulItem, ScanSession } from './types';
 
 let idCounter = 0;
 const nextId = (prefix: string) => `${prefix}_${++idCounter}_${Date.now().toString(36)}`;
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Aggregate raw detections into bag lines, first-seen order. */
-export function aggregate(detections: Detection[]): HaulItem[] {
-  const order: string[] = [];
-  const qty = new Map<string, number>();
-  for (const d of detections) {
-    if (!qty.has(d.skuCode)) order.push(d.skuCode);
-    qty.set(d.skuCode, (qty.get(d.skuCode) ?? 0) + 1);
-  }
-  return order.map((skuCode) => ({ skuCode, qty: qty.get(skuCode) ?? 0 }));
-}
-
-export function haulTotal(items: HaulItem[]): number {
-  return items.reduce((sum, it) => sum + (skuByCode.get(it.skuCode)?.price ?? 0) * it.qty, 0);
-}
-
 export function haulCount(items: HaulItem[]): number {
   return items.reduce((sum, it) => sum + it.qty, 0);
+}
+
+/**
+ * Brings persisted hauls forward to the identity shape.
+ *
+ * Hauls saved before open vocabulary hold `{ skuCode, qty }`. The demo catalog is still in the
+ * repo, so their names are recoverable and no user data is thrown away. Rows whose SKU is gone
+ * are dropped rather than shown as a blank line.
+ */
+export function migrateHaulItems(raw: unknown): HaulItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: HaulItem[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const row = entry as Record<string, unknown>;
+    const qty = typeof row.qty === 'number' ? row.qty : 0;
+    if (qty <= 0) continue;
+
+    if (typeof row.key === 'string' && typeof row.name === 'string') {
+      out.push({
+        key: row.key,
+        name: row.name,
+        brand: typeof row.brand === 'string' ? row.brand : null,
+        size: typeof row.size === 'string' ? row.size : null,
+        category: typeof row.category === 'string' ? row.category : 'Grocery',
+        qty,
+        thumbnailUri: typeof row.thumbnailUri === 'string' ? row.thumbnailUri : null,
+      });
+      continue;
+    }
+
+    if (typeof row.skuCode === 'string') {
+      const sku = CATALOG.find((s) => s.code === row.skuCode);
+      if (!sku) continue;
+      out.push({
+        key: `::${sku.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()}`,
+        name: sku.name,
+        brand: null,
+        size: null,
+        category: sku.category,
+        qty,
+        thumbnailUri: null,
+      });
+    }
+  }
+  return out;
 }
 
 function seedHauls(): Haul[] {
@@ -34,7 +67,7 @@ function seedHauls(): Haul[] {
     id: nextId('haul'),
     name,
     endedAt: now - daysAgo * DAY,
-    items: codes.map(([skuCode, qty]) => ({ skuCode, qty })),
+    items: migrateHaulItems(codes.map(([skuCode, qty]) => ({ skuCode, qty }))),
   });
   return [
     make('Sunday restock', 1, [
@@ -69,15 +102,24 @@ interface ScanlineState {
   hasHydrated: boolean;
 
   startScan(): void;
-  addDetection(skuCode: string, confidence?: number): void;
+  /**
+   * Replaces the live bag. Called on every fusion update.
+   *
+   * Wholesale replacement rather than appending is the point: quantity comes from the
+   * counting rule, which can revise a number downward when the in-view clamp fires. An
+   * append-only log cannot express "there are fewer of these than I thought".
+   */
+  setBag(lines: BagLine[], thumbnails: Record<string, string>): void;
   setHint(hint: string | null): void;
   discardScan(): void;
   /** Ends the session and saves it as a haul. Returns the new haul id, or null when the bag is empty. */
   finishHaul(): string | null;
+  /** Removes a haul and reclaims the thumbnail files it owned. */
+  deleteHaul(id: string): Promise<void>;
   setHasHydrated(value: boolean): void;
 }
 
-const idleScan: ScanSession = { status: 'idle', startedAt: null, detections: [], hint: null };
+const idleScan: ScanSession = { status: 'idle', startedAt: null, items: [], hint: null };
 
 function haulName(date: Date): string {
   const h = date.getHours();
@@ -94,20 +136,23 @@ export const useScanline = create<ScanlineState>()(
 
       startScan() {
         set(() => ({
-          scan: { status: 'scanning', startedAt: Date.now(), detections: [], hint: null },
+          scan: { status: 'scanning', startedAt: Date.now(), items: [], hint: null },
         }));
       },
 
-      addDetection(skuCode, confidence) {
+      setBag(lines, thumbnails) {
         set((s) => {
           if (s.scan.status !== 'scanning') return s;
-          const detection: Detection = {
-            id: nextId('det'),
-            skuCode,
-            detectedAt: Date.now(),
-            confidence,
-          };
-          return { scan: { ...s.scan, detections: [...s.scan.detections, detection] } };
+          const items: HaulItem[] = lines.map((line) => ({
+            key: line.key,
+            name: line.name,
+            brand: line.brand,
+            size: line.size,
+            category: line.category,
+            qty: line.qty,
+            thumbnailUri: thumbnails[line.key] ?? null,
+          }));
+          return { scan: { ...s.scan, items } };
         });
       },
 
@@ -121,7 +166,7 @@ export const useScanline = create<ScanlineState>()(
 
       finishHaul() {
         const s = get();
-        const items = aggregate(s.scan.detections);
+        const items = s.scan.items;
         if (items.length === 0) {
           set(() => ({ scan: idleScan }));
           return null;
@@ -136,6 +181,12 @@ export const useScanline = create<ScanlineState>()(
         return haul.id;
       },
 
+      async deleteHaul(id) {
+        const haul = get().hauls.find((h) => h.id === id);
+        set((s) => ({ hauls: s.hauls.filter((h) => h.id !== id) }));
+        if (haul) await deleteHaulThumbnails(haul.items.map((it) => it.thumbnailUri));
+      },
+
       setHasHydrated(value) {
         set(() => ({ hasHydrated: value }));
       },
@@ -143,6 +194,22 @@ export const useScanline = create<ScanlineState>()(
     {
       name: 'kart-hauls',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 2,
+      // Hauls saved under version 1 hold `{ skuCode, qty }` items. `migrateHaulItems` brings
+      // them forward to the identity shape using the still-present demo catalog; a haul left
+      // with no items after migration (every SKU it held has since vanished from the catalog)
+      // is dropped rather than kept as an empty shell.
+      migrate: (persisted) => {
+        const state = persisted as { hauls?: unknown[] } | undefined;
+        if (!state?.hauls) return { hauls: [] };
+        const hauls: Haul[] = state.hauls
+          .map((h) => {
+            const haul = h as { id: string; name: string; endedAt: number; items?: unknown };
+            return { ...haul, items: migrateHaulItems(haul.items) };
+          })
+          .filter((h) => h.items.length > 0);
+        return { hauls };
+      },
       // Only hauls persist. Scan sessions are always transient, in-progress
       // work should not survive a restart, and re-seeding it is meaningless.
       partialize: (state) => ({ hauls: state.hauls }),

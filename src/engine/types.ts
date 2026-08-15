@@ -8,8 +8,15 @@ export interface Sku {
 }
 
 export interface HaulItem {
-  skuCode: string;
+  /** Stable product key. See `productKey` in liveVision/fusion.ts. */
+  key: string;
+  name: string;
+  brand: string | null;
+  size: string | null;
+  category: string;
   qty: number;
+  /** Local file URI of a photo of this item, cut from the user's own camera frame. */
+  thumbnailUri: string | null;
 }
 
 export interface Haul {
@@ -19,19 +26,12 @@ export interface Haul {
   items: HaulItem[];
 }
 
-export interface Detection {
-  id: string;
-  skuCode: string;
-  detectedAt: number;
-  /** the vision model's confidence for this recognition, 0..1 */
-  confidence?: number;
-}
-
 export type ScanStatus = 'idle' | 'scanning';
 
 export interface ScanSession {
   status: ScanStatus;
   startedAt: number | null;
-  detections: Detection[];
+  /** The live bag, replaced wholesale on every fusion update rather than appended to. */
+  items: HaulItem[];
   hint: string | null;
 }
