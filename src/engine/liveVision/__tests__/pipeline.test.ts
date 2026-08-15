@@ -117,6 +117,46 @@ describe('processFrame', () => {
     expect(largeTrack?.barcode).toBeNull();
   });
 
+  it('never lets a second track claim a payload another track already carries', () => {
+    // The one-claim-per-barcode rule has to hold for the life of the scan, not the life of a
+    // frame. The same two overlapping boxes as the test above, run for two consecutive frames:
+    // on frame 2 the payload is already on track_1, and the naive "skip tracks that have a
+    // barcode" rule would hand it to track_2 as well, recreating the over-count on the time
+    // axis. Barcodes decode intermittently at 3fps, so this is the common case, not a corner.
+    const small = {
+      box: { x: 0.24, y: 0.24, w: 0.06, h: 0.06 },
+      polygon: [0.24, 0.24, 0.3, 0.24, 0.3, 0.3, 0.24, 0.3],
+      score: 0.9,
+    };
+    const large = {
+      box: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      polygon: [0.1, 0.1, 0.4, 0.1, 0.4, 0.4, 0.1, 0.4],
+      score: 0.9,
+    };
+    const hit = {
+      payload: '0038000138416',
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.26, y: 0.26, w: 0.02, h: 0.02 },
+    };
+    const frame = { instances: [small, large], barcodes: [hit] };
+
+    let result = processFrame(createPipelineState(), scan(frame), 1000);
+    let carriers = result.tracks.filter((track) => track.barcode === hit.payload);
+    expect(carriers).toHaveLength(1);
+    expect(carriers[0].id).toBe('track_1');
+
+    result = processFrame(result.state, scan(frame), 1300);
+    expect(result.tracks).toHaveLength(2);
+    carriers = result.tracks.filter((track) => track.barcode === hit.payload);
+    expect(carriers).toHaveLength(1);
+    expect(carriers[0].id).toBe('track_1');
+
+    result = processFrame(result.state, scan(frame), 1600);
+    carriers = result.tracks.filter((track) => track.barcode === hit.payload);
+    expect(carriers).toHaveLength(1);
+    expect(carriers[0].id).toBe('track_1');
+  });
+
   it('does not let a barcode attach to a track that has already left the frame', () => {
     // A lost track is a Kalman prediction of an item that is no longer actually there. A
     // barcode should never bind to it, only to something the detector still sees.

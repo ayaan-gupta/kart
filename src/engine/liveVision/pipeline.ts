@@ -19,14 +19,31 @@ export function createPipelineState(): PipelineState {
  * A barcode already attached to a track is never cleared by a frame that failed to decode it.
  * Barcodes read intermittently as the cart shifts, and a decoded UPC is the only certain
  * identification this pipeline ever produces, so it is kept once earned.
+ *
+ * The general principle, which this pipeline has now got wrong in four separate places: an
+ * identity claim must hold for the life of the scan, not the life of a frame. Every rule here
+ * that stops one physical item being counted twice has to be checked against the state carried
+ * forward from previous frames, not only against what this frame happens to be doing. A rule
+ * that is enforced per frame and reset every frame is not a rule at all, because the scan runs
+ * at several frames a second for as long as the user holds the phone up.
  */
 function attachBarcodes(tracks: Track[], barcodes: BarcodeHit[]): Track[] {
   if (barcodes.length === 0) return tracks;
+
+  // Payloads any track already carries, including lost ones. A payload in here is spoken for
+  // by a physical item that has been seen, so it must not be handed to a second track on a
+  // later frame just because the first track is no longer eligible to re-claim it.
+  const heldPayloads = new Set<string>();
+  for (const track of tracks) {
+    if (track.barcode !== null) heldPayloads.add(track.barcode);
+  }
 
   const claimedTracks = new Set<number>();
   const assignments = new Map<number, string>();
 
   for (const barcode of barcodes) {
+    if (heldPayloads.has(barcode.payload)) continue;
+
     const cx = barcode.box.x + barcode.box.w / 2;
     const cy = barcode.box.y + barcode.box.h / 2;
 
@@ -50,6 +67,9 @@ function attachBarcodes(tracks: Track[], barcodes: BarcodeHit[]): Track[] {
 
     if (bestIndex === -1) continue;
     claimedTracks.add(bestIndex);
+    // Held from this point on, so a second decode of the same payload later in this same frame
+    // cannot land on a different track either. Vision can report one label twice.
+    heldPayloads.add(barcode.payload);
     assignments.set(bestIndex, barcode.payload);
   }
 
