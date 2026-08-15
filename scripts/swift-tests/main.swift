@@ -172,6 +172,54 @@ suite("MaskContour.instances self-touching mask") {
   }
 }
 
+suite("FrameMetricsMath.varianceOfLaplacian") {
+  let flat = [UInt8](repeating: 128, count: 64 * 64)
+  check(
+    FrameMetricsMath.varianceOfLaplacian(flat, width: 64, height: 64) < 1.0,
+    "reports near zero for a flat grey image")
+
+  var checker = [UInt8](repeating: 0, count: 64 * 64)
+  for y in 0..<64 {
+    for x in 0..<64 { checker[y * 64 + x] = (x / 4 + y / 4) % 2 == 0 ? 0 : 255 }
+  }
+  let sharp = FrameMetricsMath.varianceOfLaplacian(checker, width: 64, height: 64)
+  check(sharp > 100.0, "reports a large value for a hard-edged checkerboard")
+
+  // A blurred checkerboard must score below a crisp one. This ordering is the whole contract:
+  // the gate only ever compares sharpness against a threshold.
+  var blurred = checker
+  for y in 1..<63 {
+    for x in 1..<63 {
+      let sum =
+        Int(checker[(y - 1) * 64 + x]) + Int(checker[(y + 1) * 64 + x])
+        + Int(checker[y * 64 + x - 1]) + Int(checker[y * 64 + x + 1]) + Int(checker[y * 64 + x])
+      blurred[y * 64 + x] = UInt8(sum / 5)
+    }
+  }
+  check(
+    FrameMetricsMath.varianceOfLaplacian(blurred, width: 64, height: 64) < sharp,
+    "ranks a blurred image below a crisp one")
+
+  check(
+    FrameMetricsMath.varianceOfLaplacian([], width: 0, height: 0) == 0,
+    "returns zero for an empty image")
+}
+
+suite("FrameMetricsMath.meanAbsoluteDifference") {
+  let a = [UInt8](repeating: 100, count: 256)
+  check(FrameMetricsMath.meanAbsoluteDifference(a, a) == 0, "reports zero for identical frames")
+
+  let b = [UInt8](repeating: 200, count: 256)
+  let diff = FrameMetricsMath.meanAbsoluteDifference(a, b)
+  check(abs(diff - 100.0 / 255.0) < 0.001, "normalizes the difference to 0 to 1")
+
+  check(
+    FrameMetricsMath.meanAbsoluteDifference(a, [UInt8](repeating: 1, count: 4)) == 1.0,
+    "reports maximum motion when the frames are different sizes")
+
+  check(FrameMetricsMath.meanAbsoluteDifference([], []) == 0, "returns zero for empty frames")
+}
+
 print("")
 if failures == 0 {
   print("All Swift checks passed.")
