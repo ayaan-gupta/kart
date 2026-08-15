@@ -77,6 +77,12 @@ Two candidates, and the licence is the deciding factor between them:
   bench numbers were the range to tune `minSharpness` against. The two disagreed by factors from
   0.76x to under 0.01x depending on image content, so no correction factor could have existed.
   Any future edit that recomputes a metric here instead of calling `FrameMetrics` reopens that.
+- Same method is not the same number. Sharpness is measured over a fixed 256x256 centre crop of
+  native pixels, so the crop covers a narrower slice of a 4000px-wide photograph than of a
+  1080p camera frame, and the pixel-scale detail in a photo saved by a phone's camera app is not
+  the detail in a preview frame. The bench now gives you the right units and the right ordering.
+  For an absolute threshold, feed it frames captured at the resolution the camera will actually
+  deliver.
 - Apple's segmenter reports one confidence for the whole observation, so every instance carries
   the same score and ByteTrack's second-stage recovery never engages. A detector with real
   per-instance scores would enable it.
