@@ -65,3 +65,54 @@ describe('migrateHaulItems', () => {
     expect(migrateHaulItems([{ skuCode: '0411', qty: 0 }])).toEqual([]);
   });
 });
+
+describe('deleteHaul thumbnail ownership', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    jest.resetModules();
+  });
+
+  it("does not break a newer haul's picture when an older haul for the same product is deleted", async () => {
+    const { useScanline } = require('../store');
+    const { saveThumbnail } = require('../thumbnails');
+    const { File } = require('expo-file-system');
+
+    const line = {
+      key: '::bananas',
+      name: 'Bananas',
+      brand: null,
+      size: null,
+      category: 'Produce',
+      qty: 1,
+    };
+
+    // Haul A: bananas, bought first, with its own saved thumbnail.
+    useScanline.getState().startScan();
+    const uriA: string | null = await saveThumbnail(line.key, 'AAAA');
+    useScanline.getState().setBag([line], { [line.key]: uriA as string });
+    const haulIdA = useScanline.getState().finishHaul();
+
+    // Haul B: bananas again, on a later trip, with a second, distinct saved thumbnail. Before
+    // the fix this would have reused haul A's file for the same product key.
+    useScanline.getState().startScan();
+    const uriB: string | null = await saveThumbnail(line.key, 'BBBB');
+    useScanline.getState().setBag([line], { [line.key]: uriB as string });
+    const haulIdB = useScanline.getState().finishHaul();
+
+    expect(uriA).not.toBeNull();
+    expect(uriB).not.toBeNull();
+    expect(uriA).not.toBe(uriB);
+
+    await useScanline.getState().deleteHaul(haulIdA);
+
+    // Haul A is gone and its own picture is reclaimed.
+    expect(useScanline.getState().hauls.find((h: { id: string }) => h.id === haulIdA)).toBeUndefined();
+    expect(new File(uriA as string).exists).toBe(false);
+
+    // Haul B survives with its item still pointing at its own, still-existing file.
+    const survivor = useScanline.getState().hauls.find((h: { id: string }) => h.id === haulIdB);
+    expect(survivor).toBeDefined();
+    expect(survivor.items[0].thumbnailUri).toBe(uriB);
+    expect(new File(survivor.items[0].thumbnailUri).exists).toBe(true);
+  });
+});
