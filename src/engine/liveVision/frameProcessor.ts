@@ -6,9 +6,13 @@ import type { FrameScan } from './types';
 // eagerly at app boot, before the scan screen even mounts. If frame processors are ever
 // unavailable (for example a build that dropped the native plugin), this must degrade to null
 // here rather than throw and crash the whole app before the user ever reaches the scan screen.
+//
+// The string must match the registration name in ios/Kart/KartVisionFrameProcessorPlugin.m
+// exactly. It is resolved by name at runtime, so a mismatch is not a build error, it is a
+// plugin that silently fails to load on a device.
 let plugin: ReturnType<typeof VisionCameraProxy.initFrameProcessorPlugin> | null = null;
 try {
-  plugin = VisionCameraProxy.initFrameProcessorPlugin('scanGroceryItem', {});
+  plugin = VisionCameraProxy.initFrameProcessorPlugin('scanCart', {});
 } catch {
   plugin = null;
 }
@@ -27,7 +31,7 @@ export function scanCart(frame: Frame): FrameScan {
   'worklet';
   if (plugin == null) {
     throw new Error(
-      'Failed to load Frame Processor Plugin "scanGroceryItem". Did the native build include KartVisionFrameProcessorPlugin?',
+      'Failed to load Frame Processor Plugin "scanCart". Did the native build include KartVisionFrameProcessorPlugin?',
     );
   }
 

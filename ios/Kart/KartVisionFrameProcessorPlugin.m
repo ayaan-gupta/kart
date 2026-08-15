@@ -3,4 +3,4 @@
 #import <VisionCamera/FrameProcessorPluginRegistry.h>
 #import "Kart-Swift.h"
 
-VISION_EXPORT_SWIFT_FRAME_PROCESSOR(KartVisionFrameProcessorPlugin, scanGroceryItem)
+VISION_EXPORT_SWIFT_FRAME_PROCESSOR(KartVisionFrameProcessorPlugin, scanCart)

@@ -30,7 +30,7 @@ export function haulCount(items: HaulItem[]): number {
 
 function seedHauls(): Haul[] {
   const now = Date.now();
-  const make = (name: string, daysAgo: number, codes: Array<[string, number]>): Haul => ({
+  const make = (name: string, daysAgo: number, codes: [string, number][]): Haul => ({
     id: nextId('haul'),
     name,
     endedAt: now - daysAgo * DAY,
@@ -148,7 +148,7 @@ export const useScanline = create<ScanlineState>()(
       partialize: (state) => ({ hauls: state.hauls }),
       onRehydrateStorage: () => (state) => {
         // Runs whether rehydration found stored data or not (and even after a storage read
-        // failure, per zustand's persist middleware falling back to initial state) — this is
+        // failure, per zustand's persist middleware falling back to initial state). This is
         // the one signal that the async AsyncStorage read has settled, so hauls now reflects
         // reality instead of the synchronous seed data.
         state?.setHasHydrated(true);
