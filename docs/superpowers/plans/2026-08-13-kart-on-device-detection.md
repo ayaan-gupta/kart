@@ -3208,7 +3208,9 @@ describe('polygonToSvgPath', () => {
   });
 
   it('applies the offset for a cover-fit camera', () => {
-    expect(polygonToSvgPath([0, 0, 1, 1], 100, 100, 10, 20)).toBe('M10 20L110 120Z');
+    // Three points, not two: a two-point fixture here would be rejected by the "fewer than
+    // three points" guard asserted in the next test, so the two expectations would contradict.
+    expect(polygonToSvgPath([0, 0, 1, 0, 1, 1], 100, 100, 10, 20)).toBe('M10 20L110 20L110 120Z');
   });
 
   it('returns an empty string for a polygon with fewer than three points', () => {
