@@ -2,7 +2,6 @@ export interface Sku {
   id: string;
   code: string;
   name: string;
-  price: number;
   emoji: string;
   category: string;
 }

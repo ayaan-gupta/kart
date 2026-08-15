@@ -8,8 +8,7 @@ import { KartLogo } from '../components/KartLogo';
 import { PressableScale } from '../components/PressableScale';
 import { cardEdge, color, radius, shadow, space } from '../design/tokens';
 import { Caption, Headline, LargeTitle, Sub, Title } from '../design/type';
-import { formatPrice } from '../engine/catalog';
-import { haulCount, haulTotal, useScanline } from '../engine/store';
+import { haulCount, useScanline } from '../engine/store';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 
@@ -28,9 +27,8 @@ export default function HomeScreen() {
 
   const monthStats = useMemo(() => {
     const recent = hauls.filter((h) => Date.now() - h.endedAt < MONTH);
-    const spent = recent.reduce((sum, h) => sum + haulTotal(h.items), 0);
     const items = recent.reduce((sum, h) => sum + haulCount(h.items), 0);
-    return { spent, items, trips: recent.length };
+    return { items, trips: recent.length };
   }, [hauls]);
 
   const [latest, ...rest] = hauls;
@@ -57,7 +55,6 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.stats}>
-          <StatChip value={formatPrice(monthStats.spent)} label="this month" />
           <StatChip value={`${monthStats.trips}`} label={monthStats.trips === 1 ? 'cart' : 'carts'} />
           <StatChip value={`${monthStats.items}`} label="items" />
         </View>

@@ -20,9 +20,3 @@ export const Headline = make(type.headline, color.ink);
 export const Body = make(type.body, color.ink);
 export const Sub = make(type.sub, color.sub);
 export const Caption = make(type.caption, color.sub);
-
-/** Prices and counts, tabular so totals never jitter as they update. */
-export const Price = make(
-  { ...type.headline, fontVariant: ['tabular-nums'] },
-  color.ink,
-);

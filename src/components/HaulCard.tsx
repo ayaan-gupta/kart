@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { cardEdge, color, radius, shadow, space } from '../design/tokens';
-import { Caption, Headline, Price, Sub, Title } from '../design/type';
-import { formatPrice } from '../engine/catalog';
-import { haulCount, haulTotal } from '../engine/store';
+import { Caption, Headline, Sub, Title } from '../design/type';
+import { haulCount } from '../engine/store';
 import type { Haul } from '../engine/types';
 import { PressableScale } from './PressableScale';
 import { ProductImage } from './ProductImage';
@@ -21,14 +20,14 @@ export function haulDateLabel(ts: number): string {
 const COLLAGE_GAP = 8;
 
 function Collage({ haul, tile }: { haul: Haul; tile: number }) {
-  const codes = haul.items.map((it) => it.skuCode).slice(0, 4);
-  while (codes.length < 4 && haul.items.length > 0) {
-    codes.push(haul.items[codes.length % haul.items.length].skuCode);
+  const categories = haul.items.map((it) => it.category).slice(0, 4);
+  while (categories.length < 4 && haul.items.length > 0) {
+    categories.push(haul.items[categories.length % haul.items.length].category);
   }
   return (
     <View style={[collage.grid, { width: tile * 2 + COLLAGE_GAP, height: tile * 2 + COLLAGE_GAP }]}>
-      {codes.map((code, i) => (
-        <ProductImage key={`${code}${i}`} skuCode={code} size={tile} />
+      {categories.map((category, i) => (
+        <ProductImage key={`${category}${i}`} category={category} size={tile} />
       ))}
     </View>
   );
@@ -56,7 +55,6 @@ export function HeroHaulCard({ haul, onPress }: { haul: Haul; onPress: () => voi
             <View style={styles.countChip}>
               <Caption color={color.ink}>{count === 1 ? '1 item' : `${count} items`}</Caption>
             </View>
-            <Price style={styles.heroPrice}>{formatPrice(haulTotal(haul.items))}</Price>
           </View>
         </View>
       </View>
@@ -77,7 +75,6 @@ export function HaulCard({ haul, onPress }: { haul: Haul; onPress: () => void })
         </View>
         <View style={styles.cardMeta}>
           <Caption>{count === 1 ? '1 item' : `${count} items`}</Caption>
-          <Price style={styles.cardPrice}>{formatPrice(haulTotal(haul.items))}</Price>
         </View>
       </View>
     </PressableScale>
@@ -97,11 +94,9 @@ const styles = StyleSheet.create({
   },
   heroText: { flex: 1, gap: 4 },
   heroName: { fontSize: 23, lineHeight: 28 },
-  heroPrice: { fontSize: 19, lineHeight: 24, fontWeight: '700' },
   heroMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: space.m,
   },
   countChip: {
@@ -123,7 +118,5 @@ const styles = StyleSheet.create({
   cardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  cardPrice: { fontSize: 15, lineHeight: 20 },
 });
