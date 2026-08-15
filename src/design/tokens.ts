@@ -122,3 +122,16 @@ export const overlay = {
   closerFill: 'rgba(255, 179, 0, 0.20)',
   formingStroke: 'rgba(255, 255, 255, 0.45)',
 } as const;
+
+/**
+ * Legibility treatment for white text laid directly over the live camera feed, with nothing
+ * behind it guaranteeing contrast: a card here would cover the cart the user is being asked to
+ * look at, so the text has to carry its own contrast instead. Shared by anything that labels the
+ * feed itself, not just one component; spread this into a text style rather than restating the
+ * shadow values at each call site.
+ */
+export const feedTextShadow = {
+  textShadowColor: 'rgba(0, 0, 0, 0.55)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 6,
+} as const;

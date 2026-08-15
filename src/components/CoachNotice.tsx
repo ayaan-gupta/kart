@@ -1,8 +1,8 @@
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
-import { color, motion, space } from '../design/tokens';
+import { color, feedTextShadow, motion, space } from '../design/tokens';
 import { Sub } from '../design/type';
 
 export type CoachKind = 'none' | 'closer' | 'occluded';
@@ -36,12 +36,24 @@ export function coachKind(input: { amberPersists: boolean; occluded: boolean }):
 }
 
 export function CoachNotice({ kind, topInset }: { kind: CoachKind; topInset: number }) {
+  // `accessibilityRole`/`accessibilityLabel` only describe an element once a screen reader
+  // user already reaches it; they do not make VoiceOver or TalkBack speak up on their own. This
+  // notice exists to interrupt someone who is looking at their cart, not the screen, so the
+  // announcement itself has to be requested explicitly. Keyed on `kind`, not on the copy string,
+  // so it fires exactly once per state change, including closer-to-occluded, not on every
+  // re-render while a state persists.
+  useEffect(() => {
+    if (kind === 'none') return;
+    AccessibilityInfo.announceForAccessibility(COACH_COPY[kind]);
+  }, [kind]);
+
   if (kind === 'none') return null;
   return (
     <Animated.View
       entering={FadeInDown.springify().duration(motion.spring.duration + 100).dampingRatio(1)}
       exiting={FadeOutUp.duration(220)}
       style={[styles.notice, { top: topInset + space.s + 58 }]}
+      accessible
       accessibilityRole="alert"
       accessibilityLabel={COACH_COPY[kind]}
     >
@@ -67,10 +79,6 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontWeight: '600',
-    // The feed behind this is arbitrary, so the text carries its own contrast rather than
-    // sitting on a card that would cover the cart the user is being asked to look at.
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    ...feedTextShadow,
   },
 });
