@@ -797,6 +797,96 @@ let b64 = big.base64EncodedString()
 check("base64 decodes back", Data(base64Encoded: b64)?.count == big.count)
 check("base64 payload is uploadable", b64.count < 550_000, "\(b64.count) chars")
 
+// KartVisionFrameProcessorPlugin.swift itself cannot compile under plain swiftc: it imports
+// Vision and VisionCamera, neither available outside a full Xcode build. Its keyframe gate and
+// crop assembly were therefore pulled out into KartImageTools as encodeKeyframeIfGated and
+// trackThumbnails, which is what these two suites exercise. Without this, an implementation
+// that ignored wantKeyframe and encoded a JPEG on every frame, or one that returned every
+// requested crop unconditionally, would compile clean and pass every other check here.
+print("KartImageTools.shouldEncodeKeyframe / encodeKeyframeIfGated")
+// Reuses `card` (2000x1500, from the jpegData suite above): the whole point of the two checks
+// below is that the encoded keyframe is capped at keyframeMaxEdge, which a source already
+// smaller than the cap could never exercise ("never upscales" is proven separately above).
+check(
+  !KartImageTools.shouldEncodeKeyframe(
+    wantKeyframe: false, sharpness: 999, motion: 0, minSharpness: 10, maxMotion: 1),
+  "wantKeyframe: false holds the gate shut regardless of how sharp and still the frame is")
+check(
+  !KartImageTools.shouldEncodeKeyframe(
+    wantKeyframe: true, sharpness: 4, motion: 0, minSharpness: 10, maxMotion: 1),
+  "wantKeyframe: true still holds the gate shut on a blurry frame")
+check(
+  !KartImageTools.shouldEncodeKeyframe(
+    wantKeyframe: true, sharpness: 40, motion: 0.9, minSharpness: 10, maxMotion: 0.06),
+  "wantKeyframe: true still holds the gate shut on a moving frame")
+check(
+  KartImageTools.shouldEncodeKeyframe(
+    wantKeyframe: true, sharpness: 40, motion: 0.01, minSharpness: 10, maxMotion: 0.06),
+  "wantKeyframe: true opens the gate once sharpness and motion both agree")
+
+check(
+  KartImageTools.encodeKeyframeIfGated(
+    wantKeyframe: false, sharpness: 999, motion: 0, minSharpness: 10, maxMotion: 1,
+    orientation: .up, quality: 0.78, image: card) == nil,
+  "no keyframe bytes when wantKeyframe is false, even though the frame is sharp and still")
+
+if let keyframeData = KartImageTools.encodeKeyframeIfGated(
+  wantKeyframe: true, sharpness: 40, motion: 0.01, minSharpness: 10, maxMotion: 0.06,
+  orientation: .up, quality: 0.78, image: card)
+{
+  let (kw, kh) = jpegSize(keyframeData)
+  // Derived from the constant, not hardcoded, so a change to keyframeMaxEdge cannot leave this
+  // silently asserting the old value.
+  check(
+    "keyframe longest edge respects keyframeMaxEdge",
+    max(kw, kh) == KartImageTools.keyframeMaxEdge, "got \(kw)x\(kh)")
+} else {
+  check(false, "keyframe encodes real bytes once both gate halves agree")
+}
+
+// The image is @autoclosure specifically so a failed pixel-buffer bridge (nil) cannot slip
+// past the gate and crash on a force-unwrap; this proves the nil path is actually reachable.
+check(
+  KartImageTools.encodeKeyframeIfGated(
+    wantKeyframe: true, sharpness: 40, motion: 0.01, minSharpness: 10, maxMotion: 0.06,
+    orientation: .up, quality: 0.78, image: nil) == nil,
+  "a nil image (a pixel buffer the bridge could not read) still yields no keyframe, not a crash")
+
+print("KartImageTools.trackThumbnails")
+// Reuses `big` (card downscaled to keyframeMaxEdge, from the jpegData suite above) as the
+// "full frame" the plugin would have already encoded: a 0.25-of-frame box on it is well above
+// thumbnailMaxEdge, so the crop below only means anything if it actually gets capped down to it.
+let requestedBoxes: [(id: String, box: CGRect)] = [
+  ("t1", CGRect(x: 0, y: 0, width: 0.25, height: 0.25)),  // the red quadrant: a real crop
+  ("t2", CGRect(x: 3, y: 3, width: 0.2, height: 0.2)),  // fully outside the frame: cropJpeg nils
+  ("t3", CGRect(x: 0.5, y: 0.5, width: 0.2, height: 0.2)),  // blue region: a real crop
+]
+let thumbnails = KartImageTools.trackThumbnails(
+  from: big, boxes: requestedBoxes, padding: 0, quality: 0.8)
+
+check(
+  "one entry per requested id that produced a real crop, not per request",
+  thumbnails.count == 2, "got \(thumbnails.count)")
+check(
+  "ids are preserved and correctly paired",
+  Set(thumbnails.map { $0.id }) == Set(["t1", "t3"]), "got \(thumbnails.map { $0.id })")
+check(
+  !thumbnails.contains { $0.id == "t2" },
+  "a degenerate/off-frame box (t2) is omitted entirely, not returned as an empty or 1x1 entry")
+
+if let t1 = thumbnails.first(where: { $0.id == "t1" }) {
+  let (tw, th) = jpegSize(t1.jpeg)
+  check(
+    "thumbnail longest edge respects thumbnailMaxEdge, not keyframeMaxEdge",
+    max(tw, th) == KartImageTools.thumbnailMaxEdge, "got \(tw)x\(th)")
+  let t1px = pixel(t1.jpeg, atX: 0.5, y: 0.5)
+  check(
+    "t1 is actually cropped from the red quadrant it asked for",
+    t1px.r > 200 && t1px.b < 60, "got \(t1px)")
+} else {
+  check(false, "t1 was present so its dimensions and contents could be checked")
+}
+
 print("")
 if failures == 0 {
   print("All Swift checks passed.")

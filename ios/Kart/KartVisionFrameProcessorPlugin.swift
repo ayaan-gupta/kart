@@ -50,26 +50,28 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
   /// and still enough to be worth three hundred kilobytes and a model call. Splitting it this
   /// way means the thresholds still live in exactly one place, `config.ts`, and no frame is ever
   /// encoded only to be thrown away.
+  ///
+  /// Thin glue over `KartImageTools.encodeKeyframeIfGated`: the gate decision and the encode
+  /// live there, where they have Swift-test coverage, because this file cannot compile outside
+  /// a full Xcode build (it imports Vision and VisionCamera) and so has none of its own.
   private static func keyframe(
     pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
     measured: (sharpness: Double, motion: Double),
     arguments: [AnyHashable: Any]?
   ) -> String? {
-    guard (arguments?["wantKeyframe"] as? Bool) ?? false else { return nil }
-
-    let minSharpness = (arguments?["minSharpness"] as? Double) ?? .greatestFiniteMagnitude
-    let maxMotion = (arguments?["maxMotion"] as? Double) ?? 0
-    guard measured.sharpness >= minSharpness, measured.motion <= maxMotion else { return nil }
-
-    guard
-      let image = KartImageTools.cgImage(from: pixelBuffer),
-      let data = KartImageTools.jpegData(
-        from: image, orientation: orientation,
-        maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)
-    else { return nil }
-
-    return data.base64EncodedString()
+    let data = KartImageTools.encodeKeyframeIfGated(
+      wantKeyframe: (arguments?["wantKeyframe"] as? Bool) ?? false,
+      sharpness: measured.sharpness,
+      motion: measured.motion,
+      minSharpness: (arguments?["minSharpness"] as? Double) ?? .greatestFiniteMagnitude,
+      maxMotion: (arguments?["maxMotion"] as? Double) ?? 0,
+      orientation: orientation,
+      quality: 0.78,
+      // @autoclosure on the tools side: this pixel buffer -> CGImage bridge only actually runs
+      // once the gate has already passed.
+      image: KartImageTools.cgImage(from: pixelBuffer))
+    return data?.base64EncodedString()
   }
 
   /// Cuts out the tracks JavaScript asked for, from this frame.
@@ -77,6 +79,9 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
   /// The boxes come from the tracker's current estimate, so this crops where the item is *now*
   /// rather than where it was in the keyframe that named it. That is deliberate: the thumbnail
   /// stays fresh, and it costs nothing extra because the pixels are already here.
+  ///
+  /// Only the `[String: Any]` argument parsing lives here; the per-track cropping loop is
+  /// `KartImageTools.trackThumbnails`, for the same reason as `keyframe` above.
   private static func crops(
     pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
@@ -85,27 +90,25 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     guard let requested = arguments?["cropBoxes"] as? [[String: Any]], !requested.isEmpty else {
       return []
     }
+    let boxes: [(id: String, box: CGRect)] = requested.compactMap { entry in
+      guard
+        let id = entry["id"] as? String,
+        let x = entry["x"] as? Double, let y = entry["y"] as? Double,
+        let w = entry["w"] as? Double, let h = entry["h"] as? Double
+      else { return nil }
+      return (id: id, box: CGRect(x: x, y: y, width: w, height: h))
+    }
     guard
+      !boxes.isEmpty,
       let image = KartImageTools.cgImage(from: pixelBuffer),
       let full = KartImageTools.jpegData(
         from: image, orientation: orientation,
         maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.85)
     else { return [] }
 
-    var out: [[String: Any]] = []
-    for entry in requested {
-      guard
-        let id = entry["id"] as? String,
-        let x = entry["x"] as? Double, let y = entry["y"] as? Double,
-        let w = entry["w"] as? Double, let h = entry["h"] as? Double,
-        let jpeg = KartImageTools.cropJpeg(
-          full, box: CGRect(x: x, y: y, width: w, height: h),
-          padding: (arguments?["thumbnailPadding"] as? Double) ?? 0.08,
-          maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8)
-      else { continue }
-      out.append(["id": id, "jpeg": jpeg.base64EncodedString()])
-    }
-    return out
+    let padding = CGFloat((arguments?["thumbnailPadding"] as? Double) ?? 0.08)
+    return KartImageTools.trackThumbnails(from: full, boxes: boxes, padding: padding, quality: 0.8)
+      .map { ["id": $0.id, "jpeg": $0.jpeg.base64EncodedString()] }
   }
 
   public override func callback(

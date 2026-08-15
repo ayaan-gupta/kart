@@ -1814,6 +1814,21 @@ git commit -m "feat: add native JPEG encoding, upright transforms and cropping"
 ---
 ### Task 5: Keyframe capture and thumbnail crops
 
+> **Corrections applied during implementation (commit `6d59991`).** Three snippets below do not
+> compile or are incomplete as written. Read the committed source as the truth.
+>
+> 1. `toFrameScan` never populates `FrameScan.error`, which is a required field. Without it a
+>    detector that fails every frame looks identical to one that sees an empty cart.
+> 2. `measured: measured` does not compile: `FrameMetrics.measure` returns a 3-tuple
+>    `(sharpness, motion, error)` and the helper takes a 2-tuple. Repackage at the call site.
+> 3. `cropBoxes` does not typecheck against vision-camera's `ParameterType`, which is
+>    non-recursive and does not admit an array of objects. A narrow cast at the call site is
+>    the minimal fix.
+>
+> Also corrected in review: the brief's `if (plugin == null) return toFrameScan(null);` loses the
+> error signal on a failed native plugin load, which is the very failure Step 5 warns about.
+
+
 Gets pixels off the device. Two additions to the existing plugin, no new native module and no new bridge.
 
 **Keyframes.** The gate is split across the boundary along the line of what each side can actually see. JavaScript knows the slow-moving conditions (are there tracks, has enough time passed, has the scene changed) and asks for a keyframe by setting `wantKeyframe`. Native knows the fast-moving ones (is *this specific frame* sharp and still) because it already computes both in `FrameMetrics`. Only a frame that satisfies both is encoded, so no encode is ever wasted, and `config.ts` stays the one place the thresholds live.

@@ -177,4 +177,66 @@ public enum KartImageTools {
     guard let cropped = image.cropping(to: pixels) else { return nil }
     return jpegData(from: cropped, orientation: .up, maxEdge: maxEdge, quality: quality)
   }
+
+  // MARK: - Frame processor gating
+
+  /// Whether a frame is worth encoding as a keyframe: `wantKeyframe` is JavaScript's slow-moving
+  /// half of the gate, and the sharpness/motion comparison is native's fast-moving half.
+  ///
+  /// Pulled out as a standalone, image-free function so the boolean decision itself is under
+  /// test. `KartVisionFrameProcessorPlugin.swift` cannot compile under plain `swiftc` (it
+  /// imports Vision and VisionCamera, neither available outside a full Xcode build), so without
+  /// this extraction the gate has no coverage at all: an implementation that ignored
+  /// `wantKeyframe` and encoded every frame would compile clean and pass every check.
+  public static func shouldEncodeKeyframe(
+    wantKeyframe: Bool, sharpness: Double, motion: Double, minSharpness: Double, maxMotion: Double
+  ) -> Bool {
+    wantKeyframe && sharpness >= minSharpness && motion <= maxMotion
+  }
+
+  /// Encodes a keyframe, but only when `shouldEncodeKeyframe` agrees.
+  ///
+  /// `image` is `@autoclosure` so the CVPixelBuffer-to-CGImage bridge the caller supplies is
+  /// never evaluated unless the gate actually passes: on the large majority of frames, where
+  /// `wantKeyframe` is false, this must cost nothing beyond the boolean check, exactly as it did
+  /// before this logic was pulled out of the plugin.
+  public static func encodeKeyframeIfGated(
+    wantKeyframe: Bool,
+    sharpness: Double,
+    motion: Double,
+    minSharpness: Double,
+    maxMotion: Double,
+    orientation: CGImagePropertyOrientation,
+    quality: Double,
+    image: @autoclosure () -> CGImage?
+  ) -> Data? {
+    guard
+      shouldEncodeKeyframe(
+        wantKeyframe: wantKeyframe, sharpness: sharpness, motion: motion,
+        minSharpness: minSharpness, maxMotion: maxMotion),
+      let cgImage = image()
+    else { return nil }
+    return jpegData(from: cgImage, orientation: orientation, maxEdge: keyframeMaxEdge, quality: quality)
+  }
+
+  /// Cuts one thumbnail per requested track out of an already-encoded full-frame JPEG.
+  ///
+  /// A box that `cropJpeg` rejects (degenerate, fully outside the frame, or a sub-pixel sliver)
+  /// is silently omitted rather than represented some other way, so the id list coming out can
+  /// be shorter than the one going in. Always encodes at `thumbnailMaxEdge`: bag thumbnails have
+  /// exactly one correct size, so that is not a caller-supplied parameter here the way it is on
+  /// `cropJpeg` itself.
+  public static func trackThumbnails(
+    from full: Data, boxes: [(id: String, box: CGRect)], padding: CGFloat, quality: Double
+  ) -> [(id: String, jpeg: Data)] {
+    var out: [(id: String, jpeg: Data)] = []
+    for entry in boxes {
+      guard
+        let jpeg = cropJpeg(
+          full, box: entry.box, padding: padding, maxEdge: thumbnailMaxEdge, quality: quality)
+      else { continue }
+      out.append((id: entry.id, jpeg: jpeg))
+    }
+    return out
+  }
 }

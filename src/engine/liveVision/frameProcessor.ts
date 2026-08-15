@@ -60,9 +60,16 @@ export function toFrameScan(raw: unknown): FrameScan {
   };
 }
 
+// A frame processor plugin that failed to register and a detector that ran cleanly and saw an
+// empty cart both produce zero instances. FrameScan.error exists to keep those apart, and on a
+// device there is no report to check afterwards, so this is the one case scanCart must never
+// let fall through to a silent, error-less empty scan.
+const PLUGIN_LOAD_ERROR =
+  'Failed to load Frame Processor Plugin "scanCart". Did the native build include KartVisionFrameProcessorPlugin?';
+
 export function scanCart(frame: Frame, request: ScanRequest): FrameScan {
   'worklet';
-  if (plugin == null) return toFrameScan(null);
+  if (plugin == null) return toFrameScan({ error: PLUGIN_LOAD_ERROR });
 
   const args = {
     barcodes: ENABLE_BARCODE_FAST_PATH,

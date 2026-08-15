@@ -10,6 +10,11 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 // simulator backing the test run). frameProcessor.ts imports it for `VisionCameraProxy` and the
 // `Frame` type, so any test that touches that module transitively needs this stub. Only the
 // surface frameProcessor.ts actually calls is provided.
+//
+// This file runs directly under Jest, whose `jest` global this project's eslint config does not
+// declare (the identical, pre-existing error on line 6's async-storage mock above is left as-is;
+// not this task's to fix).
+// eslint-disable-next-line no-undef
 jest.mock('react-native-vision-camera', () => ({
   VisionCameraProxy: { initFrameProcessorPlugin: () => null },
 }));
