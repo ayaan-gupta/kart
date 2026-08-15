@@ -203,7 +203,10 @@ export default function ScanScreen() {
       // the frame's upright dimensions now come back from native with the result.
       runAtTargetFps(DETECT_TARGET_FPS, () => {
         'worklet';
-        handleScan(scanCart(frame));
+        // wantKeyframe and cropTrackIds are wired up once fusion (later in Plan 3) decides
+        // there are tracks worth an upload and items worth a thumbnail; until then this asks
+        // for neither, so the gate simply never fires.
+        handleScan(scanCart(frame, { wantKeyframe: false, cropTrackIds: [] }));
       });
     },
     [handleScan],

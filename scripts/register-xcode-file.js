@@ -16,6 +16,7 @@ const FILES = [
   'MaskContour.swift',
   'FrameMetrics.swift',
   'AppleInstanceMaskDetector.swift',
+  'KartImageTools.swift',
 ];
 
 for (const file of FILES) {

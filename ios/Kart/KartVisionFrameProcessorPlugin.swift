@@ -43,6 +43,71 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     super.init(proxy: proxy, options: options)
   }
 
+  /// Encodes the frame for upload, but only when both halves of the keyframe gate agree.
+  ///
+  /// JavaScript owns the slow conditions (are there tracks, has enough time passed) and signals
+  /// them through `wantKeyframe`. This owns the fast one: whether this particular frame is sharp
+  /// and still enough to be worth three hundred kilobytes and a model call. Splitting it this
+  /// way means the thresholds still live in exactly one place, `config.ts`, and no frame is ever
+  /// encoded only to be thrown away.
+  private static func keyframe(
+    pixelBuffer: CVPixelBuffer,
+    orientation: CGImagePropertyOrientation,
+    measured: (sharpness: Double, motion: Double),
+    arguments: [AnyHashable: Any]?
+  ) -> String? {
+    guard (arguments?["wantKeyframe"] as? Bool) ?? false else { return nil }
+
+    let minSharpness = (arguments?["minSharpness"] as? Double) ?? .greatestFiniteMagnitude
+    let maxMotion = (arguments?["maxMotion"] as? Double) ?? 0
+    guard measured.sharpness >= minSharpness, measured.motion <= maxMotion else { return nil }
+
+    guard
+      let image = KartImageTools.cgImage(from: pixelBuffer),
+      let data = KartImageTools.jpegData(
+        from: image, orientation: orientation,
+        maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)
+    else { return nil }
+
+    return data.base64EncodedString()
+  }
+
+  /// Cuts out the tracks JavaScript asked for, from this frame.
+  ///
+  /// The boxes come from the tracker's current estimate, so this crops where the item is *now*
+  /// rather than where it was in the keyframe that named it. That is deliberate: the thumbnail
+  /// stays fresh, and it costs nothing extra because the pixels are already here.
+  private static func crops(
+    pixelBuffer: CVPixelBuffer,
+    orientation: CGImagePropertyOrientation,
+    arguments: [AnyHashable: Any]?
+  ) -> [[String: Any]] {
+    guard let requested = arguments?["cropBoxes"] as? [[String: Any]], !requested.isEmpty else {
+      return []
+    }
+    guard
+      let image = KartImageTools.cgImage(from: pixelBuffer),
+      let full = KartImageTools.jpegData(
+        from: image, orientation: orientation,
+        maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.85)
+    else { return [] }
+
+    var out: [[String: Any]] = []
+    for entry in requested {
+      guard
+        let id = entry["id"] as? String,
+        let x = entry["x"] as? Double, let y = entry["y"] as? Double,
+        let w = entry["w"] as? Double, let h = entry["h"] as? Double,
+        let jpeg = KartImageTools.cropJpeg(
+          full, box: CGRect(x: x, y: y, width: w, height: h),
+          padding: (arguments?["thumbnailPadding"] as? Double) ?? 0.08,
+          maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8)
+      else { continue }
+      out.append(["id": id, "jpeg": jpeg.base64EncodedString()])
+    }
+    return out
+  }
+
   public override func callback(
     _ frame: Frame, withArguments arguments: [AnyHashable: Any]?
   ) -> Any? {
@@ -82,6 +147,15 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
       barcodes = Self.readBarcodes(pixelBuffer: pixelBuffer, orientation: orientation)
     }
 
+    // `metrics.measure` returns a three-element tuple with its own `error` label; the keyframe
+    // gate only needs the two numeric signals, so they are repackaged into the narrower shape
+    // rather than passed through directly (the tuple types are not otherwise interchangeable).
+    let keyframeBase64 = Self.keyframe(
+      pixelBuffer: pixelBuffer, orientation: orientation,
+      measured: (sharpness: measured.sharpness, motion: measured.motion), arguments: arguments)
+    let cropped = Self.crops(
+      pixelBuffer: pixelBuffer, orientation: orientation, arguments: arguments)
+
     return [
       "instances": instances.map { instance in
         [
@@ -101,6 +175,10 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
       // frameProcessor.ts normalizes that to null. Plain data either way: no Vision type, no
       // NSError, just a string a maintainer can read out of a device log.
       "error": error ?? NSNull(),
+      // NSNull rather than an omitted key: the bridge turns a Swift nil in a dictionary literal
+      // into a missing key, and the binder distinguishes "no keyframe" from "no such field".
+      "keyframe": keyframeBase64 ?? NSNull(),
+      "crops": cropped,
     ]
   }
 
@@ -108,6 +186,7 @@ public class KartVisionFrameProcessorPlugin: FrameProcessorPlugin {
     [
       "instances": [], "barcodes": [], "sharpness": 0.0, "motion": 1.0,
       "width": width, "height": height, "error": error ?? NSNull(),
+      "keyframe": NSNull(), "crops": [],
     ]
   }
 

@@ -99,6 +99,18 @@ export interface BarcodeHit {
   box: Box;
 }
 
+export interface ThumbnailCrop {
+  /** The track id this picture belongs to, echoed back from the request. */
+  id: string;
+  /** Base64 JPEG, no data URL prefix. */
+  jpeg: string;
+}
+
+export interface ScanRequest {
+  wantKeyframe: boolean;
+  cropTrackIds: { id: string; box: Box }[];
+}
+
 /** Exactly what the native frame processor returns for one frame. */
 export interface FrameScan {
   instances: DetectedInstance[];
@@ -114,6 +126,10 @@ export interface FrameScan {
    * throws every frame is otherwise indistinguishable from one that works and sees nothing.
    */
   error: string | null;
+  /** Base64 JPEG of an upload-worthy frame, or null. Non-null only when both halves of the
+   * keyframe gate agreed, so its presence is itself the signal to upload. */
+  keyframe: string | null;
+  crops: ThumbnailCrop[];
 }
 
 export interface PipelineState {

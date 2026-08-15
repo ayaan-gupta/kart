@@ -56,3 +56,21 @@ export const MAX_IDENTIFY_CALLS_PER_SESSION = 6;
  * component importing the async session machinery.
  */
 export const GREEN_CONFIDENCE = 0.55;
+
+/**
+ * Variance-of-Laplacian floor for a frame worth uploading. Below this the image is motion
+ * blurred or out of focus, and a blurry frame is both the most expensive kind to get wrong and
+ * the most common. Tuned against `npm run bench:detector` output once real cart photos exist;
+ * until then this is a starting value, not a measured one.
+ */
+export const MIN_KEYFRAME_SHARPNESS = 12;
+
+/**
+ * Mean absolute inter-frame difference ceiling. Above this the camera is still moving and the
+ * frame will be smeared. FrameMetrics reports 1.0 (maximum motion) for the first frame of a
+ * session and whenever the buffer size changes, so a session never uploads its own first frame.
+ */
+export const MAX_KEYFRAME_MOTION = 0.06;
+
+/** Padding around a thumbnail crop, as a fraction of the box, so items are not cut flush. */
+export const THUMBNAIL_PADDING = 0.08;

@@ -16,6 +16,8 @@ function scan(overrides: Partial<FrameScan> = {}): FrameScan {
     width: 1080,
     height: 1920,
     error: null,
+    keyframe: null,
+    crops: [],
     ...overrides,
   };
 }
