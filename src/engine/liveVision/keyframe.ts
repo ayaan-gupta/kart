@@ -3,8 +3,13 @@ import type { KeyframeConfig, KeyframeReason, KeyframeSignals, KeyframeState } f
 /**
  * Thresholds are starting points, not measurements. `minSharpness` in particular is in the
  * arbitrary units of variance-of-Laplacian over an 8-bit luma plane and depends on the camera
- * and the downsample factor, so it has to be re-tuned against the numbers a real device
- * reports before this gate can be trusted. Task 9's harness prints the values it sees.
+ * and on the window the metric is measured over, so it has to be re-tuned against the numbers a
+ * real device reports before this gate can be trusted. `scripts/detector-bench` prints the
+ * values it sees, and it computes them by calling the same `FrameMetrics` the device does, so
+ * its `sharp` column is directly comparable to what the phone will report.
+ *
+ * `maxMotion` is the one threshold the bench cannot tune from a folder of unrelated photos,
+ * because motion is a comparison between consecutive frames. See docs/detector-measurement.md.
  */
 const DEFAULT_CONFIG: KeyframeConfig = {
   minSharpness: 100,

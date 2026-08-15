@@ -5,6 +5,7 @@
 // sync with a project file that Expo regenerates.
 
 import CoreGraphics
+import CoreVideo
 import Foundation
 
 var failures = 0
@@ -284,6 +285,156 @@ suite("FrameMetricsMath.meanAbsoluteDifference") {
     "reports maximum motion when the frames are different sizes")
 
   check(FrameMetricsMath.meanAbsoluteDifference([], []) == 0, "returns zero for empty frames")
+}
+
+/// A deterministic photo-like luma image: smooth structure, a hard-edged box, and fine
+/// per-pixel texture. The texture matters. Variance-of-Laplacian measures energy at the pixel
+/// scale, so an image made only of smooth gradients cannot tell a working focus measure from a
+/// broken one.
+func photoLike(width: Int, height: Int) -> [UInt8] {
+  var out = [UInt8](repeating: 0, count: width * height)
+  var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
+  for y in 0..<height {
+    for x in 0..<width {
+      seed ^= seed << 13
+      seed ^= seed >> 7
+      seed ^= seed << 17
+      let noise = Double(seed % 1000) / 1000.0
+      var v = 90.0 + 60.0 * sin(Double(x) / Double(width) * 7.0)
+        * cos(Double(y) / Double(height) * 5.0)
+      if x > width / 4 && x < width * 3 / 4 && y > height / 4 && y < height * 3 / 4 { v += 60 }
+      v += (noise - 0.5) * 55.0
+      out[y * width + x] = UInt8(min(255, max(0, v)))
+    }
+  }
+  return out
+}
+
+/// Separable box blur, the stand-in for defocus.
+func boxBlur(_ src: [UInt8], width: Int, height: Int, radius: Int) -> [UInt8] {
+  guard radius > 0 else { return src }
+  var tmp = [Double](repeating: 0, count: width * height)
+  var out = [UInt8](repeating: 0, count: width * height)
+  for y in 0..<height {
+    for x in 0..<width {
+      var sum = 0.0
+      for dx in -radius...radius { sum += Double(src[y * width + min(width - 1, max(0, x + dx))]) }
+      tmp[y * width + x] = sum / Double(radius * 2 + 1)
+    }
+  }
+  for y in 0..<height {
+    for x in 0..<width {
+      var sum = 0.0
+      for dy in -radius...radius { sum += tmp[min(height - 1, max(0, y + dy)) * width + x] }
+      out[y * width + x] = UInt8(min(255, max(0, sum / Double(radius * 2 + 1))))
+    }
+  }
+  return out
+}
+
+func makePixelBuffer(_ luma: [UInt8], width: Int, height: Int, format: OSType) -> CVPixelBuffer? {
+  var buffer: CVPixelBuffer?
+  guard
+    CVPixelBufferCreate(kCFAllocatorDefault, width, height, format, nil, &buffer)
+      == kCVReturnSuccess,
+    let out = buffer
+  else { return nil }
+
+  CVPixelBufferLockBaseAddress(out, [])
+  defer { CVPixelBufferUnlockBaseAddress(out, []) }
+  guard let base = CVPixelBufferGetBaseAddress(out)?.assumingMemoryBound(to: UInt8.self) else {
+    return nil
+  }
+  let stride = CVPixelBufferGetBytesPerRow(out)
+  // Only meaningful for the single-component case; a BGRA buffer is filled with the same bytes
+  // purely so the format guard has something non-empty to reject.
+  let bytesPerPixel = format == kCVPixelFormatType_OneComponent8 ? 1 : 4
+  for y in 0..<height {
+    for x in 0..<width {
+      let value = luma[y * width + x]
+      for b in 0..<bytesPerPixel { base[y * stride + x * bytesPerPixel + b] = value }
+    }
+  }
+  return out
+}
+
+suite("FrameMetrics.measure through a real pixel buffer") {
+  // The end-to-end check that was missing. Every other sharpness check calls FrameMetricsMath
+  // directly on a small array, which never exercises how the frame is sampled. That is exactly
+  // how a sampling step that destroyed the metric before it was measured survived review: the
+  // maths was right and nothing tested the path.
+  //
+  // 1920x1080 specifically, because the defect scaled with the decimation factor and so does
+  // any test for it. On these same images at 640x480 the old code decimated by 6 and still
+  // separated sharp from blurred by 68x with the blurred frame at 79.6, under the threshold, so
+  // a smaller test image would have passed over the bug exactly the way the existing checks
+  // did. At 1080p the factor is 20, and the old path scored the 8px-blurred frame at 229.7,
+  // over twice the threshold it was supposed to fail, with separation down to 22x.
+  let width = 1920
+  let height = 1080
+  let sharpImage = photoLike(width: width, height: height)
+  let blurredImage = boxBlur(sharpImage, width: width, height: height, radius: 4)
+
+  guard
+    let sharpBuffer = makePixelBuffer(
+      sharpImage, width: width, height: height, format: kCVPixelFormatType_OneComponent8),
+    let blurredBuffer = makePixelBuffer(
+      blurredImage, width: width, height: height, format: kCVPixelFormatType_OneComponent8)
+  else {
+    check(false, "could not create the test pixel buffers")
+    return
+  }
+
+  let sharp = FrameMetrics().measure(pixelBuffer: sharpBuffer).sharpness
+  let blurred = FrameMetrics().measure(pixelBuffer: blurredBuffer).sharpness
+
+  check(
+    sharp > 1000,
+    String(format: "scores a sharp frame far above minSharpness of 100 (got %.1f)", sharp))
+  check(
+    blurred < 100,
+    String(format: "scores an 8px-blurred frame below minSharpness of 100 (got %.1f)", blurred))
+  // 200x, not 20x. The old decimated path still managed 22x on these images, so a loose margin
+  // would let the whole defect back in unnoticed. Native-resolution pixels separate these two
+  // by three orders of magnitude, and anything close to 20x means the metric is being measured
+  // on something other than the pixels focus actually acts on.
+  check(
+    sharp > blurred * 200,
+    String(format: "separates sharp from blurred by a wide margin (%.0fx)", sharp / max(blurred, 0.0001)))
+
+  // Sharpness comes off a centre crop, so a source smaller than the window must be measured
+  // whole rather than fall off an edge or report nothing.
+  if let small = makePixelBuffer(
+    photoLike(width: 64, height: 48), width: 64, height: 48,
+    format: kCVPixelFormatType_OneComponent8)
+  {
+    let value = FrameMetrics().measure(pixelBuffer: small).sharpness
+    check(value > 100, String(format: "measures a source smaller than the crop window (%.1f)", value))
+  } else {
+    check(false, "could not create a sub-window pixel buffer")
+  }
+
+  // Motion is still the whole-frame comparison, and it still needs a previous frame.
+  let stream = FrameMetrics()
+  let first = stream.measure(pixelBuffer: sharpBuffer)
+  check(first.motion == 1.0, "reports maximum motion for the first frame of a session")
+  let second = stream.measure(pixelBuffer: sharpBuffer)
+  check(second.motion == 0.0, "reports zero motion when the frame does not change")
+  let third = stream.measure(pixelBuffer: blurredBuffer)
+  check(third.motion > 0.0, "reports non-zero motion when the frame changes")
+
+  // An unknown format is refused rather than read as luma. A BGRA buffer read as though its
+  // bytes were pixels would sample a quarter of the image with interleaved channels and report
+  // a number that looks like a measurement.
+  if let bgra = makePixelBuffer(
+    sharpImage, width: width, height: height, format: kCVPixelFormatType_32BGRA)
+  {
+    let measured = FrameMetrics().measure(pixelBuffer: bgra)
+    check(measured.sharpness == 0, "refuses an unsupported pixel format instead of guessing")
+    check(measured.motion == 1.0, "holds the gate shut on an unsupported pixel format")
+  } else {
+    check(false, "could not create a BGRA pixel buffer")
+  }
 }
 
 print("")

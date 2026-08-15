@@ -21,7 +21,26 @@ outlines actually landed. Then compare against the ground truth in
 | Annotated overlay | Whether outlines are on items or on shadows, cart mesh and floor |
 | `detectMs` | Whether it can run at three detections per second on a phone |
 | `points` per instance | Whether outlines are usable shapes or noise |
-| `sharpness` | The real range for tuning `minSharpness` in `keyframe.ts` |
+| `sharp` | The real range for tuning `minSharpness` in `keyframe.ts` |
+| `motion` | Only meaningful for consecutive video frames. See below |
+| `score` | Whether the detector clears ByteTrack's `highThreshold` at all |
+
+`score` deserves a paragraph, because it is the difference between the app working and the app
+detecting nothing whatsoever. ByteTrack seeds a track only from a detection scoring at or above
+`highThreshold` (0.5), and discards anything under `lowThreshold` (0.1). A detector that reports
+one flat confidence for every instance is therefore an all-or-nothing switch: if that number
+lands under 0.5 no track is ever created, on every device, forever, and the symptom is an app
+that simply never sees anything. Read this column on the first run. The `KartDetector` protocol
+requires a detector with no meaningful per-instance confidence to report at or above the
+tracker's high threshold, and `AppleInstanceMaskDetector` clamps to satisfy it, so this column
+shows the clamped value the tracker actually receives.
+
+`motion` is a comparison against the previous image in the folder, because that is what the
+metric is. There is no such thing as the motion of a single still. Run over a folder of
+unrelated cart photos the number is noise, and over photos of differing sizes it pins to 1.0 by
+design. It becomes a real measurement only when the input is consecutive frames pulled from a
+video of an actual scan, which is the one way to tune `maxMotion` that this branch offers. The
+first image in any run reports 1.0, because there is nothing before it.
 
 ## Decide
 
@@ -51,6 +70,13 @@ Two candidates, and the licence is the deciding factor between them:
   it is the normalization in `MaskContour.instances`.
 - Timings on a Mac are not phone timings. Treat `detectMs` as a ranking between detectors, not
   as a budget.
+- The bench computes `sharp` and `motion` by holding a `FrameMetrics` and calling `measure` once
+  per image, which is exactly what the frame processor plugin does per frame. That is on purpose
+  and worth keeping. An earlier version measured sharpness over the full-resolution grayscale
+  image while the device measured it over a decimated sample, and this table told the reader the
+  bench numbers were the range to tune `minSharpness` against. The two disagreed by factors from
+  0.76x to under 0.01x depending on image content, so no correction factor could have existed.
+  Any future edit that recomputes a metric here instead of calling `FrameMetrics` reopens that.
 - Apple's segmenter reports one confidence for the whole observation, so every instance carries
   the same score and ByteTrack's second-stage recovery never engages. A detector with real
   per-instance scores would enable it.

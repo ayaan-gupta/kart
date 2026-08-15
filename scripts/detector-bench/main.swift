@@ -76,22 +76,16 @@ func makeBuffer(_ image: CGImage, gray: Bool) -> CVPixelBuffer? {
   return out
 }
 
-func grayBytes(_ buffer: CVPixelBuffer) -> (luma: [UInt8], width: Int, height: Int) {
-  CVPixelBufferLockBaseAddress(buffer, .readOnly)
-  defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-  let width = CVPixelBufferGetWidth(buffer)
-  let height = CVPixelBufferGetHeight(buffer)
-  let stride = CVPixelBufferGetBytesPerRow(buffer)
-  guard let base = CVPixelBufferGetBaseAddress(buffer)?.assumingMemoryBound(to: UInt8.self) else {
-    return ([], 0, 0)
-  }
-  var out = [UInt8](repeating: 0, count: width * height)
-  for y in 0..<height {
-    let row = base.advanced(by: y * stride)
-    for x in 0..<width { out[y * width + x] = row[x] }
-  }
-  return (out, width, height)
-}
+/// The same object the frame processor plugin holds, driven the same way: one instance across
+/// the whole run, `measure` called once per image.
+///
+/// This is deliberately not a reimplementation of the metric. An earlier version of this bench
+/// computed sharpness over the full-resolution grayscale image while the device computed it
+/// over a decimated sample, and the doc told the reader those bench numbers were the range to
+/// tune `minSharpness` against. They disagreed by factors from 0.76x to under 0.01x depending
+/// on image content, so no correction factor existed and the guidance was simply wrong. Sharing
+/// the object removes the possibility rather than fixing the arithmetic.
+let metrics = FrameMetrics()
 
 // MARK: - Annotation
 
@@ -207,8 +201,10 @@ func padLeft(_ text: String, _ width: Int) -> String {
 
 var rows: [[String: Any]] = []
 print("")
-print(pad("image", 32) + padLeft("items", 7) + padLeft("ms", 9) + padLeft("sharp", 9) + padLeft("pts/item", 10))
-print(String(repeating: "-", count: 67))
+print(
+  pad("image", 32) + padLeft("items", 7) + padLeft("ms", 9) + padLeft("sharp", 9)
+    + padLeft("motion", 9) + padLeft("score", 8) + padLeft("pts/item", 10))
+print(String(repeating: "-", count: 84))
 
 for file in files {
   guard let image = loadImage(file), let colour = makeBuffer(image, gray: false) else {
@@ -230,11 +226,18 @@ for file in files {
   }
   let elapsedMs = Date().timeIntervalSince(started) * 1000
 
+  // `motion` is a comparison against the previous image in the folder, because that is what
+  // the metric is: it needs two frames and there is no such thing as the motion of one still.
+  // For a folder of unrelated cart photos the number is meaningless, and for differently sized
+  // photos it pins to 1.0 by design. It is only a real measurement when the input is
+  // consecutive frames pulled from a video of an actual scan, which is the one way this branch
+  // offers to tune `maxMotion` at all. See docs/detector-measurement.md.
   var sharpness = 0.0
+  var motion = 1.0
   if let gray = makeBuffer(image, gray: true) {
-    let sample = grayBytes(gray)
-    sharpness = FrameMetricsMath.varianceOfLaplacian(
-      sample.luma, width: sample.width, height: sample.height)
+    let measured = metrics.measure(pixelBuffer: gray)
+    sharpness = measured.sharpness
+    motion = measured.motion
   }
 
   annotate(image, instances: instances, to: outputURL.appendingPathComponent(
@@ -243,11 +246,19 @@ for file in files {
   let averagePoints =
     instances.isEmpty ? 0 : instances.map { $0.polygon.count / 2 }.reduce(0, +) / instances.count
 
+  // Every instance from the Apple detector carries the same score. Printing it is how the first
+  // real run surfaces a value that ByteTrack silently depends on: below its high threshold of
+  // 0.5 no track is ever seeded and the app detects nothing at all, on every device.
+  let scoreColumn =
+    instances.isEmpty ? "-" : String(format: "%.2f", Double(instances.map(\.score).max() ?? 0))
+
   let itemsColumn = detectionError != nil ? "ERR" : "\(instances.count)"
   print(
     pad(file.lastPathComponent, 32) + padLeft(itemsColumn, 7)
       + padLeft(String(format: "%.1f", elapsedMs), 9)
-      + padLeft(String(format: "%.0f", sharpness), 9) + padLeft("\(averagePoints)", 10))
+      + padLeft(String(format: "%.0f", sharpness), 9)
+      + padLeft(String(format: "%.3f", motion), 9)
+      + padLeft(scoreColumn, 8) + padLeft("\(averagePoints)", 10))
 
   var row: [String: Any] = [
     "image": file.lastPathComponent,
@@ -258,6 +269,7 @@ for file in files {
     "instanceCount": instances.count,
     "detectMs": elapsedMs,
     "sharpness": sharpness,
+    "motion": motion,
     "instances": instances.map { instance in
       [
         "areaFraction": instance.box.width * instance.box.height,
@@ -280,7 +292,7 @@ let counts = rows.compactMap { row -> Int? in
   guard (row["succeeded"] as? Bool) == true else { return nil }
   return row["instanceCount"] as? Int
 }
-print(String(repeating: "-", count: 67))
+print(String(repeating: "-", count: 84))
 if !counts.isEmpty {
   // Double, not integer division. An integer mean reads 0 for any run averaging under one
   // item per image, which is exactly the failing case this table exists to show.
