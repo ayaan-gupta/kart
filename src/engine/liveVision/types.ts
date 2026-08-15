@@ -113,3 +113,18 @@ export interface PipelineState {
   tracker: TrackerState;
   keyframe: KeyframeState;
 }
+
+export type IdentitySource = 'vlm' | 'barcode';
+
+/** What one physical item is. Attached to a track, and outliving it so the bag keeps the item. */
+export interface Identity {
+  /** Stable across calls and across name phrasings. See `productKey` in `fusion.ts`. */
+  key: string;
+  name: string;
+  brand: string | null;
+  size: string | null;
+  category: string;
+  confidence: number;
+  needsCloserLook: boolean;
+  source: IdentitySource;
+}
