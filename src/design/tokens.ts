@@ -106,3 +106,19 @@ export const cardEdge = {
   borderWidth: 1,
   borderColor: 'rgba(20, 21, 24, 0.045)',
 } as const;
+
+/**
+ * ItemHighlights' camera overlay tints, for the outline traced around a live-tracked item.
+ *
+ * Deliberately not `color.teal`/`color.amber`: those are tuned to sit on the app's own
+ * off-white chrome. This overlay sits directly on an uncontrolled live camera feed instead, so
+ * it borrows iOS's own saturated system green and amber, which stay legible against whatever
+ * happens to be behind them, rather than the app's calmer confirmation/hint colors.
+ */
+export const overlay = {
+  countedStroke: 'rgba(52, 199, 89, 0.95)',
+  countedFill: 'rgba(52, 199, 89, 0.22)',
+  closerStroke: 'rgba(255, 179, 0, 0.95)',
+  closerFill: 'rgba(255, 179, 0, 0.20)',
+  formingStroke: 'rgba(255, 255, 255, 0.45)',
+} as const;

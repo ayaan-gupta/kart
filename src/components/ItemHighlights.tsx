@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
+import { overlay } from '../design/tokens';
 import { polygonCentroid, polygonToSvgPath } from '../engine/liveVision/geometry';
 import { GREEN_CONFIDENCE } from '../engine/liveVision/config';
 import type { Identity, Track } from '../engine/liveVision/types';
@@ -17,11 +18,11 @@ import type { Identity, Track } from '../engine/liveVision/types';
  * frame budget for nothing.
  */
 
-const COUNTED_STROKE = 'rgba(52, 199, 89, 0.95)';
-const COUNTED_FILL = 'rgba(52, 199, 89, 0.22)';
-const CLOSER_STROKE = 'rgba(255, 179, 0, 0.95)';
-const CLOSER_FILL = 'rgba(255, 179, 0, 0.20)';
-const FORMING_STROKE = 'rgba(255, 255, 255, 0.45)';
+const COUNTED_STROKE = overlay.countedStroke;
+const COUNTED_FILL = overlay.countedFill;
+const CLOSER_STROKE = overlay.closerStroke;
+const CLOSER_FILL = overlay.closerFill;
+const FORMING_STROKE = overlay.formingStroke;
 
 export type OutlineState = 'counted' | 'closer' | 'forming';
 
@@ -31,10 +32,20 @@ export type OutlineState = 'counted' | 'closer' | 'forming';
  * Exported and pure so the rule is testable without rendering. The ordering matters:
  * `needsCloserLook` beats a high confidence number, because a model that says "I am 99% sure
  * but you should look closer" is telling us something its confidence field cannot.
+ *
+ * `Number.isFinite` guards against a garbage confidence (NaN, +/-Infinity): `NaN < GREEN_CONFIDENCE`
+ * is `false`, so without this check a corrupt confidence value would fail open into `'counted'`,
+ * the most trusted state, and tell the user an item is confirmed when it is not.
  */
 export function outlineStateFor(track: Track, identity: Identity | undefined): OutlineState {
   if (track.state === 'tentative' || !identity) return 'forming';
-  if (identity.needsCloserLook || identity.confidence < GREEN_CONFIDENCE) return 'closer';
+  if (
+    identity.needsCloserLook ||
+    !Number.isFinite(identity.confidence) ||
+    identity.confidence < GREEN_CONFIDENCE
+  ) {
+    return 'closer';
+  }
   return 'counted';
 }
 
