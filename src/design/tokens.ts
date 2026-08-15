@@ -108,7 +108,8 @@ export const cardEdge = {
 } as const;
 
 /**
- * ItemHighlights' camera overlay tints, for the outline traced around a live-tracked item.
+ * Camera overlay tints, for chrome drawn directly on the live feed: ItemHighlights' outline
+ * around a tracked item, and CaptureGuide's progress ring.
  *
  * Deliberately not `color.teal`/`color.amber`: those are tuned to sit on the app's own
  * off-white chrome. This overlay sits directly on an uncontrolled live camera feed instead, so
@@ -121,6 +122,10 @@ export const overlay = {
   closerStroke: 'rgba(255, 179, 0, 0.95)',
   closerFill: 'rgba(255, 179, 0, 0.20)',
   formingStroke: 'rgba(255, 255, 255, 0.45)',
+  /** CaptureGuide's always-visible ring track, underneath the per-sector progress arcs. */
+  guideTrack: 'rgba(255, 255, 255, 0.14)',
+  /** CaptureGuide's arc for a sector not yet covered. */
+  guidePending: 'rgba(255, 255, 255, 0.28)',
 } as const;
 
 /**

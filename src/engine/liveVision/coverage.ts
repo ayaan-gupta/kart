@@ -1,5 +1,6 @@
-/** How many angular sectors the user is walked through. Six is 60 degrees apiece. */
-export const SECTOR_COUNT = 6;
+import { REQUIRED_SECTORS, SECTOR_COUNT } from './config';
+
+export { REQUIRED_SECTORS, SECTOR_COUNT };
 
 export interface CoverageState {
   /** One flag per sector, indexed clockwise from where the scan started. */
@@ -48,14 +49,6 @@ export function observeYaw(state: CoverageState, yaw: number): CoverageState {
 export function coverageFraction(state: CoverageState): number {
   return state.sectors.filter(Boolean).length / SECTOR_COUNT;
 }
-
-/**
- * Guided capture asks for a half circle, not a full lap.
- *
- * A shopping cart is against a shelf or an aisle end as often as not, so demanding a full
- * three-sixty would leave the guide open forever in a case the user cannot fix.
- */
-export const REQUIRED_SECTORS = 3;
 
 export function isCoverageComplete(state: CoverageState): boolean {
   return state.sectors.filter(Boolean).length >= REQUIRED_SECTORS;

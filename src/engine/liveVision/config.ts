@@ -83,6 +83,17 @@ export const THUMBNAIL_PADDING = 0.08;
  */
 export const OCCLUSION_THRESHOLD = 0.5;
 
+/** How many angular sectors the user is walked through in guided capture. Six is 60 degrees apiece. */
+export const SECTOR_COUNT = 6;
+
+/**
+ * Guided capture asks for a half circle, not a full lap.
+ *
+ * A shopping cart is against a shelf or an aisle end as often as not, so demanding a full
+ * three-sixty would leave the guide open forever in a case the user cannot fix.
+ */
+export const REQUIRED_SECTORS = 3;
+
 /** Base URL for Open Food Facts product reads. No trailing slash; callers append `/{barcode}`. */
 export const OPEN_FOOD_FACTS_ENDPOINT = 'https://world.openfoodfacts.org/api/v2/product';
 
