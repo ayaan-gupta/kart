@@ -74,3 +74,11 @@ export const MAX_KEYFRAME_MOTION = 0.06;
 
 /** Padding around a thumbnail crop, as a fraction of the box, so items are not cut flush. */
 export const THUMBNAIL_PADDING = 0.08;
+
+/**
+ * Above this an occlusion score flips the verdict to hidden and guided capture opens. Set above
+ * the strongest single signal's own maximum contribution (see `assessOcclusion` in
+ * `occlusion.ts`, where the semantic signal alone tops out at 0.45) so that no one signal can
+ * trip the guide by itself; two of the three must agree.
+ */
+export const OCCLUSION_THRESHOLD = 0.5;
