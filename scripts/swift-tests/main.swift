@@ -117,6 +117,58 @@ suite("MaskContour.instances concave shapes") {
     }
     let area = abs(twiceArea) / 2
     check(area > 0.14 && area < 0.23, "preserves the concave notch rather than filling it")
+
+    // The area band alone rejects a bounding box (0.30) by a wide margin, but a convex hull of
+    // this L (5 vertices, area about 0.24) lands only just outside the ceiling. A real trace
+    // produces 8 vertices for this shape; requiring at least 6 proves the reflex corner at the
+    // inside of the L survived as an actual vertex, since no convex hull of an L can exceed 5.
+    check(n >= 6, "keeps enough vertices that the notch could not be a convex hull")
+  }
+}
+
+suite("MaskContour.instances self-touching mask") {
+  // A bowtie/dumbbell: two 10x10 lobes connected only through a single pixel at (20, 10),
+  // which is also the topmost, leftmost foreground pixel in scan order, so it is chosen as the
+  // trace's start point. Lobe A occupies x in [10, 20), y in [11, 21); lobe B occupies
+  // x in [21, 31), y in [11, 21); the pinch pixel at (20, 10) is diagonally adjacent to a
+  // corner of each lobe and to nothing else, so the two lobes are otherwise disconnected.
+  //
+  // A trace that stops the moment it revisits the start pixel's coordinates, rather than
+  // re-entering it from the same direction it first left, can close the loop after finishing
+  // only the lobe it happened to enter first, silently dropping the other lobe.
+  var labels = grid(width: 100, height: 100, rect: (20, 10, 1, 1), value: 1)
+  let lobeA = grid(width: 100, height: 100, rect: (10, 11, 10, 10), value: 1)
+  let lobeB = grid(width: 100, height: 100, rect: (21, 11, 10, 10), value: 1)
+  for i in 0..<labels.count where lobeA[i] != 0 { labels[i] = 1 }
+  for i in 0..<labels.count where lobeB[i] != 0 { labels[i] = 1 }
+
+  let found = MaskContour.instances(
+    labels: labels, width: 100, height: 100, minPixelFraction: 0.001, simplifyEpsilon: 0.002)
+  check(found.count == 1, "traces the bowtie as one instance")
+
+  if let only = found.first {
+    func pointInPolygon(_ px: Float, _ py: Float, _ poly: [Float]) -> Bool {
+      var inside = false
+      let n = poly.count / 2
+      var j = n - 1
+      for i in 0..<n {
+        let xi = poly[i * 2]
+        let yi = poly[i * 2 + 1]
+        let xj = poly[j * 2]
+        let yj = poly[j * 2 + 1]
+        if (yi > py) != (yj > py), px < (xj - xi) * (py - yi) / (yj - yi) + xi {
+          inside.toggle()
+        }
+        j = i
+      }
+      return inside
+    }
+
+    // Centers of lobe A and lobe B, normalized.
+    let centerA = pointInPolygon(0.15, 0.16, only.polygon)
+    let centerB = pointInPolygon(0.26, 0.16, only.polygon)
+    check(centerA, "encloses lobe A's center")
+    check(centerB, "encloses lobe B's center")
   }
 }
 
