@@ -19,6 +19,18 @@ func check(_ condition: Bool, _ message: String) {
   }
 }
 
+/// Overload for the KartImageTools suite below, whose calls put the check's name first and an
+/// optional detail last. Added rather than changing the two-argument `check` above, which the
+/// rest of this file already relies on with its condition-first, message-second order.
+func check(_ name: String, _ condition: Bool, _ detail: String = "") {
+  if condition {
+    print("  ok   \(name)")
+  } else {
+    print("  FAIL \(name)\(detail.isEmpty ? "" : " (\(detail))")")
+    failures += 1
+  }
+}
+
 func suite(_ name: String, _ body: () -> Void) {
   print(name)
   body()
@@ -617,6 +629,142 @@ suite("FrameMetrics.measure through a real pixel buffer") {
     check(false, "could not create a BGRA pixel buffer")
   }
 }
+
+/// Draws an asymmetric test card: a red square in the TOP LEFT of upright space, blue elsewhere.
+func testCard(width: Int, height: Int) -> CGImage {
+  let ctx = CGContext(
+    data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+  ctx.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+  ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+  ctx.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+  // CGContext origin is bottom-left, so the visual TOP left is high y.
+  ctx.fill(CGRect(x: 0, y: height * 3 / 4, width: width / 4, height: height / 4))
+  return ctx.makeImage()!
+}
+
+/// Reads one pixel from a JPEG, in top-left origin normalized coordinates.
+func pixel(_ jpeg: Data, atX nx: Double, y ny: Double) -> (r: Int, g: Int, b: Int) {
+  let src = CGImageSourceCreateWithData(jpeg as CFData, nil)!
+  let img = CGImageSourceCreateImageAtIndex(src, 0, nil)!
+  let w = img.width, h = img.height
+  var buf = [UInt8](repeating: 0, count: w * h * 4)
+  let ctx = CGContext(
+    data: &buf, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+  ctx.draw(img, in: CGRect(x: 0, y: 0, width: w, height: h))
+  let px = min(w - 1, max(0, Int(nx * Double(w))))
+  // A CGBitmapContext's memory row 0 is the visual TOP row: CG user space is bottom-left
+  // origin, so drawing into (0,0,w,h) puts the image's top edge at the highest y, which is
+  // where row 0 lives. Normalized top-left y therefore maps straight through, with no flip.
+  let py = min(h - 1, max(0, Int(ny * Double(h))))
+  let i = (py * w + px) * 4
+  return (Int(buf[i]), Int(buf[i + 1]), Int(buf[i + 2]))
+}
+
+func jpegSize(_ d: Data) -> (Int, Int) {
+  let src = CGImageSourceCreateWithData(d as CFData, nil)!
+  let img = CGImageSourceCreateImageAtIndex(src, 0, nil)!
+  return (img.width, img.height)
+}
+
+print("uprightTransform")
+for (name, o, swaps) in [
+  ("up", CGImagePropertyOrientation.up, false), ("right", .right, true),
+  ("left", .left, true), ("down", .down, false),
+] {
+  let (_, size) = KartImageTools.uprightTransform(o, width: 400, height: 200)
+  check("\(name) size", swaps ? (size.width == 200 && size.height == 400) : (size.width == 400 && size.height == 200), "got \(size)")
+}
+
+print("jpegData: downscaling")
+let card = testCard(width: 2000, height: 1500)
+let big = KartImageTools.jpegData(from: card, orientation: .up, maxEdge: 1536, quality: 0.78)!
+let (bw, bh) = jpegSize(big)
+check("longest edge capped", bw == 1536, "got \(bw)")
+check("aspect preserved", abs(Double(bh) - 1152) <= 1, "got \(bh)")
+check("upload size is sane", big.count < 400_000 && big.count > 1_000, "\(big.count) bytes")
+
+let small = testCard(width: 300, height: 200)
+let (sw, _) = jpegSize(KartImageTools.jpegData(from: small, orientation: .up, maxEdge: 1536, quality: 0.78)!)
+check("never upscales", sw == 300, "got \(sw)")
+
+print("jpegData: orientation")
+// .up must leave the red square in the visual top left.
+let p = pixel(big, atX: 0.1, y: 0.1)
+check("up keeps red top-left", p.r > 200 && p.b < 60, "got \(p)")
+let pbr = pixel(big, atX: 0.9, y: 0.9)
+check("up keeps blue bottom-right", pbr.b > 200 && pbr.r < 60, "got \(pbr)")
+
+// A buffer tagged .right needs a +90 rotation to become upright. Feeding the same card in as
+// .right must therefore MOVE the red square off the top left.
+let rotated = KartImageTools.jpegData(from: card, orientation: .right, maxEdge: 1536, quality: 0.78)!
+let (rw, rh) = jpegSize(rotated)
+check("right swaps dimensions", rw < rh, "got \(rw)x\(rh)")
+let rp = pixel(rotated, atX: 0.1, y: 0.1)
+check("right moves the marker", !(rp.r > 200 && rp.b < 60), "got \(rp)")
+
+// Addition beyond the brief's verbatim suite: "moved off top-left" alone cannot tell a correct
+// 90 degree rotation from one rotated the wrong way, and .left/.right were in fact swapped in
+// an earlier version of KartImageTools.swift here, confirmed independently against
+// CGImageSourceCreateThumbnailAtIndex(..., kCGImageSourceCreateThumbnailWithTransform: true),
+// which is Apple's own EXIF-orientation correction and not code from this file. EXIF 6 (.right)
+// is "rotate 90 CW to correct", which carries the marker from top-left to top-right; EXIF 8
+// (.left) is "rotate 90 CCW to correct", which carries it to bottom-left. Pinning the exact
+// corner, not just "moved", is what would have caught the swap.
+let rp2 = pixel(rotated, atX: 0.9, y: 0.1)
+check("right places the marker at top-right, not left's corner", rp2.r > 200 && rp2.b < 60, "got \(rp2)")
+let leftRotated = KartImageTools.jpegData(from: card, orientation: .left, maxEdge: 1536, quality: 0.78)!
+let lrSize = jpegSize(leftRotated)
+check("left also swaps dimensions", lrSize.0 < lrSize.1, "got \(lrSize)")
+let lp = pixel(leftRotated, atX: 0.1, y: 0.9)
+check("left places the marker at bottom-left, not right's corner", lp.r > 200 && lp.b < 60, "got \(lp)")
+
+// Independent cross-check that does not trust the reader's convention: crop the four corners
+// with cropJpeg (whose top-left origin is proven by CGImage.cropping) and assert exactly one
+// of them is the red marker, and that it is the top-left one.
+print("orientation cross-check via cropJpeg")
+func cornerIsRed(_ jpeg: Data, x: Double, y: Double) -> Bool {
+  guard let c = KartImageTools.cropJpeg(
+    jpeg, box: CGRect(x: x, y: y, width: 0.12, height: 0.12), padding: 0, maxEdge: 64, quality: 0.9)
+  else { return false }
+  let px = pixel(c, atX: 0.5, y: 0.5)
+  return px.r > 200 && px.b < 60
+}
+check("top-left corner is the marker", cornerIsRed(big, x: 0.02, y: 0.02))
+check("top-right corner is not", !cornerIsRed(big, x: 0.86, y: 0.02))
+check("bottom-left corner is not", !cornerIsRed(big, x: 0.02, y: 0.86))
+check("bottom-right corner is not", !cornerIsRed(big, x: 0.86, y: 0.86))
+
+print("cropJpeg")
+// Crop the red quadrant back out of the upright frame. No padding, so it should be all red.
+let crop = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0, maxEdge: 256, quality: 0.8)!
+let (cw, ch) = jpegSize(crop)
+check("crop is capped at maxEdge", max(cw, ch) == 256, "got \(cw)x\(ch)")
+let cc = pixel(crop, atX: 0.5, y: 0.5)
+check("crop centre is the red item", cc.r > 200 && cc.b < 60, "got \(cc)")
+check("thumbnail is small on disk", crop.count < 30_000, "\(crop.count) bytes")
+
+// Padding must pull in surrounding context, so the far corner is no longer pure red.
+let padded = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0.6, maxEdge: 256, quality: 0.8)!
+let pc = pixel(padded, atX: 0.95, y: 0.95)
+check("padding includes context", pc.b > 150, "got \(pc)")
+
+// A box running off the edge is clamped, not rejected. This is the half-out-of-view item.
+let overflow = KartImageTools.cropJpeg(big, box: CGRect(x: 0.9, y: 0.9, width: 0.5, height: 0.5), padding: 0.1, maxEdge: 256, quality: 0.8)
+check("box off the edge is clamped, not nil", overflow != nil)
+
+// A box entirely outside the frame has nothing to show and must return nil rather than a
+// 1x1 sliver that would render as a grey smudge in the bag.
+check("box fully outside returns nil",
+      KartImageTools.cropJpeg(big, box: CGRect(x: 3, y: 3, width: 0.2, height: 0.2), padding: 0, maxEdge: 256, quality: 0.8) == nil)
+check("zero-area box returns nil",
+      KartImageTools.cropJpeg(big, box: CGRect(x: 0.5, y: 0.5, width: 0, height: 0), padding: 0, maxEdge: 256, quality: 0.8) == nil)
+
+print("base64 round trip")
+let b64 = big.base64EncodedString()
+check("base64 decodes back", Data(base64Encoded: b64)?.count == big.count)
+check("base64 payload is uploadable", b64.count < 550_000, "\(b64.count) chars")
 
 print("")
 if failures == 0 {

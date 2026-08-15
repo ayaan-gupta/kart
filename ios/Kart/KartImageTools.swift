@@ -1,0 +1,160 @@
+// ios/Kart/KartImageTools.swift
+import CoreGraphics
+import CoreVideo
+import Foundation
+import ImageIO
+import UniformTypeIdentifiers
+import VideoToolbox
+
+/// JPEG encoding and cropping for the cloud recognition path.
+///
+/// Two separate jobs that share one pixel pipeline:
+///  - `encodeKeyframe` turns the live camera buffer into an upright JPEG small enough to upload.
+///  - `cropThumbnail` cuts one item out of that same JPEG and writes it to disk for the bag.
+///
+/// Both are pure functions over pixels with no Vision or VisionCamera dependency, so they build
+/// and run under `swiftc` on a Mac and are covered by the offline test suite.
+public enum KartImageTools {
+
+  /// Longest edge of the uploaded keyframe. The server downscales to 1024 for the census call
+  /// (see `compositeMarks`), so anything above that only exists to give `/api/identify` a crop
+  /// with real detail in it. 1536 is the smallest size that still leaves a usable crop of a
+  /// single item in a twenty item cart.
+  public static let keyframeMaxEdge = 1536
+
+  /// Longest edge of a bag thumbnail. Rendered at most 46pt, so 256 covers a 3x display with
+  /// room to spare and keeps a twenty item haul under half a megabyte on disk.
+  public static let thumbnailMaxEdge = 256
+
+  // MARK: - Orientation
+
+  /// The transform that carries a raw sensor buffer into upright space, and the upright size.
+  ///
+  /// This mirrors what `VNImageRequestHandler(orientation:)` does for the detector, so the
+  /// polygons the tracker holds and the pixels we upload agree on which way is up. They have to:
+  /// a normalized box from the tracker is used to crop this JPEG, and a mismatch here crops the
+  /// wrong part of the image without ever throwing.
+  static func uprightTransform(
+    _ orientation: CGImagePropertyOrientation, width: Int, height: Int
+  ) -> (transform: CGAffineTransform, size: CGSize) {
+    let w = CGFloat(width)
+    let h = CGFloat(height)
+    switch orientation {
+    case .up:
+      return (.identity, CGSize(width: w, height: h))
+    case .upMirrored:
+      return (CGAffineTransform(scaleX: -1, y: 1).translatedBy(x: -w, y: 0), CGSize(width: w, height: h))
+    case .down:
+      return (CGAffineTransform(scaleX: -1, y: -1).translatedBy(x: -w, y: -h), CGSize(width: w, height: h))
+    case .downMirrored:
+      return (CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -h), CGSize(width: w, height: h))
+    // Verified against CGImageSourceCreateThumbnailAtIndex(..., kCGImageSourceCreateThumbnailWithTransform: true),
+    // which applies Apple's own EXIF-orientation correction: EXIF 6 (.right) is "rotate 90 CW to
+    // correct", EXIF 8 (.left) is "rotate 90 CCW to correct". CGAffineTransform(rotationAngle:) is
+    // positive-CCW in CG's y-up user space, so .right needs the negative angle and .left the
+    // positive one. An earlier version of this file had the two swapped, confirmed by running a
+    // known test card through both this function and Apple's own thumbnail transform and diffing
+    // which corner the marker landed on for all eight orientation cases.
+    case .left:
+      return (CGAffineTransform(rotationAngle: .pi / 2).translatedBy(x: 0, y: -h), CGSize(width: h, height: w))
+    case .leftMirrored:
+      return (CGAffineTransform(rotationAngle: .pi / 2).scaledBy(x: -1, y: 1).translatedBy(x: -w, y: -h), CGSize(width: h, height: w))
+    case .right:
+      return (CGAffineTransform(rotationAngle: -.pi / 2).translatedBy(x: -w, y: 0), CGSize(width: h, height: w))
+    case .rightMirrored:
+      return (CGAffineTransform(rotationAngle: -.pi / 2).scaledBy(x: -1, y: 1), CGSize(width: h, height: w))
+    @unknown default:
+      return (.identity, CGSize(width: w, height: h))
+    }
+  }
+
+  // MARK: - Encoding
+
+  /// Draws `image` upright, scaled so its longest edge is at most `maxEdge`, and returns JPEG data.
+  public static func jpegData(
+    from image: CGImage,
+    orientation: CGImagePropertyOrientation,
+    maxEdge: Int,
+    quality: Double
+  ) -> Data? {
+    let (transform, uprightSize) = uprightTransform(
+      orientation, width: image.width, height: image.height)
+
+    let longest = max(uprightSize.width, uprightSize.height)
+    // Only ever scale down. Upscaling a small buffer wastes bytes and invents no detail.
+    let scale = longest > CGFloat(maxEdge) ? CGFloat(maxEdge) / longest : 1
+    let outW = max(1, Int((uprightSize.width * scale).rounded()))
+    let outH = max(1, Int((uprightSize.height * scale).rounded()))
+
+    guard
+      let context = CGContext(
+        data: nil, width: outW, height: outH, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    else { return nil }
+
+    context.interpolationQuality = .medium
+    context.scaleBy(x: scale, y: scale)
+    context.concatenate(transform)
+    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+
+    guard let output = context.makeImage() else { return nil }
+    return encode(output, quality: quality)
+  }
+
+  static func encode(_ image: CGImage, quality: Double) -> Data? {
+    let data = NSMutableData()
+    guard
+      let dest = CGImageDestinationCreateWithData(
+        data, UTType.jpeg.identifier as CFString, 1, nil)
+    else { return nil }
+    CGImageDestinationAddImage(
+      dest, image, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
+    guard CGImageDestinationFinalize(dest) else { return nil }
+    return data as Data
+  }
+
+  /// Bridges the camera's YUV buffer to RGB. VideoToolbox owns the colour conversion here;
+  /// hand-rolling it is a well known source of green-tinted or washed out uploads.
+  public static func cgImage(from pixelBuffer: CVPixelBuffer) -> CGImage? {
+    var out: CGImage?
+    guard VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &out) == noErr else {
+      return nil
+    }
+    return out
+  }
+
+  // MARK: - Cropping
+
+  /// Cuts a normalized, origin top-left box out of JPEG data and returns a smaller JPEG.
+  ///
+  /// The box is clamped to the image rather than rejected. A tracked polygon can legitimately
+  /// run off the edge of the frame when an item is half out of view, and a clamped crop of the
+  /// visible part is a better bag thumbnail than no thumbnail at all.
+  public static func cropJpeg(
+    _ jpeg: Data, box: CGRect, padding: CGFloat, maxEdge: Int, quality: Double
+  ) -> Data? {
+    guard
+      let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
+      let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+    else { return nil }
+
+    let w = CGFloat(image.width)
+    let h = CGFloat(image.height)
+
+    // Pad outward so the thumbnail has a little context instead of a tight, claustrophobic cut.
+    let padded = box.insetBy(dx: -box.width * padding, dy: -box.height * padding)
+    let clamped = padded.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+    guard !clamped.isNull, clamped.width > 0, clamped.height > 0 else { return nil }
+
+    let pixels = CGRect(
+      x: (clamped.minX * w).rounded(.down),
+      y: (clamped.minY * h).rounded(.down),
+      width: max(1, (clamped.width * w).rounded()),
+      height: max(1, (clamped.height * h).rounded())
+    ).intersection(CGRect(x: 0, y: 0, width: w, height: h))
+
+    guard let cropped = image.cropping(to: pixels) else { return nil }
+    return jpegData(from: cropped, orientation: .up, maxEdge: maxEdge, quality: quality)
+  }
+}
