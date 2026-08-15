@@ -670,8 +670,14 @@ func jpegSize(_ d: Data) -> (Int, Int) {
 
 print("uprightTransform")
 for (name, o, swaps) in [
-  ("up", CGImagePropertyOrientation.up, false), ("right", .right, true),
-  ("left", .left, true), ("down", .down, false),
+  ("up", CGImagePropertyOrientation.up, false),
+  ("upMirrored", .upMirrored, false),
+  ("down", .down, false),
+  ("downMirrored", .downMirrored, false),
+  ("left", .left, true),
+  ("leftMirrored", .leftMirrored, true),
+  ("right", .right, true),
+  ("rightMirrored", .rightMirrored, true),
 ] {
   let (_, size) = KartImageTools.uprightTransform(o, width: 400, height: 200)
   check("\(name) size", swaps ? (size.width == 200 && size.height == 400) : (size.width == 400 && size.height == 200), "got \(size)")
@@ -679,14 +685,17 @@ for (name, o, swaps) in [
 
 print("jpegData: downscaling")
 let card = testCard(width: 2000, height: 1500)
-let big = KartImageTools.jpegData(from: card, orientation: .up, maxEdge: 1536, quality: 0.78)!
+let big = KartImageTools.jpegData(from: card, orientation: .up, maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)!
 let (bw, bh) = jpegSize(big)
-check("longest edge capped", bw == 1536, "got \(bw)")
-check("aspect preserved", abs(Double(bh) - 1152) <= 1, "got \(bh)")
+check("longest edge capped", bw == KartImageTools.keyframeMaxEdge, "got \(bw)")
+// Derived from the constant, not hardcoded, so a change to keyframeMaxEdge cannot leave this
+// check silently asserting the old value.
+let expectedKeyframeHeight = 1500.0 * Double(KartImageTools.keyframeMaxEdge) / 2000.0
+check("aspect preserved", abs(Double(bh) - expectedKeyframeHeight) <= 1, "got \(bh)")
 check("upload size is sane", big.count < 400_000 && big.count > 1_000, "\(big.count) bytes")
 
 let small = testCard(width: 300, height: 200)
-let (sw, _) = jpegSize(KartImageTools.jpegData(from: small, orientation: .up, maxEdge: 1536, quality: 0.78)!)
+let (sw, _) = jpegSize(KartImageTools.jpegData(from: small, orientation: .up, maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)!)
 check("never upscales", sw == 300, "got \(sw)")
 
 print("jpegData: orientation")
@@ -698,27 +707,35 @@ check("up keeps blue bottom-right", pbr.b > 200 && pbr.r < 60, "got \(pbr)")
 
 // A buffer tagged .right needs a +90 rotation to become upright. Feeding the same card in as
 // .right must therefore MOVE the red square off the top left.
-let rotated = KartImageTools.jpegData(from: card, orientation: .right, maxEdge: 1536, quality: 0.78)!
+let rotated = KartImageTools.jpegData(from: card, orientation: .right, maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)!
 let (rw, rh) = jpegSize(rotated)
 check("right swaps dimensions", rw < rh, "got \(rw)x\(rh)")
 let rp = pixel(rotated, atX: 0.1, y: 0.1)
 check("right moves the marker", !(rp.r > 200 && rp.b < 60), "got \(rp)")
 
-// Addition beyond the brief's verbatim suite: "moved off top-left" alone cannot tell a correct
-// 90 degree rotation from one rotated the wrong way, and .left/.right were in fact swapped in
-// an earlier version of KartImageTools.swift here, confirmed independently against
-// CGImageSourceCreateThumbnailAtIndex(..., kCGImageSourceCreateThumbnailWithTransform: true),
-// which is Apple's own EXIF-orientation correction and not code from this file. EXIF 6 (.right)
-// is "rotate 90 CW to correct", which carries the marker from top-left to top-right; EXIF 8
-// (.left) is "rotate 90 CCW to correct", which carries it to bottom-left. Pinning the exact
-// corner, not just "moved", is what would have caught the swap.
-let rp2 = pixel(rotated, atX: 0.9, y: 0.1)
-check("right places the marker at top-right, not left's corner", rp2.r > 200 && rp2.b < 60, "got \(rp2)")
-let leftRotated = KartImageTools.jpegData(from: card, orientation: .left, maxEdge: 1536, quality: 0.78)!
-let lrSize = jpegSize(leftRotated)
-check("left also swaps dimensions", lrSize.0 < lrSize.1, "got \(lrSize)")
-let lp = pixel(leftRotated, atX: 0.1, y: 0.9)
-check("left places the marker at bottom-left, not right's corner", lp.r > 200 && lp.b < 60, "got \(lp)")
+// All eight EXIF orientation cases, each pinned to the exact corner Apple's own
+// EXIF-orientation transform puts the marker on, not just "moved off top-left". "Moved" alone
+// cannot tell a correct 90 degree rotation from one rotated the wrong way: an earlier version of
+// this file had .left and .right swapped and still passed a suite that only checked "moved".
+// Nothing anywhere checked .upMirrored/.downMirrored/.leftMirrored/.rightMirrored at all, and
+// the mirrored cases are reachable through the front camera. Expected corners were cross-checked
+// against CGImageSourceCreateThumbnailAtIndex(..., kCGImageSourceCreateThumbnailWithTransform:
+// true), which is Apple's own orientation correction and shares no code with this file.
+let orientationCorners: [(String, CGImagePropertyOrientation, String, Double, Double)] = [
+  ("up", .up, "top-left", 0.1, 0.1),
+  ("upMirrored", .upMirrored, "top-right", 0.9, 0.1),
+  ("down", .down, "bottom-right", 0.9, 0.9),
+  ("downMirrored", .downMirrored, "bottom-left", 0.1, 0.9),
+  ("leftMirrored", .leftMirrored, "top-left", 0.1, 0.1),
+  ("right", .right, "top-right", 0.9, 0.1),
+  ("rightMirrored", .rightMirrored, "bottom-right", 0.9, 0.9),
+  ("left", .left, "bottom-left", 0.1, 0.9),
+]
+for (name, o, cornerName, cx, cy) in orientationCorners {
+  let out = KartImageTools.jpegData(from: card, orientation: o, maxEdge: KartImageTools.keyframeMaxEdge, quality: 0.78)!
+  let cp = pixel(out, atX: cx, y: cy)
+  check("\(name) places the marker at \(cornerName)", cp.r > 200 && cp.b < 60, "got \(cp)")
+}
 
 // Independent cross-check that does not trust the reader's convention: crop the four corners
 // with cropJpeg (whose top-left origin is proven by CGImage.cropping) and assert exactly one
@@ -738,28 +755,42 @@ check("bottom-right corner is not", !cornerIsRed(big, x: 0.86, y: 0.86))
 
 print("cropJpeg")
 // Crop the red quadrant back out of the upright frame. No padding, so it should be all red.
-let crop = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0, maxEdge: 256, quality: 0.8)!
+let crop = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8)!
 let (cw, ch) = jpegSize(crop)
-check("crop is capped at maxEdge", max(cw, ch) == 256, "got \(cw)x\(ch)")
+check("crop is capped at maxEdge", max(cw, ch) == KartImageTools.thumbnailMaxEdge, "got \(cw)x\(ch)")
 let cc = pixel(crop, atX: 0.5, y: 0.5)
 check("crop centre is the red item", cc.r > 200 && cc.b < 60, "got \(cc)")
 check("thumbnail is small on disk", crop.count < 30_000, "\(crop.count) bytes")
 
 // Padding must pull in surrounding context, so the far corner is no longer pure red.
-let padded = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0.6, maxEdge: 256, quality: 0.8)!
+let padded = KartImageTools.cropJpeg(big, box: CGRect(x: 0, y: 0, width: 0.25, height: 0.25), padding: 0.6, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8)!
 let pc = pixel(padded, atX: 0.95, y: 0.95)
 check("padding includes context", pc.b > 150, "got \(pc)")
 
 // A box running off the edge is clamped, not rejected. This is the half-out-of-view item.
-let overflow = KartImageTools.cropJpeg(big, box: CGRect(x: 0.9, y: 0.9, width: 0.5, height: 0.5), padding: 0.1, maxEdge: 256, quality: 0.8)
+let overflow = KartImageTools.cropJpeg(big, box: CGRect(x: 0.9, y: 0.9, width: 0.5, height: 0.5), padding: 0.1, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8)
 check("box off the edge is clamped, not nil", overflow != nil)
 
 // A box entirely outside the frame has nothing to show and must return nil rather than a
 // 1x1 sliver that would render as a grey smudge in the bag.
 check("box fully outside returns nil",
-      KartImageTools.cropJpeg(big, box: CGRect(x: 3, y: 3, width: 0.2, height: 0.2), padding: 0, maxEdge: 256, quality: 0.8) == nil)
+      KartImageTools.cropJpeg(big, box: CGRect(x: 3, y: 3, width: 0.2, height: 0.2), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8) == nil)
 check("zero-area box returns nil",
-      KartImageTools.cropJpeg(big, box: CGRect(x: 0.5, y: 0.5, width: 0, height: 0), padding: 0, maxEdge: 256, quality: 0.8) == nil)
+      KartImageTools.cropJpeg(big, box: CGRect(x: 0.5, y: 0.5, width: 0, height: 0), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8) == nil)
+
+// Finding 1 from review: a box that is tiny, needle-thin, or almost entirely off the edge can
+// survive the normalized-area guard above yet still round down to a 1px sliver once mapped to
+// real pixels. Measured before KartImageTools.minimumCropPixels existed: a near-zero box
+// produced a 1x1 JPEG, a needle-thin 0.0001-wide box produced a 1x256 JPEG, and a box 99.99%
+// off either edge produced a 1x1 JPEG. The third is the realistic trigger, a tracked item that
+// has just barely entered the frame, so a real photo of a grey smudge would otherwise sit next
+// to a bag item.
+check("a near-zero-area box returns nil, not a 1x1 sliver",
+      KartImageTools.cropJpeg(big, box: CGRect(x: 0.5, y: 0.5, width: 1e-9, height: 1e-9), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8) == nil)
+check("a needle-thin box returns nil, not a 1x256 sliver",
+      KartImageTools.cropJpeg(big, box: CGRect(x: 0.5, y: 0.3, width: 0.0001, height: 0.4), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8) == nil)
+check("a box 99.99% off the edge returns nil, not a 1x1 sliver",
+      KartImageTools.cropJpeg(big, box: CGRect(x: 0.9999, y: 0.9999, width: 0.2, height: 0.2), padding: 0, maxEdge: KartImageTools.thumbnailMaxEdge, quality: 0.8) == nil)
 
 print("base64 round trip")
 let b64 = big.base64EncodedString()

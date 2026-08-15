@@ -9,8 +9,8 @@ import VideoToolbox
 /// JPEG encoding and cropping for the cloud recognition path.
 ///
 /// Two separate jobs that share one pixel pipeline:
-///  - `encodeKeyframe` turns the live camera buffer into an upright JPEG small enough to upload.
-///  - `cropThumbnail` cuts one item out of that same JPEG and writes it to disk for the bag.
+///  - `jpegData` turns the live camera buffer into an upright JPEG small enough to upload.
+///  - `cropJpeg` cuts one item out of that same JPEG and writes it to disk for the bag.
 ///
 /// Both are pure functions over pixels with no Vision or VisionCamera dependency, so they build
 /// and run under `swiftc` on a Mac and are covered by the offline test suite.
@@ -25,6 +25,15 @@ public enum KartImageTools {
   /// Longest edge of a bag thumbnail. Rendered at most 46pt, so 256 covers a 3x display with
   /// room to spare and keeps a twenty item haul under half a megabyte on disk.
   public static let thumbnailMaxEdge = 256
+
+  /// The smallest pixel extent, on either axis, that a crop is allowed to come out at.
+  ///
+  /// A box that is tiny, needle-thin, or almost entirely off the edge of the frame can survive
+  /// the earlier normalized-area guard yet still round down to a 1px sliver once mapped to real
+  /// pixels: a grey or noisy speck rather than a usable photograph of a product. thumbnailMaxEdge
+  /// is 256, so 16 keeps a real thumbnail an order of magnitude clear of the floor while still
+  /// rejecting slivers a human would see as a broken photo next to a bag item.
+  public static let minimumCropPixels = 16
 
   // MARK: - Orientation
 
@@ -131,6 +140,11 @@ public enum KartImageTools {
   /// The box is clamped to the image rather than rejected. A tracked polygon can legitimately
   /// run off the edge of the frame when an item is half out of view, and a clamped crop of the
   /// visible part is a better bag thumbnail than no thumbnail at all.
+  ///
+  /// Assumes `jpeg` carries no EXIF orientation tag of its own (true of every JPEG this file
+  /// produces, since `jpegData` always bakes the upright transform into the pixels rather than
+  /// tagging them): a tagged input would be read and cropped in its raw, untransformed pixel
+  /// space, silently cropping the wrong region.
   public static func cropJpeg(
     _ jpeg: Data, box: CGRect, padding: CGFloat, maxEdge: Int, quality: Double
   ) -> Data? {
@@ -153,6 +167,12 @@ public enum KartImageTools {
       width: max(1, (clamped.width * w).rounded()),
       height: max(1, (clamped.height * h).rounded())
     ).intersection(CGRect(x: 0, y: 0, width: w, height: h))
+
+    // Below minimumCropPixels on either axis this is a sliver, not a photograph: return nil
+    // rather than the 1x1 or needle-thin JPEG a naive floor-to-1 would otherwise produce.
+    guard
+      pixels.width >= CGFloat(minimumCropPixels), pixels.height >= CGFloat(minimumCropPixels)
+    else { return nil }
 
     guard let cropped = image.cropping(to: pixels) else { return nil }
     return jpegData(from: cropped, orientation: .up, maxEdge: maxEdge, quality: quality)
