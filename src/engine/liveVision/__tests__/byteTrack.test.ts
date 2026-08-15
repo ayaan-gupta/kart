@@ -79,6 +79,31 @@ describe('updateTracks', () => {
     expect(state.tracks[0].state).toBe('confirmed');
   });
 
+  it('gates low-score recovery stricter than stage one, per the reference stage-two threshold', () => {
+    // The reference hardcodes IoU >= 0.5 for low-score recovery, tighter than stage one's
+    // IoU >= 0.2, because a low-confidence detection is the least trustworthy input the tracker
+    // sees. At an offset that lands the IoU at ~0.3, between the two thresholds, a low-score
+    // detection must miss recovery while the identical offset at high score would have matched
+    // in stage one. If this ever regresses to sharing minIou again, a low-confidence blob from a
+    // neighbouring item could hijack a track in a packed cart, which is the wrong-count bug this
+    // tracker exists to prevent.
+    const dx = 0.7 / 13; // IoU between two 0.1-wide boxes offset by dx on one axis is ~0.3.
+
+    const built = run(createTrackerState(), 4, () => [detection(0.3, 0.3)]);
+    expect(built.state.tracks[0].state).toBe('confirmed');
+    const id = built.state.tracks[0].id;
+
+    const lowState = updateTracks(built.state, [detection(0.3 + dx, 0.3, 0.2)], built.now);
+    expect(lowState.tracks).toHaveLength(1);
+    expect(lowState.tracks[0].id).toBe(id);
+    expect(lowState.tracks[0].state).toBe('lost');
+
+    const highState = updateTracks(built.state, [detection(0.3 + dx, 0.3, 0.9)], built.now);
+    expect(highState.tracks).toHaveLength(1);
+    expect(highState.tracks[0].id).toBe(id);
+    expect(highState.tracks[0].state).toBe('confirmed');
+  });
+
   it('does not let low-score detections promote a tentative track to confirmed', () => {
     // A tentative track is one hit old and unproven, more likely a detector artefact (a
     // shadow, a fold in a bag) than a real item. It must not get the second-stage recovery

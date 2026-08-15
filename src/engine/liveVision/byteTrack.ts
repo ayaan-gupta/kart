@@ -7,6 +7,7 @@ const DEFAULT_CONFIG: ByteTrackConfig = {
   highThreshold: 0.5,
   lowThreshold: 0.1,
   minIou: 0.2,
+  recoverMinIou: 0.5,
   maxLostMs: 2000,
   minHits: 3,
 };
@@ -83,7 +84,12 @@ export function updateTracks(
   const matchedTracks = new Set<number>();
   const matchedHigh = new Set<number>();
 
-  // Stage one: every track competes for the confident detections.
+  // Stage one: every track competes for the confident detections, tentative included. The
+  // reference gives unconfirmed tracks their own lower-priority round instead. We solve them
+  // jointly because the Hungarian solver is optimal, not greedy: a tentative track only wins a
+  // detection here when doing so lowers the total assignment cost, so it is the genuinely better
+  // geometric match. If identity continuity ever loses to a tentative track in practice, splitting
+  // this into the reference's separate round is the fix.
   for (const [t, d] of associate(predicted, high, config.minIou)) {
     next.push(applyDetection(predicted[t], high[d], now, config));
     matchedTracks.add(t);
@@ -97,15 +103,23 @@ export function updateTracks(
     if (!matchedTracks.has(t)) leftoverTracks.push(t);
   }
 
-  // Only confirmed and lost tracks get the low-score second chance. A tentative track is
-  // more likely a detector artefact, and letting faint detections recover it would let noise
-  // promote it to confirmed, which everything downstream counts as a real item.
+  // Confirmed and lost tracks both get the low-score second chance; only tentative is excluded.
+  // A tentative track is more likely a detector artefact, and letting faint detections recover it
+  // would let noise promote it to confirmed, which everything downstream counts as a real item.
+  // The reference denies already-lost tracks this recovery round and restricts stage two to
+  // currently-tracked leftovers. We keep lost tracks eligible on purpose: our motivating failure
+  // is duplicate counting when a buried item resurfaces mid-pan, and letting a lost track recover
+  // is exactly what stops a second id being minted for the same physical item. The reference is
+  // tuned for pedestrian benchmarks, where that trade runs the other way.
   const recoverable = leftoverTracks.filter((t) => predicted[t].state !== 'tentative');
 
+  // Stricter than stage one on purpose, see `recoverMinIou` on ByteTrackConfig: a low-score
+  // detection is the least trustworthy input here, so it needs a tighter geometric match before
+  // it can reattach a track's identity.
   const recovered = associate(
     recoverable.map((t) => predicted[t]),
     low,
-    config.minIou,
+    config.recoverMinIou,
   );
   const recoveredTracks = new Set<number>();
   for (const [i, d] of recovered) {

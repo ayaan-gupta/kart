@@ -52,8 +52,15 @@ export interface ByteTrackConfig {
   highThreshold: number;
   /** Below this score a detection is discarded outright. */
   lowThreshold: number;
-  /** Minimum IoU for a track and a detection to be allowed to pair. */
+  /** Minimum IoU for a track and a detection to be allowed to pair, in the high-score stage. */
   minIou: number;
+  /**
+   * Minimum IoU for the low-score recovery stage. Stricter than `minIou`: reference value 0.5
+   * (byte_tracker.py hardcodes this for stage two, versus match_thresh=0.8 cost / IoU>=0.2 for
+   * stage one). A low-confidence detection is the least trustworthy input the tracker sees, so
+   * it needs a tighter geometric match before it is allowed to reattach a track's identity.
+   */
+  recoverMinIou: number;
   /** How long a confirmed track survives with no detection before it is removed. */
   maxLostMs: number;
   /** Detections needed before a track is trusted enough to be confirmed. */
