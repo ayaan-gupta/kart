@@ -1216,7 +1216,13 @@ Append to `src/engine/liveVision/config.ts`:
  * Unset is a supported state, not a bug: the app runs, tracks, and draws outlines with no
  * endpoint at all. It simply never names anything.
  */
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_KART_API_URL ?? '').replace(/\/+$/, '');
+// A function, not a const. A module-level const captures process.env at import time, which is
+// before any test's beforeEach runs, so every test that sets the variable would see an empty
+// base and report 'unconfigured'. Under Metro the value is inlined at build time either way,
+// so this costs nothing on device.
+export function apiBaseUrl(): string {
+  return (process.env.EXPO_PUBLIC_KART_API_URL ?? '').replace(/\/+$/, '');
+}
 
 /** How long any single recognition request may take before it is abandoned. */
 export const REQUEST_TIMEOUT_MS = 20_000;
@@ -1246,7 +1252,7 @@ export const GREEN_CONFIDENCE = 0.55;
 Create `src/engine/liveVision/recognitionClient.ts`:
 
 ```ts
-import { API_BASE_URL, REQUEST_TIMEOUT_MS } from './config';
+import { apiBaseUrl, REQUEST_TIMEOUT_MS } from './config';
 import type { CensusMark, CensusResult } from './fusion';
 import type { Box } from './types';
 
@@ -1315,7 +1321,8 @@ async function post<T>(
   parse: (value: unknown) => T | null,
   signal?: AbortSignal,
 ): Promise<ClientResult<T>> {
-  if (API_BASE_URL === '') return { ok: false, failure: 'unconfigured' };
+  const base = apiBaseUrl();
+  if (base === '') return { ok: false, failure: 'unconfigured' };
 
   // Two abort sources: our own timeout, and the caller ending the scan session. AbortSignal.any
   // is not available in the Hermes runtime, so the timeout drives a controller that the
@@ -1326,7 +1333,7 @@ async function post<T>(
   signal?.addEventListener('abort', onCallerAbort);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${base}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
