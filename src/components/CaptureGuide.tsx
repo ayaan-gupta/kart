@@ -7,7 +7,7 @@ import {
   SECTOR_COUNT,
   type CoverageState,
 } from '../engine/liveVision/coverage';
-import { color, feedTextShadow, overlay, space } from '../design/tokens';
+import { captureGuide, color, feedTextShadow, motion, overlay, space } from '../design/tokens';
 import { Sub } from '../design/type';
 
 /**
@@ -22,10 +22,10 @@ export function guideVisible(input: { occluded: boolean; coverage: CoverageState
   return !isCoverageComplete(input.coverage);
 }
 
-const RADIUS = 46;
-const STROKE = 6;
+const RADIUS = captureGuide.ringRadius;
+const STROKE = captureGuide.ringStroke;
 const SIZE = (RADIUS + STROKE) * 2;
-const GAP_RADIANS = 0.12;
+const GAP_RADIANS = captureGuide.sectorGapRadians;
 
 /** One arc per sector, drawn clockwise from twelve o'clock. */
 function sectorPath(index: number): string {
@@ -47,8 +47,8 @@ export function CaptureGuide({ coverage, visible }: { coverage: CoverageState; v
   if (!visible) return null;
   return (
     <Animated.View
-      entering={FadeIn.duration(260)}
-      exiting={FadeOut.duration(200)}
+      entering={FadeIn.duration(motion.guideFadeInMs)}
+      exiting={FadeOut.duration(motion.guideFadeOutMs)}
       style={styles.wrap}
       pointerEvents="none"
       accessibilityRole="progressbar"
@@ -75,7 +75,7 @@ export function CaptureGuide({ coverage, visible }: { coverage: CoverageState; v
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', alignSelf: 'center', top: '38%', alignItems: 'center', gap: space.m },
+  wrap: { position: 'absolute', alignSelf: 'center', top: captureGuide.top, alignItems: 'center', gap: space.m },
   caption: {
     fontWeight: '600',
     ...feedTextShadow,

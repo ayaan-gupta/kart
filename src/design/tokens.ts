@@ -79,6 +79,9 @@ export const motion = {
   springFast: { duration: 160, dampingRatio: 1 } as const,
   pressScale: 0.96,
   sweepDurationMs: 1400,
+  /** CaptureGuide's fade in and out around the progress ring. */
+  guideFadeInMs: 260,
+  guideFadeOutMs: 200,
 } as const;
 
 /**
@@ -126,6 +129,17 @@ export const overlay = {
   guideTrack: 'rgba(255, 255, 255, 0.14)',
   /** CaptureGuide's arc for a sector not yet covered. */
   guidePending: 'rgba(255, 255, 255, 0.28)',
+} as const;
+
+/**
+ * CaptureGuide's progress ring geometry: the SVG arc's radius and stroke width, the gap
+ * between adjacent sector arcs in radians, and how far down the feed the ring sits.
+ */
+export const captureGuide = {
+  ringRadius: 46,
+  ringStroke: 6,
+  sectorGapRadians: 0.12,
+  top: '38%',
 } as const;
 
 /**
