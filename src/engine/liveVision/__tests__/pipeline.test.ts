@@ -158,6 +158,82 @@ describe('processFrame', () => {
     expect(carriers[0].id).toBe('track_1');
   });
 
+  it('lets two of the same product each claim their own track', () => {
+    // The other half of the claim rule. A cart holding two of the same yogurt is the most
+    // ordinary grocery behaviour there is, and both tubs decode the same UPC at clearly
+    // separate positions. Keying the skip on the payload alone would give the UPC to exactly
+    // one tub forever, and Plan 3 counts from tracks, so the second tub would vanish.
+    const left = {
+      box: { x: 0.1, y: 0.1, w: 0.15, h: 0.15 },
+      polygon: [0.1, 0.1, 0.25, 0.1, 0.25, 0.25, 0.1, 0.25],
+      score: 0.9,
+    };
+    const right = {
+      box: { x: 0.65, y: 0.65, w: 0.15, h: 0.15 },
+      polygon: [0.65, 0.65, 0.8, 0.65, 0.8, 0.8, 0.65, 0.8],
+      score: 0.9,
+    };
+    const payload = '0038000138416';
+    const onLeft = {
+      payload,
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.16, y: 0.16, w: 0.02, h: 0.02 },
+    };
+    const onRight = {
+      payload,
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.71, y: 0.71, w: 0.02, h: 0.02 },
+    };
+    const frame = { instances: [left, right], barcodes: [onLeft, onRight] };
+
+    let result = processFrame(createPipelineState(), scan(frame), 1000);
+    expect(result.tracks.filter((track) => track.barcode === payload)).toHaveLength(2);
+
+    // And it stays at two across frames: each decode is already claimed at its own position,
+    // so neither one wanders onto the other tub's track.
+    result = processFrame(result.state, scan(frame), 1300);
+    result = processFrame(result.state, scan(frame), 1600);
+    const carriers = result.tracks.filter((track) => track.barcode === payload);
+    expect(carriers).toHaveLength(2);
+    expect(carriers.map((track) => track.id).sort()).toEqual(['track_1', 'track_2']);
+  });
+
+  it('ignores a repeated decode of one label within a single frame', () => {
+    // Vision can report the same physical label twice in one frame. Both decodes sit at the
+    // same place, so the second must be recognized as the same label rather than handed to the
+    // larger overlapping box as a second product.
+    const small = {
+      box: { x: 0.24, y: 0.24, w: 0.06, h: 0.06 },
+      polygon: [0.24, 0.24, 0.3, 0.24, 0.3, 0.3, 0.24, 0.3],
+      score: 0.9,
+    };
+    const large = {
+      box: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+      polygon: [0.1, 0.1, 0.4, 0.1, 0.4, 0.4, 0.1, 0.4],
+      score: 0.9,
+    };
+    const payload = '0038000138416';
+    const hit = {
+      payload,
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.26, y: 0.26, w: 0.02, h: 0.02 },
+    };
+    const again = {
+      payload,
+      symbology: 'VNBarcodeSymbologyEAN13',
+      box: { x: 0.262, y: 0.262, w: 0.02, h: 0.02 },
+    };
+
+    const { tracks } = processFrame(
+      createPipelineState(),
+      scan({ instances: [small, large], barcodes: [hit, again] }),
+      1000,
+    );
+
+    expect(tracks.filter((track) => track.barcode === payload)).toHaveLength(1);
+    expect(tracks.find((track) => track.id === 'track_1')?.barcode).toBe(payload);
+  });
+
   it('does not let a barcode attach to a track that has already left the frame', () => {
     // A lost track is a Kalman prediction of an item that is no longer actually there. A
     // barcode should never bind to it, only to something the detector still sees.
