@@ -47,6 +47,14 @@
           "cameraPermissionText": "Kart needs your camera to scan items as you shop.",
           "enableFrameProcessors": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
       ]
     ],
     "experiments": {
