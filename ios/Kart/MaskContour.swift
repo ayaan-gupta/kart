@@ -93,16 +93,28 @@ public enum MaskContour {
       minPixelFraction: minPixelFraction, simplifyEpsilon: simplifyEpsilon)
   }
 
-  public static func instances(
-    labels: [UInt8],
-    width: Int,
-    height: Int,
-    minPixelFraction: Double,
-    simplifyEpsilon: Double
-  ) -> [MaskInstance] {
+  /// One label surviving selection: its id, size, and where it sits in the grid it was found in.
+  /// `minX`/`minY`/`maxX`/`maxY` are pixel bounds in that same grid, not normalized.
+  public struct Candidate {
+    public let label: Int
+    public let pixelCount: Int
+    public let minX: Int
+    public let minY: Int
+    public let maxX: Int
+    public let maxY: Int
+  }
+
+  /// Counts and bounds every label in a grid, then keeps the ones large enough to matter,
+  /// capped at `MAX_INSTANCES`, largest first by pixel count, returned in ascending label
+  /// order. Selection only, no boundary tracing: cheap enough to run on a low-resolution grid
+  /// purely to decide which labels are worth a full-resolution rescan, which is what
+  /// `AppleInstanceMaskDetector` uses this for. `instances(labels:...)` below also uses it, for
+  /// the single-grid path where no rescan is available.
+  public static func selectCandidates(
+    labels: [UInt8], width: Int, height: Int, minPixelFraction: Double
+  ) -> [Candidate] {
     guard width > 0, height > 0, labels.count >= width * height else { return [] }
 
-    // One pass to learn which labels exist, how big each is, and where each lives.
     var counts = [Int](repeating: 0, count: 256)
     var minX = [Int](repeating: Int.max, count: 256)
     var minY = [Int](repeating: Int.max, count: 256)
@@ -123,7 +135,6 @@ public enum MaskContour {
     }
 
     let minPixels = Int((Double(width * height) * minPixelFraction).rounded())
-    let epsilonPixels = simplifyEpsilon * Double(max(width, height))
 
     // The cap is applied to the label list, before any boundary is traced, so it bounds the
     // work as well as the output. Ties break on the label so the selection is deterministic;
@@ -138,13 +149,31 @@ public enum MaskContour {
       ).sorted()
     }
 
+    return selected.map {
+      Candidate(
+        label: $0, pixelCount: counts[$0], minX: minX[$0], minY: minY[$0], maxX: maxX[$0],
+        maxY: maxY[$0])
+    }
+  }
+
+  public static func instances(
+    labels: [UInt8],
+    width: Int,
+    height: Int,
+    minPixelFraction: Double,
+    simplifyEpsilon: Double
+  ) -> [MaskInstance] {
+    let candidates = selectCandidates(
+      labels: labels, width: width, height: height, minPixelFraction: minPixelFraction)
+    let epsilonPixels = simplifyEpsilon * Double(max(width, height))
+
     var out: [MaskInstance] = []
 
-    for label in selected {
+    for candidate in candidates {
       guard
         let traced = traceBoundary(
-          labels: labels, width: width, height: height, label: UInt8(label),
-          minX: minX[label], minY: minY[label], maxX: maxX[label], maxY: maxY[label])
+          labels: labels, width: width, height: height, label: UInt8(candidate.label),
+          minX: candidate.minX, minY: candidate.minY, maxX: candidate.maxX, maxY: candidate.maxY)
       else { continue }
 
       let simplified = simplifyBounded(
@@ -159,16 +188,77 @@ public enum MaskContour {
       }
 
       let box = CGRect(
-        x: Double(minX[label]) / Double(width),
-        y: Double(minY[label]) / Double(height),
-        width: Double(maxX[label] - minX[label] + 1) / Double(width),
-        height: Double(maxY[label] - minY[label] + 1) / Double(height))
+        x: Double(candidate.minX) / Double(width),
+        y: Double(candidate.minY) / Double(height),
+        width: Double(candidate.maxX - candidate.minX + 1) / Double(width),
+        height: Double(candidate.maxY - candidate.minY + 1) / Double(height))
 
       out.append(
-        MaskInstance(index: label, pixelCount: counts[label], box: box, polygon: polygon))
+        MaskInstance(
+          index: candidate.label, pixelCount: candidate.pixelCount, box: box, polygon: polygon))
     }
 
     return out
+  }
+
+  /// Traces the single foreground region of an already-isolated instance mask into one polygon,
+  /// normalized 0..1 to this grid's own width/height. Any nonzero pixel counts as foreground:
+  /// unlike `instances(labels:...)`, there is no label-based selection here, because the caller
+  /// has already chosen which instance this grid represents, by asking
+  /// `VNInstanceMaskObservation.generateScaledMaskForImage(forInstances:from:)` for exactly one
+  /// label. Measurement (see `AppleInstanceMaskDetector.detect`) found that call always returns
+  /// a one-component grid with foreground pixels at value 1, but this matches on "nonzero"
+  /// rather than the exact value 1, so a soft-edged or differently-valued foreground still
+  /// traces correctly.
+  ///
+  /// `index` is carried through unchanged for the caller to stamp onto the result; this
+  /// function does not read or need it to find the region.
+  public static func traceIsolatedInstance(
+    labels: [UInt8], width: Int, height: Int, index: Int, simplifyEpsilon: Double
+  ) -> MaskInstance? {
+    guard width > 0, height > 0, labels.count >= width * height else { return nil }
+
+    var binary = [UInt8](repeating: 0, count: width * height)
+    var minX = Int.max, minY = Int.max, maxX = Int.min, maxY = Int.min
+    var count = 0
+
+    for y in 0..<height {
+      let row = y * width
+      for x in 0..<width where labels[row + x] != 0 {
+        binary[row + x] = 1
+        count += 1
+        if x < minX { minX = x }
+        if x > maxX { maxX = x }
+        if y < minY { minY = y }
+        if y > maxY { maxY = y }
+      }
+    }
+    guard count > 0 else { return nil }
+
+    guard
+      let traced = traceBoundary(
+        labels: binary, width: width, height: height, label: 1,
+        minX: minX, minY: minY, maxX: maxX, maxY: maxY)
+    else { return nil }
+
+    let epsilonPixels = simplifyEpsilon * Double(max(width, height))
+    let simplified = simplifyBounded(traced, epsilon: epsilonPixels, maxVertices: MAX_POLYGON_VERTICES)
+    guard simplified.count >= 3 else { return nil }
+
+    var polygon = [Float]()
+    polygon.reserveCapacity(simplified.count * 2)
+    for point in simplified {
+      polygon.append(Float(Double(point.x) / Double(width)))
+      polygon.append(Float(Double(point.y) / Double(height)))
+    }
+
+    let box = CGRect(
+      x: Double(minX) / Double(width),
+      y: Double(minY) / Double(height),
+      width: Double(maxX - minX + 1) / Double(width),
+      height: Double(maxY - minY + 1) / Double(height))
+
+    return MaskInstance(index: index, pixelCount: count, box: box, polygon: polygon)
   }
 
   // MARK: - Boundary tracing

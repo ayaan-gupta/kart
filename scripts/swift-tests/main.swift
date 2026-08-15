@@ -291,6 +291,92 @@ suite("MaskContour.instances instance ceiling") {
   check(underCap.count == 5, "leaves a mask under the ceiling untouched")
 }
 
+// `AppleInstanceMaskDetector` selects candidate labels on one grid (the raw, low-resolution
+// `instanceMask`, measured at a fixed 512x512 regardless of frame size) and then traces each
+// selected instance's final polygon on a *different* grid (the per-instance buffer from
+// `generateScaledMaskForImage`, measured to match the oriented frame's own dimensions). These
+// two grids differ in both size and aspect ratio on every real camera frame. The suites below
+// cover that mismatch directly: selection on a small grid must not leak into normalization of
+// the differently-sized grid actually traced.
+suite("MaskContour.selectCandidates matches the selection instances() used to do inline") {
+  let labels = grid(width: 100, height: 100, rect: (10, 10, 30, 20), value: 1)
+  let candidates = MaskContour.selectCandidates(
+    labels: labels, width: 100, height: 100, minPixelFraction: 0.001)
+
+  check(candidates.count == 1, "finds the one labeled region")
+  if let only = candidates.first {
+    check(only.label == 1, "reports the region's label")
+    check(only.pixelCount == 600, "counts its pixels")
+    check(only.minX == 10 && only.minY == 10, "reports its pixel-space origin")
+    check(only.maxX == 39 && only.maxY == 29, "reports its pixel-space extent")
+  }
+
+  let filtered = MaskContour.selectCandidates(
+    labels: labels, width: 100, height: 100, minPixelFraction: 0.5)
+  check(filtered.isEmpty, "drops a region below the minimum pixel fraction, same as instances()")
+}
+
+suite("MaskContour.traceIsolatedInstance normalizes to its own grid, not a selection grid") {
+  // The "selection" grid: small and square, standing in for the fixed low-resolution
+  // instanceMask. Only used to prove the trace below does not depend on it.
+  let selectionLabels = grid(width: 8, height: 8, rect: (0, 0, 4, 4), value: 1)
+  let selectionCandidates = MaskContour.selectCandidates(
+    labels: selectionLabels, width: 8, height: 8, minPixelFraction: 0.01)
+  check(selectionCandidates.count == 1, "selection grid still finds its one region")
+
+  // The "trace" grid: a wide, differently-aspected grid standing in for a
+  // generateScaledMaskForImage single-instance buffer sized to a real oriented frame. A
+  // rectangle hard against the right edge, well clear of where the selection grid's own
+  // region would land if its coordinates were mistakenly reused here.
+  let width = 200
+  let height = 50
+  let traceLabels = grid(width: width, height: height, rect: (150, 10, 50, 30), value: 1)
+
+  let instance = MaskContour.traceIsolatedInstance(
+    labels: traceLabels, width: width, height: height, index: 7, simplifyEpsilon: 0.004)
+
+  guard let instance else {
+    check(false, "traces the isolated instance")
+    return
+  }
+
+  check(instance.index == 7, "carries through the caller-supplied index unchanged")
+  check(instance.pixelCount == 50 * 30, "counts the traced region's pixels")
+  // Normalized against the 200x50 trace grid, not the 8x8 selection grid: minX 150/200 = 0.75,
+  // reaching the right edge at (150+50)/200 = 1.0. Reusing the selection grid's dimensions here
+  // would put these numbers nowhere near the true position.
+  check(abs(instance.box.minX - 0.75) < 0.02, "normalizes x by the trace grid's own width")
+  check(abs(instance.box.maxX - 1.0) < 0.02, "reaches the trace grid's right edge, not the 8x8 grid's")
+  check(abs(instance.box.minY - 0.20) < 0.03, "normalizes y by the trace grid's own height")
+  check(
+    instance.polygon.allSatisfy { $0 >= -0.001 && $0 <= 1.001 },
+    "keeps polygon points normalized to the trace grid, not the selection grid")
+}
+
+suite("MaskContour.traceIsolatedInstance treats any nonzero pixel as foreground") {
+  // generateScaledMaskForImage was measured to use 1 for foreground, but the doc comment on
+  // AppleInstanceMaskDetector.detect notes this is not a documented guarantee, so the tracer
+  // matches "nonzero" rather than exactly 1. A high value stands in for a soft-edged matte.
+  let labels = grid(width: 40, height: 40, rect: (5, 5, 10, 10), value: 200)
+  let instance = MaskContour.traceIsolatedInstance(
+    labels: labels, width: 40, height: 40, index: 1, simplifyEpsilon: 0.004)
+  check(instance != nil, "traces a region whose label value is not 1")
+  check(instance?.pixelCount == 100, "still counts every foreground pixel regardless of its value")
+}
+
+suite("MaskContour.traceIsolatedInstance edge cases") {
+  let empty = [UInt8](repeating: 0, count: 20 * 20)
+  check(
+    MaskContour.traceIsolatedInstance(
+      labels: empty, width: 20, height: 20, index: 1, simplifyEpsilon: 0.004) == nil,
+    "returns nil for an all-background grid")
+
+  check(
+    MaskContour.traceIsolatedInstance(
+      labels: [], width: 0, height: 0, index: 1, simplifyEpsilon: 0.004) == nil,
+    "returns nil for a zero-size grid")
+}
+
 suite("FrameMetricsMath.varianceOfLaplacian") {
   let flat = [UInt8](repeating: 128, count: 64 * 64)
   check(

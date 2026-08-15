@@ -1,6 +1,7 @@
 // ios/Kart/AppleInstanceMaskDetector.swift
 import CoreGraphics
 import CoreVideo
+import Foundation
 import ImageIO
 import Vision
 
@@ -22,6 +23,44 @@ public final class AppleInstanceMaskDetector: KartDetector {
     self.simplifyEpsilon = simplifyEpsilon
   }
 
+  // Measured on macOS 26.5.2 / Xcode 26.3, 2026-08-15, with a standalone harness (not part of
+  // this repo) building synthetic 1920x1080 and 1080x1920 images with shapes at known pixel
+  // positions and running VNGenerateForegroundInstanceMaskRequest on each, across
+  // orientations .up/.right/.left. Full numbers in
+  // .superpowers/sdd/2026-08-13-kart-on-device-detection/vision-mask-geometry-report.md.
+  //
+  // - `observation.instanceMask` was 512x512 in every run, regardless of source dimensions,
+  //   aspect ratio, or orientation. Its aspect ratio (1.0) essentially never matches a real
+  //   camera frame's (1920x1080 = 1.78, 1080x1920 = 0.5625), so raw `instanceMask` cannot be
+  //   read as though it shared the frame's aspect ratio.
+  // - Content inside that 512x512 grid is not letterboxed or cropped: a shape touching the
+  //   source's left/top/right/bottom edge touches the mask's corresponding edge too, and a
+  //   shape's raw-mask bounding box normalized by 512 matches its true frame-normalized
+  //   position to within about 0.002 (roughly one mask pixel), the resolution limit of the
+  //   512-pixel grid. That is: Vision maps the oriented frame into the square via an
+  //   independent, non-uniform stretch per axis, not a uniform aspect-preserving resize. This
+  //   makes `MaskContour`'s existing normalize-by-the-mask's-own-dimensions arithmetic
+  //   numerically equivalent to normalizing by the frame's dimensions, but that equivalence
+  //   depends on an undocumented Vision implementation detail (no letterboxing) that Apple does
+  //   not promise to keep, which is why this code does not rely on it.
+  // - `generateScaledMaskForImage(forInstances:from:)` returns a buffer whose dimensions equal
+  //   the *oriented* frame (matching `KartVisionFrameProcessorPlugin`'s own `swapsDimensions`
+  //   computation): 1920x1080 for `.up`, 1080x1920 for `.right`/`.left` on a 1920x1080 source.
+  //   Its content is correctly rotated for the orientation passed to the handler: a shape's
+  //   position in the returned buffer matches the position you get by rotating the shape's raw
+  //   sensor-space position the way `CGImagePropertyOrientation` defines that orientation, not
+  //   the raw unrotated sensor position. So the mask is already in oriented/upright space, not
+  //   sensor space, confirming the no-flip assumption elsewhere in this file needs no change.
+  // - Calling `generateScaledMaskForImage(forInstances:from:)` with the *full* instance
+  //   IndexSet at once merges every requested instance into one undifferentiated foreground
+  //   region (single label, no per-instance separation): measured pixel count matched the sum
+  //   of the individual instances' areas. Calling it once per single-label IndexSet instead
+  //   returns one correctly-scaled, correctly-positioned binary mask per instance. That is the
+  //   API's real per-instance contract, and it is what `detect` below relies on. Measured cost
+  //   on this machine: about 1 to 3 ms per single-instance call, so a worst-case 64-instance
+  //   frame adds roughly 70 to 175 ms; this Mac is not the iPhone the app ships on, but the
+  //   call only runs for instances that already passed `minPixelFraction`, keeping the common
+  //   case far below the 64-instance ceiling.
   public func detect(
     pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation
@@ -52,10 +91,33 @@ public final class AppleInstanceMaskDetector: KartDetector {
     let score = max(
       KartDetectorScore.trackerHighThreshold, min(1, max(0, observation.confidence)))
 
-    return MaskContour.instances(
-      from: observation.instanceMask,
-      minPixelFraction: minPixelFraction,
-      simplifyEpsilon: simplifyEpsilon
-    ).map { DetectedInstance(box: $0.box, polygon: $0.polygon, score: score) }
+    // The raw `instanceMask` is read once, only to decide which labels are large enough to
+    // keep (see the measurement above: it is a fixed 512x512 grid, cheap to scan). Each kept
+    // label is then rescanned individually through `generateScaledMaskForImage(forInstances:
+    // from:)`, which is the only way measured to get a mask sized to the oriented frame without
+    // depending on the "no letterboxing" assumption a raw-mask-only reading would require. This
+    // is why `handler` is kept alive past `perform(_:)`: `generateScaledMaskForImage` needs it.
+    guard let raw = MaskContour.labels(from: observation.instanceMask) else { return [] }
+    let candidates = MaskContour.selectCandidates(
+      labels: raw.labels, width: raw.width, height: raw.height,
+      minPixelFraction: minPixelFraction)
+
+    var out: [DetectedInstance] = []
+    out.reserveCapacity(candidates.count)
+
+    for candidate in candidates {
+      guard
+        let scaledMask = try? observation.generateScaledMaskForImage(
+          forInstances: IndexSet(integer: candidate.label), from: handler),
+        let decoded = MaskContour.labels(from: scaledMask),
+        let instance = MaskContour.traceIsolatedInstance(
+          labels: decoded.labels, width: decoded.width, height: decoded.height,
+          index: candidate.label, simplifyEpsilon: simplifyEpsilon)
+      else { continue }
+
+      out.append(DetectedInstance(box: instance.box, polygon: instance.polygon, score: score))
+    }
+
+    return out
   }
 }
