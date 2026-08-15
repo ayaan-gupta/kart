@@ -873,7 +873,10 @@ describe("cropToBox", () => {
     const out = await cropToBox(await solid(1000, 1000), { x: 0.9, y: 0.9, w: 0.5, h: 0.5 }, 0.2);
     const meta = await sharp(out).metadata();
     expect(meta.width).toBeGreaterThan(0);
-    expect(meta.width).toBeLessThanOrEqual(100);
+    // box x 0.9 with padding 0.2 gives padX 0.1, so the span clamps to [0.8, 1.0] of a
+    // 1000px image, which is exactly 200px. An earlier draft asserted 100 here, which the
+    // algorithm can never produce.
+    expect(meta.width).toBe(200);
   });
 
   it("rejects a box with no area", async () => {
