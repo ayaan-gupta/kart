@@ -26,10 +26,10 @@ import { IconButton } from '../components/IconButton';
 import { ItemHighlights } from '../components/ItemHighlights';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
-import { CATALOG } from '../engine/catalog';
-import { evaluateCoverageHint } from '../engine/liveVision/coverageHint';
-import { scanGroceryItem } from '../engine/liveVision/frameProcessor';
+import { DETECT_TARGET_FPS } from '../engine/liveVision/config';
+import { scanCart } from '../engine/liveVision/frameProcessor';
 import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
+import type { FrameScan, Track } from '../engine/liveVision/types';
 import { aggregate, haulCount, useScanline } from '../engine/store';
 
 const VISIBLE_MS = 6000;
@@ -93,9 +93,8 @@ export default function ScanScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
   const pipelineStateRef = useRef(createPipelineState());
-  const lastLockedAtRef = useRef<number | null>(null);
-  const hintActiveRef = useRef(false);
-  const [liveCandidates, setLiveCandidates] = useState(pipelineStateRef.current.candidates);
+  const keyframeCountRef = useRef(0);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [permissionAsked, setPermissionAsked] = useState(false);
 
@@ -106,66 +105,50 @@ export default function ScanScreen() {
     }
   }, [hasPermission, permissionAsked, requestPermission]);
 
-  // Stable identity across renders: react-native-vision-camera requires the frame
-  // processor (and therefore this handler) not to change identity every render, or
-  // the native Frame Processor Context gets torn down and reinstalled repeatedly.
-  // Safe to build once — the body only closes over refs and stable setState/module
-  // imports, none of which need to vary per render.
-  const handleRegions = useMemo(
+  // Stable identity across renders: react-native-vision-camera requires the frame processor
+  // (and therefore this handler) not to change identity every render, or the native Frame
+  // Processor Context gets torn down and reinstalled repeatedly. Safe to build once, because
+  // the body only closes over refs and stable setState and module imports.
+  const handleScan = useMemo(
     () =>
-      Worklets.createRunOnJS(
-        (regions: ReturnType<typeof scanGroceryItem>, width: number, height: number) => {
-          setFrameSize({ width, height });
-          const now = Date.now();
-          const { state, events } = processFrame(pipelineStateRef.current, regions, now, CATALOG);
-          pipelineStateRef.current = state;
-          setLiveCandidates(state.candidates);
+      // The React Compiler lint rules model every function defined in a component body as
+      // reachable during render. This one is not: react-native-worklets-core only invokes it
+      // when the frame processor worklet calls it via runOnJS, on the JS thread, after render.
+      // eslint-disable-next-line react-hooks/refs -- invoked from a worklet callback, never during render
+      Worklets.createRunOnJS((scan: FrameScan) => {
+        // eslint-disable-next-line react-hooks/purity -- runs on the JS thread from runOnJS, not during render
+        const now = Date.now();
+        if (scan.width > 0 && scan.height > 0) {
+          setFrameSize({ width: scan.width, height: scan.height });
+        }
 
-          for (const event of events) {
-            useScanline.getState().addDetection(event.skuCode, event.confidence);
-            lastLockedAtRef.current = now;
-            if (hintActiveRef.current) {
-              hintActiveRef.current = false;
-              useScanline.getState().setHint(null);
-            }
-          }
+        const result = processFrame(pipelineStateRef.current, scan, now);
+        pipelineStateRef.current = result.state;
+        setTracks(result.tracks);
 
-          const { showHint } = evaluateCoverageHint(state.candidates, lastLockedAtRef.current, now, hintActiveRef.current);
-          if (showHint) {
-            hintActiveRef.current = true;
-            useScanline.getState().setHint('Looks like you have more items. Try moving the ones already scanned.');
-          }
-        },
-      ),
+        // Plan 2 only decides that a frame is worth uploading. Plan 3 is what uploads it. The
+        // counter exists so the gate can be shown to be opening on real hardware rather than
+        // assumed to be.
+        if (result.keyframe.fire) keyframeCountRef.current += 1;
+      }),
     [],
   );
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
       'worklet';
-      runAtTargetFps(4, () => {
+      // Detection is the expensive call, so it runs a few times a second rather than every
+      // frame. The overlay stays smooth because the tracker predicts between detections, and
+      // the frame's upright dimensions now come back from native with the result.
+      runAtTargetFps(DETECT_TARGET_FPS, () => {
         'worklet';
-        const regions = scanGroceryItem(frame);
-        // `frame.width`/`frame.height` always report the raw, unrotated sensor buffer
-        // dimensions (e.g. 1920x1080 even when the phone is held in portrait). The native
-        // plugin now gives Vision the frame's real orientation, so the regions' normalized box
-        // coordinates are already reported in the corrected, upright space. Swap width/height
-        // here to match that same upright space whenever the frame needs a 90/270 rotation to
-        // become upright, so ItemHighlights scales boxes against the right aspect ratio.
-        const rotated = frame.orientation === 'landscape-left' || frame.orientation === 'landscape-right';
-        const width = rotated ? frame.height : frame.width;
-        const height = rotated ? frame.width : frame.height;
-        handleRegions(regions, width, height);
+        handleScan(scanCart(frame));
       });
     },
-    [handleRegions],
+    [handleScan],
   );
 
   useEffect(() => {
-    // Seed with the scan's actual start time, not null (which evaluateCoverageHint treats as
-    // epoch 0 internally) — otherwise `now - 0` is always far past the idle threshold and the
-    // hint banner fires almost immediately, before the user has scanned anything.
-    lastLockedAtRef.current = Date.now();
     useScanline.getState().startScan();
   }, []);
 
@@ -220,7 +203,7 @@ export default function ScanScreen() {
             isActive={true}
             frameProcessor={frameProcessor}
           />
-          <ItemHighlights candidates={liveCandidates} frameSize={frameSize} />
+          <ItemHighlights tracks={tracks} frameSize={frameSize} />
         </>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.permissionFallback]}>
