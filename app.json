@@ -11,7 +11,8 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSCameraUsageDescription": "Kart needs your camera to scan items as you shop."
+        "NSCameraUsageDescription": "Kart needs your camera to scan items as you shop.",
+        "NSMotionUsageDescription": "Kart uses motion to guide you around your cart so nothing is missed."
       },
       "bundleIdentifier": "dev.ayaangupta.kart"
     },
