@@ -35,6 +35,24 @@ share a single roughly bird's-eye frame. That is uncommon, and guided capture pu
 toward the wider views that make co-occurrence more likely. Undercounting in a rare case is a
 gentler failure than double-counting in a common one, so the trade is deliberate.
 
+## Revising a bad clamp
+
+A single occluded or glare-washed keyframe can badly undercount a product that is genuinely
+present in force: six real apples read as one. Left alone, the clamp above would pin that
+product's quantity at 1 for the rest of the session, because the tracks it folded away stay
+folded away and a folded-away track never rejoins the pool the clamp counts from next time.
+
+An **explicit** `inViewCounts` entry for a product is trusted enough to undo that. When a census
+reports a real count for a key, the tracks previously folded under that key are released before
+the clamp runs again, so a later honest keyframe can raise the quantity back up to what is
+actually there.
+
+A key the census stays silent on gets no such release, and that is deliberate. An omitted count
+means the model had no opinion this frame, not that it re-confirmed the fold from before.
+Releasing on silence is exactly what would let the split-bananas case creep back from 1 to 3 the
+moment a keyframe simply didn't mention bananas: the clamp exists to survive silence, and only an
+explicit, repeated statement from the model is allowed to overrule it.
+
 ## If you want to change this
 
 The alternative that fixes the last row without reintroducing the pan-away bug is spatial

@@ -159,6 +159,46 @@ describe('the in-view clamp', () => {
     state = applyCensus(state, census([mark(99, 'Ghost')], [[productKey('Ghost', null), 1]]), { 1: 't1' }, ['t1']);
     expect(bagLines(state)).toHaveLength(0);
   });
+
+  it('recovers from one occluded keyframe once a later, honest census gives an explicit count', () => {
+    // Regression for a defect found in review: the merge set only ever grew, so a single
+    // glare-washed keyframe that undercounted six real apples as one permanently pinned the
+    // quantity at 1 for the rest of the session, even once five subsequent honest keyframes
+    // said 6.
+    let state = createFusionState();
+    const key = productKey('Apple', null);
+    const marks = [1, 2, 3, 4, 5, 6].map((id) => mark(id, 'Apple'));
+    const markToTrack = { 1: 'a1', 2: 'a2', 3: 'a3', 4: 'a4', 5: 'a5', 6: 'a6' };
+    const liveTrackIds = Object.values(markToTrack);
+
+    // Keyframe 1: glare washes out the frame and the model badly undercounts.
+    state = applyCensus(state, census(marks, [[key, 1]]), markToTrack, liveTrackIds);
+    expect(bagLines(state)[0].qty).toBe(1);
+
+    // Five honest keyframes in a row, same six tracks still live, explicit correct count.
+    for (let i = 0; i < 5; i++) {
+      state = applyCensus(state, census(marks, [[key, 6]]), markToTrack, liveTrackIds);
+    }
+    expect(bagLines(state)[0].qty).toBe(6);
+  });
+
+  it('does not let an explicit revision reintroduce the split-bananas overcount on a later silent census', () => {
+    // Companion to the six-apples recovery: an explicit count is allowed to raise a clamp, but a
+    // later census that says nothing about the product at all must not undo the fold, or the
+    // original duplicate-bananas bug creeps back in.
+    let state = createFusionState();
+    const key = productKey('Bananas', null);
+    const marks = [mark(1, 'Bananas'), mark(2, 'Bananas'), mark(3, 'Bananas')];
+    const markToTrack = { 1: 't1', 2: 't2', 3: 't3' };
+    const liveTrackIds = ['t1', 't2', 't3'];
+
+    state = applyCensus(state, census(marks, [[key, 1]]), markToTrack, liveTrackIds);
+    expect(bagLines(state)[0].qty).toBe(1);
+
+    // A later census sees the same three tracks but has no opinion on bananas at all this frame.
+    state = applyCensus(state, census(marks, []), markToTrack, liveTrackIds);
+    expect(bagLines(state)[0].qty).toBe(1);
+  });
 });
 
 describe('barcode identity', () => {
@@ -217,11 +257,17 @@ describe('barcode identity', () => {
     expect(state.identities['t1'].name).toBe('Original Potato Crisps');
   });
 
-  it('is not overwritten by a later model guess', () => {
+  it('is not overwritten by a later model guess, and one misread does not permanently weld an unrelated product into the line', () => {
+    // Regression for a defect found in review: welding a mark's key into a barcoded track's
+    // identity with no repetition requirement meant a single bad keyframe (glare, a half-second
+    // misread) permanently aliased an unrelated product's key onto the barcode's line. A later
+    // census with the true contents then collapsed everything onto one line and the unrelated
+    // product's genuine items never appeared in the bag at all.
     let state = createFusionState();
     state = applyBarcode(state, 'c1', '016000275270', {
       name: 'Gmills hny nut cheerios', brand: 'General Mills', size: '347 g', category: 'Cereal',
     });
+    // One bad keyframe misreads the barcoded track as Corn Flakes.
     state = applyCensus(
       state,
       census([mark(1, 'Corn Flakes', 'Kellogg')], [[productKey('Corn Flakes', 'Kellogg'), 1]]),
@@ -229,7 +275,36 @@ describe('barcode identity', () => {
       ['c1'],
     );
     expect(state.identities['c1'].source).toBe('barcode');
-    expect(bagLines(state)).toHaveLength(1);
+
+    // A later census with the true contents: Cheerios still on c1, and two genuine Corn Flakes
+    // boxes on their own tracks, with an honest in-view count for each.
+    const cornFlakesKey = productKey('Corn Flakes', 'Kellogg');
+    state = applyCensus(
+      state,
+      census(
+        [mark(1, 'Cheerios', 'General Mills'), mark(2, 'Corn Flakes', 'Kellogg'), mark(3, 'Corn Flakes', 'Kellogg')],
+        [[cornFlakesKey, 2]],
+      ),
+      { 1: 'c1', 2: 'f1', 3: 'f2' },
+      ['c1', 'f1', 'f2'],
+    );
+
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(2);
+    expect(lines.find((l) => l.key === cornFlakesKey)?.qty).toBe(2);
+  });
+
+  it('welds a model guess onto the barcode line only once it repeats on a second census', () => {
+    let state = createFusionState();
+    state = applyBarcode(state, 'c1', '016000275270', {
+      name: 'Gmills hny nut cheerios', brand: 'General Mills', size: '347 g', category: 'Cereal',
+    });
+    const misreadKey = productKey('Corn Flakes', 'Kellogg');
+    const misread = census([mark(1, 'Corn Flakes', 'Kellogg')], [[misreadKey, 1]]);
+    state = applyCensus(state, misread, { 1: 'c1' }, ['c1']);
+    expect(state.aliases[misreadKey]).toBeUndefined();
+    state = applyCensus(state, misread, { 1: 'c1' }, ['c1']);
+    expect(state.aliases[misreadKey]).toBe(state.identities['c1'].key);
   });
 
   it('records nothing countable for a barcode the database does not know', () => {
@@ -239,6 +314,36 @@ describe('barcode identity', () => {
     // census actually counts it in view.
     expect(state.identities['t1']).toBeDefined();
     expect(bagLines(state)).toHaveLength(0);
+  });
+
+  it('does not overcount two different barcodes that shared one generic model name', () => {
+    // Regression for a defect found in review: addAlias used to clobber an existing redirect
+    // unconditionally, so scanning the second of two differently-flavoured cups (both named
+    // just "Yogurt" by the model) stole the first cup's stranded quantity, leaving one line at
+    // 2 and a second at 1 for two physical cups: three items instead of two.
+    let state = createFusionState();
+    const genericKey = productKey('Yogurt', null);
+    state = applyCensus(
+      state,
+      census([mark(1, 'Yogurt'), mark(2, 'Yogurt')], [[genericKey, 2]]),
+      { 1: 'y1', 2: 'y2' },
+      ['y1', 'y2'],
+    );
+    expect(bagLines(state)[0].qty).toBe(2);
+
+    state = applyBarcode(state, 'y1', '000000000001', {
+      name: 'Strawberry Yogurt', brand: null, size: '6 oz', category: 'Dairy',
+    });
+    state = applyBarcode(state, 'y2', '000000000002', {
+      name: 'Blueberry Yogurt', brand: null, size: '6 oz', category: 'Dairy',
+    });
+
+    // Both cups are still in view; nothing new to identify, but the clamp re-derives quantity
+    // for whatever key each track now carries.
+    state = applyCensus(state, census([], []), {}, ['y1', 'y2']);
+
+    const lines = bagLines(state);
+    expect(lines.reduce((sum, l) => sum + l.qty, 0)).toBe(2);
   });
 });
 

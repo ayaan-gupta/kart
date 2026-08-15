@@ -35,10 +35,17 @@ export interface FusionState {
   maxSimultaneous: Record<string, number>;
   /** Tracks the in-view clamp folded into another track. They keep their outline but stop counting. */
   merged: string[];
+  /**
+   * trackId -> the last model key seen on that track while it was already barcode-identified,
+   * and how many censuses in a row it has now shown up. A barcode-sourced track only ever gets
+   * aliased to a fresh VLM guess once that guess repeats, so one misread on a glare-washed
+   * frame leaves no permanent trace on the bag.
+   */
+  pendingAlias: Record<string, { key: string; count: number }>;
 }
 
 export function createFusionState(): FusionState {
-  return { identities: {}, aliases: {}, maxSimultaneous: {}, merged: [] };
+  return { identities: {}, aliases: {}, maxSimultaneous: {}, merged: [], pendingAlias: {} };
 }
 
 /**
@@ -82,10 +89,28 @@ export function resolveKey(state: Pick<FusionState, 'aliases'>, key: string): st
  * already-counted product a new key, its quantity is stranded under the old key and the item
  * disappears from the bag: the user watches something they already scanned drop out. Both keys
  * describe the same physical items, so the survivor takes the larger high-water mark.
+ *
+ * `from` can already alias somewhere else, and the new target can differ from the old one: two
+ * barcode reads under one generic model name (both cups named "Yogurt" by the VLM, one scanned
+ * as strawberry, the other as blueberry) route the same `from` key to two different targets in
+ * two calls. Forcing the second call to win would silently fuse two different physical products
+ * into one bag line. Instead the redirect is severed outright and both keys' accumulated
+ * quantity is dropped, since it was computed while the two were wrongly fused; each re-accumulates
+ * on its own from the next census, where every barcode-claimed track keys to its own barcode key.
  */
 export function addAlias(state: FusionState, from: string, to: string): FusionState {
   const target = resolveKey(state, to);
   if (from === target) return state;
+
+  const existingResolved = resolveKey(state, from);
+  if (existingResolved !== from && existingResolved !== target) {
+    const aliases = { ...state.aliases };
+    delete aliases[from];
+    const maxSimultaneous = { ...state.maxSimultaneous };
+    delete maxSimultaneous[existingResolved];
+    delete maxSimultaneous[target];
+    return { ...state, aliases, maxSimultaneous };
+  }
 
   const aliases = { ...state.aliases, [from]: target };
   const maxSimultaneous = { ...state.maxSimultaneous };
@@ -95,6 +120,21 @@ export function addAlias(state: FusionState, from: string, to: string): FusionSt
     delete maxSimultaneous[from];
   }
   return { ...state, aliases, maxSimultaneous };
+}
+
+/**
+ * Orders track ids so `track_10` sorts after `track_2` instead of before it. Ids are shaped
+ * `prefix_N`; ties (or ids with no trailing digit run, as in tests) fall back to a plain string
+ * compare so ordering is still total and deterministic.
+ */
+function compareTrackIds(a: string, b: string): number {
+  const na = /(\d+)$/.exec(a);
+  const nb = /(\d+)$/.exec(b);
+  if (na && nb) {
+    const diff = Number(na[1]) - Number(nb[1]);
+    if (diff !== 0) return diff;
+  }
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /**
@@ -124,9 +164,24 @@ export function applyCensus(
     const existing = working.identities[trackId];
     // A barcode is ground truth. Never let a later VLM guess overwrite one.
     if (existing?.source === 'barcode') {
-      // ...but do record that this VLM name refers to the same product, so a sibling track
-      // that only ever got the VLM name still merges into the barcode's identity.
-      working = addAlias(working, productKey(mark.name, mark.brand), existing.key);
+      const candidateKey = productKey(mark.name, mark.brand);
+      const pending = working.pendingAlias[trackId];
+      if (pending && pending.key === candidateKey) {
+        // The same guess has now shown up on this barcoded track in two distinct censuses.
+        // One misread is noise a VLM produces routinely on a bad frame; two in a row is
+        // corroboration, so it's now safe to record that this model key refers to the same
+        // product as the barcode's, letting a sibling track that only ever got the VLM name
+        // still merge into the barcode's identity.
+        working = addAlias(working, candidateKey, existing.key);
+        const pendingAlias = { ...working.pendingAlias };
+        delete pendingAlias[trackId];
+        working = { ...working, pendingAlias };
+      } else {
+        // First sighting of this guess on this barcoded track (or it differs from the last
+        // one). Don't act on it yet: a single misread must leave no permanent trace on the
+        // bag, so just remember it in case the next census repeats it.
+        working = { ...working, pendingAlias: { ...working.pendingAlias, [trackId]: { key: candidateKey, count: 1 } } };
+      }
       continue;
     }
 
@@ -140,6 +195,19 @@ export function applyCensus(
       needsCloserLook: mark.needsCloserLook,
       source: 'vlm',
     };
+  }
+
+  const counted = new Map(census.inViewCounts.map((c) => [resolveKey(working, c.productKey), c.count]));
+
+  // An explicit count for a product this frame is corroborating evidence strong enough to
+  // revise a bad earlier clamp upward, so release that key's previously-merged tracks before
+  // regrouping below. A key the model stays silent on this frame keeps its existing merges
+  // exactly as they were: an omitted count is not a re-confirmation of the old clamp, and
+  // releasing on silence is what would let a census that simply doesn't mention a product
+  // re-inflate an already-correct clamp (the split-bananas case creeping back from 1 to 3).
+  for (const id of [...merged]) {
+    const identity = working.identities[id];
+    if (identity && counted.has(resolveKey(working, identity.key))) merged.delete(id);
   }
 
   // --- The in-view clamp -------------------------------------------------------------------
@@ -157,17 +225,16 @@ export function applyCensus(
     else byKey.set(key, [id]);
   }
 
-  const counted = new Map(census.inViewCounts.map((c) => [resolveKey(working, c.productKey), c.count]));
-
   const maxSimultaneous = { ...working.maxSimultaneous };
   for (const [key, trackIds] of byKey) {
     const modelCount = counted.get(key);
     // No opinion from the model on this product means no clamp. Trust the tracker.
     const effective = modelCount === undefined ? trackIds.length : Math.min(trackIds.length, Math.max(0, modelCount));
 
-    // Fold the surplus tracks. Keep the earliest ids so the survivor is stable across calls
-    // rather than flickering between siblings every census.
-    const ordered = [...trackIds].sort();
+    // Fold the surplus tracks. Numeric-aware order keeps the survivor stable across calls
+    // rather than flickering between siblings every census, and rather than flickering at the
+    // 9-to-10 boundary the way a plain string sort would.
+    const ordered = [...trackIds].sort(compareTrackIds);
     for (const id of ordered.slice(effective)) merged.add(id);
 
     // Quantity is the high-water mark of simultaneously live tracks, never a running sum.
@@ -175,7 +242,13 @@ export function applyCensus(
     maxSimultaneous[key] = Math.max(maxSimultaneous[key] ?? 0, effective);
   }
 
-  return { identities: working.identities, aliases: working.aliases, maxSimultaneous, merged: [...merged] };
+  return {
+    identities: working.identities,
+    aliases: working.aliases,
+    maxSimultaneous,
+    merged: [...merged],
+    pendingAlias: working.pendingAlias,
+  };
 }
 
 /** Attaches a decoded barcode's identity to a track. Ground truth, so it outranks any VLM guess. */
@@ -221,7 +294,9 @@ export interface BagLine { key: string; name: string; brand: string | null; size
 export function bagLines(state: FusionState): BagLine[] {
   const order: string[] = [];
   const display = new Map<string, Identity>();
-  for (const id of Object.keys(state.identities).sort()) {
+  // `Object.keys` on a string-keyed object already returns insertion order for non-index-like
+  // keys (which every track id is), so this is first-identified order with no sort needed.
+  for (const id of Object.keys(state.identities)) {
     const identity = state.identities[id];
     const key = resolveKey(state, identity.key);
     if (!display.has(key)) { order.push(key); display.set(key, identity); }
