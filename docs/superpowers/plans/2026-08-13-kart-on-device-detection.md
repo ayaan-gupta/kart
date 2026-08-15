@@ -1669,7 +1669,6 @@ Create `ios/Kart/MaskContour.swift`:
 
 ```swift
 // ios/Kart/MaskContour.swift
-import Accelerate
 import CoreGraphics
 import CoreVideo
 import Foundation
@@ -1843,7 +1842,8 @@ public enum MaskContour {
     var contour = [first]
     // Scanning found `first` moving left to right, so the pixel to its west is known background
     // and is the correct place to start looking from.
-    var backtrack = Point(x: first.x - 1, y: first.y)
+    let firstBacktrack = Point(x: first.x - 1, y: first.y)
+    var backtrack = firstBacktrack
     var current = first
     let limit = 4 * (maxX - minX + 1) * (maxY - minY + 1) + 16
 
@@ -1853,14 +1853,32 @@ public enum MaskContour {
         ?? 4
 
       var moved = false
+      var closed = false
       for step in 1...8 {
         let index = (entry + step) % 8
         let nx = current.x + neighbours[index].dx
         let ny = current.y + neighbours[index].dy
         if isLabel(nx, ny) {
           let previous = (entry + step - 1) % 8
-          backtrack = Point(x: current.x + neighbours[previous].dx, y: current.y + neighbours[previous].dy)
-          current = Point(x: nx, y: ny)
+          let newBacktrack = Point(
+            x: current.x + neighbours[previous].dx, y: current.y + neighbours[previous].dy)
+
+          // Jacob's stopping criterion. A region that touches itself at a single pixel, a
+          // bowtie or dumbbell, revisits that pixel's coordinates mid-trace while arriving
+          // from a different neighbor than the artificial backtrack used to start the walk.
+          // That revisit is a genuine boundary vertex belonging to the other lobe, not the end
+          // of the loop, so it must be kept and the walk must continue through it. The walk is
+          // only closed when it returns to the start pixel by arriving from the exact same
+          // neighbor it started from, which means the very first step is about to repeat.
+          if nx == first.x, ny == first.y, newBacktrack.x == firstBacktrack.x,
+            newBacktrack.y == firstBacktrack.y
+          {
+            closed = true
+          } else {
+            backtrack = newBacktrack
+            current = Point(x: nx, y: ny)
+            contour.append(current)
+          }
           moved = true
           break
         }
@@ -1868,8 +1886,7 @@ public enum MaskContour {
 
       // A single isolated pixel has no boundary to walk.
       if !moved { break }
-      if current.x == first.x && current.y == first.y { break }
-      contour.append(current)
+      if closed { break }
     }
 
     return contour.count >= 3 ? contour : nil
