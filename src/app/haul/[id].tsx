@@ -5,11 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { haulDateLabel } from '../../components/HaulCard';
 import { IconButton } from '../../components/IconButton';
-import { ProductImage } from '../../components/ProductImage';
+import { ItemThumbnail, itemSubtitle } from '../../components/ItemThumbnail';
 import { cardEdge, color, radius, shadow, space } from '../../design/tokens';
-import { Body, Headline, LargeTitle, Price, Sub } from '../../design/type';
-import { formatPrice, skuByCode } from '../../engine/catalog';
-import { haulCount, haulTotal, useScanline } from '../../engine/store';
+import { Body, Headline, LargeTitle, Sub } from '../../design/type';
+import { haulCount, useScanline } from '../../engine/store';
 
 export default function HaulDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -26,7 +25,6 @@ export default function HaulDetailScreen() {
   }
 
   const count = haulCount(haul.items);
-  const total = haulTotal(haul.items);
   const time = new Date(haul.endedAt).toLocaleTimeString(undefined, {
     hour: 'numeric',
     minute: '2-digit',
@@ -58,28 +56,19 @@ export default function HaulDetailScreen() {
         </View>
 
         <View style={styles.card}>
-          {haul.items.map((it, i) => {
-            const sku = skuByCode.get(it.skuCode);
-            if (!sku) return null;
-            return (
-              <View key={it.skuCode}>
-                {i > 0 ? <View style={styles.divider} /> : null}
-                <View style={styles.line}>
-                  <ProductImage skuCode={sku.code} size={46} />
-                  <View style={styles.lineText}>
-                    <Headline numberOfLines={2}>{sku.name}</Headline>
-                    <Sub>{it.qty > 1 ? `${formatPrice(sku.price)} x ${it.qty}` : sku.category}</Sub>
-                  </View>
-                  <Price>{formatPrice(sku.price * it.qty)}</Price>
+          {haul.items.map((it, i) => (
+            <View key={it.key}>
+              {i > 0 ? <View style={styles.divider} /> : null}
+              <View style={styles.line}>
+                <ItemThumbnail uri={it.thumbnailUri} size={46} />
+                <View style={styles.lineText}>
+                  <Headline numberOfLines={2}>{it.name}</Headline>
+                  <Sub>{itemSubtitle(it)}</Sub>
                 </View>
+                {it.qty > 1 ? <Headline>{`x${it.qty}`}</Headline> : null}
               </View>
-            );
-          })}
-          <View style={styles.divider} />
-          <View style={styles.totalLine}>
-            <Body color={color.sub}>Total</Body>
-            <Price style={styles.total}>{formatPrice(total)}</Price>
-          </View>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -124,11 +113,4 @@ const styles = StyleSheet.create({
     backgroundColor: color.hairline,
     marginLeft: 44 + space.m,
   },
-  totalLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: space.l,
-  },
-  total: { fontSize: 22, lineHeight: 27, fontWeight: '800' },
 });

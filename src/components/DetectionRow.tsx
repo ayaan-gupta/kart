@@ -3,22 +3,19 @@ import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { color } from '../design/tokens';
 import { Sub } from '../design/type';
-import { formatPrice, skuByCode } from '../engine/catalog';
-import type { Detection } from '../engine/types';
-import { ProductImage } from './ProductImage';
+import type { HaulItem } from '../engine/types';
+import { ItemThumbnail, itemSubtitle } from './ItemThumbnail';
 
 /**
  * A recognized item, cardless: the photo floats over the footage with the
  * name beside it and a brand check stamped on the photo's corner. Text gets
  * a soft shadow; the feed's bottom scrim does the rest.
  */
-export function DetectionRow({ detection, repeatIndex }: { detection: Detection; repeatIndex: number }) {
-  const sku = skuByCode.get(detection.skuCode);
-  if (!sku) return null;
+export function DetectionRow({ item }: { item: HaulItem }) {
   return (
     <View style={styles.row}>
       <View>
-        <ProductImage skuCode={sku.code} size={56} />
+        <ItemThumbnail uri={item.thumbnailUri} size={56} />
         <View style={styles.check}>
           {Platform.OS === 'ios' ? (
             <SymbolView name="checkmark" size={11} tintColor={color.white} weight="heavy" />
@@ -27,15 +24,10 @@ export function DetectionRow({ detection, repeatIndex }: { detection: Detection;
       </View>
       <View style={styles.text}>
         <Sub color={color.white} style={styles.name} numberOfLines={1}>
-          {sku.name}
+          {item.name}
         </Sub>
         <Sub color="rgba(255,255,255,0.78)" style={styles.meta}>
-          Added · {formatPrice(sku.price)}
-          {detection.confidence != null
-            ? ` · ${Math.round(detection.confidence * 100)}% match`
-            : repeatIndex > 1
-              ? ` · ${repeatIndex} in bag`
-              : ''}
+          Added · {itemSubtitle(item)}
         </Sub>
       </View>
     </View>

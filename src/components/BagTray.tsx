@@ -15,11 +15,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { color, motion, radius, space } from '../design/tokens';
-import { Body, Headline, Price, Sub, Title } from '../design/type';
-import { formatPrice, skuByCode } from '../engine/catalog';
-import { aggregate, haulCount, haulTotal, useScanline } from '../engine/store';
+import { Body, Caption, Headline, Sub, Title } from '../design/type';
+import { OPEN_FOOD_FACTS_ATTRIBUTION } from '../engine/liveVision/barcodeLookup';
+import { haulCount, useScanline } from '../engine/store';
 import { Button } from './Button';
-import { ProductImage } from './ProductImage';
+import { ItemThumbnail, itemSubtitle } from './ItemThumbnail';
 
 const PEEK_CONTENT = 76;
 
@@ -31,10 +31,8 @@ const PEEK_CONTENT = 76;
 export function BagTray({ onFinish }: { onFinish: () => void }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
-  const detections = useScanline((s) => s.scan.detections);
-  const items = aggregate(detections);
+  const items = useScanline((s) => s.scan.items);
   const count = haulCount(items);
-  const total = haulTotal(items);
 
   const expandedH = Math.round(screenH * 0.78);
   const peekH = PEEK_CONTENT + insets.bottom;
@@ -114,7 +112,6 @@ export function BagTray({ onFinish }: { onFinish: () => void }) {
               </View>
               <Headline>{count === 1 ? '1 item' : `${count} items`}</Headline>
               <View style={styles.spacer} />
-              <Price>{formatPrice(total)}</Price>
               {Platform.OS === 'ios' ? (
                 <SymbolView name="chevron.up" size={14} tintColor={color.sub} weight="semibold" />
               ) : null}
@@ -143,33 +140,26 @@ export function BagTray({ onFinish }: { onFinish: () => void }) {
                 <Body color={color.sub}>Nothing in the bag yet.</Body>
               </View>
             ) : (
-              items.map((it) => {
-                const sku = skuByCode.get(it.skuCode);
-                if (!sku) return null;
-                return (
-                  <Animated.View
-                    key={it.skuCode}
-                    entering={FadeIn.duration(200)}
-                    layout={LinearTransition.springify().duration(motion.spring.duration)}
-                    style={styles.line}
-                  >
-                    <ProductImage skuCode={sku.code} size={46} />
-                    <View style={styles.lineText}>
-                      <Headline numberOfLines={1}>{sku.name}</Headline>
-                      <Sub>{it.qty > 1 ? `${formatPrice(sku.price)} x ${it.qty}` : sku.category}</Sub>
-                    </View>
-                    <Price>{formatPrice(sku.price * it.qty)}</Price>
-                  </Animated.View>
-                );
-              })
+              items.map((it) => (
+                <Animated.View
+                  key={it.key}
+                  entering={FadeIn.duration(200)}
+                  layout={LinearTransition.springify().duration(motion.spring.duration)}
+                  style={styles.line}
+                >
+                  <ItemThumbnail uri={it.thumbnailUri} size={46} />
+                  <View style={styles.lineText}>
+                    <Headline numberOfLines={1}>{it.name}</Headline>
+                    <Sub>{itemSubtitle(it)}</Sub>
+                  </View>
+                  {it.qty > 1 ? <Headline>{`x${it.qty}`}</Headline> : null}
+                </Animated.View>
+              ))
             )}
           </ScrollView>
 
           <View style={styles.footer}>
-            <View style={styles.totalRow}>
-              <Body color={color.sub}>Total</Body>
-              <Price style={styles.total}>{formatPrice(total)}</Price>
-            </View>
+            <Caption color={color.sub}>{OPEN_FOOD_FACTS_ATTRIBUTION}</Caption>
             <Button label="Finish cart" variant="primary" onPress={onFinish} />
           </View>
         </Animated.View>
@@ -252,10 +242,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: color.hairline,
   },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  total: { fontSize: 24, lineHeight: 29, fontWeight: '800' },
 });
