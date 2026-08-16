@@ -373,6 +373,57 @@ describe('barcode identity', () => {
   });
 });
 
+describe('an identify-verified identity (I6: the identify budget must buy something durable)', () => {
+  it('is not overwritten outright by a later, disagreeing census guess', () => {
+    // Regression: applyCensus used to overwrite any vlm identity unconditionally, so a crop
+    // identify's better name and confidence were discarded by the very next wide-shot census,
+    // undoing the whole point of spending the identify budget on a closer look.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'Horizon Whole Milk', null, 0.95)], []),
+      { 1: 'a' },
+      ['a'],
+      true, // fromIdentify: a crop identify, not a wide census.
+    );
+    expect(state.identities['a'].name).toBe('Horizon Whole Milk');
+    expect(state.identities['a'].verifiedByIdentify).toBe(true);
+
+    // A wide-shot census still only sees the generic name, low confidence, unclear.
+    state = applyCensus(state, census([mark(1, 'Milk', null, 0.3, true)], []), { 1: 'a' }, ['a']);
+
+    expect(state.identities['a'].name).toBe('Horizon Whole Milk');
+    expect(state.identities['a'].confidence).toBe(0.95);
+    expect(state.identities['a'].needsCloserLook).toBe(false);
+  });
+
+  it('welds a disagreeing census guess onto the identify line only once it repeats', () => {
+    // Same two-in-a-row corroboration bar a resolved barcode requires, so one noisy wide-shot
+    // guess leaves no permanent trace, but a repeated one is trusted enough to link a sibling
+    // track that only ever gets the generic guess onto the identified product's line.
+    let state = createFusionState();
+    state = applyCensus(state, census([mark(1, 'Horizon Whole Milk', null, 0.95)], []), { 1: 'a' }, ['a'], true);
+    const milkKey = productKey('Milk', null);
+    const misread = census([mark(1, 'Milk', null, 0.3, true)], []);
+
+    state = applyCensus(state, misread, { 1: 'a' }, ['a']);
+    expect(state.aliases[milkKey]).toBeUndefined();
+    expect(state.identities['a'].name).toBe('Horizon Whole Milk');
+
+    state = applyCensus(state, misread, { 1: 'a' }, ['a']);
+    expect(state.aliases[milkKey]).toBe(state.identities['a'].key);
+    // The identify's own name is still untouched, exactly like a corroborated barcode's is.
+    expect(state.identities['a'].name).toBe('Horizon Whole Milk');
+  });
+
+  it('lets a fresh identify supersede an earlier one outright, no corroboration needed', () => {
+    let state = createFusionState();
+    state = applyCensus(state, census([mark(1, 'Milk', null, 0.3, true)], []), { 1: 'a' }, ['a'], true);
+    state = applyCensus(state, census([mark(1, 'Horizon Whole Milk', null, 0.95)], []), { 1: 'a' }, ['a'], true);
+    expect(state.identities['a'].name).toBe('Horizon Whole Milk');
+  });
+});
+
 describe('addAlias', () => {
   it('moves the accumulated quantity to the surviving key', () => {
     let state = createFusionState();

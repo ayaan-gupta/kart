@@ -530,5 +530,44 @@ describe('RecognitionSession', () => {
       expect(s.state.fusion.identities['x'].source).toBe('barcode');
       expect(s.state.fusion.aliases['upc:038000138416']).toBeUndefined();
     });
+
+    it('I6: a later plain census does not clobber what a crop identify already found', async () => {
+      // Regression: applyCensus overwrote any vlm identity unconditionally, so a crop identify's
+      // better name and confidence were discarded by the very next wide-shot census. That made
+      // the whole identify path pointless: it spends up to 6 network calls per session and keeps
+      // none of them, and the item goes back to amber immediately after being resolved.
+      const unsureMilk = {
+        ok: true as const,
+        value: {
+          marks: [{ id: 1, name: 'Milk', brand: null, size: null, category: 'Dairy', confidence: 0.3, needsCloserLook: true }],
+          inViewCounts: [{ productKey: productKey('Milk', null), count: 1 }],
+          unmarkedItems: [],
+          occlusion: noOcclusion,
+        },
+      };
+      const d = deps({
+        requestCensus: jest.fn().mockResolvedValue(unsureMilk),
+        requestIdentify: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { name: 'Horizon Whole Milk', brand: null, size: null, category: 'Dairy', confidence: 0.9, stillUnclear: false },
+        }),
+      });
+      const s = new RecognitionSession(d);
+
+      await s.onKeyframe('AAAA', [track('a')], 0);
+      expect(s.state.fusion.identities['a'].name).toBe('Horizon Whole Milk');
+      expect(s.state.fusion.identities['a'].confidence).toBe(0.9);
+      expect((d.requestIdentify as jest.Mock).mock.calls.length).toBe(1);
+
+      // A later keyframe's census still only sees the generic guess (the model has no memory of
+      // the earlier crop). The identify result must survive it.
+      await s.onKeyframe('AAAA', [track('a')], 3000);
+
+      expect(s.state.fusion.identities['a'].name).toBe('Horizon Whole Milk');
+      expect(s.state.fusion.identities['a'].confidence).toBe(0.9);
+      // Still confidently green, so the second keyframe must not have spent another identify
+      // call re-resolving something that was never actually lost.
+      expect((d.requestIdentify as jest.Mock).mock.calls.length).toBe(1);
+    });
   });
 });

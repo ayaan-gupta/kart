@@ -17,6 +17,16 @@ export interface Identity {
    * it outright. Always false for a vlm-sourced identity and for a barcode that did resolve.
    */
   placeholder: boolean;
+  /**
+   * True only for a vlm identity set by a crop identify, a closer, more careful look at this
+   * one item, rather than a wide census guess. Protected the same way a resolved barcode is
+   * protected (see the `existing?.source === 'barcode'` branch in `applyCensus`): a later census
+   * mark that disagrees needs to repeat twice in a row before it is trusted at all, and even
+   * then it only earns an alias, never an outright overwrite of what the closer look found. A
+   * fresh identify call is exempt and always wins outright, since a second closer look
+   * supersedes the first. Always false for a census-sourced vlm identity and for any barcode.
+   */
+  verifiedByIdentify: boolean;
 }
 
 export interface CensusMark {
@@ -171,6 +181,14 @@ export function applyCensus(
   census: CensusResult,
   markToTrack: Record<number, string>,
   liveTrackIds: string[],
+  /**
+   * True when `census` is really a single crop identify's result, folded through this function
+   * so it goes through the same clamp and barcode-precedence rules as a real census mark (see
+   * `resolveUncertain` in `orchestrator.ts`). Marks the identity it writes as
+   * `verifiedByIdentify`, and exempts a track already in that state from the protection below:
+   * a fresh closer look always supersedes an earlier one outright.
+   */
+  fromIdentify = false,
 ): FusionState {
   let working: FusionState = { ...state, identities: { ...state.identities } };
   const merged = new Set(state.merged);
@@ -226,6 +244,34 @@ export function applyCensus(
       continue;
     }
 
+    // A crop identify is a closer, more careful look at this one item than a wide census mark
+    // is. Protect it exactly the way a resolved barcode is protected above: a later census
+    // guess that disagrees needs to repeat twice in a row before it earns even an alias, and
+    // never overwrites what the closer look found outright. Exempt when this call is itself a
+    // fresh identify (`fromIdentify`): a second closer look supersedes the first without
+    // needing corroboration.
+    if (existing?.source === 'vlm' && existing.verifiedByIdentify && !fromIdentify) {
+      const candidateKey = productKey(mark.name, mark.brand);
+      const existingKey = resolveKey(working, existing.key);
+      if (resolveKey(working, candidateKey) === existingKey) continue; // already the same product
+
+      const pending = working.pendingAlias[trackId];
+      if (pending && pending.key === candidateKey) {
+        // Corroborated: this model key has now shown up twice in a row on a track the closer
+        // look already named. Safe to record it as the same product, so a sibling track that
+        // only ever gets the wide-shot guess still merges into the identify's line. The
+        // identify's own name and confidence are left untouched, same as a corroborated
+        // barcode's are.
+        working = addAlias(working, candidateKey, existingKey);
+        const pendingAlias = { ...working.pendingAlias };
+        delete pendingAlias[trackId];
+        working = { ...working, pendingAlias };
+      } else {
+        working = { ...working, pendingAlias: { ...working.pendingAlias, [trackId]: { key: candidateKey, count: 1 } } };
+      }
+      continue;
+    }
+
     working.identities[trackId] = {
       key: resolveKey(working, productKey(mark.name, mark.brand)),
       name: mark.name,
@@ -236,6 +282,7 @@ export function applyCensus(
       needsCloserLook: mark.needsCloserLook,
       source: 'vlm',
       placeholder: false,
+      verifiedByIdentify: fromIdentify,
     };
   }
 
@@ -335,6 +382,7 @@ export function applyBarcode(
     needsCloserLook: false,
     source: 'barcode',
     placeholder: isPlaceholder,
+    verifiedByIdentify: false,
   };
 
   return { ...working, identities };

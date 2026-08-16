@@ -334,6 +334,10 @@ export class RecognitionSession {
           },
           { 1: trackId },
           [trackId],
+          // A closer look. Marks the identity verifiedByIdentify so the next plain census mark
+          // cannot clobber it outright (see fusion.ts), and exempts this call itself from that
+          // same protection so a second identify always supersedes the first.
+          true,
         ),
       };
     }
