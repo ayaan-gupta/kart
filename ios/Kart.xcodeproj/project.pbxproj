@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2D848F413214CABB948E3A5E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CB45A6A1C816FF3171899DC3 /* PrivacyInfo.xcprivacy */; };
+		3B31C5B8908D4F5D9E92CC3F /* KartFrameLab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1BDFD8B96C4192839F3566 /* KartFrameLab.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		4D330C21AA4740C1BA67D139 /* AppleInstanceMaskDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4295829E20B4425941479BE /* AppleInstanceMaskDetector.swift */; };
 		6820A163860240F2B0F79525 /* KartVisionFrameProcessorPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */; };
@@ -19,6 +20,7 @@
 		AD49602369DA45C39B19A43B /* FrameMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F83471CED445378AA6F1EB /* FrameMetrics.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		BE8675B2DA0B422FB39CFF93 /* KartDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC5D5E6463D646A990DE689C /* KartDetector.swift */; };
+		CA1FCB6F08494216A49DC9CD /* KartFrameLab.m in Sources */ = {isa = PBXBuildFile; fileRef = C132C80D68AC4E3AA0E5E628 /* KartFrameLab.m */; };
 		D903508AD3B343218B32D6B3 /* KartImageTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7914629AAA54037B0041A46 /* KartImageTools.swift */; };
 		E67E7BC5496907FB395130BA /* libPods-Kart.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9B941B1A8D60C4CD7DC08A3 /* libPods-Kart.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
@@ -34,10 +36,12 @@
 		72AA0C3709CF45E3A506BFE3 /* MaskContour.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = MaskContour.swift; path = Kart/MaskContour.swift; sourceTree = "<group>"; };
 		79F83471CED445378AA6F1EB /* FrameMetrics.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = FrameMetrics.swift; path = Kart/FrameMetrics.swift; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Kart/SplashScreen.storyboard; sourceTree = "<group>"; };
+		AB1BDFD8B96C4192839F3566 /* KartFrameLab.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = KartFrameLab.swift; path = Kart/KartFrameLab.swift; sourceTree = "<group>"; };
 		B4295829E20B4425941479BE /* AppleInstanceMaskDetector.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = AppleInstanceMaskDetector.swift; path = Kart/AppleInstanceMaskDetector.swift; sourceTree = "<group>"; };
 		B7914629AAA54037B0041A46 /* KartImageTools.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = KartImageTools.swift; path = Kart/KartImageTools.swift; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		BC5D5E6463D646A990DE689C /* KartDetector.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = KartDetector.swift; path = Kart/KartDetector.swift; sourceTree = "<group>"; };
+		C132C80D68AC4E3AA0E5E628 /* KartFrameLab.m */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.objc; name = KartFrameLab.m; path = Kart/KartFrameLab.m; sourceTree = "<group>"; };
 		CB45A6A1C816FF3171899DC3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Kart/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D8785D4C62604D428370E83B /* KartVisionFrameProcessorPlugin.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = KartVisionFrameProcessorPlugin.swift; path = Kart/KartVisionFrameProcessorPlugin.swift; sourceTree = "<group>"; };
 		D9B941B1A8D60C4CD7DC08A3 /* libPods-Kart.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Kart.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -78,6 +82,8 @@
 				79F83471CED445378AA6F1EB /* FrameMetrics.swift */,
 				B4295829E20B4425941479BE /* AppleInstanceMaskDetector.swift */,
 				B7914629AAA54037B0041A46 /* KartImageTools.swift */,
+				AB1BDFD8B96C4192839F3566 /* KartFrameLab.swift */,
+				C132C80D68AC4E3AA0E5E628 /* KartFrameLab.m */,
 			);
 			name = Kart;
 			sourceTree = "<group>";
@@ -387,6 +393,8 @@
 				AD49602369DA45C39B19A43B /* FrameMetrics.swift in Sources */,
 				4D330C21AA4740C1BA67D139 /* AppleInstanceMaskDetector.swift in Sources */,
 				D903508AD3B343218B32D6B3 /* KartImageTools.swift in Sources */,
+				3B31C5B8908D4F5D9E92CC3F /* KartFrameLab.swift in Sources */,
+				CA1FCB6F08494216A49DC9CD /* KartFrameLab.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,6 +17,8 @@ const FILES = [
   'FrameMetrics.swift',
   'AppleInstanceMaskDetector.swift',
   'KartImageTools.swift',
+  'KartFrameLab.swift',
+  'KartFrameLab.m',
 ];
 
 for (const file of FILES) {
