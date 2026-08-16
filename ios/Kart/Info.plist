@@ -47,6 +47,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Kart needs your camera to scan items as you shop.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Kart uses motion to guide you around your cart so nothing is missed.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
