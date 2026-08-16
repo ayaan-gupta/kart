@@ -39,7 +39,7 @@ import {
 import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
 import { requestCensus, requestIdentify } from '../engine/liveVision/recognitionClient';
 import { useDeviceYaw } from '../engine/liveVision/useDeviceYaw';
-import type { FrameScan, Identity, Track } from '../engine/liveVision/types';
+import type { FrameScan, Identity, ScanRequest, Track } from '../engine/liveVision/types';
 import { saveThumbnail } from '../engine/thumbnails';
 import { haulCount, useScanline } from '../engine/store';
 
@@ -117,9 +117,21 @@ export default function ScanScreen() {
       saveThumbnail,
     });
   }
-  // Mirrors `tracks` for the worklet: the frame processor cannot read React state, and closing
-  // over `tracks` from the render that created it would freeze on the empty array forever.
-  const latestTracksRef = useRef<Track[]>([]);
+  // What the next frame should ask the plugin for, decided on the JS thread. `wantsKeyframe`
+  // (a RecognitionSession method) and `tracksNeedingThumbnail` are plain functions with no
+  // 'worklet' directive, closing over `session.state`, a live class instance. Neither the
+  // worklets-core babel plugin nor the vision-camera Frame Processor runtime workletizes a
+  // function just because a worklet references it: only an explicit 'worklet' directive does
+  // that (react-native-worklets-core/src/plugin/index.js only visits FunctionDeclaration,
+  // FunctionExpression and ArrowFunctionExpression nodes carrying that directive; it never
+  // walks a call graph). A plain function crossing into the worklet runtime as a closure
+  // value is wrapped as a stub that throws "Regular javascript function '<name>' cannot be
+  // shared..." the moment it is called (WKTJsiObjectWrapper.h, setFunctionValue) -- confirmed
+  // by reading the installed react-native-worklets-core@1.6.3 C++ source, not assumed. Calling
+  // either function from inside the frame processor would throw on every single frame on a
+  // real device. So the decision is made here, on the JS thread, and the worklet only ever
+  // reads the plain-data result below.
+  const nextRequestRef = useRef<ScanRequest>({ wantKeyframe: false, cropTrackIds: [] });
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [identities, setIdentities] = useState<Record<string, Identity>>({});
@@ -170,7 +182,18 @@ export default function ScanScreen() {
         const result = processFrame(pipelineStateRef.current, scan, now);
         pipelineStateRef.current = result.state;
         setTracks(result.tracks);
-        latestTracksRef.current = result.tracks;
+
+        // Both of these read `session.state` and must run on the JS thread, never inside the
+        // frame processor worklet (see the comment on `nextRequestRef`). Refreshed here and
+        // again after each async result lands in `publish`, so the request the next frame reads
+        // is never more than one detection cycle stale.
+        const refreshNextRequest = () => {
+          nextRequestRef.current = {
+            wantKeyframe: session.wantsKeyframe(result.tracks),
+            cropTrackIds: tracksNeedingThumbnail(session.state, result.tracks),
+          };
+        };
+        refreshNextRequest();
 
         // Everything below is fire and forget. Nothing on the path from a frame arriving to an
         // outline being drawn is allowed to await the network.
@@ -179,6 +202,7 @@ export default function ScanScreen() {
           setOccluded(session.state.occlusion.hidden);
           setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
           useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
+          refreshNextRequest();
         };
 
         if (scan.keyframe !== null) {
@@ -207,13 +231,12 @@ export default function ScanScreen() {
       // because the tracker predicts between detections.
       runAtTargetFps(DETECT_TARGET_FPS, () => {
         'worklet';
-        const session = sessionRef.current;
-        handleScan(
-          scanCart(frame, {
-            wantKeyframe: session?.wantsKeyframe(latestTracksRef.current) ?? false,
-            cropTrackIds: session ? tracksNeedingThumbnail(session.state, latestTracksRef.current) : [],
-          }),
-        );
+        // `nextRequestRef.current` is plain data (booleans, strings, numbers) computed on the
+        // JS thread in `handleScan`. Do not replace this with a call to `wantsKeyframe` or
+        // `tracksNeedingThumbnail`: neither carries a 'worklet' directive, and calling a
+        // non-worklet function from inside a frame processor throws on every frame on device.
+        // See the comment on `nextRequestRef` above for the evidence.
+        handleScan(scanCart(frame, nextRequestRef.current));
       });
     },
     [handleScan],
