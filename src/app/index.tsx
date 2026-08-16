@@ -8,6 +8,7 @@ import { KartLogo } from '../components/KartLogo';
 import { PressableScale } from '../components/PressableScale';
 import { cardEdge, color, radius, shadow, space } from '../design/tokens';
 import { Caption, Headline, LargeTitle, Sub, Title } from '../design/type';
+import { OPEN_FOOD_FACTS_ATTRIBUTION } from '../engine/liveVision/barcodeLookup';
 import { haulCount, useScanline } from '../engine/store';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
@@ -98,6 +99,15 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
+
+        {/* Names, brands and sizes for a barcode-resolved item come from Open Food Facts and
+            persist into every saved haul (see store.ts), so this screen needs its own ODbL
+            attribution rather than relying on the scan screen's (see BagTray.tsx). */}
+        {latest ? (
+          <Caption color={color.sub} style={styles.attribution}>
+            {OPEN_FOOD_FACTS_ATTRIBUTION}
+          </Caption>
+        ) : null}
       </ScrollView>
 
       <FloatingNav current="home" />
@@ -159,5 +169,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: space.m,
+  },
+  attribution: {
+    textAlign: 'center',
+    marginTop: space.xl,
+    paddingHorizontal: space.xl,
   },
 });

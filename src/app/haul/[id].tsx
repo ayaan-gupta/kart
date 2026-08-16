@@ -7,7 +7,8 @@ import { haulDateLabel } from '../../components/HaulCard';
 import { IconButton } from '../../components/IconButton';
 import { ItemThumbnail, itemSubtitle } from '../../components/ItemThumbnail';
 import { cardEdge, color, radius, shadow, space } from '../../design/tokens';
-import { Body, Headline, LargeTitle, Sub } from '../../design/type';
+import { Body, Caption, Headline, LargeTitle, Sub } from '../../design/type';
+import { OPEN_FOOD_FACTS_ATTRIBUTION } from '../../engine/liveVision/barcodeLookup';
 import { haulCount, useScanline } from '../../engine/store';
 
 export default function HaulDetailScreen() {
@@ -70,6 +71,14 @@ export default function HaulDetailScreen() {
             </View>
           ))}
         </View>
+
+        {/* Names, brands and sizes for a barcode-resolved item come from Open Food Facts and
+            persist here after the scan (see store.ts), so the ODbL attribution has to follow the
+            data onto every screen that shows it, not just the scan screen it was first fetched
+            on (see BagTray.tsx). */}
+        <Caption color={color.sub} style={styles.attribution}>
+          {OPEN_FOOD_FACTS_ATTRIBUTION}
+        </Caption>
       </ScrollView>
     </View>
   );
@@ -112,5 +121,10 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: color.hairline,
     marginLeft: 44 + space.m,
+  },
+  attribution: {
+    textAlign: 'center',
+    marginTop: space.l,
+    marginHorizontal: space.xl,
   },
 });

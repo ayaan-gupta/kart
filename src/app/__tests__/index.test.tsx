@@ -2,6 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import HomeScreen from '../index';
+import { OPEN_FOOD_FACTS_ATTRIBUTION } from '../../engine/liveVision/barcodeLookup';
 
 /**
  * Render-level guard for the home screen, the exact place this correction found `$0.00`
@@ -41,5 +42,14 @@ describe('HomeScreen', () => {
     const text = JSON.stringify(renderer.toJSON());
     expect(text).toMatch(/carts?/);
     expect(text).toMatch(/items/);
+  });
+
+  // I8 (branch review): Open Food Facts names, brands and sizes persist into every saved haul
+  // (see store.ts) and this screen is exactly where the most recent one is shown, but only
+  // BagTray, the scan screen, carried the ODbL attribution the data requires.
+  it('carries the ODbL attribution for the Open Food Facts data shown in its haul cards', () => {
+    const renderer = renderHome();
+    const text = JSON.stringify(renderer.toJSON());
+    expect(text).toContain(OPEN_FOOD_FACTS_ATTRIBUTION);
   });
 });

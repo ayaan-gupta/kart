@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingNav } from '../components/FloatingNav';
 import { HaulCard } from '../components/HaulCard';
 import { color, space } from '../design/tokens';
-import { LargeTitle, Sub } from '../design/type';
+import { Caption, LargeTitle, Sub } from '../design/type';
+import { OPEN_FOOD_FACTS_ATTRIBUTION } from '../engine/liveVision/barcodeLookup';
 import { useScanline } from '../engine/store';
 
 export default function HaulsScreen() {
@@ -34,6 +35,15 @@ export default function HaulsScreen() {
             />
           ))}
         </View>
+
+        {/* Names, brands and sizes for a barcode-resolved item come from Open Food Facts and
+            persist into every saved haul (see store.ts), so this grid needs its own ODbL
+            attribution rather than relying on the scan screen's (see BagTray.tsx). */}
+        {hauls.length > 0 ? (
+          <Caption color={color.sub} style={styles.attribution}>
+            {OPEN_FOOD_FACTS_ATTRIBUTION}
+          </Caption>
+        ) : null}
       </ScrollView>
 
       <FloatingNav current="hauls" />
@@ -53,5 +63,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: space.m,
     paddingHorizontal: space.xl,
+  },
+  attribution: {
+    textAlign: 'center',
+    marginTop: space.l,
+    marginHorizontal: space.xl,
   },
 });
