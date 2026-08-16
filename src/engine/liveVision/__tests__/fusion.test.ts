@@ -478,9 +478,12 @@ describe('several proposals landing on one physical item', () => {
       false,
       { track_4: bottleBoxes.track_4, track_5: bottleBoxes.track_5 },
     );
-    // Folded, so it stops counting, but it still has an identity and so still draws.
-    expect(state.merged).toContain('track_5');
-    expect(state.identities.track_5).toBeDefined();
+    // track_4 is the looser box of the two, so it is the one folded: the tighter box is the
+    // better shape to draw and the better crop to identify from. Folded means it stops counting,
+    // not that it disappears, so it keeps its identity and still draws its outline.
+    expect(state.merged).toContain('track_4');
+    expect(state.identities.track_4).toBeDefined();
+    expect(state.merged).not.toContain('track_5');
   });
 
   it('counts the same as before when no boxes are supplied at all', () => {

@@ -226,6 +226,12 @@ duplicates score 0.93 to 1.00 and the true neighbours score 0.00.
 
 `applyCensus` now takes the live boxes and folds a track whose box sits at least 85% inside
 another's into the existing `merged` set, which already means "keeps its outline, stops counting".
+The **smaller box always survives**. That is not a preference for tighter crops, it is the only
+rule that is right in both cases nesting can mean: two proposals on one bottle, where the tighter
+one is simply better, and a proposal covering a row of four milk cartons alongside a proposal on
+each carton, where the large box is the mistake. Keeping the larger was tried first, on the
+grounds that the more trusted identity should win, and it folded 14 of 24 tracks on a real cart
+and returned a twenty-item cart as six units.
 The loser's key is aliased onto the survivor's so the quantity it accumulated migrates instead of
 stranding in a second bag line. A brand disagreement blocks the fold, because nesting between two
 brands is a multipack rather than a duplicate, and two decoded barcodes never fold at all.

@@ -37,14 +37,40 @@ export interface UnmarkedItem {
   confidence: number;
 }
 
+/**
+ * A region the server found and asked the model about, echoed back with its geometry.
+ *
+ * Empty on the on-device path, where the client already knows where everything is. On the
+ * capture path the device never ran a detector, so without this there is nothing to draw an
+ * outline around and nothing for the tracker to follow. `id` matches `marks[].id`.
+ */
+export interface CensusRegion {
+  id: number;
+  box: Box;
+  polygon: number[];
+  score: number;
+}
+
 export type CensusPayload = CensusResult & {
   occlusion: OcclusionReport;
   unmarkedItems: UnmarkedItem[];
+  regions: CensusRegion[];
+  /**
+   * Whether the regions came from the client, from the server, or from nowhere because the
+   * enumerator could not be reached. "degraded" is not an error: the census still named
+   * everything it could see, the shopper still gets a bag, and it has no outlines in it.
+   */
+  enumeration: 'client' | 'ok' | 'degraded';
 };
 
 export interface CensusRequest {
   imageBase64: string;
-  marks: { id: number; box: Box }[];
+  /**
+   * Omitted, or empty, asks the server to find the regions itself. That is the capture path:
+   * live per-item segmentation on the phone was measured dead, so enumeration moved to a GPU
+   * host the recognition service calls (see `server/src/enumerate.ts`).
+   */
+  marks?: { id: number; box: Box }[];
 }
 
 export interface IdentifyRequest {
@@ -72,7 +98,7 @@ export interface IdentifyResult {
 async function post<T>(
   path: string,
   body: unknown,
-  parse: (value: unknown) => T | null,
+  parse: (value: unknown, envelope: Record<string, unknown>) => T | null,
   signal?: AbortSignal,
 ): Promise<ClientResult<T>> {
   const base = apiBaseUrl();
@@ -116,7 +142,7 @@ async function post<T>(
     const envelope = payload as { ok?: unknown; result?: unknown };
     if (envelope?.ok !== true) return { ok: false, failure: 'malformed' };
 
-    const parsed = parse(envelope.result);
+    const parsed = parse(envelope.result, envelope as Record<string, unknown>);
     return parsed === null ? { ok: false, failure: 'malformed' } : { ok: true, value: parsed };
   } catch (error) {
     const name = (error as { name?: string } | null)?.name;
@@ -142,7 +168,7 @@ const num = (v: unknown, fallback = 0): number => (typeof v === 'number' && Numb
  * an older deployment. Anything unrecognised is dropped rather than allowed to reach fusion,
  * because a mark with a string id would silently never match a track.
  */
-function parseCensus(value: unknown): CensusPayload | null {
+function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusPayload | null {
   if (!isRecord(value) || !Array.isArray(value.marks)) return null;
 
   const marks: CensusMark[] = [];
@@ -194,7 +220,39 @@ function parseCensus(value: unknown): CensusPayload | null {
     reason: str(rawOcclusion.reason),
   };
 
-  return { marks, inViewCounts, unmarkedItems, occlusion };
+  const regions: CensusRegion[] = [];
+  if (Array.isArray(envelope.regions)) {
+    for (const raw of envelope.regions) {
+      if (!isRecord(raw) || typeof raw.id !== 'number' || !Number.isInteger(raw.id)) continue;
+      if (!isRecord(raw.box) || !Array.isArray(raw.polygon)) continue;
+      const polygon = raw.polygon.filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+      // Same rule the server applies: fewer than three points cannot enclose anything, and an
+      // odd count means a coordinate went missing in transit.
+      if (polygon.length < 6 || polygon.length % 2 !== 0) continue;
+      regions.push({
+        id: raw.id,
+        box: { x: num(raw.box.x), y: num(raw.box.y), w: num(raw.box.w), h: num(raw.box.h) },
+        polygon,
+        score: Math.min(1, Math.max(0, num(raw.score))),
+      });
+    }
+  }
+
+  const enumeration = envelope.enumeration;
+
+  return {
+    marks,
+    inViewCounts,
+    unmarkedItems,
+    occlusion,
+    regions,
+    enumeration:
+      enumeration === 'ok' || enumeration === 'degraded' || enumeration === 'client'
+        ? enumeration
+        : // An older server that predates the capture path never enumerated anything, which is
+          // exactly what "client" means.
+          'client',
+  };
 }
 
 function parseIdentify(value: unknown): IdentifyResult | null {
@@ -210,7 +268,9 @@ function parseIdentify(value: unknown): IdentifyResult | null {
 }
 
 export function requestCensus(req: CensusRequest, signal?: AbortSignal): Promise<ClientResult<CensusPayload>> {
-  return post('/api/census', { image: req.imageBase64, marks: req.marks }, parseCensus, signal);
+  // Marks are sent only when the client has them. An absent field and an empty array both mean
+  // "you find them", which is what the capture path wants.
+  return post('/api/census', { image: req.imageBase64, marks: req.marks ?? [] }, parseCensus, signal);
 }
 
 export function requestIdentify(req: IdentifyRequest, signal?: AbortSignal): Promise<ClientResult<IdentifyResult>> {

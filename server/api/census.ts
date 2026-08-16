@@ -1,4 +1,5 @@
 import { runCensus } from "../src/recognize.js";
+import { enumerateRegions, type EnumeratedRegion } from "../src/enumerate.js";
 import type { Mark } from "../src/compositor.js";
 import {
   assertJsonContentType,
@@ -76,7 +77,43 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    return json({ ok: true, result: await withTimeout(runCensus(image, marks)) });
+    // Capture then process. A client that sends no marks is not telling us there is nothing in
+    // the frame, it is telling us it does not know: live per-item segmentation on the phone was
+    // measured dead (docs/detector-decision.md), so finding the regions is the server's job now.
+    // A client that does send marks keeps the old behaviour exactly, which is what lets the
+    // on-device path and the captured path coexist while the transition lands.
+    let regions: EnumeratedRegion[] = [];
+    let degraded: string | null = null;
+    let enumeratedHere = false;
+    if (marks.length === 0) {
+      enumeratedHere = true;
+      const enumerated = await enumerateRegions(image);
+      regions = enumerated.regions;
+      degraded = enumerated.degraded;
+      if (degraded !== null) console.warn("[census] enumeration degraded:", degraded);
+      marks = regions.map((region, index) => ({ id: index + 1, box: region.box }));
+    }
+
+    const result = await withTimeout(runCensus(image, marks));
+
+    // The geometry goes back with the identifications. The device no longer has it: it never ran
+    // a detector, so without this there is nothing to draw an outline around and nothing for the
+    // tracker to follow. Ids match marks[].id by construction, so the client can join the two
+    // without trusting anything the model echoed.
+    return json({
+      ok: true,
+      result,
+      regions: regions.map((region, index) => ({
+        id: index + 1,
+        box: region.box,
+        polygon: region.polygon,
+        score: region.score,
+      })),
+      // Stated rather than hidden, and distinguishing the three real cases: the client brought
+      // its own regions, the server found them, or the server tried and could not, in which case
+      // the census still names what it can see and the client is running without outlines.
+      enumeration: !enumeratedHere ? "client" : degraded === null ? "ok" : "degraded",
+    });
   } catch (err) {
     return fail(err);
   }

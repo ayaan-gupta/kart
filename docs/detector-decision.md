@@ -158,9 +158,27 @@ separating twenty touching items in one frame, costs about 25ms per box and lose
 coverage (0.902 to 0.739), with a quarter of boxes yielding no mask at all. See
 `enumeration-recall.md`.
 
-So the choice is between a hosted grounded enumerator, which is what measured best and what the
-pipeline run used, and dropping traced outlines for boxes the model returns itself. That is a
-product decision with a cost attached, not a technical unknown.
+Decided 2026-08-16: **a hosted grounded enumerator**, which is what measured best and what the
+pipeline run used. The recognition service calls it over HTTP; `server/src/enumerate.ts` is the
+only code that knows it exists, and `server/enumerator/` carries the deployable and its contract.
+
+The transition that followed:
+
+- `/api/census` accepts a frame with no marks. That means "you find them", and it is what the
+  capture path sends. A request that does bring its own marks behaves exactly as before, so the
+  on-device path and the captured path coexist.
+- The response carries the geometry back, because the device never had it. Without that there is
+  nothing to outline and nothing for the tracker to follow.
+- `RecognitionSession.onCapture` turns those regions into tracks with `minHits: 1`. A capture is
+  one deliberate, authoritative look rather than a frame that might be detector noise, so there
+  is nothing for a second sighting to corroborate, and requiring three would draw the whole cart
+  as still forming.
+- Everything above the detector is untouched, which is what the decision promised: the same
+  tracker, the same high-water-mark counting rule, the same green and amber states, the same bag.
+
+With no enumerator configured the census still names what it can see through `unmarkedItems`,
+measured at 72% of hand-labelled units on real photographs. That is a supported degraded mode,
+reported as `"enumeration": "degraded"`, not a failure.
 
 ## What is still unproven
 

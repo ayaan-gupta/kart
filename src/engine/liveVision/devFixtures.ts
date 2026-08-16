@@ -39,10 +39,12 @@ function nameFor(index: number): { name: string; size: string } {
  * through `devRequestIdentify` below, not just a single-call green result.
  */
 export function devRequestCensus(
-  req: { imageBase64: string; marks: { id: number; box: Box }[] },
+  req: { imageBase64: string; marks?: { id: number; box: Box }[] },
   _signal?: AbortSignal,
 ): Promise<ClientResult<CensusPayload>> {
-  const marks = req.marks.map((mark, index) => {
+  // The stand-in never enumerates: it is fed marks by the on-device path it replaces.
+  const requested = req.marks ?? [];
+  const marks = requested.map((mark, index) => {
     const { name, size } = nameFor(index);
     return {
       id: mark.id,
@@ -62,6 +64,8 @@ export function devRequestCensus(
     inViewCounts: [],
     occlusion: { itemsLikelyHidden: false, severity: 'none', reason: 'dev fixture: no occlusion modeled' },
     unmarkedItems: [],
+    regions: [],
+    enumeration: 'client',
   };
   return Promise.resolve({ ok: true, value: payload });
 }

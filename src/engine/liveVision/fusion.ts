@@ -226,16 +226,9 @@ function containment(a: TrackBox, b: TrackBox): number {
  */
 const NESTED_CONTAINMENT = 0.85;
 
-/**
- * How much an identity is to be trusted when two tracks turn out to be one item. A decoded
- * barcode outranks a closer look, which outranks a wide-shot census guess; equal ranks fall
- * back to confidence and then to track id, so the survivor is stable across censuses instead of
- * flickering between siblings.
- */
-function identityRank(identity: Identity): number {
-  if (identity.source === 'barcode' && !identity.placeholder) return 3;
-  if (identity.verifiedByIdentify) return 2;
-  return 1;
+/** Normalized box area. Zero for a degenerate box, which never wins a survivor comparison. */
+function area(box: TrackBox): number {
+  return Math.max(0, box.w) * Math.max(0, box.h);
 }
 
 /**
@@ -440,15 +433,20 @@ export function applyCensus(
         const secondKey = resolveKey(working, second.key);
         if (isBarcodeKey(firstKey) && isBarcodeKey(secondKey)) continue;
 
-        const firstWins =
-          identityRank(first) !== identityRank(second)
-            ? identityRank(first) > identityRank(second)
-            : first.confidence !== second.confidence
-              ? first.confidence > second.confidence
-              : compareTrackIds(a, b) <= 0;
+        // The smaller box survives, always. Two proposals on one bottle differ only in how
+        // tightly they hug it, and the tighter one is the better crop to identify from and the
+        // better shape to draw. More importantly this is also right for the other thing nesting
+        // means: an enumerator proposing at several scales puts one box over a row of four milk
+        // cartons and another box on each carton, and there the large box is the mistake. Keeping
+        // the larger would collapse all four cartons into one item. Measured on a real cart, that
+        // is exactly what happened: 14 of 24 tracks folded away and a twenty-item cart came back
+        // as six units.
+        const firstIsSmaller = area(liveBoxes[a]) !== area(liveBoxes[b])
+          ? area(liveBoxes[a]) < area(liveBoxes[b])
+          : compareTrackIds(a, b) <= 0;
 
-        const survivor = firstWins ? a : b;
-        const folded = firstWins ? b : a;
+        const survivor = firstIsSmaller ? a : b;
+        const folded = firstIsSmaller ? b : a;
         merged.add(folded);
 
         const foldedKey = resolveKey(working, working.identities[folded].key);

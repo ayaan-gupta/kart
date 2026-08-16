@@ -9,6 +9,7 @@ import {
 } from '../orchestrator';
 import { GREEN_CONFIDENCE, MAX_IDENTIFY_CALLS_PER_SESSION } from '../config';
 import { applyCensus, bagLines, createFusionState, productKey } from '../fusion';
+import { createTrackerState } from '../byteTrack';
 import type { Track } from '../types';
 
 const track = (id: string, over: Partial<Track> = {}): Track =>
@@ -581,5 +582,143 @@ describe('RecognitionSession', () => {
       // call re-resolving something that was never actually lost.
       expect((d.requestIdentify as jest.Mock).mock.calls.length).toBe(1);
     });
+  });
+});
+
+describe('RecognitionSession.onCapture: the capture path', () => {
+  // The server enumerates, badges, names and returns the geometry, because the device ran no
+  // detector at all. See server/src/enumerate.ts and docs/detector-decision.md.
+  const region = (id: number, x: number, name: string) => ({
+    id,
+    box: { x, y: 0.2, w: 0.2, h: 0.2 },
+    polygon: [x, 0.2, x + 0.2, 0.2, x + 0.2, 0.4, x, 0.4],
+    score: 0.9,
+    name,
+  });
+
+  const captureOk = (regions: ReturnType<typeof region>[], enumeration = 'ok') => ({
+    ok: true as const,
+    value: {
+      marks: regions.map((r) => ({
+        id: r.id, name: r.name, brand: null, size: null, category: 'Produce',
+        confidence: 0.95, needsCloserLook: false, isProduct: true,
+      })),
+      inViewCounts: [],
+      unmarkedItems: [],
+      occlusion: { itemsLikelyHidden: false, severity: 'none' as const, reason: '' },
+      regions: regions.map(({ id, box, polygon, score }) => ({ id, box, polygon, score })),
+      enumeration,
+    },
+  });
+
+  const captureDeps = (over: Record<string, unknown> = {}) => ({
+    requestCensus: jest.fn().mockResolvedValue(captureOk([region(1, 0.1, 'Bananas'), region(2, 0.5, 'Milk')])),
+    requestIdentify: jest.fn().mockResolvedValue({
+      ok: true,
+      value: { name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.9, stillUnclear: false },
+    }),
+    lookupBarcode: jest.fn().mockResolvedValue(null),
+    saveThumbnail: jest.fn().mockResolvedValue('file:///thumb.jpg'),
+    ...over,
+  });
+
+  it('sends no marks, which is what asks the server to find the regions', async () => {
+    const d = captureDeps();
+    await new RecognitionSession(d).onCapture('img', createTrackerState(), 1000);
+    expect(d.requestCensus.mock.calls[0][0].marks).toBeUndefined();
+  });
+
+  it('turns the returned regions into confirmed tracks in one capture', async () => {
+    // minHits is 1 here, unlike the live path's 3: a capture is one deliberate authoritative
+    // look, so holding everything tentative would draw the whole cart as "still forming".
+    const result = await new RecognitionSession(captureDeps()).onCapture('img', createTrackerState(), 1000);
+    expect(result).not.toBeNull();
+    expect(result!.tracks).toHaveLength(2);
+    expect(result!.tracks.every((t) => t.state === 'confirmed')).toBe(true);
+  });
+
+  it('carries the returned polygon onto the track, so there is something to outline', async () => {
+    const result = await new RecognitionSession(captureDeps()).onCapture('img', createTrackerState(), 1000);
+    expect(result!.tracks[0].polygon.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('names each track from the mark on its own region, not another one', async () => {
+    const s = new RecognitionSession(captureDeps());
+    const result = await s.onCapture('img', createTrackerState(), 1000);
+    const named = result!.tracks.map((t) => s.state.fusion.identities[t.id]?.name).sort();
+    expect(named).toEqual(['Bananas', 'Milk']);
+  });
+
+  it('puts both products in the bag, once each', async () => {
+    const s = new RecognitionSession(captureDeps());
+    await s.onCapture('img', createTrackerState(), 1000);
+    expect(bagLines(s.state.fusion).map((l) => [l.name, l.qty]).sort()).toEqual([['Bananas', 1], ['Milk', 1]]);
+  });
+
+  it('does not count the same cart twice across two captures of it', async () => {
+    // The high-water-mark rule is what makes several captures accumulate into one bag rather
+    // than a running total, and it only works if the second capture associates against the
+    // first one's tracks. That is why the tracker is threaded through.
+    const s = new RecognitionSession(captureDeps());
+    const first = await s.onCapture('img', createTrackerState(), 1000);
+    await s.onCapture('img2', first!.tracker, 2000);
+    expect(bagLines(s.state.fusion).map((l) => [l.name, l.qty]).sort()).toEqual([['Bananas', 1], ['Milk', 1]]);
+  });
+
+  it('still fills the bag when the enumerator was unreachable', async () => {
+    // No regions and no outlines, but the model still named what it could see. Measured at 72%
+    // of hand-labelled units on real photographs, which is far better than failing the capture.
+    const d = captureDeps({
+      requestCensus: jest.fn().mockResolvedValue({
+        ok: true,
+        value: {
+          marks: [], inViewCounts: [],
+          unmarkedItems: [{ description: 'Bananas', productKey: '::bananas', approxLocation: 'middle', confidence: 0.8 }],
+          occlusion: { itemsLikelyHidden: false, severity: 'none' as const, reason: '' },
+          regions: [], enumeration: 'degraded',
+        },
+      }),
+    });
+    const s = new RecognitionSession(d);
+    const result = await s.onCapture('img', createTrackerState(), 1000);
+
+    expect(result!.tracks).toHaveLength(0);
+    expect(bagLines(s.state.fusion).map((l) => [l.name, l.qty])).toEqual([['Bananas', 1]]);
+    expect(s.state.lastError).toBe('enumeration unavailable');
+  });
+
+  it('returns null rather than throwing when the endpoint is not configured', async () => {
+    const d = captureDeps({ requestCensus: jest.fn().mockResolvedValue({ ok: false, failure: 'unconfigured' }) });
+    const s = new RecognitionSession(d);
+    expect(await s.onCapture('img', createTrackerState(), 1000)).toBeNull();
+    // And it stops asking, because that can never start working mid-session.
+    expect(await s.onCapture('img', createTrackerState(), 2000)).toBeNull();
+    expect(d.requestCensus).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start a second capture while one is in flight', async () => {
+    let release: (v: unknown) => void = () => {};
+    const d = captureDeps({ requestCensus: jest.fn().mockReturnValue(new Promise((r) => { release = r; })) });
+    const s = new RecognitionSession(d);
+    const first = s.onCapture('img', createTrackerState(), 1000);
+    expect(await s.onCapture('img', createTrackerState(), 1100)).toBeNull();
+    release(captureOk([region(1, 0.1, 'Bananas')]));
+    await first;
+    expect(d.requestCensus).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a region that matched no track rather than attaching it to the wrong one', async () => {
+    // A region the tracker rejected has no track to carry its identity, and guessing would put
+    // one item's name on another item's outline.
+    const d = captureDeps({
+      requestCensus: jest.fn().mockResolvedValue(captureOk([
+        { ...region(1, 0.1, 'Bananas') },
+        { ...region(2, 0.5, 'Milk'), box: { x: 0.5, y: 0.2, w: 0, h: 0 }, polygon: [0.5, 0.2, 0.5, 0.2, 0.5, 0.2] },
+      ])),
+    });
+    const s = new RecognitionSession(d);
+    const result = await s.onCapture('img', createTrackerState(), 1000);
+    const named = result!.tracks.map((t) => s.state.fusion.identities[t.id]?.name).filter(Boolean);
+    expect(named).toEqual(['Bananas']);
   });
 });

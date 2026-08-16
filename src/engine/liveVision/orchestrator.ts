@@ -11,7 +11,9 @@ import {
 import { assessOcclusion, type OcclusionVerdict } from './occlusion';
 import type { ClientResult, IdentifyResult, CensusPayload } from './recognitionClient';
 import type { ResolvedProduct } from './barcodeLookup';
-import type { Box, Track } from './types';
+import type { Box, DetectedInstance, Track, TrackerState } from './types';
+import { updateTracks } from './byteTrack';
+import { intersectionOverUnion } from './geometry';
 import {
   GREEN_CONFIDENCE,
   MAX_CENSUS_CALLS_PER_SESSION,
@@ -144,7 +146,9 @@ export function tracksNeedingThumbnail(state: SessionState, tracks: Track[]): { 
 
 export interface SessionDeps {
   requestCensus: (
-    req: { imageBase64: string; marks: { id: number; box: Box }[] },
+    // Marks are optional: omitting them asks the server to enumerate the frame itself, which is
+    // what `onCapture` does. `onKeyframe` still sends the on-device path's own marks.
+    req: { imageBase64: string; marks?: { id: number; box: Box }[] },
     signal?: AbortSignal,
   ) => Promise<ClientResult<CensusPayload>>;
   requestIdentify: (
@@ -221,6 +225,111 @@ export class RecognitionSession {
     if (this.state.censusCalls >= MAX_CENSUS_CALLS_PER_SESSION) return false;
     if (!paced) return false;
     return tracks.some((t) => t.state === 'confirmed');
+  }
+
+  /**
+   * One captured frame, processed by the server, folded into the bag.
+   *
+   * This is the capture-then-process path the detector decision landed on. The device runs no
+   * detector: it sends the frame with no marks, and the service enumerates the regions on a GPU
+   * host, badges them, names them, and returns the geometry alongside the identifications. From
+   * there everything above the detector is untouched, which was the whole point of the decision:
+   * the same tracker, the same counting rule, the same green and amber states, the same bag.
+   *
+   * `tracker` is threaded through rather than owned here because the scan screen owns it, and
+   * because the second capture of a cart has to associate against the first one's tracks or the
+   * high-water mark counts the same items twice.
+   *
+   * Returns null when nothing was done, so a caller can tell "budget spent" from "the cart is
+   * empty" without inspecting private state.
+   */
+  async onCapture(
+    imageBase64: string,
+    tracker: TrackerState,
+    now: number,
+  ): Promise<{ tracker: TrackerState; tracks: Track[] } | null> {
+    if (this.disposed || this.permanentlyUnavailable) return null;
+    if (this.censusInFlight) return null;
+    if (this.state.censusCalls >= MAX_CENSUS_CALLS_PER_SESSION) return null;
+
+    this.censusInFlight = true;
+    this.state = { ...this.state, censusCalls: this.state.censusCalls + 1 };
+
+    try {
+      // No marks: the server is being asked to find them.
+      const result = await this.deps.requestCensus({ imageBase64 }, this.controller.signal);
+      if (this.disposed) return null;
+      if (!result.ok) {
+        if (result.failure === 'unconfigured') this.permanentlyUnavailable = true;
+        return null;
+      }
+
+      const payload = result.value;
+      const instances: DetectedInstance[] = payload.regions.map((region) => ({
+        box: region.box,
+        polygon: region.polygon,
+        score: region.score,
+      }));
+
+      // minHits 1, unlike the live path's 3. A capture is one deliberate, authoritative look at
+      // the cart, not a frame that might be detector noise gone by the next one, so there is
+      // nothing for a second and third sighting to corroborate and holding every item tentative
+      // would leave the whole cart drawn as "still forming".
+      const advanced = updateTracks(tracker, instances, now, { minHits: 1 });
+      const tracks = advanced.tracks;
+
+      // Join the returned regions to the tracks they became. Ids cannot carry across because the
+      // tracker assigns its own and reuses none; geometry is what relates them, and the Kalman
+      // update means a track's box is near its detection rather than identical to it.
+      const markToTrack: Record<number, string> = {};
+      const liveBoxes: Record<string, Box> = {};
+      const claimed = new Set<string>();
+      for (const region of payload.regions) {
+        let best: Track | null = null;
+        let bestIou = 0;
+        for (const track of tracks) {
+          if (claimed.has(track.id) || track.state === 'lost') continue;
+          const iou = intersectionOverUnion(track.box, region.box);
+          if (iou > bestIou) {
+            bestIou = iou;
+            best = track;
+          }
+        }
+        // A region that matched nothing is dropped rather than guessed at, exactly as
+        // applyCensus drops a mark id it never sent.
+        if (best === null || bestIou <= 0) continue;
+        claimed.add(best.id);
+        markToTrack[region.id] = best.id;
+        liveBoxes[best.id] = best.box;
+      }
+
+      const liveTrackIds = tracks.filter((t) => t.state !== 'lost').map((t) => t.id);
+      const fusion = applyCensus(
+        this.state.fusion, payload, markToTrack, liveTrackIds, false, liveBoxes);
+      const occlusion = assessOcclusion({
+        semantic: payload.occlusion,
+        boxes: tracks.filter((t) => t.state !== 'lost').map((t) => t.box),
+        unmarkedCount: payload.unmarkedItems.length,
+      });
+
+      this.state = {
+        ...this.state,
+        fusion,
+        occlusion,
+        amberSince: this.nextAmberSince(fusion, tracks, now),
+        // An enumerator that could not be reached is not an error the shopper should see, but it
+        // is worth recording: the bag will have names in it and no outlines.
+        lastError: payload.enumeration === 'degraded' ? 'enumeration unavailable' : this.state.lastError,
+      };
+
+      await this.resolveUncertain(imageBase64, tracks, now);
+      return { tracker: { ...advanced, tracks }, tracks };
+    } catch (error) {
+      this.recordError(error);
+      return null;
+    } finally {
+      this.censusInFlight = false;
+    }
   }
 
   async onKeyframe(imageBase64: string, tracks: Track[], now: number): Promise<void> {

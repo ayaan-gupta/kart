@@ -9,11 +9,20 @@ vi.mock("../src/recognize.js", () => ({
   runCensus: vi.fn(),
 }));
 
+// The enumerator reaches a GPU host over the network. Mocked here for the same reason
+// recognize.js is: these tests are about what the endpoint does with the answer, not about
+// whether anything is reachable. src/enumerate.test.ts covers the module itself.
+vi.mock("../src/enumerate.js", () => ({
+  enumerateRegions: vi.fn(async () => ({ regions: [], degraded: "no enumerator configured" })),
+}));
+
 const { runCensus } = await import("../src/recognize.js");
+const { enumerateRegions } = await import("../src/enumerate.js");
 const { default: handler, parseMarks } = await import("../api/census.js");
 const { REQUEST_TIMEOUT_MS } = await import("../src/http.js");
 
 const runCensusMock = runCensus as unknown as ReturnType<typeof vi.fn>;
+const enumerateMock = enumerateRegions as unknown as ReturnType<typeof vi.fn>;
 
 // vi.useFakeTimers() and vi.advanceTimersByTimeAsync do not reliably service a REAL
 // pending async operation (assertReasonablePixelDimensions's sharp().metadata() call,
@@ -36,6 +45,11 @@ async function tinyJpegBase64(): Promise<string> {
   return buf.toString("base64");
 }
 
+/** The same bytes `validImage` decodes to, for asserting on what runCensus was handed. */
+function validImageBuffer(): Buffer {
+  return Buffer.from(validImage, "base64");
+}
+
 function post(body: unknown, extraHeaders: Record<string, string> = {}): Request {
   const payload = typeof body === "string" ? body : JSON.stringify(body);
   return new Request("http://localhost/api/census", {
@@ -49,6 +63,8 @@ let validImage: string;
 
 beforeEach(async () => {
   runCensusMock.mockReset();
+  enumerateMock.mockReset();
+  enumerateMock.mockResolvedValue({ regions: [], degraded: "no enumerator configured" });
   validImage = await tinyJpegBase64();
 });
 
@@ -332,7 +348,9 @@ describe("POST /api/census: success path", () => {
     const marks = [{ id: 1, box: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } }];
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, result });
+    // `regions` is empty and `enumeration` is "client" because this request brought its own
+    // marks, so the server never enumerated. See the capture path tests below for the other case.
+    expect(await res.json()).toEqual({ ok: true, result, regions: [], enumeration: "client" });
   });
 });
 
@@ -365,5 +383,81 @@ describe("POST /api/census: upstream failure never leaks", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("POST /api/census: the capture path, where the server finds the regions", () => {
+  const region = (id: number, x: number) => ({
+    box: { x, y: 0.2, w: 0.1, h: 0.1 },
+    polygon: [x, 0.2, x + 0.1, 0.2, x + 0.1, 0.3, x, 0.3],
+    score: 0.8,
+  });
+  const emptyResult = { marks: [], unmarkedItems: [], inViewCounts: [], occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" } };
+
+  it("enumerates when the client sends no marks at all", async () => {
+    enumerateMock.mockResolvedValue({ regions: [region(1, 0.1), region(2, 0.5)], degraded: null });
+    runCensusMock.mockResolvedValue(emptyResult);
+
+    const res = await handler(post({ image: validImage }));
+    expect(res.status).toBe(200);
+    expect(enumerateMock).toHaveBeenCalledTimes(1);
+    // The regions it found become the badges the model is asked about, numbered from 1.
+    expect(runCensusMock.mock.calls[0][1]).toEqual([
+      { id: 1, box: { x: 0.1, y: 0.2, w: 0.1, h: 0.1 } },
+      { id: 2, box: { x: 0.5, y: 0.2, w: 0.1, h: 0.1 } },
+    ]);
+  });
+
+  it("returns the geometry, because the device never had it", async () => {
+    enumerateMock.mockResolvedValue({ regions: [region(1, 0.1)], degraded: null });
+    runCensusMock.mockResolvedValue(emptyResult);
+
+    const body = await (await handler(post({ image: validImage }))).json();
+    expect(body.enumeration).toBe("ok");
+    expect(body.regions).toEqual([
+      { id: 1, box: { x: 0.1, y: 0.2, w: 0.1, h: 0.1 }, polygon: [0.1, 0.2, 0.2, 0.2, 0.2, 0.3, 0.1, 0.3], score: 0.8 },
+    ]);
+  });
+
+  it("numbers regions to match the mark ids exactly, so the client can join them", async () => {
+    enumerateMock.mockResolvedValue({ regions: [region(1, 0.1), region(2, 0.3), region(3, 0.5)], degraded: null });
+    runCensusMock.mockResolvedValue(emptyResult);
+
+    const body = await (await handler(post({ image: validImage }))).json();
+    expect(body.regions.map((r: { id: number }) => r.id)).toEqual([1, 2, 3]);
+    expect(runCensusMock.mock.calls[0][1].map((m: { id: number }) => m.id)).toEqual([1, 2, 3]);
+  });
+
+  it("still runs the census when the enumerator is unreachable, and says so", async () => {
+    // The degraded mode that matters: with no regions the model names what it can see in
+    // unmarkedItems, which measured 72% of labelled units on real photographs. Failing the
+    // whole capture instead would give the shopper nothing.
+    enumerateMock.mockResolvedValue({ regions: [], degraded: "enumerator unreachable" });
+    runCensusMock.mockResolvedValue(emptyResult);
+
+    const res = await handler(post({ image: validImage }));
+    expect(res.status).toBe(200);
+    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), []);
+    const body = await res.json();
+    expect(body.enumeration).toBe("degraded");
+    expect(body.regions).toEqual([]);
+  });
+
+  it("does not enumerate when the client brought its own marks", async () => {
+    runCensusMock.mockResolvedValue(emptyResult);
+    const marks = [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }];
+
+    const body = await (await handler(post({ image: validImage, marks }))).json();
+    expect(enumerateMock).not.toHaveBeenCalled();
+    expect(body.enumeration).toBe("client");
+  });
+
+  it("treats an explicitly empty marks array as a capture, not as an empty cart", async () => {
+    enumerateMock.mockResolvedValue({ regions: [region(1, 0.1)], degraded: null });
+    runCensusMock.mockResolvedValue(emptyResult);
+
+    const body = await (await handler(post({ image: validImage, marks: [] }))).json();
+    expect(enumerateMock).toHaveBeenCalledTimes(1);
+    expect(body.regions).toHaveLength(1);
   });
 });
