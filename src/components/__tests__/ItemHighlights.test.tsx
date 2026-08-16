@@ -13,7 +13,8 @@ const track = (over: Partial<Track> = {}): Track =>
 
 const identity = (over: Partial<Identity> = {}): Identity => ({
   key: '::bananas', name: 'Bananas', brand: null, size: null, category: 'Produce',
-  confidence: 0.9, needsCloserLook: false, source: 'vlm', ...over,
+  confidence: 0.9, needsCloserLook: false, source: 'vlm', placeholder: false,
+  verifiedByIdentify: false, ...over,
 });
 
 describe('outlineStateFor', () => {

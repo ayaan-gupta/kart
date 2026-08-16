@@ -137,17 +137,10 @@ export interface PipelineState {
   keyframe: KeyframeState;
 }
 
-export type IdentitySource = 'vlm' | 'barcode';
-
-/** What one physical item is. Attached to a track, and outliving it so the bag keeps the item. */
-export interface Identity {
-  /** Stable across calls and across name phrasings. See `productKey` in `fusion.ts`. */
-  key: string;
-  name: string;
-  brand: string | null;
-  size: string | null;
-  category: string;
-  confidence: number;
-  needsCloserLook: boolean;
-  source: IdentitySource;
-}
+/**
+ * `Identity` and `IdentitySource` are defined in `fusion.ts`, which produces them, and
+ * re-exported here so the UI can import types without reaching into the async session machinery
+ * via a longer path. Do not redefine them here: two independent copies previously drifted (the
+ * copy here was missing `placeholder`), and structural typing hid the mismatch from `tsc`.
+ */
+export type { Identity, IdentitySource } from './fusion';
