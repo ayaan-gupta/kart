@@ -23,6 +23,20 @@ try {
 }
 
 /**
+ * Whether the native `scanCart` frame processor plugin resolved by name at module load.
+ *
+ * Exported so a diagnostic screen (see `src/app/dev/frame-lab.tsx`) can show, on the running
+ * device or Simulator, whether `VisionCameraProxy.initFrameProcessorPlugin('scanCart', {})`
+ * actually found the native registration, without duplicating the try/catch above or calling
+ * `initFrameProcessorPlugin` a second time. `plugin` itself stays module-private: nothing
+ * outside this file should be able to call `.call` directly and bypass `scanCart`'s shape
+ * guarantees.
+ */
+export function isScanCartPluginAvailable(): boolean {
+  return plugin !== null;
+}
+
+/**
  * Shapes a native reply into a FrameScan.
  *
  * Separate from `scanCart` so it can be tested without a camera, and defensive because a
@@ -67,11 +81,24 @@ export function toFrameScan(raw: unknown): FrameScan {
 const PLUGIN_LOAD_ERROR =
   'Failed to load Frame Processor Plugin "scanCart". Did the native build include KartVisionFrameProcessorPlugin?';
 
-export function scanCart(frame: Frame, request: ScanRequest): FrameScan {
+/**
+ * Builds the argument object the native plugin expects, from a plain-data `ScanRequest`.
+ *
+ * Separate from `scanCart` so `src/app/dev/frame-lab.tsx` (which pushes a bundled test image
+ * through the native plugin directly, bypassing `Frame`/JSI entirely) can build the exact same
+ * argument shape a live camera frame would send, rather than a second, hand-maintained copy
+ * that could quietly drift from what `scanCart` actually sends on device.
+ *
+ * Carries `'worklet'` for the same reason `toFrameScan` does: it is plain data manipulation with
+ * no host calls of its own, but it is still called from inside `scanCart`'s worklet body, and a
+ * function crossing that boundary without the directive throws on every call on a real device
+ * (see the worklet-boundary defect recorded in
+ * .superpowers/sdd/2026-08-14-kart-fusion-and-ui/worklet-boundary-report.md). The Frame Lab
+ * screen calls this from ordinary (non-worklet) JS code, where the directive is simply inert.
+ */
+export function buildScanCartArgs(request: ScanRequest): Record<string, unknown> {
   'worklet';
-  if (plugin == null) return toFrameScan({ error: PLUGIN_LOAD_ERROR });
-
-  const args = {
+  return {
     barcodes: ENABLE_BARCODE_FAST_PATH,
     wantKeyframe: request.wantKeyframe,
     minSharpness: MIN_KEYFRAME_SHARPNESS,
@@ -83,6 +110,13 @@ export function scanCart(frame: Frame, request: ScanRequest): FrameScan {
       id: t.id, x: t.box.x, y: t.box.y, w: t.box.w, h: t.box.h,
     })),
   };
+}
+
+export function scanCart(frame: Frame, request: ScanRequest): FrameScan {
+  'worklet';
+  if (plugin == null) return toFrameScan({ error: PLUGIN_LOAD_ERROR });
+
+  const args = buildScanCartArgs(request);
   // The installed react-native-vision-camera types only allow flat parameter values (string,
   // number, boolean, ArrayBuffer, or one level of array/record of those) and do not export the
   // type to build a matching shape against. The native JSI bridge accepts arbitrary JSON-shaped

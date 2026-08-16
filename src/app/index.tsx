@@ -52,12 +52,20 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.brandRow}>
+          <PressableScale
+            style={styles.brandRow}
+            haptic={false}
+            accessibilityLabel="Kart"
+            // Developer-only entry point to the Frame Lab harness (src/app/dev/frame-lab.tsx):
+            // a long-press on the logo, gated behind __DEV__ so it does not exist in a Release
+            // build's JS bundle at all, let alone appear in any normal user's navigation.
+            onLongPress={__DEV__ ? () => router.push('/dev/frame-lab') : undefined}
+          >
             <KartLogo height={32} />
             <LargeTitle color={color.brand} style={styles.brandName}>
               Kart
             </LargeTitle>
-          </View>
+          </PressableScale>
           <View style={styles.avatar}>
             <Headline color={color.white}>A</Headline>
           </View>
