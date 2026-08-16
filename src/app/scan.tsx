@@ -187,9 +187,14 @@ export default function ScanScreen() {
         // frame processor worklet (see the comment on `nextRequestRef`). Refreshed here and
         // again after each async result lands in `publish`, so the request the next frame reads
         // is never more than one detection cycle stale.
+        //
+        // `result.keyframe.fire` is `evaluateKeyframe`'s verdict for this same frame (sharp
+        // enough, still enough, and paced by `minIntervalMs`/the scene-change interval; see
+        // `pipeline.ts`, `keyframe.ts`), passed through as `wantsKeyframe`'s second argument so
+        // it actually gates the request instead of being computed and discarded.
         const refreshNextRequest = () => {
           nextRequestRef.current = {
-            wantKeyframe: session.wantsKeyframe(result.tracks),
+            wantKeyframe: session.wantsKeyframe(result.tracks, result.keyframe.fire),
             cropTrackIds: tracksNeedingThumbnail(session.state, result.tracks),
           };
         };

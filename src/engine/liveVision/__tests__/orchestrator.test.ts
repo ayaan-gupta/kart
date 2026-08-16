@@ -193,6 +193,18 @@ describe('RecognitionSession', () => {
     expect(new RecognitionSession(deps()).wantsKeyframe([])).toBe(false);
   });
 
+  it('I1: does not want one when the caller says pacing has not cleared it', () => {
+    // Regression: scan.tsx used to ignore evaluateKeyframe's own verdict entirely and call
+    // wantsKeyframe with only the tracks, so minIntervalMs (and the scene-change interval) had
+    // no effect on device and the census budget could be spent in well under a minute.
+    const s = new RecognitionSession(deps());
+    expect(s.wantsKeyframe([track('a')], false)).toBe(false);
+    // The default keeps every other caller (and every other existing test in this file) asking
+    // only the session-eligibility question.
+    expect(s.wantsKeyframe([track('a')])).toBe(true);
+    expect(s.wantsKeyframe([track('a')], true)).toBe(true);
+  });
+
   it('does not want another while one is in flight', async () => {
     let release: (v: unknown) => void = () => {};
     const d = deps({ requestCensus: jest.fn().mockReturnValue(new Promise((r) => { release = r; })) });

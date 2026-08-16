@@ -1,19 +1,20 @@
+import { MAX_KEYFRAME_MOTION, MIN_KEYFRAME_SHARPNESS } from './config';
 import type { KeyframeConfig, KeyframeReason, KeyframeSignals, KeyframeState } from './types';
 
 /**
- * Thresholds are starting points, not measurements. `minSharpness` in particular is in the
- * arbitrary units of variance-of-Laplacian over an 8-bit luma plane and depends on the camera
- * and on the window the metric is measured over, so it has to be re-tuned against the numbers a
- * real device reports before this gate can be trusted. `scripts/detector-bench` prints the
- * values it sees, and it computes them by calling the same `FrameMetrics` the device does, so
- * its `sharp` column is directly comparable to what the phone will report.
+ * `minSharpness` and `maxMotion` come from `config.ts`, the single home for both thresholds:
+ * the same two values gate the native keyframe encode (see `frameProcessor.ts`, which sends
+ * `MIN_KEYFRAME_SHARPNESS`/`MAX_KEYFRAME_MOTION` to the plugin). This module used to carry its
+ * own, unrelated copies (100 and 0.02, against config.ts's 12 and 0.06), so tuning one side
+ * left the other silently disagreeing. Sharing the constants makes that impossible: the JS gate
+ * below and the native gate now agree by construction on what counts as sharp and still enough.
  *
- * `maxMotion` is the one threshold the bench cannot tune from a folder of unrelated photos,
- * because motion is a comparison between consecutive frames. See docs/detector-measurement.md.
+ * `minIntervalMs`, `sceneChangeCount` and `sceneChangeIntervalMs` have no native counterpart;
+ * they govern only the pacing decision this module makes, so they stay local.
  */
 const DEFAULT_CONFIG: KeyframeConfig = {
-  minSharpness: 100,
-  maxMotion: 0.02,
+  minSharpness: MIN_KEYFRAME_SHARPNESS,
+  maxMotion: MAX_KEYFRAME_MOTION,
   minIntervalMs: 2000,
   sceneChangeCount: 4,
   sceneChangeIntervalMs: 800,

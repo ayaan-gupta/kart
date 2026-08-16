@@ -203,14 +203,23 @@ export class RecognitionSession {
   /**
    * Whether the next good frame should be encoded and uploaded.
    *
-   * This is the half of the keyframe gate that JavaScript can answer. Sharpness and stillness
-   * are decided natively on the frame itself, so a frame is only ever encoded when both halves
-   * agree and no encode is wasted.
+   * Two independent gates, both of which must agree. This method answers the session-eligibility
+   * half: is anything confirmed, is a call already in flight, is the budget spent. `paced` is the
+   * other half, `evaluateKeyframe`'s verdict for this same frame (sharp enough, still enough, and
+   * paced by `minIntervalMs` / the scene-change interval; see `pipeline.ts` and `keyframe.ts`),
+   * which only the caller has, so it is passed in rather than recomputed here.
+   *
+   * Defaults to `true` so `onKeyframe`'s own internal guard below, and every existing test, can
+   * keep asking only the session-eligibility question. `scan.tsx` is the one caller deciding
+   * whether to *request* a keyframe at all, and it must pass its actual pacing verdict, or
+   * `minIntervalMs` has no effect on device and the census budget can be spent in well under a
+   * minute of scanning.
    */
-  wantsKeyframe(tracks: Track[]): boolean {
+  wantsKeyframe(tracks: Track[], paced = true): boolean {
     if (this.disposed || this.permanentlyUnavailable) return false;
     if (this.censusInFlight) return false;
     if (this.state.censusCalls >= MAX_CENSUS_CALLS_PER_SESSION) return false;
+    if (!paced) return false;
     return tracks.some((t) => t.state === 'confirmed');
   }
 

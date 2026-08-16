@@ -13,7 +13,9 @@ describe('evaluateKeyframe', () => {
   });
 
   it('holds a blurry frame', () => {
-    const r = evaluateKeyframe(createKeyframeState(), { ...GOOD, sharpness: 20 });
+    // Below MIN_KEYFRAME_SHARPNESS (config.ts), the single home for this threshold now that
+    // this module shares it instead of carrying its own, disagreeing copy.
+    const r = evaluateKeyframe(createKeyframeState(), { ...GOOD, sharpness: 5 });
     expect(r.fire).toBe(false);
     expect(r.reason).toBe('blurry');
   });
@@ -64,7 +66,7 @@ describe('evaluateKeyframe', () => {
       ...GOOD,
       now: GOOD.now + 1100,
       trackCount: 20,
-      sharpness: 15,
+      sharpness: 5,
     });
     expect(second.fire).toBe(false);
     expect(second.reason).toBe('blurry');
