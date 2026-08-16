@@ -213,31 +213,78 @@ public enum MaskContour {
   ///
   /// `index` is carried through unchanged for the caller to stamp onto the result; this
   /// function does not read or need it to find the region.
+  ///
+  /// "Isolated" describes the Vision call this feeds, not a guarantee about the pixels: Vision
+  /// documents no promise that one instance label paints one connected blob, and a real capture
+  /// has produced masks with several disconnected components under one label (occlusion is the
+  /// obvious cause: a bag hides the middle of an item, leaving two separate visible patches
+  /// Vision still calls one salient instance). `traceBoundary` below only ever walks the single
+  /// component that contains the first foreground pixel found scanning top-to-bottom,
+  /// left-to-right, because Moore-neighbour tracing cannot cross background to reach a
+  /// different component. `box` and `pixelCount` must be scoped to that exact same component,
+  /// found the exact same way, or they describe a region the polygon never traced: that
+  /// mismatch is what let the box balloon to a Vision-observed height of 0.803 against a traced
+  /// polygon height of about 0.16 on a mask with a stray disconnected speck.
+  ///
+  /// This deliberately keeps one `MaskInstance` per label rather than splitting each connected
+  /// component into its own instance. Vision already decided one label means one salient
+  /// object; a second visible patch under the same label is Vision's judgment about that one
+  /// object, and turning it into a second instance would fabricate an item count Vision never
+  /// asserted, which is the exact failure this detection layer exists to avoid. The dropped
+  /// component is not new data loss either: the polygon already covered only one component
+  /// before this fix, so scoping the box to match loses nothing the caller was relying on.
   public static func traceIsolatedInstance(
     labels: [UInt8], width: Int, height: Int, index: Int, simplifyEpsilon: Double
   ) -> MaskInstance? {
     guard width > 0, height > 0, labels.count >= width * height else { return nil }
 
-    var binary = [UInt8](repeating: 0, count: width * height)
-    var minX = Int.max, minY = Int.max, maxX = Int.min, maxY = Int.min
-    var count = 0
-
-    for y in 0..<height {
+    // First foreground pixel in raster order: the same pixel `traceBoundary`'s own internal
+    // scan finds when handed this component's bounds (proof: that scan looks row-major within
+    // whatever bounds it is given, and no pixel outside this component can precede it in raster
+    // order without also preceding it in the full-grid scan below, which found this one first).
+    var startIndex: Int?
+    outer: for y in 0..<height {
       let row = y * width
       for x in 0..<width where labels[row + x] != 0 {
-        binary[row + x] = 1
-        count += 1
-        if x < minX { minX = x }
-        if x > maxX { maxX = x }
-        if y < minY { minY = y }
-        if y > maxY { maxY = y }
+        startIndex = row + x
+        break outer
       }
     }
-    guard count > 0 else { return nil }
+    guard let start = startIndex else { return nil }
+    let startX = start % width
+    let startY = start / width
+
+    // Flood fill, 8-connected to match `traceBoundary`'s own neighbour connectivity exactly, so
+    // "the component containing the start pixel" means the same thing here as it does there.
+    // Iterative and stack-based: a full-frame mask is on the order of a million pixels, too
+    // large to trust to recursion.
+    var component = [UInt8](repeating: 0, count: width * height)
+    component[start] = 1
+    var minX = startX, minY = startY, maxX = startX, maxY = startY
+    var count = 0
+    var stack = [(startX, startY)]
+    while let (x, y) = stack.popLast() {
+      count += 1
+      if x < minX { minX = x }
+      if x > maxX { maxX = x }
+      if y < minY { minY = y }
+      if y > maxY { maxY = y }
+      for dy in -1...1 {
+        for dx in -1...1 where dx != 0 || dy != 0 {
+          let nx = x + dx, ny = y + dy
+          guard nx >= 0, ny >= 0, nx < width, ny < height else { continue }
+          let neighbourIndex = ny * width + nx
+          if labels[neighbourIndex] != 0, component[neighbourIndex] == 0 {
+            component[neighbourIndex] = 1
+            stack.append((nx, ny))
+          }
+        }
+      }
+    }
 
     guard
       let traced = traceBoundary(
-        labels: binary, width: width, height: height, label: 1,
+        labels: component, width: width, height: height, label: 1,
         minX: minX, minY: minY, maxX: maxX, maxY: maxY)
     else { return nil }
 

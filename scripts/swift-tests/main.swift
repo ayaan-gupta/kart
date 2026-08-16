@@ -389,6 +389,102 @@ suite("MaskContour.traceIsolatedInstance edge cases") {
     "returns nil for a zero-size grid")
 }
 
+/// Bounds of a flat `[x0, y0, x1, y1, ...]` polygon, or all zero for an empty polygon.
+func polygonBounds(_ polygon: [Float]) -> (minX: Float, minY: Float, maxX: Float, maxY: Float) {
+  var minX: Float = .greatestFiniteMagnitude
+  var minY: Float = .greatestFiniteMagnitude
+  var maxX: Float = -.greatestFiniteMagnitude
+  var maxY: Float = -.greatestFiniteMagnitude
+  var i = 0
+  while i < polygon.count {
+    minX = min(minX, polygon[i])
+    maxX = max(maxX, polygon[i])
+    minY = min(minY, polygon[i + 1])
+    maxY = max(maxY, polygon[i + 1])
+    i += 2
+  }
+  return (minX, minY, maxX, maxY)
+}
+
+suite("MaskContour.traceIsolatedInstance box matches the traced component, not the union") {
+  // A mask with two disconnected components under one label, standing in for a real Vision
+  // "isolated instance" mask that is not actually one connected blob (see the doc comment on
+  // traceIsolatedInstance: Vision never promises that). `traceBoundary` can only ever walk the
+  // one component containing the first foreground pixel found scanning top-to-bottom,
+  // left-to-right (Moore-neighbour tracing cannot cross background), so a correct box must
+  // match that same component, not the union of both.
+  //
+  // Sized like the real 1000x1000 capture that exposed this: a main blob 200x160, and a
+  // disconnected 5x5 speck far below it. Reported on that capture: box height 0.803 against a
+  // traced polygon height of about 0.16. Against the old whole-grid-scan box, this reproduces
+  // that: minY 50/1000 = 0.05, maxY reaching the speck's bottom edge at 855/1000 = 0.855, for a
+  // union height of 0.805 versus the true single-component height of 160/1000 = 0.16.
+  let width = 1000
+  let height = 1000
+  var labels = [UInt8](repeating: 0, count: width * height)
+  for y in 50..<210 {
+    for x in 50..<250 { labels[y * width + x] = 1 }
+  }
+  for y in 850..<855 {
+    for x in 700..<705 { labels[y * width + x] = 1 }
+  }
+
+  let instance = MaskContour.traceIsolatedInstance(
+    labels: labels, width: width, height: height, index: 3, simplifyEpsilon: 0.004)
+  guard let instance else {
+    check(false, "traces the isolated instance despite the stray disconnected component")
+    return
+  }
+
+  check(
+    abs(instance.box.height - 0.16) < 0.01,
+    "box height matches the traced component (0.16), not the union stretching to the speck (0.805)")
+  check(abs(instance.box.minY - 0.05) < 0.01, "box top matches the traced component's top")
+  check(instance.box.maxY < 0.30, "box bottom does not stretch down to the disconnected speck")
+  check(
+    instance.pixelCount == 200 * 160,
+    "pixel count matches the traced component only (32000), not the whole mask (32025)")
+
+  let bounds = polygonBounds(instance.polygon)
+  check(
+    abs(Double(bounds.minY) - instance.box.minY) < 0.01,
+    "box top agrees with the traced polygon's top")
+  check(
+    abs(Double(bounds.maxY) - instance.box.maxY) < 0.01,
+    "box bottom agrees with the traced polygon's bottom, not the disconnected speck")
+}
+
+suite("MaskContour.traceIsolatedInstance box and polygon bounds agree for a normal single-component mask") {
+  // No disconnected components here: a plain filled rectangle, one connected region. Box and
+  // polygon must describe the same region within a tight tolerance, the general invariant the
+  // multi-component check above exists to protect once a mask is not this simple.
+  let width = 400
+  let height = 300
+  let labels = grid(width: width, height: height, rect: (40, 60, 120, 90), value: 1)
+
+  let instance = MaskContour.traceIsolatedInstance(
+    labels: labels, width: width, height: height, index: 5, simplifyEpsilon: 0.004)
+  guard let instance else {
+    check(false, "traces a normal single-component mask")
+    return
+  }
+
+  let bounds = polygonBounds(instance.polygon)
+  let tolerance = 0.01
+  check(
+    abs(Double(bounds.minX) - instance.box.minX) < tolerance,
+    "box left agrees with the polygon's left within tolerance")
+  check(
+    abs(Double(bounds.maxX) - instance.box.maxX) < tolerance,
+    "box right agrees with the polygon's right within tolerance")
+  check(
+    abs(Double(bounds.minY) - instance.box.minY) < tolerance,
+    "box top agrees with the polygon's top within tolerance")
+  check(
+    abs(Double(bounds.maxY) - instance.box.maxY) < tolerance,
+    "box bottom agrees with the polygon's bottom within tolerance")
+}
+
 suite("FrameMetricsMath.varianceOfLaplacian") {
   let flat = [UInt8](repeating: 128, count: 64 * 64)
   check(
