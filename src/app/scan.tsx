@@ -1,14 +1,12 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { Camera, runAtTargetFps, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
 import { Worklets } from 'react-native-worklets-core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
-  FadeOutUp,
   LinearTransition,
   useAnimatedStyle,
   useReducedMotion,
@@ -20,29 +18,30 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BagTray } from '../components/BagTray';
 import { Button } from '../components/Button';
+import { CaptureGuide, guideVisible } from '../components/CaptureGuide';
+import { CoachNotice, coachKind } from '../components/CoachNotice';
 import { DetectionRow } from '../components/DetectionRow';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
 import { ItemHighlights } from '../components/ItemHighlights';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
+import { createLookupCache, lookupBarcode } from '../engine/liveVision/barcodeLookup';
 import { DETECT_TARGET_FPS } from '../engine/liveVision/config';
+import { createCoverageState, observeYaw, type CoverageState } from '../engine/liveVision/coverage';
 import { scanCart } from '../engine/liveVision/frameProcessor';
+import { bagLines } from '../engine/liveVision/fusion';
+import {
+  persistentAmber,
+  RecognitionSession,
+  tracksNeedingThumbnail,
+} from '../engine/liveVision/orchestrator';
 import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
-import type { FrameScan, KeyframeReason, Track } from '../engine/liveVision/types';
-import { aggregate, haulCount, useScanline } from '../engine/store';
-
-const VISIBLE_MS = 6000;
-
-/**
- * Ceiling on distinct frame processor error messages logged per scan session. Deduping by
- * message assumes the messages repeat; one carrying a frame-specific value would not, and
- * would both spam the log and grow the set unboundedly at three frames a second.
- */
-const MAX_REPORTED_ERRORS = 20;
-
-/** How often the keyframe histogram prints even when the reason has not changed. */
-const KEYFRAME_LOG_INTERVAL_MS = 5000;
+import { requestCensus, requestIdentify } from '../engine/liveVision/recognitionClient';
+import { useDeviceYaw } from '../engine/liveVision/useDeviceYaw';
+import type { FrameScan, Identity, Track } from '../engine/liveVision/types';
+import { saveThumbnail } from '../engine/thumbnails';
+import { haulCount, useScanline } from '../engine/store';
 
 function RecordChip({ startedAt }: { startedAt: number | null }) {
   const reducedMotion = useReducedMotion();
@@ -95,28 +94,51 @@ function dropIntoBag(values: ExitAnimationsValues) {
 
 export default function ScanScreen() {
   const insets = useSafeAreaInsets();
-  const scan = useScanline((s) => s.scan);
+  const startedAt = useScanline((s) => s.scan.startedAt);
   const finishHaul = useScanline((s) => s.finishHaul);
   const discardScan = useScanline((s) => s.discardScan);
-  const [tick, setTick] = useState(Date.now());
 
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
+
   const pipelineStateRef = useRef(createPipelineState());
-  const keyframeReasonsRef = useRef<Record<KeyframeReason, number>>({
-    fire: 0,
-    blurry: 0,
-    moving: 0,
-    'too-soon': 0,
-    'nothing-to-see': 0,
-  });
-  const lastKeyframeReasonRef = useRef<KeyframeReason | null>(null);
-  const lastKeyframeLogAtRef = useRef(0);
-  const reportedErrorsRef = useRef<Set<string>>(new Set());
-  const errorCapNotedRef = useRef(false);
+  const lookupCacheRef = useRef(createLookupCache());
+  const sessionRef = useRef<RecognitionSession | null>(null);
+  if (sessionRef.current === null) {
+    // Built lazily rather than in useState so the dependencies are wired exactly once and the
+    // session is never reconstructed by a re-render mid-scan. Guarded by the null check above,
+    // so this write happens at most once per component instance, on the first render only, the
+    // same lazy-initialization idiom useState's own lazy initializer form uses internally.
+    // eslint-disable-next-line react-hooks/refs -- guarded lazy init, runs once, not a render read
+    sessionRef.current = new RecognitionSession({
+      requestCensus,
+      requestIdentify,
+      lookupBarcode: (payload, signal) => lookupBarcode(lookupCacheRef.current, payload, signal),
+      saveThumbnail,
+    });
+  }
+  // Mirrors `tracks` for the worklet: the frame processor cannot read React state, and closing
+  // over `tracks` from the render that created it would freeze on the empty array forever.
+  const latestTracksRef = useRef<Track[]>([]);
+
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [identities, setIdentities] = useState<Record<string, Identity>>({});
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
+  const [coverage, setCoverage] = useState<CoverageState>(createCoverageState());
+  const [occluded, setOccluded] = useState(false);
+  const [amberPersists, setAmberPersists] = useState(false);
   const [permissionAsked, setPermissionAsked] = useState(false);
+
+  const guide = guideVisible({ occluded, coverage });
+  // The gyroscope only runs while the guide is on screen. Leaving it subscribed for a whole
+  // scan costs battery to produce a number nothing reads.
+  const yaw = useDeviceYaw(guide);
+
+  useEffect(() => {
+    if (guide && yaw !== null) setCoverage((c) => observeYaw(c, yaw));
+  }, [guide, yaw]);
+
+  useEffect(() => () => sessionRef.current?.dispose(), []);
 
   useEffect(() => {
     if (!hasPermission && !permissionAsked) {
@@ -127,8 +149,8 @@ export default function ScanScreen() {
 
   // Stable identity across renders: react-native-vision-camera requires the frame processor
   // (and therefore this handler) not to change identity every render, or the native Frame
-  // Processor Context gets torn down and reinstalled repeatedly. Safe to build once, because
-  // the body only closes over refs and stable setState and module imports.
+  // Processor Context is torn down and reinstalled repeatedly. Safe to build once, because the
+  // body only closes over refs, stable setState, and module imports.
   const handleScan = useMemo(
     () =>
       // The React Compiler lint rules model every function defined in a component body as
@@ -138,6 +160,9 @@ export default function ScanScreen() {
       Worklets.createRunOnJS((scan: FrameScan) => {
         // eslint-disable-next-line react-hooks/purity -- runs on the JS thread from runOnJS, not during render
         const now = Date.now();
+        const session = sessionRef.current;
+        if (session === null) return;
+
         if (scan.width > 0 && scan.height > 0) {
           setFrameSize({ width: scan.width, height: scan.height });
         }
@@ -145,52 +170,32 @@ export default function ScanScreen() {
         const result = processFrame(pipelineStateRef.current, scan, now);
         pipelineStateRef.current = result.state;
         setTracks(result.tracks);
+        latestTracksRef.current = result.tracks;
 
-        // Plan 2 only decides that a frame is worth uploading. Plan 3 is what uploads it, so
-        // until then the only evidence that the gate works on real hardware is watching why it
-        // is holding. A bare count of fires could not tell a gate stuck on 'blurry' from one
-        // stuck on 'moving' or one that never sees a confirmed track, and it could not tell any
-        // of those from a gate that is simply correct. Logging the histogram says which, and
-        // carrying the raw signals alongside it is what makes minSharpness and maxMotion
-        // tunable against a real camera at all.
-        //
-        // On a transition OR every few seconds. Transitions alone are the wrong trigger for the
-        // case that matters most: a gate stuck on one reason prints a single early line with
-        // counts near zero and then goes silent forever, which is exactly the failure you need
-        // to watch. The interval turns it into the rolling sample a tuning session needs.
-        const reason = result.keyframe.reason;
-        keyframeReasonsRef.current[reason] += 1;
-        if (reason !== lastKeyframeReasonRef.current || now - lastKeyframeLogAtRef.current >= KEYFRAME_LOG_INTERVAL_MS) {
-          lastKeyframeReasonRef.current = reason;
-          lastKeyframeLogAtRef.current = now;
-          const counts = keyframeReasonsRef.current;
-          console.log(
-            `[kart] keyframe ${reason}: fire=${counts.fire} blurry=${counts.blurry} ` +
-              `moving=${counts.moving} too-soon=${counts['too-soon']} ` +
-              `nothing-to-see=${counts['nothing-to-see']} | sharpness=${scan.sharpness.toFixed(0)} ` +
-              `motion=${scan.motion.toFixed(3)} tracks=${result.tracks.length}`,
-          );
+        // Everything below is fire and forget. Nothing on the path from a frame arriving to an
+        // outline being drawn is allowed to await the network.
+        const publish = () => {
+          setIdentities({ ...session.state.fusion.identities });
+          setOccluded(session.state.occlusion.hidden);
+          setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
+          useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
+        };
+
+        if (scan.keyframe !== null) {
+          void session.onKeyframe(scan.keyframe, result.tracks, now).then(publish);
+        }
+        if (scan.crops.length > 0) {
+          void session.onCrops(scan.crops).then(publish);
         }
 
-        // A detector that throws on every frame reports zero instances, which is exactly what
-        // an empty cart reports. Once per distinct message, because at three frames a second a
-        // permanent failure would otherwise bury the log it is supposed to make readable.
-        //
-        // Capped, because dedupe by message only works while the messages repeat. An error
-        // carrying a frame-specific value (a timestamp, a buffer address) is distinct every
-        // frame, which degrades to logging all of them and grows the set for the life of the
-        // screen. The cap notice is what stops that looking like the errors simply stopped.
-        if (scan.error != null && !reportedErrorsRef.current.has(scan.error)) {
-          if (reportedErrorsRef.current.size < MAX_REPORTED_ERRORS) {
-            reportedErrorsRef.current.add(scan.error);
-            console.warn(`[kart] frame processor error: ${scan.error}`);
-          } else if (!errorCapNotedRef.current) {
-            errorCapNotedRef.current = true;
-            console.warn(
-              `[kart] frame processor errors exceeded ${MAX_REPORTED_ERRORS} distinct messages, silencing`,
-            );
-          }
-        }
+        const hits = result.tracks
+          .filter((t) => t.barcode !== null)
+          .map((t) => ({ trackId: t.id, payload: t.barcode as string }));
+        if (hits.length > 0) void session.onBarcodes(hits).then(publish);
+
+        // Cheap, synchronous, and needs no network, so it updates every cycle rather than only
+        // when a request lands.
+        setAmberPersists(persistentAmber(session.state, result.tracks, now));
       }),
     [],
   );
@@ -198,15 +203,17 @@ export default function ScanScreen() {
   const frameProcessor = useFrameProcessor(
     (frame) => {
       'worklet';
-      // Detection is the expensive call, so it runs a few times a second rather than every
-      // frame. The overlay stays smooth because the tracker predicts between detections, and
-      // the frame's upright dimensions now come back from native with the result.
+      // Detection runs a few times a second rather than every frame. The overlay stays smooth
+      // because the tracker predicts between detections.
       runAtTargetFps(DETECT_TARGET_FPS, () => {
         'worklet';
-        // wantKeyframe and cropTrackIds are wired up once fusion (later in Plan 3) decides
-        // there are tracks worth an upload and items worth a thumbnail; until then this asks
-        // for neither, so the gate simply never fires.
-        handleScan(scanCart(frame, { wantKeyframe: false, cropTrackIds: [] }));
+        const session = sessionRef.current;
+        handleScan(
+          scanCart(frame, {
+            wantKeyframe: session?.wantsKeyframe(latestTracksRef.current) ?? false,
+            cropTrackIds: session ? tracksNeedingThumbnail(session.state, latestTracksRef.current) : [],
+          }),
+        );
       });
     },
     [handleScan],
@@ -216,28 +223,9 @@ export default function ScanScreen() {
     useScanline.getState().startScan();
   }, []);
 
-  // The tick exists only to expire detection rows as they pass VISIBLE_MS. This plan never puts
-  // anything in that list (naming belongs to Plan 3), so with no detections the timer re-renders
-  // the whole screen once a second, during a live camera session, to recompute an empty array,
-  // on top of the three renders a second the tracker already causes. Nothing is deleted here:
-  // the moment Plan 3 puts a detection in the list the timer starts itself again.
-  const hasDetections = scan.detections.length > 0;
-  useEffect(() => {
-    if (!hasDetections) return;
-    const t = setInterval(() => setTick(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [hasDetections]);
-
-  const items = useMemo(() => aggregate(scan.detections), [scan.detections]);
+  const items = useScanline((s) => s.scan.items);
   const count = haulCount(items);
-  const bagBySku = useMemo(() => new Map(items.map((it) => [it.skuCode, it.qty])), [items]);
-
-  const visibleDetections = useMemo(() => {
-    const fresh = scan.detections.filter((d) => tick - d.detectedAt < VISIBLE_MS);
-    // One row per product: a repeat scan refreshes its row instead of stacking a twin.
-    const bySku = new Map(fresh.map((d) => [d.skuCode, d]));
-    return [...bySku.values()].slice(-2);
-  }, [scan.detections, tick]);
+  const visibleDetections = useMemo(() => items.slice(-2), [items]);
 
   const close = () => {
     const leave = () => {
@@ -274,7 +262,7 @@ export default function ScanScreen() {
             isActive={true}
             frameProcessor={frameProcessor}
           />
-          <ItemHighlights tracks={tracks} frameSize={frameSize} />
+          <ItemHighlights tracks={tracks} identities={identities} frameSize={frameSize} />
         </>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.permissionFallback]}>
@@ -291,23 +279,11 @@ export default function ScanScreen() {
 
       <View style={[styles.topBar, { top: insets.top + space.s }]}>
         <IconButton symbol="xmark" fallback="✕" accessibilityLabel="Close the scan" onPress={close} scheme="dark" />
-        <RecordChip startedAt={scan.startedAt} />
+        <RecordChip startedAt={startedAt} />
       </View>
 
-      {scan.hint ? (
-        <Animated.View
-          entering={FadeInDown.springify().duration(motion.spring.duration + 100).dampingRatio(1)}
-          exiting={FadeOutUp.duration(220)}
-          style={[styles.hint, { top: insets.top + space.s + 58 }]}
-        >
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="exclamationmark.circle.fill" size={20} tintColor={color.brand} />
-          ) : null}
-          <Sub color={color.white} style={styles.hintText}>
-            {scan.hint}
-          </Sub>
-        </Animated.View>
-      ) : null}
+      <CoachNotice kind={coachKind({ amberPersists, occluded })} topInset={insets.top} />
+      <CaptureGuide coverage={coverage} visible={guide} />
 
       <View
         style={[styles.detections, { bottom: 76 + insets.bottom + space.xl }]}
@@ -315,12 +291,12 @@ export default function ScanScreen() {
       >
         {visibleDetections.map((d) => (
           <Animated.View
-            key={d.id}
+            key={d.key}
             entering={FadeInDown.springify().duration(motion.spring.duration + 140).dampingRatio(1)}
             exiting={dropIntoBag}
             layout={LinearTransition.springify().duration(motion.spring.duration)}
           >
-            <DetectionRow detection={d} repeatIndex={bagBySku.get(d.skuCode) ?? 1} />
+            <DetectionRow item={d} />
           </Animated.View>
         ))}
       </View>
@@ -349,21 +325,6 @@ const styles = StyleSheet.create({
   },
   recordDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: color.record },
   recordTime: { fontVariant: ['tabular-nums'], fontWeight: '600' },
-  hint: {
-    position: 'absolute',
-    left: space.xl,
-    right: space.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.m,
-  },
-  hintText: {
-    flex: 1,
-    fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
   detections: {
     position: 'absolute',
     left: space.xl,
