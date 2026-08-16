@@ -137,25 +137,46 @@ export default function ScanScreen() {
   const [identities, setIdentities] = useState<Record<string, Identity>>({});
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [coverage, setCoverage] = useState<CoverageState>(createCoverageState());
+  // The most recent yaw already folded into `coverage`, so a repeated render does not fold the
+  // same reading twice. Reset to null alongside `coverage` when a fresh occlusion episode
+  // starts (see `publish` below), so the first yaw of the new episode is never mistaken for one
+  // already seen.
+  const [observedYaw, setObservedYaw] = useState<number | null>(null);
   const [occluded, setOccluded] = useState(false);
   const [amberPersists, setAmberPersists] = useState(false);
   const [permissionAsked, setPermissionAsked] = useState(false);
+  // Whether the last-published occlusion verdict was true, read (not set) outside render so
+  // `publish` can detect the false-to-true edge that starts a new episode. A ref, not state:
+  // nothing needs to re-render when this changes on its own.
+  const wasOccludedRef = useRef(false);
 
   const guide = guideVisible({ occluded, coverage });
   // The gyroscope only runs while the guide is on screen. Leaving it subscribed for a whole
   // scan costs battery to produce a number nothing reads.
   const yaw = useDeviceYaw(guide);
 
-  useEffect(() => {
-    if (guide && yaw !== null) setCoverage((c) => observeYaw(c, yaw));
-  }, [guide, yaw]);
+  // Folds a new yaw reading into coverage. An effect here would call setState synchronously in
+  // response to a value that already changed this render, cascading into an extra render for no
+  // reason; adjusting state directly during render, the pattern React's own docs recommend for
+  // this shape, lets React finish the adjustment before committing anything to the screen.
+  // Convergent rather than looping: `observeYaw` returns the same `coverage` reference once the
+  // yaw's sector is already marked, and the `yaw !== observedYaw` guard stops this from running
+  // again for an unchanged reading regardless.
+  if (guide && yaw !== null && yaw !== observedYaw) {
+    setObservedYaw(yaw);
+    setCoverage((c) => observeYaw(c, yaw));
+  }
 
   useEffect(() => () => sessionRef.current?.dispose(), []);
 
   useEffect(() => {
     if (!hasPermission && !permissionAsked) {
-      setPermissionAsked(true);
-      requestPermission();
+      // `setPermissionAsked` runs once the request settles, inside the promise callback, not
+      // synchronously in the effect body: `requestPermission` is the external system this effect
+      // exists to talk to, and reacting to its own completion is the sanctioned shape, not a
+      // same-render cascade. Nothing else in this effect depends on the timing: `hasPermission`
+      // is owned entirely by `useCameraPermission` and updates on its own once the OS responds.
+      void requestPermission().then(() => setPermissionAsked(true));
     }
   }, [hasPermission, permissionAsked, requestPermission]);
 
@@ -204,7 +225,23 @@ export default function ScanScreen() {
         // outline being drawn is allowed to await the network.
         const publish = () => {
           setIdentities({ ...session.state.fusion.identities });
-          setOccluded(session.state.occlusion.hidden);
+
+          const nowOccluded = session.state.occlusion.hidden;
+          if (nowOccluded && !wasOccludedRef.current) {
+            // A fresh occlusion episode. `orchestrator.ts` only writes `state.occlusion` from a
+            // successful census, so once the census budget is spent it never changes again (see
+            // I3 in the branch review): with nothing else to go on, coachKind and guideVisible
+            // both key their exit on `coverage` completing instead. But coverage may already be
+            // complete from an earlier episode, which would leave this one's guide and notice
+            // unable to open at all. Starting a fresh episode over a fresh coverage requirement
+            // is what keeps that exit meaningful the second time occlusion is detected, not just
+            // the first.
+            setCoverage(createCoverageState());
+            setObservedYaw(null);
+          }
+          wasOccludedRef.current = nowOccluded;
+          setOccluded(nowOccluded);
+
           setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
           useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
           refreshNextRequest();
@@ -310,7 +347,11 @@ export default function ScanScreen() {
         <RecordChip startedAt={startedAt} />
       </View>
 
-      <CoachNotice kind={coachKind({ amberPersists, occluded })} topInset={insets.top} />
+      {/* `guide` is `occluded && !isCoverageComplete(coverage)` (see guideVisible): the occluded
+          notice shares the guide's own coverage exit, rather than reading raw `occluded`, which
+          orchestrator.ts can stop updating for the rest of the session once the census budget is
+          spent (I3 in the branch review) and would otherwise have no way to clear. */}
+      <CoachNotice kind={coachKind({ amberPersists, occluded: guide })} topInset={insets.top} />
       <CaptureGuide coverage={coverage} visible={guide} />
 
       <View

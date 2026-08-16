@@ -2,6 +2,8 @@ import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 import TestRenderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
 import { COACH_COPY, CoachNotice, coachKind } from '../CoachNotice';
+import { guideVisible } from '../CaptureGuide';
+import { createCoverageState, REQUIRED_SECTORS, type CoverageState } from '../../engine/liveVision/coverage';
 
 type Json = ReactTestRendererJSON | ReactTestRendererJSON[] | string | null;
 
@@ -37,6 +39,35 @@ describe('coachKind', () => {
     // Moving the covering items is the action that resolves both, so asking for it first
     // avoids giving two instructions at once.
     expect(coachKind({ amberPersists: true, occluded: true })).toBe('occluded');
+  });
+});
+
+describe('I3: the occluded notice has an exit even when the occlusion verdict itself is stuck', () => {
+  // Regression: orchestrator.ts's state.occlusion is only ever written by a successful census
+  // (see onKeyframe), so once the census budget is spent it can freeze at `true` for the rest
+  // of the session with nothing left to clear it. scan.tsx now feeds coachKind the same
+  // `guideVisible` value the capture guide already uses, rather than the raw occluded flag, so
+  // the notice shares the guide's own coverage-based exit. This reproduces exactly that stuck
+  // scenario: `occluded` itself never flips back to false, ever.
+  const stuckOccluded = true;
+
+  const complete = (): CoverageState => {
+    let state = createCoverageState();
+    for (let i = 0; i < REQUIRED_SECTORS; i++) {
+      state = { sectors: state.sectors.map((s, idx) => (idx === i ? true : s)), originYaw: 0 };
+    }
+    return state;
+  };
+
+  it('shows the occluded notice while coverage is incomplete', () => {
+    const guide = guideVisible({ occluded: stuckOccluded, coverage: createCoverageState() });
+    expect(coachKind({ amberPersists: false, occluded: guide })).toBe('occluded');
+  });
+
+  it('clears the occluded notice once coverage completes, even though the underlying verdict never does', () => {
+    const guide = guideVisible({ occluded: stuckOccluded, coverage: complete() });
+    expect(guide).toBe(false);
+    expect(coachKind({ amberPersists: false, occluded: guide })).toBe('none');
   });
 });
 
