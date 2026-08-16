@@ -61,3 +61,60 @@ viable and this decision should be revisited.
 targeting the Neural Engine, and a segmentation head. iPhone latency unmeasured. Would need
 single-class objectness fine-tuning, for which SKU-110K (1.7M densely packed retail products
 under one class) is the established dataset. Best long-term path if training is on the table.
+
+---
+
+# REVISED 2026-08-16, after the EdgeTAM licence check
+
+EdgeTAM is **Apache-2.0 for both the code and the weights**, verified from the LICENSE file, the
+GitHub API, the README and the Hugging Face card. It does not follow Meta's usual pattern of a
+bespoke weights licence, and there is no acceptable-use policy or usage cap. Only the standard
+Apache defensive patent clause applies.
+
+It also ships an **official in-repo Core ML conversion**: image encoder about 9.6MB, prompt
+encoder about 2.0MB, mask decoder about 9.8MB, roughly 21MB total.
+
+Measured by Meta with Xcode's performance tool on iOS 18.1, iPhone 15 Pro Max: **15.7 FPS full
+video-object-segmentation pipeline**, encoder plus memory attention plus mask decoder together,
+against 0.7 FPS for SAM2-B+ on the same hardware. Primary source, arXiv 2501.07256 Table 2 and
+Appendix C. Unresolved: the paper does not state whether that figure is single or multi object.
+
+## What this changes
+
+15.7 FPS is about 64ms per frame, comfortably inside the 300ms budget. **Live outlines are back
+on the table**, so capture-then-process is no longer the only option.
+
+The important distinction: EdgeTAM is a *tracking* model. It propagates masks it has been
+prompted with. It does not enumerate objects any more cheaply than SAM2 does, so the expensive
+step of discovering what is in the cart in the first place remains expensive.
+
+## The decision
+
+**Enumerate once, then track live.**
+
+1. On the first frame of a scan, run an enumeration pass to discover the items. This is the
+   expensive step, roughly 600ms to 2s, and is exactly the SAM2.1-tiny automatic mask generation
+   already measured at 56% recall.
+2. Hand those masks to EdgeTAM as prompts and let it propagate them at about 15 FPS while the
+   user moves the phone.
+3. Re-enumerate occasionally, on a keyframe or when occlusion scoring says the view changed
+   materially, to pick up items that were hidden before.
+
+This fits the app's shape almost exactly: one continuous scan of one cart, which is what a
+track-anything model is built for. It also preserves everything already built and verified,
+including the green and amber states, the check mark, the counting rule, the coaching copy,
+guided capture and the bag with real photographs.
+
+It may also subsume or simplify ByteTrack, since EdgeTAM propagates identity itself. That should
+be decided by measurement rather than assumed: the existing tracker is verified and the counting
+rule depends on its track ids, so the safe first step is to keep it and feed it EdgeTAM's masks.
+
+## What is still unproven
+
+- EdgeTAM has not been run on this project's cart photographs. Its tracking quality on a crowded
+  cart with many similar-looking items is unmeasured, and SAM2's own paper flags exactly that
+  case as a known weakness.
+- Whether the 15.7 FPS figure holds while tracking 10 to 30 objects rather than one.
+- Whether items entering the frame mid-scan can be added to an in-flight EdgeTAM session, which
+  is a documented rough edge in SAM2 and may be inherited.
+- The enumeration pass recall on a phone, as opposed to the 56% measured on a Mac.
