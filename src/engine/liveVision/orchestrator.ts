@@ -1,7 +1,10 @@
 import {
+  addAlias,
   applyBarcode,
   applyCensus,
   createFusionState,
+  isBarcodeKey,
+  productKey,
   resolveKey,
   type FusionState,
 } from './fusion';
@@ -78,11 +81,24 @@ export function marksFor(
   return { marks, markToTrack };
 }
 
-/** Tracks whose identity is not trustworthy yet, and which are still on screen. */
+/**
+ * Tracks whose identity is not trustworthy yet, and which are still on screen and still counted.
+ *
+ * Excludes a track the in-view clamp has folded into a sibling (`fusion.merged`). A merged track
+ * is the same physical item as its group's survivor, so identifying it separately spends the
+ * same crop-identify budget again for nothing new, and a misread on that crop is free to alias
+ * the survivor's already-good identity onto something else entirely, which is worse than simply
+ * not asking. `resolveUncertain`'s alias step is what keeps the count correct even when a merged
+ * sibling never gets examined at all (a resolved track's high-water mark now migrates to its new
+ * key, and a merged sibling's stale key still resolves through that alias); this exclusion is a
+ * second, independent improvement on top of it: fewer wasted calls, and no risk of a crop on a
+ * folded duplicate overwriting a correct identity with a worse one.
+ */
 export function amberTrackIds(state: SessionState, tracks: Track[]): string[] {
+  const merged = new Set(state.fusion.merged);
   return tracks
     .filter((t) => {
-      if (t.state === 'lost') return false;
+      if (t.state === 'lost' || merged.has(t.id)) return false;
       const identity = state.fusion.identities[t.id];
       if (!identity) return false;
       return identity.needsCloserLook || identity.confidence < GREEN_CONFIDENCE;
@@ -272,14 +288,36 @@ export class RecognitionSession {
       );
       if (this.disposed || !result.ok) continue;
 
-      // Reuse applyCensus so the crop result goes through exactly the same clamp, alias, and
+      // `/api/identify` exists to return a better, and therefore usually different, name. A
+      // different name is a different productKey, and applyCensus's in-view clamp is about to
+      // group this call's one live track under that new key alone: a group of one, high-water
+      // mark one. Without this, the quantity already accumulated under the track's old key (the
+      // whole sibling group's count, not just this track's) is stranded there, orphaned the
+      // moment this identity moves off it. Alias the old key to the new one first so that
+      // quantity migrates to the surviving key, exactly what applyBarcode already does when a
+      // barcode resolves a track that already had a VLM guess. A track still on its old key
+      // (a merged sibling this call never reaches, or one a later census hasn't caught up to
+      // yet) keeps resolving to the right place because resolveKey follows the alias.
+      //
+      // Skipped when the track's current key is already a barcode's: that key is ground truth,
+      // and only the two-in-a-row corroboration path in applyCensus is allowed to link a fresh
+      // guess onto it. A single, uncorroborated identify answer does not clear that bar, and
+      // redirecting a barcode-owned key on one crop's say-so would undo that protection.
+      const value = result.value;
+      let fusion = this.state.fusion;
+      const oldKey = resolveKey(fusion, identity.key);
+      const newKey = resolveKey(fusion, productKey(value.name, value.brand));
+      if (oldKey !== newKey && !isBarcodeKey(oldKey)) {
+        fusion = addAlias(fusion, oldKey, newKey);
+      }
+
+      // Reuse applyCensus so the crop result goes through exactly the same clamp and
       // barcode-precedence rules as a census mark. A second code path here would be a second
       // place for the counting rule to drift.
-      const value = result.value;
       this.state = {
         ...this.state,
         fusion: applyCensus(
-          this.state.fusion,
+          fusion,
           {
             marks: [{
               id: 1,

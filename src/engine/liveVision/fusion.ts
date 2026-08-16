@@ -74,6 +74,18 @@ export function barcodeKey(payload: string): string {
 }
 
 /**
+ * True for any key `barcodeKey` could have produced.
+ *
+ * A caller that is about to alias a key away needs to know whether that key is currently
+ * ground truth (a scanned UPC) rather than a guess, since only the two-in-a-row corroboration
+ * path above is allowed to link a fresh vlm name onto a barcode's key, and only after it has
+ * repeated. Keeping the `upc:` literal in one place, here, means nothing else has to duplicate it.
+ */
+export function isBarcodeKey(key: string): boolean {
+  return key.startsWith('upc:');
+}
+
+/**
  * Follows an alias chain to the surviving key.
  *
  * Bounded rather than recursive: aliases are written from two places and a cycle (A -> B and

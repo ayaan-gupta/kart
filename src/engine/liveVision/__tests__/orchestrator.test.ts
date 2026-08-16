@@ -7,8 +7,8 @@ import {
   RecognitionSession,
   tracksNeedingThumbnail,
 } from '../orchestrator';
-import { GREEN_CONFIDENCE } from '../config';
-import { applyCensus, createFusionState, productKey } from '../fusion';
+import { GREEN_CONFIDENCE, MAX_IDENTIFY_CALLS_PER_SESSION } from '../config';
+import { applyCensus, bagLines, createFusionState, productKey } from '../fusion';
 import type { Track } from '../types';
 
 const track = (id: string, over: Partial<Track> = {}): Track =>
@@ -388,5 +388,147 @@ describe('RecognitionSession', () => {
     await expect(s.onBarcodes([{ trackId: 'a', payload: '038000138416' }])).resolves.toBeUndefined();
     expect(s.state.lastError).toBe('offline');
     expect(s.state.fusion.identities['a']).toBeUndefined();
+  });
+
+  describe('resolveUncertain re-keying (regression: the original counting bug, reintroduced)', () => {
+    const noOcclusion = { itemsLikelyHidden: false, severity: 'none' as const, reason: '' };
+
+    it('does not undercount two cartons that a crop identify renames to the same new name', async () => {
+      // Two physical cartons, both amber under the generic "Milk" guess. Each gets its own
+      // crop identify, both resolving to "Horizon Whole Milk". Without aliasing the old
+      // "::milk" key to the new one, each single-track applyCensus call only ever sees itself,
+      // so the high-water mark for the new key gets stuck at 1 instead of migrating the 2
+      // already accumulated under the old key: two cartons, bag says one.
+      const milkCensus = {
+        ok: true as const,
+        value: {
+          marks: [
+            { id: 1, name: 'Milk', brand: null, size: null, category: 'Dairy', confidence: 0.3, needsCloserLook: false },
+            { id: 2, name: 'Milk', brand: null, size: null, category: 'Dairy', confidence: 0.3, needsCloserLook: false },
+          ],
+          inViewCounts: [{ productKey: productKey('Milk', null), count: 2 }],
+          unmarkedItems: [],
+          occlusion: noOcclusion,
+        },
+      };
+      const d = deps({
+        requestCensus: jest.fn().mockResolvedValue(milkCensus),
+        requestIdentify: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { name: 'Horizon Whole Milk', brand: null, size: null, category: 'Dairy', confidence: 0.9, stillUnclear: false },
+        }),
+      });
+      const s = new RecognitionSession(d);
+
+      await s.onKeyframe('AAAA', [track('m1'), track('m2')], 0);
+
+      const lines = bagLines(s.state.fusion);
+      const total = lines.reduce((sum, l) => sum + l.qty, 0);
+      expect(total).toBe(2);
+      expect(lines).toHaveLength(1);
+      expect(lines[0].name).toBe('Horizon Whole Milk');
+    });
+
+    it('does not overcount a clamp survivor whose merged siblings never get re-examined', async () => {
+      // One bunch of bananas the tracker split into three boxes. The census clamps the count to
+      // 1, folding b2 and b3 into merged; b1 is the clamp survivor by compareTrackIds. Only
+      // b1's identify call fits in the remaining budget (a realistic shape: other items already
+      // spent most of the session's identify budget), so b2 and b3 are never re-examined. Without
+      // aliasing "::bananas" to "dole::bananas", b2 and b3's stale key keeps its full accumulated
+      // quantity and shows up as a second bag line: one bunch, bag says two.
+      const bananaCensus = {
+        ok: true as const,
+        value: {
+          marks: [
+            { id: 1, name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.3, needsCloserLook: false },
+            { id: 2, name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.3, needsCloserLook: false },
+            { id: 3, name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.3, needsCloserLook: false },
+          ],
+          inViewCounts: [{ productKey: productKey('Bananas', null), count: 1 }],
+          unmarkedItems: [],
+          occlusion: noOcclusion,
+        },
+      };
+      const d = deps({
+        requestCensus: jest.fn().mockResolvedValue(bananaCensus),
+        requestIdentify: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { name: 'Bananas', brand: 'Dole', size: null, category: 'Produce', confidence: 0.9, stillUnclear: false },
+        }),
+      });
+      const s = new RecognitionSession(d);
+      s.state = { ...s.state, identifyCalls: MAX_IDENTIFY_CALLS_PER_SESSION - 1 };
+
+      await s.onKeyframe('AAAA', [track('b1'), track('b2'), track('b3')], 0);
+
+      const lines = bagLines(s.state.fusion);
+      const total = lines.reduce((sum, l) => sum + l.qty, 0);
+      expect(total).toBe(1);
+      expect(lines).toHaveLength(1);
+    });
+
+    it('does not overcount when the budget runs out after renaming only the first of two siblings', async () => {
+      // The partial case, which is the normal one: resolveUncertain returns early once the
+      // session's identify ceiling is reached, so stopping mid-group is routine, not rare. Only
+      // m1 gets renamed before the budget runs out; m2 is left on the old key. The bag must
+      // still total 2, whether that shows as one line (the old key resolving through the new
+      // alias) or two, never 3.
+      const milkCensus = {
+        ok: true as const,
+        value: {
+          marks: [
+            { id: 1, name: 'Milk', brand: null, size: null, category: 'Dairy', confidence: 0.3, needsCloserLook: false },
+            { id: 2, name: 'Milk', brand: null, size: null, category: 'Dairy', confidence: 0.3, needsCloserLook: false },
+          ],
+          inViewCounts: [{ productKey: productKey('Milk', null), count: 2 }],
+          unmarkedItems: [],
+          occlusion: noOcclusion,
+        },
+      };
+      const d = deps({
+        requestCensus: jest.fn().mockResolvedValue(milkCensus),
+        requestIdentify: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { name: 'Horizon Whole Milk', brand: null, size: null, category: 'Dairy', confidence: 0.9, stillUnclear: false },
+        }),
+      });
+      const s = new RecognitionSession(d);
+      s.state = { ...s.state, identifyCalls: MAX_IDENTIFY_CALLS_PER_SESSION - 1 };
+
+      await s.onKeyframe('AAAA', [track('m1'), track('m2')], 0);
+
+      expect((d.requestIdentify as jest.Mock).mock.calls.length).toBe(1);
+      const lines = bagLines(s.state.fusion);
+      const total = lines.reduce((sum, l) => sum + l.qty, 0);
+      expect(total).toBe(2);
+    });
+
+    it('does not let a crop identify redirect an already-established barcode key', async () => {
+      // A barcode that never resolved a name is still ground truth for counting (see fusion.ts,
+      // Identity.placeholder): its key must stay put no matter what a single, uncorroborated
+      // crop guess says, exactly like a barcode that did resolve. Aliasing away from a barcode
+      // key here would let one crop identify silently override a UPC scan.
+      const d = deps({
+        lookupBarcode: jest.fn().mockResolvedValue(null),
+        requestCensus: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { marks: [], inViewCounts: [], unmarkedItems: [], occlusion: noOcclusion },
+        }),
+        requestIdentify: jest.fn().mockResolvedValue({
+          ok: true,
+          value: { name: 'Pringles', brand: 'Pringles', size: '5.2 oz', category: 'Snacks', confidence: 0.9, stillUnclear: false },
+        }),
+      });
+      const s = new RecognitionSession(d);
+      await s.onBarcodes([{ trackId: 'x', payload: '038000138416' }]);
+      expect(s.state.fusion.identities['x'].placeholder).toBe(true);
+
+      await s.onKeyframe('AAAA', [track('x')], 0);
+
+      expect(s.state.fusion.identities['x'].key).toBe('upc:038000138416');
+      expect(s.state.fusion.identities['x'].name).toBe('Pringles');
+      expect(s.state.fusion.identities['x'].source).toBe('barcode');
+      expect(s.state.fusion.aliases['upc:038000138416']).toBeUndefined();
+    });
   });
 });
