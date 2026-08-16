@@ -323,7 +323,7 @@ describe("POST /api/census: pixel-dimension guard", () => {
 describe("POST /api/census: success path", () => {
   it("returns 200 with ok:true and the census result", async () => {
     const result = {
-      marks: [{ id: 1, name: "Froot Loops", brand: "Kellogg's", size: null, category: "cereal", confidence: 0.9, needsCloserLook: false }],
+      marks: [{ id: 1, name: "Froot Loops", brand: "Kellogg's", size: null, category: "cereal", confidence: 0.9, needsCloserLook: false, isProduct: true }],
       unmarkedItems: [],
       inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
       occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },

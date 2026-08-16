@@ -41,7 +41,7 @@ const wellFormedMark = {
   size: "family size",
   category: "cereal",
   confidence: 0.9,
-  needsCloserLook: false,
+  needsCloserLook: false, isProduct: true,
 };
 
 const wellFormedOcclusion = { itemsLikelyHidden: false, severity: "none", reason: "" };
@@ -178,7 +178,7 @@ describe("valid responses parse", () => {
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [
-        { description: "loose bananas", approxLocation: "top of cart", confidence: 0.7 },
+        { description: "loose bananas", productKey: "::loose bananas", approxLocation: "top of cart", confidence: 0.7 },
       ],
       inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
       occlusion: wellFormedOcclusion,
@@ -428,7 +428,7 @@ describe("CensusDiagnostics: distinguishing a legitimate case from a real failur
       // name would for a marked item", i.e. brand-free, matching the name segment of a
       // productKey (see productKey()'s own brand/name split in schemas.ts).
       unmarkedItems: [
-        { description: "Flavor Pack", approxLocation: "top shelf", confidence: 0.6 },
+        { description: "Flavor Pack", productKey: "::flavor pack", approxLocation: "top shelf", confidence: 0.6 },
       ],
       inViewCounts: [{ productKey: "SodaStream::Flavor Pack", count: 3 }],
       occlusion: wellFormedOcclusion,

@@ -244,7 +244,15 @@ export class RecognitionSession {
         return;
       }
 
-      const fusion = applyCensus(this.state.fusion, result.value, markToTrack, liveTrackIds);
+      // Boxes go with the ids so the counting rule can tell several proposals on one physical
+      // item from several items. Only the marked tracks matter: an unmarked track is not being
+      // counted this census, so it has nothing to fold into.
+      const liveBoxes: Record<string, Box> = {};
+      for (const track of tracks) {
+        if (liveTrackIds.includes(track.id)) liveBoxes[track.id] = track.box;
+      }
+      const fusion = applyCensus(
+        this.state.fusion, result.value, markToTrack, liveTrackIds, false, liveBoxes);
       const occlusion = assessOcclusion({
         semantic: result.value.occlusion,
         boxes: tracks.filter((t) => t.state === 'confirmed').map((t) => t.box),

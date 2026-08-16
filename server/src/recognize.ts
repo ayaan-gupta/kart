@@ -288,8 +288,14 @@ function normalizeCensusResponse(
     byNameSegment.set(nameSegment, list);
   }
 
+  // Match on the name segment either way: the model's own key is the reliable one now that
+  // unmarkedItems carries it, but a key derived from the description still catches the case
+  // where the model reports a name-only key alongside a branded count for the same product.
   const unmarkedNameSegments = new Set(
-    response.unmarkedItems.map((u) => productKey(u.description, null).slice(2)),
+    response.unmarkedItems.flatMap((u) => [
+      u.productKey.slice(u.productKey.indexOf("::") + 2),
+      productKey(u.description, null).slice(2),
+    ]),
   );
 
   const repaired: CensusKeyOutcome[] = [];

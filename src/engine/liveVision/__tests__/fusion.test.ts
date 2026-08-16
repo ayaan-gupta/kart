@@ -6,16 +6,26 @@ import {
   createFusionState,
   productKey,
   resolveKey,
+  type CensusMark,
   type CensusResult,
 } from '../fusion';
 
 const mark = (id: number, name: string, brand: string | null = null, conf = 0.9, closer = false) => ({
   id, name, brand, size: null, category: 'Produce', confidence: conf, needsCloserLook: closer,
+  isProduct: true,
 });
 
-const census = (marks: ReturnType<typeof mark>[], counts: [string, number][]): CensusResult => ({
+/** A badge the model says is not on a product at all: cart frame, bag handle, a shopper's leg. */
+const nonProduct = (id: number, name: string) => ({ ...mark(id, name), isProduct: false });
+
+const census = (
+  marks: CensusMark[],
+  counts: [string, number][],
+  unmarked: { description: string; productKey?: string; confidence?: number }[] = [],
+): CensusResult => ({
   marks,
   inViewCounts: counts.map(([productKey, count]) => ({ productKey, count })),
+  unmarkedItems: unmarked,
 });
 
 describe('productKey', () => {
@@ -182,6 +192,28 @@ describe('the in-view clamp', () => {
     expect(bagLines(state)[0].qty).toBe(6);
   });
 
+  it('counts what the model saw when the detector found fewer of them', () => {
+    // The detector's measured recall on real cart photographs is 38%. One polygon landing on a
+    // row of three cartons used to cap the bag at one, because the clamp took the minimum of the
+    // track count and the model count. The model is looking at the whole frame; it is the better
+    // witness to how many are there.
+    let state = createFusionState();
+    const key = productKey('Whole milk', null);
+    state = applyCensus(state, census([mark(1, 'Whole milk')], [[key, 3]]), { 1: 't1' }, ['t1']);
+    expect(bagLines(state)[0].qty).toBe(3);
+    expect(state.merged).toHaveLength(0);
+  });
+
+  it('does not double count across keyframes when the model keeps seeing the same three', () => {
+    let state = createFusionState();
+    const key = productKey('Whole milk', null);
+    const one = census([mark(1, 'Whole milk')], [[key, 3]]);
+    state = applyCensus(state, one, { 1: 't1' }, ['t1']);
+    state = applyCensus(state, one, { 1: 't2' }, ['t2']);
+    state = applyCensus(state, one, { 1: 't3' }, ['t3']);
+    expect(bagLines(state)[0].qty).toBe(3);
+  });
+
   it('does not let an explicit revision reintroduce the split-bananas overcount on a later silent census', () => {
     // Companion to the six-apples recovery: an explicit count is allowed to raise a clamp, but a
     // later census that says nothing about the product at all must not undo the fold, or the
@@ -198,6 +230,290 @@ describe('the in-view clamp', () => {
     // A later census sees the same three tracks but has no opinion on bananas at all this frame.
     state = applyCensus(state, census(marks, []), markToTrack, liveTrackIds);
     expect(bagLines(state)[0].qty).toBe(1);
+  });
+});
+
+describe('badges that are not on products', () => {
+  it('keeps the cart frame and a shopper leg out of the bag', () => {
+    // Measured on a real census: the detector badged cart mesh, a bag handle and a leg, and the
+    // model named all three accurately at 0.88 to 0.98 confidence. Confidence cannot filter
+    // these, because the model is right about what they are. Only isProduct can.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census(
+        [nonProduct(1, 'shopping cart frame'), nonProduct(2, 'dark clothing/leg in background'), mark(3, 'Bananas')],
+        [[productKey('Bananas', null), 1]],
+      ),
+      { 1: 't1', 2: 't2', 3: 't3' },
+      ['t1', 't2', 't3'],
+    );
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].name).toBe('Bananas');
+  });
+
+  it('treats a mark with no isProduct field as a product, so an older server still fills the bag', () => {
+    let state = createFusionState();
+    const legacy = { id: 1, name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.9, needsCloserLook: false };
+    state = applyCensus(state, census([legacy], [[productKey('Bananas', null), 1]]), { 1: 't1' }, ['t1']);
+    expect(bagLines(state)).toHaveLength(1);
+  });
+});
+
+describe('products no badge landed on', () => {
+  it('puts an item the model saw but the detector missed into the bag', () => {
+    let state = createFusionState();
+    const key = productKey('Froot Loops', null);
+    state = applyCensus(
+      state,
+      census([mark(1, 'Whole milk')], [[key, 2]], [{ description: 'Froot Loops', confidence: 0.8 }]),
+      { 1: 't1' },
+      ['t1'],
+    );
+    const line = bagLines(state).find((l) => l.key === key);
+    expect(line).toBeDefined();
+    expect(line!.qty).toBe(2);
+    expect(line!.name).toBe('Froot Loops');
+  });
+
+  it('defaults an unmarked item with no explicit count to one', () => {
+    let state = createFusionState();
+    state = applyCensus(state, census([], [], [{ description: 'Sourdough loaf' }]), {}, []);
+    expect(bagLines(state).find((l) => l.key === productKey('Sourdough loaf', null))!.qty).toBe(1);
+  });
+
+  it('does not double count an unmarked item that a later keyframe finally outlines', () => {
+    let state = createFusionState();
+    const key = productKey('Bananas', null);
+    state = applyCensus(state, census([], [[key, 1]], [{ description: 'Bananas' }]), {}, []);
+    expect(bagLines(state)[0].qty).toBe(1);
+    // Next keyframe the detector does land a polygon on it, so it arrives as a mark instead.
+    state = applyCensus(state, census([mark(1, 'Bananas')], [[key, 1]]), { 1: 'b1' }, ['b1']);
+    expect(bagLines(state).filter((l) => l.key === key)).toHaveLength(1);
+    expect(bagLines(state)[0].qty).toBe(1);
+  });
+
+  it('does not double count when the model spells the marked and unmarked keys differently', () => {
+    // Measured on a real census: two badges named "packaged carrots", deriving
+    // "::packaged carrots", while the unmarked sighting of the same carrots came back keyed
+    // "::carrots". The bag showed four carrots where there were two.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census(
+        [mark(1, 'packaged carrots'), mark(2, 'packaged carrots')],
+        [[productKey('carrots', null), 2]],
+        [{ description: 'packaged carrots', productKey: '::carrots' }],
+      ),
+      { 1: 'c1', 2: 'c2' },
+      ['c1', 'c2'],
+    );
+    const total = bagLines(state).reduce((n, l) => n + l.qty, 0);
+    expect(total).toBe(2);
+  });
+
+  it('does not invent a line from a count with no mark and no unmarked entry', () => {
+    // Guards the hallucinated-count case: a count is not by itself evidence that a product is
+    // there, only the model explicitly listing it as unmarked is.
+    let state = createFusionState();
+    state = applyCensus(state, census([], [[productKey('Ghost', null), 4]]), {}, []);
+    expect(bagLines(state)).toHaveLength(0);
+  });
+
+  it('counts a product the model listed twice as two, even when it counted it once', () => {
+    let state = createFusionState();
+    const key = productKey('Greek yogurt', null);
+    state = applyCensus(
+      state,
+      census([], [[key, 1]], [{ description: 'Greek yogurt' }, { description: 'Greek yogurt' }]),
+      {},
+      [],
+    );
+    expect(bagLines(state)[0].qty).toBe(2);
+  });
+
+  it('joins an unmarked sighting to the branded product by the key the model supplies', () => {
+    // Without the model's own key this is two bag lines for one box: an unmarked description
+    // carries no brand, so it would key as "::froot loops" and never meet "kelloggs::froot loops".
+    let state = createFusionState();
+    const branded = productKey('Froot Loops', "Kellogg's");
+    state = applyCensus(
+      state,
+      census([], [[branded, 1]], [{ description: 'Froot Loops', productKey: branded }]),
+      {},
+      [],
+    );
+    expect(bagLines(state)).toHaveLength(1);
+    expect(bagLines(state)[0].brand).toBeNull();
+
+    // The next keyframe does land a badge on it, with the brand this time.
+    state = applyCensus(
+      state,
+      census([mark(1, 'Froot Loops', "Kellogg's")], [[branded, 1]]),
+      { 1: 'f1' },
+      ['f1'],
+    );
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].brand).toBe("Kellogg's");
+    expect(lines[0].qty).toBe(1);
+  });
+
+  it('renormalises a supplied key, so one apostrophe does not split a product in two', () => {
+    let state = createFusionState();
+    const clean = productKey('Froot Loops', "Kellogg's");
+    state = applyCensus(
+      state,
+      census([], [], [{ description: 'Froot Loops', productKey: "Kellogg's::Froot Loops" }]),
+      {},
+      [],
+    );
+    expect(bagLines(state)[0].key).toBe(clean);
+  });
+
+  it('falls back to the description when the model supplies no key', () => {
+    let state = createFusionState();
+    state = applyCensus(state, census([], [], [{ description: 'Sourdough loaf' }]), {}, []);
+    expect(bagLines(state)[0].key).toBe(productKey('Sourdough loaf', null));
+  });
+
+  it('gives an unmarked item no outline, because nothing located it', () => {
+    let state = createFusionState();
+    state = applyCensus(state, census([], [], [{ description: 'Olive oil' }]), {}, []);
+    // Every real outline is looked up by track id. The synthetic id cannot collide with one.
+    const ids = Object.keys(state.identities);
+    expect(ids).toHaveLength(1);
+    expect(ids[0].startsWith('census:')).toBe(true);
+  });
+});
+
+describe('several proposals landing on one physical item', () => {
+  // Measured on a real cart photograph (runs/2026-08-16-pipeline-run, held/grounded/
+  // wm_full_from_above). Two Coca-Cola bottles lay on their sides with only the caps facing the
+  // camera. The enumerator put four boxes on them: three nested on the lower bottle and one on
+  // the upper. The model named all four, differently, across three censuses, and the bag opened
+  // with "cola soda" 1, "Coca-Cola can" 2 and "Coca-Cola" 1. Four units, three lines, two
+  // bottles.
+  //
+  // The in-view clamp could never catch this, because it groups live tracks by product key and
+  // these four carried four different keys. Nothing in the pipeline ever compared two live
+  // tracks to each other. Geometry is what proves they are one item: the boxes are nested, and
+  // a box wholly inside another box is not a second thing to buy.
+  const bottleBoxes = {
+    // Verbatim from that run's census-03.json.
+    track_4: { x: 0.087, y: 0.74, w: 0.163, h: 0.164 },
+    track_5: { x: 0.087, y: 0.812, w: 0.082, h: 0.076 },
+    track_24: { x: 0.086, y: 0.801, w: 0.09, h: 0.109 },
+    track_6: { x: 0.086, y: 0.629, w: 0.081, h: 0.072 },
+  };
+
+  it('counts three nested boxes on one bottle as one item, not three', () => {
+    const state = applyCensus(
+      createFusionState(),
+      census(
+        [mark(1, 'cola soda', 'Coca-Cola'), mark(2, 'Coca-Cola can', 'Coca-Cola'), mark(3, 'Coca-Cola', 'Coca-Cola')],
+        [],
+      ),
+      { 1: 'track_4', 2: 'track_5', 3: 'track_24' },
+      ['track_4', 'track_5', 'track_24'],
+      false,
+      { track_4: bottleBoxes.track_4, track_5: bottleBoxes.track_5, track_24: bottleBoxes.track_24 },
+    );
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(1);
+  });
+
+  it('keeps a fourth box that overlaps none of them as its own item', () => {
+    const state = applyCensus(
+      createFusionState(),
+      census(
+        [mark(1, 'cola soda', 'Coca-Cola'), mark(2, 'Coca-Cola can', 'Coca-Cola'),
+         mark(3, 'Coca-Cola', 'Coca-Cola'), mark(4, 'Coca-Cola', 'Coca-Cola')],
+        [],
+      ),
+      { 1: 'track_4', 2: 'track_5', 3: 'track_24', 4: 'track_6' },
+      ['track_4', 'track_5', 'track_24', 'track_6'],
+      false,
+      bottleBoxes,
+    );
+    // Two bottles, which is what a person counting the photograph gets.
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(2);
+  });
+
+  it('leaves two side by side boxes of the same product alone', () => {
+    // The failure mode to protect against: a cart legitimately holding two identical yogurts
+    // next to each other must still count two. These overlap slightly and neither contains the
+    // other, so nothing folds.
+    const state = applyCensus(
+      createFusionState(),
+      census([mark(1, 'yogurt', 'Chobani'), mark(2, 'yogurt', 'Chobani')], [['chobani::yogurt', 2]]),
+      { 1: 'track_1', 2: 'track_2' },
+      ['track_1', 'track_2'],
+      false,
+      { track_1: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, track_2: { x: 0.28, y: 0.1, w: 0.2, h: 0.2 } },
+    );
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(2);
+  });
+
+  it('does not fold a nested box carrying a different brand, which is a multipack', () => {
+    // A box of six cans: the outer box and one legible can inside it are nested, but they are
+    // different products and folding them would lose the can's identity entirely.
+    const state = applyCensus(
+      createFusionState(),
+      census([mark(1, 'variety pack', 'Kellogg'), mark(2, 'Corn Flakes', 'Kelloggs Corn Flakes')], []),
+      { 1: 'track_1', 2: 'track_2' },
+      ['track_1', 'track_2'],
+      false,
+      { track_1: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 }, track_2: { x: 0.15, y: 0.15, w: 0.08, h: 0.08 } },
+    );
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(2);
+  });
+
+  it('keeps the folded track visible so its outline does not vanish', () => {
+    const state = applyCensus(
+      createFusionState(),
+      census([mark(1, 'cola soda', 'Coca-Cola'), mark(2, 'Coca-Cola can', 'Coca-Cola')], []),
+      { 1: 'track_4', 2: 'track_5' },
+      ['track_4', 'track_5'],
+      false,
+      { track_4: bottleBoxes.track_4, track_5: bottleBoxes.track_5 },
+    );
+    // Folded, so it stops counting, but it still has an identity and so still draws.
+    expect(state.merged).toContain('track_5');
+    expect(state.identities.track_5).toBeDefined();
+  });
+
+  it('counts the same as before when no boxes are supplied at all', () => {
+    // Back compatibility: every existing caller passes five arguments and must be unaffected.
+    const state = applyCensus(
+      createFusionState(),
+      census([mark(1, 'cola soda', 'Coca-Cola'), mark(2, 'Coca-Cola can', 'Coca-Cola')], []),
+      { 1: 'track_4', 2: 'track_5' },
+      ['track_4', 'track_5'],
+    );
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(2);
+  });
+
+  it('migrates a folded track\u2019s quantity onto the survivor rather than stranding it', () => {
+    // The folded track was counted under its own key on an earlier census. That key must not
+    // keep a high-water mark of its own once the track is known to be the same bottle.
+    let state = applyCensus(
+      createFusionState(),
+      census([mark(2, 'Coca-Cola can', 'Coca-Cola')], []),
+      { 2: 'track_5' },
+      ['track_5'],
+    );
+    expect(state.maxSimultaneous[productKey('Coca-Cola can', 'Coca-Cola')]).toBe(1);
+
+    state = applyCensus(
+      state,
+      census([mark(1, 'cola soda', 'Coca-Cola'), mark(2, 'Coca-Cola can', 'Coca-Cola')], []),
+      { 1: 'track_4', 2: 'track_5' },
+      ['track_4', 'track_5'],
+      false,
+      { track_4: bottleBoxes.track_4, track_5: bottleBoxes.track_5 },
+    );
+    expect(bagLines(state).reduce((sum, line) => sum + line.qty, 0)).toBe(1);
   });
 });
 

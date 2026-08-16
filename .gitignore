@@ -43,3 +43,6 @@ example
 
 # Superpowers SDD scratch
 .superpowers/
+
+# Offline pipeline runs. Contains corpus photographs with no licence manifest yet.
+runs/

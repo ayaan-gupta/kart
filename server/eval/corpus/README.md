@@ -17,6 +17,30 @@ Write down every item a careful human can identify in the photo.
 Do not list items you cannot actually see. The eval scores the model against what is
 genuinely visible, so guessing here corrupts the recall number.
 
+## What the photos have to be photos of
+
+Ten openly licensed cart photographs were collected for the detector work, and measuring
+against them turned up a corpus problem worth stating before anyone collects more.
+
+Only five depicted the thing this app does: a loaded cart seen roughly bird's eye with loose
+items in view. The other five were a parking lot of tied grocery bags, a frame 60% filled by a
+handwritten shopping list, a side view of bread bags, a cart holding nothing but identical water
+multipacks, and one similar. Averaging a recall number over all ten does not measure the product,
+it measures the corpus, and tuning against it optimises for the wrong photograph.
+
+So: collect photos a shopper would actually take at the checkout queue. Bird's eye or close to
+it, cart filling most of the frame, items loose rather than bagged. Variety belongs in lighting,
+cart type, density and product mix, not in whether the cart is the subject.
+
+Record the source URL and licence of every photo in a manifest next to it as you add it. The
+first ten were collected without one, which is why they cannot be committed here.
+
 ## Status
 
-No photos have been supplied yet. The `ground-truth.json` file currently contains an empty object placeholder. Both the images directory and ground truth must be populated before the eval harness produces meaningful accuracy numbers.
+No photos are committed. The `ground-truth.json` file currently contains an empty object
+placeholder. Both the images directory and ground truth must be populated before the eval
+harness produces meaningful accuracy numbers.
+
+Note that `ground-truth.json` scores naming, which is a different question from whether the
+detector found the item at all. Detector recall is measured separately, against one labelled
+point per item; see `docs/enumeration-recall.md`.

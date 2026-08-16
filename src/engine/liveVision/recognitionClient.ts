@@ -31,6 +31,8 @@ export interface OcclusionReport {
 
 export interface UnmarkedItem {
   description: string;
+  /** The model's own product key, so the sighting joins exactly to its count and to any badge. */
+  productKey: string;
   approxLocation: string;
   confidence: number;
 }
@@ -155,6 +157,9 @@ function parseCensus(value: unknown): CensusPayload | null {
       category: str(raw.category, 'Grocery'),
       confidence: Math.min(1, Math.max(0, num(raw.confidence))),
       needsCloserLook: raw.needsCloserLook === true,
+      // Absent means true. A server that predates this field was identifying products, and
+      // defaulting to false there would empty the bag rather than clean it.
+      isProduct: raw.isProduct !== false,
     });
   }
 
@@ -172,6 +177,9 @@ function parseCensus(value: unknown): CensusPayload | null {
       if (!isRecord(raw) || typeof raw.description !== 'string') continue;
       unmarkedItems.push({
         description: raw.description,
+        // An older server, or a model that skipped the field, leaves this empty and fusion
+        // falls back to keying off the description.
+        productKey: typeof raw.productKey === 'string' ? raw.productKey : '',
         approxLocation: str(raw.approxLocation),
         confidence: Math.min(1, Math.max(0, num(raw.confidence))),
       });

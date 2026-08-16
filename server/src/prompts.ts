@@ -24,7 +24,7 @@ Rules:
 3. If an item genuinely has no brand, loose produce such as a bunch of bananas or a single
    apple, set brand to null. Do not invent a distributor, grower, or store label. This is
    different from rule 2: nothing is illegible here, there is simply no brand to report. Rule
-   12's "" for the productKey brand segment is the same case in text form; the two must not
+   14's "" for the productKey brand segment is the same case in text form; the two must not
    disagree.
 4. category is a short, general grocery aisle category in your own words, for example
    "cereal", "dairy", "produce", "snacks", "beverages", or "other". Use the same word for the
@@ -39,25 +39,45 @@ Rules:
    or 5) and must be preserved exactly as given; never invent a number that is not listed, and
    never renumber to close a gap. Report each of those numbers exactly once in marks, using it
    as id.
-8. If a badge sits on a region with nothing identifiable in it (empty background, a hand, part
-   of the cart itself), still report it: set name to a short description of what is actually
-   there ("empty region, no product"), brand and size to null, category to "other", confidence
-   low, and needsCloserLook to true.
-9. If two badges both sit on the same physical object, that is expected, not an error. Report
+8. isProduct says whether the badge is on something the shopper is buying. Set it true for a
+   product in the cart, false for anything else: the cart frame or mesh, a bag handle, a hand,
+   a person, the floor, a shelf behind the cart, an empty region. Judge the region, not your
+   certainty about it; you can be completely sure a badge is on a cart handle, and it is still
+   not a product. If a badge sits on a region with no product, still report it, with isProduct
+   false, name set to a short description of what is actually there ("shopping cart frame"),
+   brand and size set to null, and category to "other". Nothing with isProduct false reaches the shopper's
+   bag and nothing with it true is filtered, so this field decides what they end up seeing.
+9. Name the whole object, not the face of it that happens to point at the camera. A bottle
+   lying on its side with only the cap showing is still a bottle, not a can; a stacked tray of
+   cartons seen from above is still cartons. If the form is genuinely ambiguous from this angle,
+   say so in the name and set needsCloserLook to true rather than guessing a container type.
+10. Use one name for one product throughout your answer. If two badges are on the same product,
+   or a badge and an unmarkedItems entry describe the same product, give them character for
+   character the same name and the same brand. Different wordings of one product are read
+   downstream as different products and put the same item in the shopping bag twice.
+11. If two badges both sit on the same physical object, that is expected, not an error. Report
    both with the same identification; do not force them to differ.
-10. If you can see a product that has no badge on it, add it to unmarkedItems instead. Never
-    attach it to an unrelated badge. description should name the product the same way name
-    would for a marked item. approxLocation is a short phrase locating it in the frame in your
-    own words, for example "top of cart, left side" or "under the produce bag".
-11. inViewCounts is how many distinct physical units of each product you can see in this one
-    image. One bunch of bananas is 1, not the number of bananas in it. Two identical bags of
-    chips is 2. Count only what is visible in this image, and do not speculate about the rest
-    of the cart. Report this quantity in the count field of inViewCounts.
-12. productKey in inViewCounts is lowercase "brand::name" with punctuation removed and accents
+12. If you can see a product in the cart that has no badge on it, add it to unmarkedItems
+    instead. Never attach it to an unrelated badge. description should name the product the
+    same way name would for a marked item, because that description is what reaches the
+    shopper's bag: the detector misses most of a cart, so unmarkedItems is a main channel, not
+    a leftovers bin. Be as complete here as you are with the badges. productKey is the same
+    "brand::name" key described in rule 14, and must be exactly the key you use for this product
+    in inViewCounts, so the two join. approxLocation is a short phrase locating it in the frame
+    in your own words, for example "top of cart, left side" or "under the produce bag".
+13. inViewCounts is how many distinct physical units of each product are in the cart in this
+    one image. One bunch of bananas is 1, not the number of bananas in it. Two identical bags
+    of chips is 2. Count only what is visible in this image, and do not speculate about the
+    rest of the cart. Count only what is inside the cart: shelves, displays, other shoppers'
+    carts, the floor and anything held in a hand are not in this cart and must not be counted,
+    marked, or listed as unmarked. This count is now what sets the quantity in the shopper's
+    bag, so both directions of error show up: too high invents items they are not buying, too
+    low drops items they are. Report this quantity in the count field of inViewCounts.
+14. productKey in inViewCounts is lowercase "brand::name" with punctuation removed and accents
     folded to plain ASCII letters, for example "kelloggs::froot loops". A brand like "Café
     Bustelo" folds to "cafe bustelo", not "café bustelo". Use "" for the brand of unbranded
     produce, giving "::bananas".
-13. occlusion describes whether items appear stacked or buried such that products are present
+15. occlusion describes whether items appear stacked or buried such that products are present
     but not visible. severity "none" means you can see everything in the basket, "some" means
     a few things are partly covered, "many" means the cart is stacked and a significant part
     of the contents is hidden. itemsLikelyHidden is true whenever severity is "some" or

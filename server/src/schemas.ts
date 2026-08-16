@@ -14,10 +14,26 @@ export const MarkIdentification = z.object({
   category: z.string(),
   confidence: z.number().min(0).max(1),
   needsCloserLook: z.boolean(),
+  /**
+   * Whether this badge is on something the shopper is buying.
+   *
+   * Detector proposals land on cart mesh, a bag handle, a shadow, a person's leg. Rule 8 tells
+   * the model to describe those rather than drop them, which is right, and it used to name them
+   * with high confidence and no way to say they are not products, so "shopping cart frame" and
+   * "dark clothing/leg in background" reached the shopper's bag. This is that missing field.
+   * Confidence cannot stand in for it: the model was 0.98 sure about the cart frame.
+   */
+  isProduct: z.boolean(),
 });
 
 export const UnmarkedItem = z.object({
   description: z.string(),
+  // The same "brand::name" key the model reports in inViewCounts, so an unmarked sighting joins
+  // exactly to its count and to any badge that later lands on the same product. Deriving the key
+  // from description alone cannot work: a description carries no brand, so "Froot Loops" would
+  // key as "::froot loops" and never meet the badge's "kelloggs::froot loops", and the shopper
+  // would get two bag lines for one box.
+  productKey: z.string(),
   approxLocation: z.string(),
   confidence: z.number().min(0).max(1),
 });
@@ -104,8 +120,9 @@ export const censusJsonSchema = {
           category: { type: "string" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
           needsCloserLook: { type: "boolean" },
+          isProduct: { type: "boolean" },
         },
-        required: ["id", "name", "brand", "size", "category", "confidence", "needsCloserLook"],
+        required: ["id", "name", "brand", "size", "category", "confidence", "needsCloserLook", "isProduct"],
         additionalProperties: false,
       },
     },
@@ -115,10 +132,11 @@ export const censusJsonSchema = {
         type: "object",
         properties: {
           description: { type: "string" },
+          productKey: { type: "string" },
           approxLocation: { type: "string" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
         },
-        required: ["description", "approxLocation", "confidence"],
+        required: ["description", "productKey", "approxLocation", "confidence"],
         additionalProperties: false,
       },
     },
