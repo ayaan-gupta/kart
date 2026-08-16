@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FloatingNav } from '../components/FloatingNav';
@@ -25,11 +25,19 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const hauls = useScanline((s) => s.hauls);
 
+  // `Date.now()` is impure and may not be called during render (see the React Compiler's
+  // purity rule): a component's output has to be a deterministic function of its props and
+  // state, and "now" is neither. `useState`'s lazy-initializer form calls it exactly once, on
+  // first mount, the same idiom React's own docs use for expensive or impure initial state, and
+  // never again on a later re-render, so a haul crossing the month boundary waits for whatever
+  // next re-render already comes from `hauls` changing rather than this reading a fresh "now".
+  const [now] = useState(() => Date.now());
+
   const monthStats = useMemo(() => {
-    const recent = hauls.filter((h) => Date.now() - h.endedAt < MONTH);
+    const recent = hauls.filter((h) => now - h.endedAt < MONTH);
     const items = recent.reduce((sum, h) => sum + haulCount(h.items), 0);
     return { items, trips: recent.length };
-  }, [hauls]);
+  }, [hauls, now]);
 
   const [latest, ...rest] = hauls;
 
