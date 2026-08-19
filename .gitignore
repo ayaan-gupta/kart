@@ -51,3 +51,7 @@ __pycache__/
 # RPC eval images: CC BY-NC-SA, fetched on demand by fetch_rpc.py
 server/eval/corpus/images/
 server/eval/detection-score.json
+
+# Local datasets, not redistributable
+.data-grocer-help/
+server/eval/catalog-score.json
