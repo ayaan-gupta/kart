@@ -14,16 +14,27 @@ open-world description into retrieval over a known set. Two scripts measure that
 | grocer-help | crops from shelf scenes, 8 per class | 261 | 1,472 | 27% | 40% | 13 |
 | grocer-help | crops from shelf scenes, 25 per class | 419 | 2,059 | 38% | 52% | 14 |
 | RPC | clean single-product exemplars, 20 per SKU | 200 | 465 | 45% | 65% | 20 |
+| RPC | clean single-product exemplars, 100 per SKU | 200 | 465 | 66% | 87% | 21 |
 | published comparable | clean references, ~180 per SKU | 409 | n/a | 77% | 94.5% | 17.5 |
+
+Catalog depth is the single largest lever measured. Holding everything else fixed, going from
+20 reference images per SKU to 100 is worth 21 points of Recall@1 and 22 of Recall@5. Three
+points on the curve, ours at 20 and 100 and the published one at about 180, line up on a
+consistent shape, which says the shortfall was never an implementation defect. The pipeline was
+starved of catalog and behaves like the published work once fed.
 
 RPC broken out by its own clutter tiers, which is the controlled comparison. Identical model,
 identical catalog, identical method. Only how crowded the scene is changes:
 
-| tier | items in scene | queries | Recall@1 | Recall@5 | gap |
-|---|---|---|---|---|---|
-| easy | 3 to 5, minimal occlusion | 95 | 71% | 82% | 12 |
-| medium | 6 to 10, occasional overlap | 143 | 37% | 55% | 18 |
-| hard | 11 or more, heavy stacking | 227 | 40% | 64% | 24 |
+| tier | items in scene | queries | R@1 at 20 | R@5 at 20 | R@1 at 100 | R@5 at 100 |
+|---|---|---|---|---|---|---|
+| easy | 3 to 5, minimal occlusion | 95 | 71% | 82% | **91%** | **98%** |
+| medium | 6 to 10, occasional overlap | 143 | 37% | 55% | 64% | 85% |
+| hard | 11 or more, heavy stacking | 227 | 40% | 64% | 57% | 84% |
+
+With a hundred references per SKU an uncrowded scene is close to solved, at 91% first-choice
+and 98% within five. A stacked scene still costs 34 points of first-choice accuracy, so clutter
+remains the dominant failure even after the catalog is properly fed.
 
 Published figures are from arXiv:2605.18029, 190 open-source models on 409 grocery SKUs. Model
 here is MobileCLIP-S2/datacompdr throughout, which that paper picked as the edge-deployable
@@ -50,10 +61,12 @@ The occlusion warning is not a courtesy feature. Asking a shopper to move the th
 worth roughly thirty points of naming accuracy on the items underneath, which makes it one of
 the highest-value behaviours in the product rather than a nicety bolted onto the end.
 
-The reranker matters most exactly where the problem is hardest. The gap between Recall@1 and
-Recall@5 widens from 12 points on clean scenes to 24 on stacked ones, so the shortlist keeps
-holding the right answer while the embedding's own ranking of it decays. A reranker recovers
-more the worse the scene gets, which is the opposite of how most accuracy aids behave.
+The reranker matters most exactly where the problem is hardest. At a hundred references per
+SKU the gap between Recall@1 and Recall@5 runs 7 points on clean scenes and 26 on stacked ones:
+the shortlist keeps holding the right answer while the embedding's own ranking of it decays.
+On the hard tier that is 57% first-choice against 84% within five, so a reranker able to pick
+correctly from five candidates is worth 27 points precisely where the product struggles most.
+That is the opposite of how most accuracy aids behave.
 
 ## Why grocer-help scores half the published figure
 
@@ -82,9 +95,14 @@ The RPC run puts a size on it, and it is smaller than expected. A clean exemplar
 45% against 38% for one built from shelf crops. Real, worth having, and nowhere near the
 thirty-point swing that clutter causes. Catalog cleanliness is a second-order lever.
 
-The untested lever that remains is catalog depth. RPC was measured at 20 crops per SKU against
-the roughly 180 behind the published 77%, and depth has already been shown to matter once,
-buying 11 points on grocer-help between 8 and 25 crops per class.
+Catalog depth was that lever and it has now been measured: 20 to 100 references per SKU is
+worth 21 points, taking Recall@1 from 45% to 66% and Recall@5 from 65% to 87%. The remaining
+distance to the published 77% is consistent with the remaining distance in depth, 100 against
+roughly 180.
+
+This is the concrete requirement to put to a store. Not "send product photographs" but roughly
+a hundred views per SKU, which is what a turntable capture rig produces in a few minutes per
+item and what RPC itself did at about 160.
 
 ## What these numbers cannot tell you
 
