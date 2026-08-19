@@ -296,7 +296,8 @@ def main():
             print(f"{target:>8.0%}{floor:>8.2f}{covers:>9.1%}{actual:>9.1%}{asks:>12}")
     print("An item below the floor is not lost. It is the one the shopper is asked about.")
 
-    previous = json.loads((HERE / "rerank-score.json").read_text())
+    score_path = HERE / "rerank-score.json"
+    previous = json.loads(score_path.read_text()) if score_path.exists() else {}
     previous.update(
         {
             "signals": names,
@@ -319,7 +320,7 @@ def main():
             },
         }
     )
-    (HERE / "rerank-score.json").write_text(json.dumps(previous, indent=1))
+    score_path.write_text(json.dumps(previous, indent=1))
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ results in server/eval/CATALOG.md.
     matcher = Matcher(Index.load("index.npz"))
     matcher.match([crop])
 """
+import collections
 import json
 import pathlib
 
@@ -59,6 +60,16 @@ FLOOR = 0.59
 # Below this many reference images a SKU has too little for the head to learn from and the
 # whole advantage disappears (head.py). It is a requirement on the store, not a preference.
 MIN_REFERENCES = head.MIN_REFERENCES
+
+# References decoded at once while building an index. Bounds peak memory during import, which
+# is the only stage that touches the whole catalog at all.
+ENCODE_CHUNK = 512
+
+# Reference crops whose keypoints stay in memory. Each is a few hundred descriptors, so a few
+# hundred kilobytes, and the set of crops a long-running matcher touches grows towards the whole
+# catalog. Unbounded, a hundred thousand reference catalog would eventually hold tens of
+# gigabytes of descriptors for crops it last needed hours ago.
+DESCRIPTOR_CACHE = 2048
 
 
 class Index:
@@ -99,18 +110,31 @@ class Index:
             raise ValueError(f"no product folder under {root} had {MIN_REFERENCES} images")
 
         labels = np.array(labels)
-        loaded = [Image.open(p).convert("RGB") for p in paths]
-        log(f"  encoding {len(loaded)} references across {len(skus)} SKUs")
-        prepare, run = encode.load(encoder)
-        features = encode.embed(loaded, prepare, run)
-        prepare, run = encode.load("color")
-        colors = encode.embed(loaded, prepare, run)
+        log(f"  encoding {len(paths)} references across {len(skus)} SKUs")
+        image_encoder = encode.load(encoder)
+        color_encoder = encode.load("color")
+        # Decoded in chunks, not all at once. A five thousand product catalog at twenty views
+        # each is a hundred thousand images, which is tens of gigabytes held as decoded pixels
+        # and an out-of-memory crash on the one machine that matters, the one doing the import.
+        # Both encoders run on the same chunk so each file is read from disk once.
+        feature_chunks, color_chunks = [], []
+        for start in range(0, len(paths), ENCODE_CHUNK):
+            loaded = [
+                Image.open(p).convert("RGB") for p in paths[start : start + ENCODE_CHUNK]
+            ]
+            feature_chunks.append(encode.embed(loaded, *image_encoder))
+            color_chunks.append(encode.embed(loaded, *color_encoder))
+            log(f"  {min(start + ENCODE_CHUNK, len(paths))}/{len(paths)}")
+        features = np.concatenate(feature_chunks)
+        colors = np.concatenate(color_chunks)
         weights, held = head.train(features, labels, len(skus), log=log)
         log(f"  head trained, held-out catalog accuracy {held:.1%}")
         return cls(encoder, skus, features, colors, labels, paths, weights)
 
     def save(self, path):
-        path = pathlib.Path(path)
+        # np.savez appends .npz when it is missing, so without this the sidecar json and the
+        # arrays end up under names that load() cannot pair back up.
+        path = pathlib.Path(path).with_suffix(".npz")
         np.savez(
             path,
             features=self.features,
@@ -125,7 +149,7 @@ class Index:
 
     @classmethod
     def load(cls, path):
-        path = pathlib.Path(path)
+        path = pathlib.Path(path).with_suffix(".npz")
         arrays = np.load(path)
         meta = json.loads(path.with_suffix(".json").read_text())
         return cls(
@@ -138,7 +162,8 @@ class Matcher:
     """Names crops against a built index. Loads its encoders on first use."""
 
     def __init__(self, index, fusion=None, calibration=CALIBRATION, floor=FLOOR,
-                 shortlist=SHORTLIST, references=REFERENCES, geometry_top=GEOMETRY_TOP):
+                 shortlist=SHORTLIST, references=REFERENCES, geometry_top=GEOMETRY_TOP,
+                 descriptor_cache=DESCRIPTOR_CACHE):
         self.index = index
         self.fusion = dict(fusion or FUSION)
         self.calibration = calibration
@@ -147,7 +172,8 @@ class Matcher:
         self.references = references
         self.geometry_top = geometry_top
         self._encoders = {}
-        self._described = {}
+        self._described = collections.OrderedDict()
+        self._descriptor_cache = descriptor_cache
 
     def _encode(self, name, images):
         if name not in self._encoders:
@@ -156,9 +182,14 @@ class Matcher:
         return encode.embed(images, prepare, run)
 
     def _reference_described(self, crop):
+        """Keypoints for one reference crop, cached with the least recently used dropped."""
         path = self.index.references[crop]
-        if path not in self._described:
+        if path in self._described:
+            self._described.move_to_end(path)
+        else:
             self._described[path] = geometry.describe(path)
+            if len(self._described) > self._descriptor_cache:
+                self._described.popitem(last=False)
         return self._described[path]
 
     def match(self, images):

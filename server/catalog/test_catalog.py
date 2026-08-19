@@ -356,3 +356,34 @@ def test_index_round_trips_through_disk(tmp_path):
     assert back.encoder == index.encoder
     assert np.allclose(back.weights, index.weights)
     assert back.references == index.references
+
+
+def test_descriptor_cache_does_not_grow_without_bound(tmp_path):
+    """A long-running matcher touches more of the catalog the longer it runs.
+
+    Each cached entry is a few hundred keypoint descriptors. Left unbounded against a large
+    catalog that is tens of gigabytes of crops the matcher last needed hours ago, and it would
+    look like a slow leak rather than a bug.
+    """
+    from PIL import Image
+
+    index, directions, colors = synthetic_index(tmp_path, skus=6, per_sku=12)
+    matcher = StubMatcher(
+        index, directions[0][None, :], colors[0][None, :], descriptor_cache=4
+    )
+    for crop in range(20):
+        matcher._reference_described(crop)
+    assert len(matcher._described) == 4
+
+
+def test_descriptor_cache_keeps_what_was_used_most_recently(tmp_path):
+    index, directions, colors = synthetic_index(tmp_path, skus=6, per_sku=12)
+    matcher = StubMatcher(
+        index, directions[0][None, :], colors[0][None, :], descriptor_cache=2
+    )
+    matcher._reference_described(0)
+    matcher._reference_described(1)
+    matcher._reference_described(0)  # touching 0 again should save it from eviction
+    matcher._reference_described(2)
+    assert index.references[1] not in matcher._described
+    assert index.references[0] in matcher._described
