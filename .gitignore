@@ -58,3 +58,4 @@ server/eval/catalog-score.json
 server/eval/.cache/
 server/eval/rerank-score.json
 server/eval/probe-score-*.json
+server/eval/finetune-score-*.json

@@ -256,6 +256,12 @@ measures what happens when a shopper puts in something the store does not sell, 
 bag, or a phone. The closed-world assumption is exactly what makes the numbers above good, and
 this is its bill.
 
+**A larger encoder than SigLIP-B/16.** ViT-L-14 is registered in `encode.py` and was started,
+then stopped at 35% of the catalog. It was running at roughly a sixth of SigLIP-B/16's rate on
+this machine and needed another 1.6 hours of the same GPU that fine-tuning needs. The question
+it answers is marginal next to the one fine-tuning answers, so it lost the slot. Recorded as
+unmeasured rather than dismissed.
+
 **A vision-language reranker.** Sending the crop and its five candidates' reference images to a
 model and asking which matches is the obvious source of the new evidence the fusion needs. It is
 unmeasured because the key is deferred, not because it was judged unpromising.
