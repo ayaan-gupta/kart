@@ -32,16 +32,13 @@ def _sift():
     return _sift.instance
 
 
-def describe(path):
-    """RootSIFT keypoints and descriptors for one image.
+def describe_gray(image):
+    """RootSIFT keypoints and descriptors for a greyscale array.
 
     RootSIFT is plain SIFT with the descriptor L1-normalized and square-rooted. It costs one
     line, makes Euclidean distance behave like a Hellinger distance, and is a consistent win on
     every matching benchmark it has been tried on, so there is no reason to use raw SIFT.
     """
-    import cv2
-
-    image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
     if image is None:
         return None, None
     keypoints, desc = _sift().detectAndCompute(image, None)
@@ -50,6 +47,20 @@ def describe(path):
     desc = desc / np.maximum(desc.sum(axis=1, keepdims=True), 1e-7)
     desc = np.sqrt(desc).astype(np.float32)
     return np.array([kp.pt for kp in keypoints], dtype=np.float32), desc
+
+
+def describe(path):
+    """Same, reading from disk. Catalog references live as files; query crops do not."""
+    import cv2
+
+    return describe_gray(cv2.imread(str(path), cv2.IMREAD_GRAYSCALE))
+
+
+def describe_image(image):
+    """Same, from a PIL image, which is what a freshly cropped detection arrives as."""
+    import cv2
+
+    return describe_gray(cv2.cvtColor(np.array(image.convert("RGB")), cv2.COLOR_RGB2GRAY))
 
 
 def inliers(query, reference):

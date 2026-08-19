@@ -237,3 +237,122 @@ def test_a_blank_image_yields_no_keypoints_rather_than_raising(tmp_path):
 
 def test_a_missing_file_yields_no_keypoints_rather_than_raising(tmp_path):
     assert geometry.describe(tmp_path / "nope.png") == (None, None)
+
+
+# ---- the assembled matcher -------------------------------------------------------------
+
+
+def synthetic_index(tmp_path, skus=6, per_sku=12, dims=16, seed=7):
+    """A small index over real image files, with features standing in for a real encoder.
+
+    Building a genuine index would download an encoder and take minutes, which is the eval
+    harness's job, not a unit test's. What has to be checked here is the wiring: that the
+    shortlist, the reference choice, the two extra signals and the decision all address the
+    same candidate. Real files on disk matter because the geometry stage reads them.
+    """
+    import cv2
+
+    from catalog import matcher as matcher_module
+
+    rng = np.random.default_rng(seed)
+    directions = rng.normal(size=(skus, dims))
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    colors = rng.random((skus, 8))
+    colors /= np.linalg.norm(colors, axis=1, keepdims=True)
+
+    features, color_rows, labels, references = [], [], [], []
+    for sku in range(skus):
+        for shot in range(per_sku):
+            noisy = directions[sku] + rng.normal(0, 0.05, size=dims)
+            features.append(noisy / np.linalg.norm(noisy))
+            tinted = colors[sku] + rng.normal(0, 0.02, size=8)
+            color_rows.append(tinted / np.linalg.norm(tinted))
+            labels.append(sku)
+            path = tmp_path / f"sku{sku}-{shot}.png"
+            cv2.imwrite(str(path), textured(seed=100 + sku))
+            references.append(path)
+
+    features = np.array(features, dtype=np.float32)
+    labels = np.array(labels)
+    weights, _ = head.train(features, labels, skus, epochs=200, seed=1)
+    index = matcher_module.Index(
+        "stub", [f"sku{i}" for i in range(skus)], features,
+        np.array(color_rows, dtype=np.float32), labels, references, weights,
+    )
+    return index, directions, colors
+
+
+class StubMatcher:
+    """Matcher with the encoders replaced, so no weights are downloaded during a test."""
+
+    def __new__(cls, index, features, colors, **kwargs):
+        from catalog import matcher as matcher_module
+
+        instance = matcher_module.Matcher(index, **kwargs)
+        instance._encode = lambda name, images: (
+            colors if name == "color" else features
+        ).astype(np.float32)
+        return instance
+
+
+def test_matcher_names_the_product_the_evidence_points_at(tmp_path):
+    import cv2
+    from PIL import Image
+
+    index, directions, colors = synthetic_index(tmp_path)
+    target = 3
+    query_image = Image.fromarray(cv2.cvtColor(textured(seed=100 + target), cv2.COLOR_BGR2RGB))
+    got = StubMatcher(
+        index,
+        directions[target][None, :],
+        colors[target][None, :],
+    ).match([query_image])
+    assert got[0]["sku"] == f"sku{target}"
+    assert got[0]["confidence"] > 0.5
+    assert len(got[0]["alternatives"]) == 3
+
+
+def test_matcher_declines_when_nothing_distinguishes_the_candidates(tmp_path):
+    from PIL import Image
+
+    index, directions, colors = synthetic_index(tmp_path)
+    # Exactly between two products, on a blank crop that yields no keypoints. Every signal is
+    # ambivalent, which is the case the floor exists for.
+    between = (directions[0] + directions[1]) / 2
+    got = StubMatcher(
+        index,
+        (between / np.linalg.norm(between))[None, :],
+        ((colors[0] + colors[1]) / 2)[None, :],
+    ).match([Image.fromarray(np.full((128, 128, 3), 210, dtype=np.uint8))])
+    assert got[0]["sku"] is None
+    assert got[0]["confidence"] < 0.9
+
+
+def test_matcher_returns_nothing_for_no_crops(tmp_path):
+    index, _, _ = synthetic_index(tmp_path)
+    assert StubMatcher(index, np.zeros((0, 16)), np.zeros((0, 8))).match([]) == []
+
+
+def test_index_refuses_a_product_with_too_few_reference_images(tmp_path):
+    import cv2
+
+    from catalog import matcher as matcher_module
+
+    thin = tmp_path / "catalog" / "sparse"
+    thin.mkdir(parents=True)
+    for shot in range(matcher_module.MIN_REFERENCES - 1):
+        cv2.imwrite(str(thin / f"{shot}.png"), textured(seed=shot))
+    with pytest.raises(ValueError):
+        matcher_module.Index.build(tmp_path / "catalog", log=lambda _m: None)
+
+
+def test_index_round_trips_through_disk(tmp_path):
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.save(tmp_path / "index.npz")
+    back = matcher_module.Index.load(tmp_path / "index.npz")
+    assert back.skus == index.skus
+    assert back.encoder == index.encoder
+    assert np.allclose(back.weights, index.weights)
+    assert back.references == index.references

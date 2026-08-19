@@ -8,9 +8,12 @@ classification, and a classifier gets to learn what separates the two SKUs that 
 confusing. A lookup never sees the other products at all.
 
 Measured on 465 held-out cart crops against a 200-SKU catalog, same frozen encoder, same crops:
-nearest neighbour 65.2% first-choice, this 73.8%. On the crowded scenes that are the product's
-real problem, 54.6% against 68.3%. It is also cheaper to run, two hundred dot products rather
-than twenty thousand.
+on SigLIP-B/16 the lookup reaches 73.5% first-choice and this reaches 84.3%; on MobileCLIP-S2,
+65.2% against 74.0%. On the crowded scenes that are the product's real problem, 64.8% against
+81.1%. Averaging each SKU's references instead of training on them is worse than the lookup, so
+the gain is from learning where the boundary between two SKUs lies rather than from
+consolidating each SKU into one vector. It is also cheaper to run, two hundred dot products
+rather than twenty thousand.
 
 Two properties matter for deployment. Adding a SKU means refitting the head, which is seconds
 on cached embeddings rather than a re-encode of the catalog. And below about ten reference
@@ -30,8 +33,10 @@ EPOCHS = 60
 BATCH = 1024
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
-# Reference images per SKU below which the head has nothing to learn. Measured: at 5 it scores
-# 52.7% against the lookup's 53.8%, at 10 it scores 71.8% against 60.2%.
+# Reference images per SKU below which the head has nothing to learn. Measured on MobileCLIP: at
+# 5 references it scores 52.7% against the lookup's 53.8%, at 10 it scores 71.8% against 60.2%.
+# The jump is between 5 and 10 on both encoders tested, which makes this a requirement on the
+# store rather than a preference.
 MIN_REFERENCES = 10
 
 
@@ -59,6 +64,10 @@ def train(features, labels, classes, holdout=0.1, epochs=EPOCHS, seed=17, log=No
     device = "cuda" if torch.cuda.is_available() else (
         "mps" if torch.backends.mps.is_available() else "cpu"
     )
+    # Both generators, not just numpy. The minibatch shuffle below draws from torch's global
+    # stream, and leaving it unseeded made the same configuration score 82.8% and 83.9% on
+    # consecutive runs, which is larger than several of the differences being measured.
+    torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     order = rng.permutation(len(features))
     cut = max(1, int(len(order) * holdout))
