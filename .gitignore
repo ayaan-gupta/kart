@@ -55,3 +55,6 @@ server/eval/detection-score.json
 # Local datasets, not redistributable
 .data-grocer-help/
 server/eval/catalog-score.json
+server/eval/.cache/
+server/eval/rerank-score.json
+server/eval/probe-score-*.json

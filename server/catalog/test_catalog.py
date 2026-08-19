@@ -1,0 +1,239 @@
+"""
+Tests for the catalog matcher.
+
+These cover the parts where a mistake is silent. A reranker that quietly lets one signal
+dominate, or a confidence that is monotonic but meaningless, still produces plausible output
+on every input, and the eval harness would report a slightly worse number without ever saying
+why. So the properties asserted here are the ones the arithmetic is supposed to guarantee,
+not the shapes of the arrays.
+
+    pytest server/catalog/test_catalog.py
+"""
+import numpy as np
+import pytest
+
+from catalog import geometry, head, rank
+
+
+# ---- shortlist -------------------------------------------------------------------------
+
+
+def test_shortlist_is_ordered_best_first():
+    scores = np.array([[0.1, 0.9, 0.5, 0.7]])
+    assert rank.shortlist(scores, 3).tolist() == [[1, 3, 2]]
+
+
+def test_shortlist_clamps_to_the_number_of_candidates():
+    scores = np.array([[0.2, 0.4]])
+    assert rank.shortlist(scores, 10).tolist() == [[1, 0]]
+
+
+def test_shortlist_handles_each_query_independently():
+    scores = np.array([[0.9, 0.1], [0.1, 0.9]])
+    assert rank.shortlist(scores, 1).tolist() == [[0], [1]]
+
+
+# ---- standardization and fusion --------------------------------------------------------
+
+
+def test_standardize_removes_scale_so_a_wide_signal_cannot_dominate():
+    """The reason this function exists.
+
+    Cosine similarity varies over hundredths; inlier counts vary over hundreds. Summing them
+    raw would let the counts decide every case regardless of weight. After standardizing, a
+    weight of 0.5 each has to mean each contributes half.
+    """
+    narrow = np.array([[0.70, 0.71, 0.69]])
+    wide = np.array([[10.0, 500.0, 3.0]])
+    fused = rank.fuse(
+        {"a": rank.standardize(narrow), "b": rank.standardize(wide)}, {"a": 0.5, "b": 0.5}
+    )
+    # Candidate 1 is best on both, so it must win; candidate 2 is worst on both, so it loses.
+    assert fused.argmax() == 1
+    assert fused.argmin() == 2
+    # And the narrow signal is not merely rounding error next to the wide one.
+    only_wide = rank.fuse({"b": rank.standardize(wide)}, {"b": 1.0})
+    assert abs(fused[0, 0] - fused[0, 2]) > 0.1 * abs(only_wide[0, 0] - only_wide[0, 2])
+
+
+def test_standardize_disagreement_is_settled_by_weight_not_by_range():
+    narrow = np.array([[0.71, 0.70]])  # prefers candidate 0
+    wide = np.array([[0.0, 900.0]])  # prefers candidate 1, on a far bigger scale
+    assert rank.fuse(
+        {"a": rank.standardize(narrow), "b": rank.standardize(wide)}, {"a": 0.9, "b": 0.1}
+    ).argmax() == 0
+    assert rank.fuse(
+        {"a": rank.standardize(narrow), "b": rank.standardize(wide)}, {"a": 0.1, "b": 0.9}
+    ).argmax() == 1
+
+
+def test_log_standardize_keeps_the_order_but_compresses_the_lead():
+    """Four hundred keypoint matches beat forty, but not by ten times the evidence."""
+    counts = np.array([[400.0, 40.0, 0.0]])
+    plain = rank.standardize(counts)
+    logged = rank.standardize(counts, log=True)
+    assert logged.argmax() == plain.argmax() == 0
+    plain_lead = (plain[0, 0] - plain[0, 1]) / (plain[0, 1] - plain[0, 2])
+    log_lead = (logged[0, 0] - logged[0, 1]) / (logged[0, 1] - logged[0, 2])
+    assert log_lead < plain_lead
+
+
+def test_standardize_survives_a_signal_that_is_identical_everywhere():
+    """Every candidate scoring zero inliers is the common case, not an edge case."""
+    flat = rank.standardize(np.zeros((1, 5)), log=True)
+    assert np.all(np.isfinite(flat))
+    assert np.allclose(flat, 0.0)
+
+
+def test_fuse_rejects_a_weight_with_no_signal_behind_it():
+    with pytest.raises(KeyError):
+        rank.fuse({"a": np.zeros((1, 3))}, {"a": 0.5, "geometry": 0.5})
+
+
+# ---- confidence ------------------------------------------------------------------------
+
+
+def test_margin_is_the_gap_to_the_runner_up_not_to_the_worst():
+    assert rank.margin(np.array([[5.0, 4.0, -10.0]]))[0] == pytest.approx(1.0)
+
+
+def test_a_single_candidate_has_no_runner_up_to_be_unsure_about():
+    assert np.isinf(rank.margin(np.array([[3.0]])))[0]
+
+
+def test_confidence_rises_with_the_margin_and_stays_a_probability():
+    coefficients = (1.4, -0.6)
+    values = rank.confidence(np.array([0.0, 0.5, 2.0, 8.0]), coefficients)
+    assert np.all(np.diff(values) > 0)
+    assert values.min() > 0 and values.max() < 1
+
+
+def test_decide_declines_rather_than_guessing_below_the_floor():
+    fused = np.array([1.01, 1.0, 0.2])
+    names = ["milk", "cream", "juice"]
+    order = np.array([0, 1, 2])
+    close = rank.decide(names, order, fused, (1.0, 0.0), floor=0.9)
+    assert close["sku"] is None
+    # Declining is not the same as having no opinion: the alternatives are still ranked.
+    assert [a["sku"] for a in close["alternatives"]] == ["milk", "cream", "juice"]
+
+
+def test_decide_names_the_item_when_the_lead_is_clear():
+    fused = np.array([9.0, 0.5, 0.1])
+    chosen = rank.decide(["milk", "cream", "juice"], np.array([0, 1, 2]), fused, (1.0, 0.0), 0.9)
+    assert chosen["sku"] == "milk"
+    assert chosen["confidence"] > 0.9
+
+
+def test_decide_maps_shortlist_slots_back_to_catalog_positions():
+    """The fused array is indexed by shortlist slot; the names are indexed by SKU.
+
+    Getting this wrong returns a real product name with someone else's score, which is the
+    kind of defect that never raises and never looks wrong in a log.
+    """
+    names = ["a", "b", "c", "d"]
+    order = np.array([3, 1])
+    chosen = rank.decide(names, order, np.array([0.1, 9.0]), (1.0, 0.0), floor=0.5)
+    assert chosen["sku"] == "b"
+    assert [a["sku"] for a in chosen["alternatives"]] == ["b", "d"]
+
+
+# ---- the trained head ------------------------------------------------------------------
+
+
+def test_prototypes_are_the_normalized_class_means():
+    features = np.array([[1.0, 0.0], [3.0, 0.0], [0.0, 2.0]], dtype=np.float32)
+    labels = np.array([0, 0, 1])
+    got = head.prototypes(features, labels, 2)
+    assert np.allclose(got, [[1.0, 0.0], [0.0, 1.0]], atol=1e-6)
+
+
+def test_training_separates_classes_that_share_a_direction():
+    """The case a lookup and a prototype both get wrong.
+
+    Two SKUs whose reference crops point almost the same way differ only in a small component.
+    Averaging keeps the shared direction and drops the difference, so prototypes confuse them.
+    A trained head can weight the small component up, and that is the entire reason it is worth
+    the retraining cost.
+    """
+    rng = np.random.default_rng(0)
+    shared = np.array([1.0, 0.0, 0.0])
+    per_class = 60
+    features, labels = [], []
+    for sku, tell in enumerate([np.array([0.0, 0.06, 0.0]), np.array([0.0, -0.06, 0.0])]):
+        noise = rng.normal(0, 0.25, size=(per_class, 3))
+        noise[:, 1] = 0.0  # the only reliable difference is the tell
+        block = shared + tell + noise
+        features.append(block / np.linalg.norm(block, axis=1, keepdims=True))
+        labels += [sku] * per_class
+    features = np.concatenate(features).astype(np.float32)
+    labels = np.array(labels)
+
+    proto = head.prototypes(features, labels, 2)
+    # The whole set is one batch, so an epoch is one optimizer step. A real catalog of twenty
+    # thousand crops takes twenty steps an epoch; a hundred and twenty synthetic rows take one.
+    trained, _ = head.train(features, labels, 2, epochs=600, seed=1)
+    proto_right = (np.argmax(features @ proto.T, axis=1) == labels).mean()
+    trained_right = (np.argmax(head.score(features, trained), axis=1) == labels).mean()
+    assert trained_right > proto_right
+    assert trained_right > 0.9
+
+
+def test_head_weights_come_back_normalized_so_scores_are_cosines():
+    rng = np.random.default_rng(4)
+    features = rng.normal(size=(80, 8)).astype(np.float32)
+    features /= np.linalg.norm(features, axis=1, keepdims=True)
+    labels = np.arange(80) % 4
+    trained, _ = head.train(features, labels, 4, epochs=5, seed=2)
+    assert np.allclose(np.linalg.norm(trained, axis=1), 1.0, atol=1e-5)
+    assert np.abs(head.score(features, trained)).max() <= 1.0 + 1e-5
+
+
+# ---- geometric verification ------------------------------------------------------------
+
+
+def textured(seed=0, size=256):
+    """A synthetic packet front: enough structure for keypoints, no real product needed."""
+    rng = np.random.default_rng(seed)
+    image = np.zeros((size, size, 3), dtype=np.uint8)
+    for _ in range(40):
+        x, y = rng.integers(0, size - 40, size=2)
+        w, h = rng.integers(10, 40, size=2)
+        image[y : y + h, x : x + w] = rng.integers(0, 255, size=3)
+    return image
+
+
+def test_an_image_matches_a_rotated_scaled_copy_of_itself(tmp_path):
+    import cv2
+
+    original = textured(1)
+    matrix = cv2.getRotationMatrix2D((128, 128), 12, 0.85)
+    warped = cv2.warpAffine(original, matrix, (256, 256))
+    a, b = tmp_path / "a.png", tmp_path / "b.png"
+    cv2.imwrite(str(a), original)
+    cv2.imwrite(str(b), warped)
+    assert geometry.inliers(geometry.describe(a), geometry.describe(b)) >= geometry.MIN_MATCHES
+
+
+def test_unrelated_images_do_not_agree_on_a_geometry(tmp_path):
+    import cv2
+
+    a, b = tmp_path / "a.png", tmp_path / "b.png"
+    cv2.imwrite(str(a), textured(2))
+    cv2.imwrite(str(b), textured(99))
+    same = geometry.inliers(geometry.describe(a), geometry.describe(a))
+    different = geometry.inliers(geometry.describe(a), geometry.describe(b))
+    assert different < same
+
+
+def test_a_blank_image_yields_no_keypoints_rather_than_raising(tmp_path):
+    import cv2
+
+    blank = tmp_path / "blank.png"
+    cv2.imwrite(str(blank), np.full((128, 128, 3), 200, dtype=np.uint8))
+    assert geometry.describe(blank) == (None, None)
+    assert geometry.inliers(geometry.describe(blank), geometry.describe(blank)) == 0
+
+
+def test_a_missing_file_yields_no_keypoints_rather_than_raising(tmp_path):
+    assert geometry.describe(tmp_path / "nope.png") == (None, None)
