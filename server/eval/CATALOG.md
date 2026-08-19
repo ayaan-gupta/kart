@@ -13,7 +13,17 @@ open-world description into retrieval over a known set. Two scripts measure that
 |---|---|---|---|---|---|---|
 | grocer-help | crops from shelf scenes, 8 per class | 261 | 1,472 | 27% | 40% | 13 |
 | grocer-help | crops from shelf scenes, 25 per class | 419 | 2,059 | 38% | 52% | 14 |
+| RPC | clean single-product exemplars, 20 per SKU | 200 | 465 | 45% | 65% | 20 |
 | published comparable | clean references, ~180 per SKU | 409 | n/a | 77% | 94.5% | 17.5 |
+
+RPC broken out by its own clutter tiers, which is the controlled comparison. Identical model,
+identical catalog, identical method. Only how crowded the scene is changes:
+
+| tier | items in scene | queries | Recall@1 | Recall@5 | gap |
+|---|---|---|---|---|---|
+| easy | 3 to 5, minimal occlusion | 95 | 71% | 82% | 12 |
+| medium | 6 to 10, occasional overlap | 143 | 37% | 55% | 18 |
+| hard | 11 or more, heavy stacking | 227 | 40% | 64% | 24 |
 
 Published figures are from arXiv:2605.18029, 190 open-source models on 409 grocery SKUs. Model
 here is MobileCLIP-S2/datacompdr throughout, which that paper picked as the edge-deployable
@@ -28,6 +38,22 @@ not a nearest-neighbour lookup, and the shortlist doubles as the alternatives sh
 when confidence is low.
 
 Whatever the absolute numbers turn out to be, this shape has held on every set measured.
+
+## Clutter, not catalog cleanliness, is what costs the most
+
+Recognition accuracy nearly halves between an uncrowded scene and a crowded one: 71% to about
+40%, with everything else held constant. Nothing else measured here moves the number that far.
+
+Two things follow, and both were previously assumptions.
+
+The occlusion warning is not a courtesy feature. Asking a shopper to move the thing on top is
+worth roughly thirty points of naming accuracy on the items underneath, which makes it one of
+the highest-value behaviours in the product rather than a nicety bolted onto the end.
+
+The reranker matters most exactly where the problem is hardest. The gap between Recall@1 and
+Recall@5 widens from 12 points on clean scenes to 24 on stacked ones, so the shortlist keeps
+holding the right answer while the embedding's own ranking of it decays. A reranker recovers
+more the worse the scene gets, which is the opposite of how most accuracy aids behave.
 
 ## Why grocer-help scores half the published figure
 
@@ -50,8 +76,15 @@ The published setup compares a scene crop against a clean reference photograph.
 
 That distinction is worth stating plainly because it is a requirement, not an excuse: **the
 catalog a store provides must be clean product photographs, not crops harvested from shelf or
-cart imagery.** RPC separates these cleanly, its train split being single-product exemplars at
-about 160 views each, which is why it is measured separately.
+cart imagery.** RPC separates these cleanly, its train split being single-product exemplars.
+
+The RPC run puts a size on it, and it is smaller than expected. A clean exemplar catalog scores
+45% against 38% for one built from shelf crops. Real, worth having, and nowhere near the
+thirty-point swing that clutter causes. Catalog cleanliness is a second-order lever.
+
+The untested lever that remains is catalog depth. RPC was measured at 20 crops per SKU against
+the roughly 180 behind the published 77%, and depth has already been shown to matter once,
+buying 11 points on grocer-help between 8 and 25 crops per class.
 
 ## What these numbers cannot tell you
 
