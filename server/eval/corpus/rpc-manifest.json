@@ -1,0 +1,28 @@
+{
+ "source": "https://huggingface.co/datasets/benjamintli/retail-product-checkout",
+ "shards": [
+  {
+   "shard": "data/test-00000-of-00011.parquet",
+   "scenes": 43
+  },
+  {
+   "shard": "data/test-00001-of-00011.parquet",
+   "scenes": 3
+  },
+  {
+   "shard": "data/test-00002-of-00011.parquet",
+   "scenes": 6
+  },
+  {
+   "shard": "data/test-00003-of-00011.parquet",
+   "scenes": 8
+  }
+ ],
+ "upstream": "RPC: A Large-Scale Retail Product Checkout Dataset, arXiv:1901.07249",
+ "project_page": "https://rpc-dataset.github.io/",
+ "licence": "CC BY-NC-SA 2.0",
+ "commercial_use": false,
+ "scenes": 60,
+ "instances": 465,
+ "classes": 200
+}

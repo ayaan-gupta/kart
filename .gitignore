@@ -47,3 +47,7 @@ example
 # Offline pipeline runs. Contains corpus photographs with no licence manifest yet.
 runs/
 __pycache__/
+
+# RPC eval images: CC BY-NC-SA, fetched on demand by fetch_rpc.py
+server/eval/corpus/images/
+server/eval/detection-score.json
