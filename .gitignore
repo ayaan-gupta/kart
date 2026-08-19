@@ -46,3 +46,4 @@ example
 
 # Offline pipeline runs. Contains corpus photographs with no licence manifest yet.
 runs/
+__pycache__/

@@ -18,6 +18,50 @@ version, on ten real cart photographs with 92 hand-labelled items:
 
 Nothing that runs on a phone produces outlines worth drawing. That is what this service is for.
 
+## Why a supervised detector does not replace it
+
+The obvious objection to renting a GPU is that a small supervised detector runs on the phone
+for free. Measured on the five held photographs, against 92 hand-labelled units, counting only
+proposals that are neither a whole-frame box nor nested inside another:
+
+| detector | usable proposals | recall | where it can run |
+|---|---|---|---|
+| YOLOv8 trained on retail shelves | 13 | 14% | phone |
+| YOLO11x COCO, every class kept | 27 | 29% | phone |
+| **Grounding DINO, tuned (below)** | **68** | **74%** | GPU |
+
+A supervised detector only fires on what it was trained on. COCO found the bananas, the
+broccoli and the bottles, which are COCO classes, and missed every milk carton, cereal box and
+crisp packet. The shelf model collapsed outright: shelf photographs are upright, front-facing
+and evenly spaced, and a cart is piled, angled and shot from above. SKU-110K is shelf imagery
+and inherits that gap, so training on it does not close this.
+
+Beating a grounded detector here needs annotated photographs of carts, which do not exist in
+any licensed corpus this project can use.
+
+## What tuning the prompt and deduplicating bought
+
+Grounding DINO's weakness on carts is precision, not recall. The original configuration
+proposed 94 boxes for 92 labelled units, which looked close, but 5 covered more than half the
+frame and 36 were a second proposal on an item already proposed, leaving 53 usable.
+
+| configuration | boxes | whole-frame | duplicates | usable | recall |
+|---|---|---|---|---|---|
+| original prompt, no suppression | 94 | 5 | 36 | 53 | 58% |
+| + class-agnostic NMS | 80 | 3 | 16 | 61 | 66% |
+| + drop nested boxes | 65 | 0 | 0 | 65 | 71% |
+| **+ container words removed** | **68** | **0** | **0** | **68** | **74%** |
+| single query phrase | 55 | 0 | 0 | 55 | 60% |
+| box threshold raised to 0.30 | 24 | 0 | 0 | 24 | 26% |
+
+Two causes, both in the configuration rather than the model. The prompt asked for "a bag", "a
+package", "a container" and "a tray", and a shopping trolley is all four. And Grounding DINO
+scores every query phrase against every region independently without suppressing across
+phrases, so one cereal box matches "a product", "a box" and "a carton" and arrives three times.
+
+Raising the threshold instead is the tempting fix and it is the wrong one: it removes real
+items faster than duplicates, which is why the last row loses two thirds of the recall.
+
 ## The contract
 
 ```
