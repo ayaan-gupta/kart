@@ -1,0 +1,30 @@
+{
+ "note": "Item counts established by looking at each photograph with every proposal numbered on it, and judging each one. Only photographs where a person can actually count are here. On a dense Trader Joe's haul or a filled trolley the true number is not knowable from the image, and guessing at it would produce a metric with no ground under it.",
+ "counted_by": "manual review of numbered overlays, one pass",
+ "product": "one purchasable unit. A twin-pack of peanut butter is two jars because they are sold and scanned as two; a six-pack of ale is one carrier because it is sold as one. A napkin holder is not a product.",
+ "counted": [
+  {
+   "id": "ov-eb3a6e5a-8de",
+   "products": 7,
+   "correct": 7,
+   "note": "Tofu, whole chilli, rice noodles, wasabi, spring onions, ginger, mango. Seven proposals, seven items, one each. Nothing missed and nothing invented."
+  },
+  {
+   "id": "ov-8ce1fa68-5d3",
+   "products": 5,
+   "correct": 5,
+   "note": "Two Skippy jars, hummus tub, sun-dried tomato dip, bananas. Nine proposals: all five items found, plus a napkin holder that is not a product and three boxes drawn around parts of items already proposed."
+  },
+  {
+   "id": "ov-b282ea1d-b15",
+   "products": 7,
+   "correct": 7,
+   "note": "Wine, yogurt tub, protein carton, two oranges, a small bottle, a six-pack. Twelve proposals: all seven found, plus three individual bottle necks inside the six-pack and a box around the illustration on the carton."
+  }
+ ],
+ "not_countable": [
+  {"id": "ov-04303310-e76", "why": "dense haul, items behind items, true count not knowable from the image"},
+  {"id": "ov-16dca705-1c1", "why": "filled trolley photographed from one side"},
+  {"id": "ov-1fd5fc9a-747", "why": "distant and low resolution, individual products not resolvable"}
+ ]
+}

@@ -138,14 +138,43 @@ stating: with a catalog containing none of these products, nothing is ever named
 genuinely holds unexamined items and the rule never fires. It is correct for a deployment with
 the store's own catalog and inert here, and it is recorded as such rather than as an improvement.
 
+## Counting: what could honestly be established
+
+Neither corpus carries a per-item count. The shelf annotation is partial, and on a dense haul or
+a filled trolley the true number is not knowable from the photograph at all. Two things could be
+done.
+
+**Counted by hand, where a person can actually count.** Every proposal was numbered on the image
+and judged one at a time (`corpus/cart-counts.json`, `score_carts_counting.py`).
+
+| photograph | real products | proposed | found | error |
+|---|---|---|---|---|
+| Asian groceries on a glass table | 7 | 7 | 7 | 0 |
+| wine, yogurt, oranges, a six-pack | 7 | 12 | 7 | +5 |
+| peanut butter, hummus, bananas | 5 | 9 | 5 | +4 |
+
+Nothing was missed in any of the three. Every error is an over-count. Three photographs is far
+too few to quote as an accuracy, and it is recorded because the alternative was to say nothing
+about counting at all.
+
+**The mechanism, measurable across all 24.** Every over-count found by hand had one shape: a
+proposal sitting inside another proposal. A twin-pack of peanut butter arrives as the pack and
+both jars. A six-pack of ale arrives as the carrier and three bottle necks. A jar arrives with a
+second box drawn around its label. Across all 342 proposals, 6.7% sit at least 80% inside a
+larger one.
+
+That is what `applyCensus` folding by containment exists to fix, and it barely fires here because
+only 10.5% of regions are named at all against a catalog that holds none of these products. The
+remaining error is the napkin holder: an object correctly detected, correctly not a product, and
+rejected by the census's `isProduct` field, which has never run.
+
 ## What is still missing
 
 **Naming on cart imagery.** It needs a catalog for these products, which 24 photographs cannot
 build. The number quoted for naming is the shelf number and belongs to shelves.
 
-**Counting accuracy.** Neither corpus here carries per-item ground truth. Detection recall is
-measured on shelves, where the annotation permits it; nobody has counted the items in these 24
-photographs, so no count error is claimed.
+**Counting accuracy, as a number.** See below: three photographs were counted by hand, which is a
+characterisation rather than a metric.
 
 **The census.** Every identity in every number above is the catalog matcher's own decision,
 standing in for a model that would choose among the candidates it offers. That step has still
