@@ -147,12 +147,45 @@ corpus that could see it had none of the case it breaks.
 The threshold stays at 0.23. Re-tuning it now would mean tuning on the corpus that cannot show
 the failure just fixed, and this repository has paid for that mistake twice already.
 
-**Detection remains the binding constraint by a wide margin.** 39.3% recall means three in five
-labelled items never reach the naming stage at all. The size breakdown says where they go:
-50.2% of large instances are found, 36.2% of medium, 24.2% of small. And recall on items the
-covered rule flags is 26.1% against 40.9% for the rest, so the items most likely to be missed
-are the ones most likely to be hidden, which is the compounding failure the guided-capture flow
-exists to interrupt.
+**Detection remains the binding constraint by a wide margin**, but the headline number is mostly
+a statement about shelves rather than about the detector. On 250 photographs, 3,190 labelled
+instances:
+
+| labelled items in the photograph | photographs | instances | boxes returned | recall |
+|---|---|---|---|---|
+| 1-5 | 114 | 215 | 5.9 | 65.6% |
+| 6-12 | 54 | 420 | 11.0 | 48.8% |
+| 13-25 | 42 | 743 | 16.9 | 47.1% |
+| 26+ | 40 | 1,812 | 24.2 | 28.0% |
+| all | 250 | 3,190 | 13.5 | 37.7% |
+
+The overall figure is dragged down by the crowded photographs, which hold 57% of all the
+instances: a wall of a hundred packets against a detector that returns on the order of fifteen
+boxes however much is in front of it. A cart holds ten to thirty items, so the two middle bands
+are the ones that describe this product, and they sit near 47-49%.
+
+That is still far below RPC's 92.9%, and it is the honest number for cart-like density in a real
+store environment rather than on a tray. Where the missing items go: 47.2% of large instances are
+found, 33.6% of medium, 21.1% of small. Recall on items the covered rule flags is 24.9% against
+38.9% for the rest, so the items most likely to be missed are the ones most likely to be hidden,
+which is the compounding failure guided capture exists to interrupt.
+
+Part of the shortfall is the measurement rather than the miss. IoU 0.5 is the detection
+convention and it is stricter than this pipeline needs: a matched box is cropped with 8% padding
+and handed to the matcher, which wants a crop centred on the right product, not a tight one.
+Scored at IoU 0.3 the same run reads
+
+| labelled items in the photograph | IoU 0.5 | IoU 0.3 |
+|---|---|---|
+| 1-5 | 65.6% | 74.9% |
+| 6-12 | 48.8% | 59.3% |
+| 13-25 | 47.1% | 51.8% |
+| 26+ | 28.0% | 30.7% |
+
+so around nine points of the apparent misses at cart-like density are items the detector did
+find and drew a loose box around. Both numbers are reported because they answer different
+questions: 0.5 is what a detection paper would print, 0.3 is closer to what this pipeline can
+actually use.
 
 Tiling the photograph is the obvious next move and is measured as *harmful* on RPC (-36 points).
 That measurement was made on sparse trays and should not be trusted here; it is the largest

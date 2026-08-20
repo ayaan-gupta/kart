@@ -45,6 +45,19 @@ from score_grocer_occlusion import hidden_fraction, in_front  # noqa: E402
 MATCH_IOU = 0.5
 
 
+def set_match_iou(value):
+    """The overlap at which a proposal counts as having found a labelled instance.
+
+    0.5 is the detection convention and it is stricter than this pipeline needs. What happens to
+    a matched box here is that it gets cropped with 8% padding and handed to the matcher, which
+    does not need a tight box, only one centred on the right product. Reporting both numbers
+    separates "the detector never saw it" from "the detector saw it and drew a loose box", and
+    those have completely different fixes.
+    """
+    global MATCH_IOU
+    MATCH_IOU = value
+
+
 def match(predicted, truth):
     """Maximum one-to-one matching by IoU, above `MATCH_IOU`.
 
@@ -85,11 +98,14 @@ def main(argv=None):
                         help="longest edge before the processor sees it. Measured as a no-op: "
                              "the Grounding DINO processor resizes to its own fixed size, so "
                              "1333, 2000 and 2800 give identical boxes")
+    parser.add_argument("--match-iou", type=float, default=MATCH_IOU)
     parser.add_argument("--no-dedupe", action="store_true",
                         help="skip the service's de-duplication, to separate what the model "
                              "proposes from what the pipeline keeps")
     parser.add_argument("--out", default=str(HERE / "grocer-detection.json"))
     args = parser.parse_args(argv)
+
+    set_match_iou(args.match_iou)
 
     import torch
     from PIL import Image
@@ -169,6 +185,7 @@ def main(argv=None):
     recall = found / max(found + missed, 1)
     precision_floor = found / max(proposed, 1)
     print(f"\n  threshold             {args.threshold}")
+    print(f"  match overlap         IoU {args.match_iou}")
     print(f"  labelled instances    {found + missed}")
     print(f"  recall                {recall:.1%}   (unbiased)")
     print(f"  precision             {precision_floor:.1%}   (a floor: unlabelled products "
@@ -181,6 +198,24 @@ def main(argv=None):
     for band, (hit, total) in by_size.items():
         if total:
             print(f"    {band:7s} n={total:5d}   {hit / total:.1%}")
+    # A shelf is not a cart, and the clearest way that shows up is density. A cart holds ten to
+    # thirty items; the photographs here hold a median of eight labelled instances and up to 198,
+    # against a detector that returns on the order of fifteen boxes however many things are in
+    # front of it. Recall against a wall of a hundred products is measuring the wrong question
+    # for this product, so the bands are reported separately rather than averaged into one number.
+    print("\n  recall by how crowded the photograph is (labelled instances in it)")
+    bands = [(1, 6), (6, 13), (13, 26), (26, 10_000)]
+    for low, high in bands:
+        scenes_in = [(t_, b, h) for t_, b, h in per_scene if low <= t_ < high]
+        if not scenes_in:
+            continue
+        labelled = sum(t_ for t_, _, _ in scenes_in)
+        hit = sum(h for _, _, h in scenes_in)
+        boxes = sum(b for _, b, _ in scenes_in) / len(scenes_in)
+        label = f"{low}-{high - 1}" if high < 10_000 else f"{low}+"
+        print(f"    {label:>7}  {len(scenes_in):3d} photographs, {labelled:5d} instances, "
+              f"{boxes:5.1f} boxes/scene   recall {hit / labelled:.1%}")
+
     if occluded_total:
         clear_found = found - occluded_found
         clear_total = (found + missed) - occluded_total
@@ -200,6 +235,13 @@ def main(argv=None):
         "max_side": args.max_side,
         "dedupe": not args.no_dedupe,
         "recall_by_size": {k: (v[0] / v[1] if v[1] else None) for k, v in by_size.items()},
+        "recall_by_density": {
+            (f"{low}-{high - 1}" if high < 10_000 else f"{low}+"): (
+                sum(h for t_, _, h in per_scene if low <= t_ < high)
+                / max(sum(t_ for t_, _, _ in per_scene if low <= t_ < high), 1)
+            )
+            for low, high in [(1, 6), (6, 13), (13, 26), (26, 10_000)]
+        },
         "recall_covered": occluded_found / occluded_total if occluded_total else None,
         "covered_instances": occluded_total,
         "seconds": round(time.time() - started, 1),
@@ -210,7 +252,7 @@ def main(argv=None):
     existing = json.loads(out.read_text() or "{}") if out.exists() else {}
     # Keyed by both, because resolution turned out to matter more than the threshold and a
     # results file keyed on the threshold alone would have overwritten the evidence for it.
-    existing[f"threshold={args.threshold} max_side={args.max_side} "
+    existing[f"threshold={args.threshold} iou={args.match_iou} "
              f"dedupe={not args.no_dedupe}"] = summary
     out.write_text(json.dumps(existing, indent=1))
     print(f"\nwrote {out}")

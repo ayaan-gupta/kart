@@ -132,22 +132,28 @@
  },
  "threshold=0.23 max_side=1333 dedupe=True": {
   "threshold": 0.23,
-  "scenes": 100,
-  "labelled_instances": 1424,
-  "recall": 0.3925561797752809,
-  "precision_floor": 0.43637782982045276,
-  "proposals": 1281,
-  "raw_proposals": 1465,
+  "scenes": 250,
+  "labelled_instances": 3190,
+  "recall": 0.37711598746081504,
+  "precision_floor": 0.4089055064581917,
+  "proposals": 2942,
+  "raw_proposals": 3380,
   "max_side": 1333,
   "dedupe": true,
   "recall_by_size": {
-   "small": 0.24233983286908078,
-   "medium": 0.36160714285714285,
-   "large": 0.5024311183144247
+   "small": 0.2108843537414966,
+   "medium": 0.33636363636363636,
+   "large": 0.47203728362183756
   },
-  "recall_covered": 0.2611464968152866,
-  "covered_instances": 157,
-  "seconds": 73.1,
+  "recall_by_density": {
+   "1-5": 0.6558139534883721,
+   "6-12": 0.4880952380952381,
+   "13-25": 0.47106325706594887,
+   "26+": 0.27980132450331124
+  },
+  "recall_covered": 0.2491103202846975,
+  "covered_instances": 281,
+  "seconds": 307.7,
   "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
  },
  "threshold=0.23 max_side=1333 dedupe=False": {
@@ -228,6 +234,32 @@
   "recall_covered": 0.5,
   "covered_instances": 18,
   "seconds": 18.5,
+  "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
+ },
+ "threshold=0.23 iou=0.3 dedupe=True": {
+  "threshold": 0.23,
+  "scenes": 250,
+  "labelled_instances": 3190,
+  "recall": 0.42382445141065833,
+  "precision_floor": 0.45955132562882395,
+  "proposals": 2942,
+  "raw_proposals": 3380,
+  "max_side": 1333,
+  "dedupe": true,
+  "recall_by_size": {
+   "small": 0.22108843537414966,
+   "medium": 0.3654545454545455,
+   "large": 0.5459387483355526
+  },
+  "recall_by_density": {
+   "1-5": 0.7488372093023256,
+   "6-12": 0.5928571428571429,
+   "13-25": 0.5181695827725438,
+   "26+": 0.30739514348785874
+  },
+  "recall_covered": 0.3309608540925267,
+  "covered_instances": 281,
+  "seconds": 217.0,
   "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
  }
 }
