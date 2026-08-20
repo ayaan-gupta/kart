@@ -45,6 +45,7 @@ MODEL_DIR = "/models"
 # The prompt, the thresholds and the de-duplication live in `regions.py`, which imports nothing
 # and therefore can be imported by the eval harness. Re-exported here so this file reads as it
 # did and so `from app import dedupe` keeps working.
+import regions  # noqa: E402
 from regions import (  # noqa: E402
     BOX_THRESHOLD,
     GROCERY_PROMPT,
@@ -192,13 +193,10 @@ class Enumerator:
                 "box": {"x": round(float(x0), 6), "y": round(float(y0), 6),
                         "w": round(float(x1 - x0), 6), "h": round(float(y1 - y0), 6)},
                 "polygon": polygon,
-                # DINO reports a text-match confidence. KartDetector asks for something else:
-                # "confidence that this region is one distinct object, not a class score", and
-                # ByteTrack only seeds a track at 0.5 or above. Raw, every proposal on every cart
-                # photograph tried scored 0.21 to 0.46, so no track ever started and the bag came
-                # back empty. This maps the surviving set into the contract's units while keeping
-                # DINO's own ranking, so the tracker's low-score recovery pass still has spread.
-                "score": round(min(0.99, max(0.55, 0.55 + 0.44 * (score - BOX_THRESHOLD) / 0.80)), 6),
+                # See `regions.objectness`: DINO's text-match score is not the objectness the
+                # rest of the pipeline is specified in, and handing it over unmapped means no
+                # track ever starts.
+                "score": regions.objectness(score),
             })
 
         # Matched after the instances are final, not before. Boxes whose mask yields no usable

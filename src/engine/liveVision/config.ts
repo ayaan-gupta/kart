@@ -79,11 +79,17 @@ export const THUMBNAIL_PADDING = 0.08;
  * At or above this share of an item covered by the items in front of it, that one item is shown
  * as covered rather than merely unidentified, and the shopper is asked to move what is on top.
  *
- * Read off the curve in `server/eval/score_grocer_occlusion.py` rather than chosen: on 1,442
- * crops of real store shelves, items at or above 0.2 are named correctly 47.1% of the time
- * against 57.6% for the rest, and the gap is flat from there upwards while the flagged share
- * keeps shrinking. Lower than 0.2 and ordinary crowding is called hiding; higher and the state
- * stops firing on items that are genuinely lost without buying any accuracy back.
+ * Read off the curve in `server/eval/score_grocer_occlusion.py` rather than chosen. On 1,442
+ * crops of real store shelves, with fine-tuned features and the enclosing guard in place, items
+ * at or above 0.2 are named correctly 60.6% of the time against 68.1% for the rest, and the
+ * accuracy falls monotonically as the score rises: 68.9% below 0.05, 59.3%, 56.8%, and 51.4%
+ * above 0.6. Below 0.2 ordinary crowding gets called hiding; above 0.3 the gap narrows to three
+ * points while the flagged share keeps shrinking, so the state stops firing on items that are
+ * genuinely lost without buying accuracy back.
+ *
+ * The guard matters more than the threshold. Before enclosing boxes were excluded this flagged
+ * 11.9% of crops at a 10.5 point deficit; now it flags 6.5% at 7.5. Fewer, and more of them
+ * real: one whole-cart proposal used to mark every item in the cart as covered.
  *
  * This is per item. `OCCLUSION_THRESHOLD` below is a separate, scene-level verdict about
  * whether the whole cart needs walking around, and the two answer different questions.

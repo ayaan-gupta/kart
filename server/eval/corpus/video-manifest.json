@@ -1,0 +1,34 @@
+{
+ "note": "Openly licensed supermarket video, for scoring the tracker and the multi-frame fusion. Files are fetched on demand and not committed; this manifest is.",
+ "count": 2,
+ "videos": [
+  {
+   "id": "wm-146663842",
+   "title": "File:MASSIVE COSTCO HAUL! Shopping for a Family of 8! -costcogroceryhaul.webm",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/1/13/MASSIVE_COSTCO_HAUL%21_Shopping_for_a_Family_of_8%21_-costcogroceryhaul.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "source_page": "https://commons.wikimedia.org/wiki/File:MASSIVE_COSTCO_HAUL!_Shopping_for_a_Family_of_8!_-costcogroceryhaul.webm",
+   "mime": "video/webm",
+   "bytes_remote": 250309610,
+   "licence": "CC BY 3.0",
+   "licence_url": "https://creativecommons.org/licenses/by/3.0",
+   "creator": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.youtube.com/@bigfamilyexpedition\">Big Family Expedition</a>",
+   "query": "filetype:video grocery shopping",
+   "file": "wm-146663842.webm",
+   "bytes": 250309610
+  },
+  {
+   "id": "wm-186514482",
+   "title": "File:Supermarket Grocery Products (13083756734).webm",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Supermarket_Grocery_Products_%2813083756734%29.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "source_page": "https://commons.wikimedia.org/wiki/File:Supermarket_Grocery_Products_(13083756734).webm",
+   "mime": "video/webm",
+   "bytes_remote": 20585916,
+   "licence": "Public domain",
+   "licence_url": null,
+   "creator": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/usdagov/\">USDAgov</a>",
+   "query": "filetype:video grocery shopping",
+   "file": "wm-186514482.webm",
+   "bytes": 20585916
+  }
+ ]
+}

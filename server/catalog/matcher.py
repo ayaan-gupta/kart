@@ -87,31 +87,43 @@ GEOMETRY_TOP = 8
 # the lowest floor at which the items added silently are right 90% of the time; `rank.fit_floor`
 # is that criterion as code, so it can be re-run rather than re-derived.
 #
-# This is fitted on a feature set and a corpus. It is not a property of the product, and the two
-# corpora measured here disagree about it by nearly a factor of two:
+# This is fitted on a feature set and a corpus, and the three corpora measured here disagree
+# about it by a factor of two:
 #
-#     corpus                            floor   names   right   asks about
+#     corpus                          floor   names    right   rejects an unknown product
 #     RPC, products on a white tray
-#       frozen ensemble, five views      0.51   95.1%   90.3%   23 of 465
-#       fine-tuned ensemble              0.48   99.4%   90.0%    3 of 465
+#       frozen ensemble, five views    0.51   95.1%    90.3%   not measurable, closed set
+#       fine-tuned ensemble            0.48   99.4%    90.0%   not measurable, closed set
 #     Grocer-Help, real store shelves
-#       fine-tuned siglipb16             0.88   51.1%   90.1%   706 of 1442
-#       ...at the RPC floor of 0.48      0.48  100.0%   67.4%     0 of 1442
+#       frozen siglipb16               0.96   35.4%    90.0%   99.7%
+#       fine-tuned                     0.87   53.0%    90.1%   89.7%
+#     Carts and hauls, every item outside the catalog
+#       at the RPC floor               0.48  100.0%       --    0.0%
 #
-# That last row is the failure this comment exists to prevent. Carried onto real shelves, the
-# RPC floor admits every single crop, so the matcher never declines, a third of what it adds is
-# wrong, and nothing is ever flagged as unsure. The system does not degrade, it goes silent
-# about being wrong, which is the one failure mode a shopper cannot see or correct.
+# That last row is why the defaults below are the shelf values and not the tray values. 348
+# regions were cut out of photographs of American and European groceries and matched against an
+# Indian catalog holding none of them. At the tray floor the matcher named every single one, at a
+# median confidence of 0.68, and declined nothing. It does not degrade on unfamiliar products, it
+# asserts. Nothing anywhere would have gone amber, and a shopper's bag would fill with confident
+# nonsense they were never asked about.
 #
-# A store fits this the same way it fits the fine-tune: on labelled carts of its own. The values
-# below are RPC's, kept because they are what the shipped RPC measurements were made with, and
-# they are a starting point for a deployment rather than an answer for one.
+# The tray is the outlier, and it is the least like a cart of the three. Its own values are kept
+# below under their own names so `sweep_detection.py` and the RPC harnesses still reproduce their
+# published numbers, but they are not what ships.
 #
-# An item below the floor is not lost. It is the one the interface offers as alternatives, and
-# on shelves that shortlist holds the right answer 85.4% of the time, so the question put to the
-# shopper usually contains its own answer.
-FLOOR = 0.51
-FLOOR_FINETUNED = 0.48
+# The cost is real and is the right way round: the fine-tuned matcher names about half of what it
+# sees instead of all of it. An item below the floor is not lost, it is the one the interface
+# offers as alternatives, and on shelves that shortlist holds the right answer 80.7% of the time,
+# so the question put to the shopper usually contains its own answer. A wrong name added silently
+# does not come with a question.
+#
+# A store fits these the way it fits the fine-tune: on labelled carts of its own.
+FLOOR = 0.96
+FLOOR_FINETUNED = 0.87
+
+# What RPC was measured at. Kept so those harnesses reproduce their own published numbers.
+FLOOR_RPC = 0.51
+FLOOR_RPC_FINETUNED = 0.48
 
 # Below this many reference images a SKU has too little for the head to learn from and the
 # whole advantage disappears (head.py). It is a requirement on the store, not a preference.

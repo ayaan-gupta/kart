@@ -870,3 +870,23 @@ def test_shipped_floor_is_recorded_as_fitted_not_universal():
     doc = source[source.index("# Confidence below which nothing is named") : source.index("FLOOR = ")]
     assert "Grocer-Help" in doc, "the floor's comment no longer records the shelf corpus"
     assert "fit_floor" in doc, "the floor's comment no longer points at the code that fits it"
+
+
+def test_floor_is_high_enough_to_reject_a_product_it_has_never_seen():
+    """Pins the constant to the evidence that moved it.
+
+    348 regions cut from photographs of American and European groceries, matched against an
+    Indian catalog containing none of them, came back named 100% of the time at the floor
+    inherited from RPC. The confidences on those unknown products run to a median of 0.68 and a
+    75th percentile of 0.79, so any floor at or below 0.8 asserts a name for most of them.
+
+    This is not a test of the matcher. It is a test that nobody quietly restores a value that
+    makes the amber state unreachable, which is how it was for the whole life of the file.
+    """
+    assert matcher.FLOOR > 0.79
+    assert matcher.FLOOR_FINETUNED > 0.79
+    # Fine-tuned features separate better, so they can afford a lower bar and name more.
+    assert matcher.FLOOR_FINETUNED < matcher.FLOOR
+    # RPC's own values stay reachable for the harnesses that published numbers with them.
+    assert matcher.FLOOR_RPC == 0.51
+    assert matcher.FLOOR_RPC_FINETUNED == 0.48

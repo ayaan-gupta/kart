@@ -40,6 +40,24 @@ sys.path.insert(0, str(HERE))
 from grocer import corpus  # noqa: E402
 
 
+# A box that swallows the subject whole is not hiding it: see ENCLOSING in occlusion.ts. Mirrored
+# here because the threshold in the app is read off the curve this file prints, and the two would
+# otherwise be measuring different rules.
+ENCLOSING = 0.9
+
+
+def inside_of(subject, other):
+    """Fraction of `subject` that lies inside `other`. Directional, unlike an IoU."""
+    area = (subject[2] - subject[0]) * (subject[3] - subject[1])
+    if area <= 0:
+        return 0.0
+    x0, y0 = max(subject[0], other[0]), max(subject[1], other[1])
+    x1, y1 = min(subject[2], other[2]), min(subject[3], other[3])
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return (x1 - x0) * (y1 - y0) / area
+
+
 def hidden_fraction(subject, others):
     """Share of `subject`'s box covered by the union of the boxes in front of it.
 
@@ -49,13 +67,22 @@ def hidden_fraction(subject, others):
     Computed by compressing the occluders' edges into a grid over the subject and measuring the
     cells that are covered. Exact for axis-aligned boxes, and with the handful of items a cart
     holds the grid is small enough that exactness is free.
+
+    Boxes that enclose the subject are excluded first: see `ENCLOSING`.
     """
     sx0, sy0, sx1, sy1 = subject
     width, height = sx1 - sx0, sy1 - sy0
     if width <= 0 or height <= 0:
         return 0.0
     clipped = []
-    for ox0, oy0, ox1, oy1 in others:
+    for other in others:
+        # The detector proposes group boxes: one region over a whole cart, or over a row of
+        # cartons alongside the cartons themselves. Such a box has the lowest bottom edge, so the
+        # depth cue reads it as nearest, and its overlap with everything inside it is total. One
+        # whole-cart proposal would mark every item in the cart as covered.
+        if inside_of(subject, other) >= ENCLOSING:
+            continue
+        ox0, oy0, ox1, oy1 = other
         x0, y0 = max(sx0, ox0), max(sy0, oy0)
         x1, y1 = min(sx1, ox1), min(sy1, oy1)
         if x1 > x0 and y1 > y0:

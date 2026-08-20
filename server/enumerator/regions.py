@@ -25,6 +25,18 @@ NESTED_CONTAINMENT = 0.85
 # ...provided the container is not wildly bigger, which would be a whole shelf, not an item.
 NESTED_MAX_RATIO = 4.0
 
+# A box holding at least this many other proposals is a group box, not an item: one region drawn
+# over a whole trolley, or over a row of cartons alongside boxes for the cartons themselves.
+#
+# The nesting pass used to catch these by accident, through a size guard that was inverted and
+# therefore always fired. Fixing that guard was necessary, because it was also deleting every
+# item that had anything standing in front of it, but it handed the group boxes back: a whole
+# cart is far more than NESTED_MAX_RATIO times the size of a tin, so the repaired guard protects
+# it. Counting members is what separates the two cases. An item being occluded has one thing in
+# front of it; a group box has the whole shelf inside it.
+GROUP_MEMBERS = 3
+GROUP_CONTAINMENT = 0.80
+
 MAX_POLYGON_VERTICES = 64
 SIMPLIFY_EPSILON = 0.004
 MAX_INSTANCES = 64
@@ -105,7 +117,9 @@ def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
     Two passes, in this order:
 
       NMS       one box per region, highest DINO score wins, the usual convention
-      nesting   of two boxes where one sits inside the other, the smaller survives
+      nesting   of two boxes where one sits inside the other and they are of comparable size,
+                the smaller survives
+      degroup   a box with several other boxes inside it is a group, and is dropped
 
     The smaller box winning is right in both cases this fires. Two proposals on one bottle: the
     tighter one is the better outline. One box drawn over a row of four cartons alongside boxes
@@ -121,7 +135,7 @@ def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
 
     Returns indices into the input, so the caller keeps whatever it had alongside the boxes.
     """
-    return nested(nms(boxes, scores, nms_iou), boxes, containment, max_ratio)
+    return degroup(nested(nms(boxes, scores, nms_iou), boxes, containment, max_ratio), boxes)
 
 
 def nms(boxes, scores, nms_iou=None):
@@ -157,3 +171,61 @@ def nested(kept, boxes, containment=None, max_ratio=None):
         ):
             survivors.append(i)
     return survivors
+
+
+# Grounding DINO reports how well a region matched a text phrase. The contract in `app.py` asks
+# for something else: "confidence that this region is one distinct object, not a class score".
+# ByteTrack seeds a track only at 0.5 and above, and raw DINO scores on cart photographs run 0.21
+# to 0.46, so passing them through unmapped means no track ever starts and the bag comes back
+# empty.
+#
+# This lived inline in `app.py` as a formula in a dict literal, which meant the eval harness had
+# to know to reproduce it and did not: the first end-to-end run over 24 cart photographs turned
+# 348 regions into 7 tracks, and the cause was this line being absent rather than anything about
+# the photographs. It is a function here so that cannot happen again.
+DETECTOR_SCORE_FLOOR = 0.55
+DETECTOR_SCORE_CEILING = 0.99
+DETECTOR_SCORE_SPAN = 0.80
+
+
+def objectness(score, threshold=None):
+    """DINO's text-match score in the units the rest of the pipeline expects."""
+    threshold = BOX_THRESHOLD if threshold is None else threshold
+    scaled = DETECTOR_SCORE_FLOOR + 0.44 * (score - threshold) / DETECTOR_SCORE_SPAN
+    return round(min(DETECTOR_SCORE_CEILING, max(DETECTOR_SCORE_FLOOR, scaled)), 6)
+
+
+def degroup(kept, boxes, members=None, containment=None):
+    """Drop boxes that are really a region containing several items.
+
+    Measured on 24 cart and haul photographs: without this, a proposal covering the whole trolley
+    survives to the shopper's bag as one unit of an item that does not exist, and it is the
+    single largest box in the frame so it is the first thing the census is asked about.
+
+    Deliberately not a cap on box area. A close-up of one product legitimately fills the frame,
+    and 1.5% of labelled instances in the shelf corpus exceed 40% of theirs. What identifies a
+    group is not that it is large, it is that the things inside it were separately proposed.
+    """
+    members = GROUP_MEMBERS if members is None else members
+    containment = GROUP_CONTAINMENT if containment is None else containment
+    survivors = []
+    for i in kept:
+        inside = sum(
+            1 for k in kept
+            if k != i
+            and _area(boxes[k]) < _area(boxes[i])
+            and _inside_of(boxes[k], boxes[i]) >= containment
+        )
+        if inside < members:
+            survivors.append(i)
+    return survivors
+
+
+def _inside_of(inner, outer):
+    """Fraction of `inner` that lies within `outer`. Directional, unlike IoU."""
+    area = _area(inner)
+    if area <= 0:
+        return 0.0
+    ox = max(0.0, min(inner[2], outer[2]) - max(inner[0], outer[0]))
+    oy = max(0.0, min(inner[3], outer[3]) - max(inner[1], outer[1]))
+    return (ox * oy) / area

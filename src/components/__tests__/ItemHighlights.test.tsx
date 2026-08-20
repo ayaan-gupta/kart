@@ -179,3 +179,31 @@ describe('ItemHighlights rendering', () => {
     expect(circles[0].props.cy).toBeCloseTo(centroid.y * FRAME.height);
   });
 });
+
+describe('outlineStateFor, examined but unnamed', () => {
+  it('is closer when recognition ran and produced no confident name', () => {
+    // The matcher looked at this crop, declined to name it, and has a shortlist to offer. With
+    // the confidence floor set where real photographs need it, this is the commonest outcome in
+    // the whole pipeline, and it used to be drawn as a plain outline: identical to an item
+    // nothing had looked at yet, and giving the shopper nothing to act on.
+    expect(outlineStateFor(track(), undefined, 0, true)).toBe('closer');
+  });
+
+  it('is still forming when nothing has looked at it yet', () => {
+    expect(outlineStateFor(track(), undefined, 0, false)).toBe('forming');
+  });
+
+  it('does not promote a tentative track to closer on the strength of a look', () => {
+    // A tentative track may be a detector artefact. Recognition running over it does not make
+    // it an item worth asking the shopper about.
+    expect(outlineStateFor(track({ state: 'tentative' }), undefined, 0, true)).toBe('forming');
+  });
+
+  it('still prefers covered over closer for an examined item that is buried', () => {
+    expect(outlineStateFor(track(), undefined, 0.9, true)).toBe('covered');
+  });
+
+  it('leaves a confidently named item green', () => {
+    expect(outlineStateFor(track(), identity({ confidence: 0.99 }), 0, true)).toBe('counted');
+  });
+});

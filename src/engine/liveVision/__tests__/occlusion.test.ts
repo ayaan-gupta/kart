@@ -1,6 +1,7 @@
 import {
   assessOcclusion,
   containment,
+  ENCLOSING,
   hiddenFraction,
   hiddenFractions,
   OCCLUSION_THRESHOLD,
@@ -134,8 +135,10 @@ describe('hiddenFraction', () => {
   });
 
   it('never exceeds fully hidden', () => {
+    // Occluders that each cover part of the subject and together cover all of it. None of them
+    // encloses it, so none is dropped by the enclosing guard.
     const subject = box(0.4, 0.4, 0.2, 0.2);
-    const swamped = [box(0, 0, 1, 1), box(0.1, 0.1, 0.9, 0.9), box(0.3, 0.3, 0.5, 0.5)];
+    const swamped = [box(0.2, 0.4, 0.25, 0.25), box(0.45, 0.4, 0.3, 0.25)];
     expect(hiddenFraction(subject, swamped)).toBeCloseTo(1, 5);
   });
 
@@ -179,5 +182,44 @@ describe('hiddenFraction matches the harness that set the threshold', () => {
     expect(values.some((v) => v === 0)).toBe(true);
     expect(values.some((v) => v >= COVERED_FRACTION)).toBe(true);
     expect(values.some((v) => v > 0 && v < COVERED_FRACTION)).toBe(true);
+  });
+});
+
+describe('enclosing boxes are not occluders', () => {
+  const box = (x: number, y: number, w: number, h: number): Box => ({ x, y, w, h });
+
+  it('ignores a box that swallows the subject whole', () => {
+    // One proposal over the whole cart, and one item inside it. The cart box has the lowest
+    // bottom edge, so the depth cue calls it nearest, and it overlaps the item completely.
+    // Left in, a single such proposal marks every item in the cart as covered.
+    const item = box(0.3, 0.3, 0.1, 0.1);
+    const wholeCart = box(0.05, 0.05, 0.9, 0.9);
+    expect(hiddenFraction(item, [wholeCart])).toBe(0);
+  });
+
+  it('still counts a large item that only partly overlaps', () => {
+    // Big and in front, but covering half of the subject rather than all of it. That is a real
+    // occlusion and must survive the guard.
+    const item = box(0.3, 0.3, 0.2, 0.2);
+    const slab = box(0.4, 0.35, 0.5, 0.5);
+    expect(hiddenFraction(item, [slab])).toBeGreaterThan(0.2);
+  });
+
+  it('drops an occluder exactly at the enclosing threshold', () => {
+    const item = box(0.3, 0.3, 0.1, 0.1);
+    // Covers 90% of the subject: 0.09 of its 0.1 width, full height, and ends lower.
+    const nearlyAll = box(0.3, 0.3, 0.09, 0.6);
+    expect(containment(item, nearlyAll)).toBeCloseTo(ENCLOSING, 6);
+    expect(hiddenFraction(item, [nearlyAll])).toBe(0);
+  });
+
+  it('reuses containment, which already measures the direction that matters', () => {
+    // `containment(a, b)` is documented as the fraction of `a` that `b` covers, which is exactly
+    // the question the enclosing guard asks. A separate helper was written for it and this test
+    // is what found the duplication: the two are the same function.
+    const small = box(0.4, 0.4, 0.1, 0.1);
+    const large = box(0.0, 0.0, 1.0, 1.0);
+    expect(containment(small, large)).toBeCloseTo(1, 6);
+    expect(containment(large, small)).toBeCloseTo(0.01, 6);
   });
 });

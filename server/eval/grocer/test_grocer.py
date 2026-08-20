@@ -215,3 +215,60 @@ def test_dedupe_is_its_two_passes_in_order():
     boxes = [[0, 0, 100, 100], [2, 2, 98, 98], [300, 300, 340, 340]]
     scores = [0.9, 0.5, 0.8]
     assert regions.dedupe(boxes, scores) == regions.nested(regions.nms(boxes, scores), boxes)
+
+
+def test_degroup_drops_a_box_drawn_over_several_items():
+    """The failure the repaired nesting guard handed back.
+
+    Before the size guard was fixed it fired on everything and removed group boxes by accident.
+    Fixing it was necessary, because it was also deleting every item with something in front of
+    it, but a whole trolley is far more than NESTED_MAX_RATIO times the size of a tin, so the
+    repaired guard protects the group box. Counting members separates the two cases.
+    """
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    trolley = [0, 0, 100, 100]
+    items = [[10, 10, 25, 25], [30, 10, 45, 25], [50, 10, 65, 25], [70, 10, 85, 25]]
+    boxes = [trolley] + items
+    assert regions.degroup(list(range(len(boxes))), boxes) == [1, 2, 3, 4]
+
+
+def test_degroup_keeps_a_large_item_with_one_thing_in_front_of_it():
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    big, one = [0, 0, 100, 100], [40, 40, 55, 55]
+    assert sorted(regions.degroup([0, 1], [big, one])) == [0, 1]
+
+
+def test_degroup_keeps_a_large_item_with_two_things_in_front_of_it():
+    # Two is still an occluded item, not a group. The bar is GROUP_MEMBERS.
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    big = [0, 0, 100, 100]
+    boxes = [big, [10, 10, 25, 25], [40, 40, 55, 55]]
+    assert 0 in regions.degroup([0, 1, 2], boxes)
+
+
+def test_degroup_is_not_a_cap_on_box_area():
+    # A close-up of one product legitimately fills the frame; 1.5% of labelled instances in the
+    # shelf corpus exceed 40% of theirs. Size alone must never remove a box.
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    huge = [0, 0, 100, 100]
+    assert regions.degroup([0], [huge]) == [0]
+
+
+def test_dedupe_runs_all_three_passes():
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    boxes = [[0, 0, 100, 100], [2, 2, 98, 98], [300, 300, 340, 340]]
+    scores = [0.9, 0.5, 0.8]
+    expected = regions.degroup(
+        regions.nested(regions.nms(boxes, scores), boxes), boxes
+    )
+    assert regions.dedupe(boxes, scores) == expected

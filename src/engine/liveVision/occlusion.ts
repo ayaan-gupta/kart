@@ -98,6 +98,22 @@ export function isInFront(subject: Box, other: Box): boolean {
 }
 
 /**
+ * A box that swallows the subject whole is not hiding it.
+ *
+ * The detector proposes group boxes: one region over a whole cart, or over a row of cartons
+ * alongside the cartons themselves. Such a box has the lowest bottom edge in the frame, so the
+ * depth cue reads it as nearest, and its overlap with everything inside it is total. Left in,
+ * one whole-cart proposal marks every item in the cart as covered. Measured on six cart
+ * photographs, that is exactly what happened: 16 to 25 of the roughly 30 items in each were
+ * flagged, against 2 to 6 in the haul photographs, which have no cart to propose.
+ *
+ * The argument for dropping them is not that they are unhelpful, it is that they are not
+ * evidence. We are looking at this item because the detector found it, which means it is
+ * visible; whatever encloses it entirely is therefore not what is in front of it.
+ */
+export const ENCLOSING = 0.9;
+
+/**
  * How much of `subject` the items in front of it cover, 0 to 1.
  *
  * The union of the occluders, not the sum of them. Two boxes overlapping the same corner of a
@@ -112,6 +128,8 @@ export function isInFront(subject: Box, other: Box): boolean {
  * scores at or above 0.2 are named correctly 47.1% of the time against 57.6% for the rest. The
  * corpus is partially annotated, so items covered by an unlabelled product score zero here and
  * sit in the clear group, which makes that ten-point gap a floor rather than an estimate.
+ *
+ * Boxes that enclose the subject are excluded before any of this: see `ENCLOSING`.
  */
 export function hiddenFraction(subject: Box, others: Box[]): number {
   if (subject.w <= 0 || subject.h <= 0) return 0;
@@ -121,6 +139,7 @@ export function hiddenFraction(subject: Box, others: Box[]): number {
   const clipped: Box[] = [];
   for (const other of others) {
     if (!isInFront(subject, other)) continue;
+    if (containment(subject, other) >= ENCLOSING) continue;
     const x = Math.max(subject.x, other.x);
     const y = Math.max(subject.y, other.y);
     const w = Math.min(sx1, other.x + other.w) - x;

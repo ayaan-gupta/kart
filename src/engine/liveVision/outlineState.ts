@@ -32,13 +32,19 @@ export type OutlineState = 'counted' | 'covered' | 'closer' | 'forming';
  * is `false`, so a corrupt confidence value falls out of `'counted'` rather than into it, and
  * an item is never reported as confirmed on the strength of a number that is not one.
  *
- * `hidden` defaults to zero so every existing caller keeps the behaviour it had: with nothing
- * covering an item, the four states collapse back to the three that were here before.
+ * `hidden` and `examined` both default to the value that reproduces the original behaviour, so
+ * every existing caller is unaffected: with nothing covering an item and nothing having looked
+ * at it, the four states collapse back to the three that were here before.
+ *
+ * `examined` means recognition has run on this track and returned no confident name. It is not
+ * the same as having no identity: an item nothing has looked at yet is still forming, and the
+ * difference is what the shopper is being asked to do about it.
  */
 export function outlineStateFor(
   track: Track,
   identity: Identity | undefined,
   hidden: number = 0,
+  examined: boolean = false,
 ): OutlineState {
   const counted =
     track.state !== 'tentative' &&
@@ -48,6 +54,17 @@ export function outlineStateFor(
     identity.confidence >= GREEN_CONFIDENCE;
   if (counted) return 'counted';
   if (hidden >= COVERED_FRACTION) return 'covered';
-  if (track.state === 'tentative' || !identity) return 'forming';
-  return 'closer';
+  // Tentative first, and before anything about identity: a tentative track may be a detector
+  // artefact, and neither a name nor a look at it makes it an item worth telling the shopper
+  // about. Reordering this was a regression the existing tests caught.
+  if (track.state === 'tentative') return 'forming';
+  if (identity) return 'closer';
+  // Examined and not named. The matcher looked at this crop, was not confident enough to add it
+  // silently, and has a shortlist to offer. That is the definition of an item the shopper should
+  // be asked about, and it was reaching them as a plain outline, indistinguishable from an item
+  // nothing had looked at yet. Measured on 24 cart and haul photographs: with the confidence
+  // floor set where real imagery needs it, 90% of regions come back declined, so this was the
+  // single commonest outcome in the pipeline and it had no colour of its own.
+  if (examined) return 'closer';
+  return 'forming';
 }

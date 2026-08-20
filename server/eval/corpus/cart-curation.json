@@ -1,0 +1,41 @@
+{
+ "note": "Which of the fetched images are actually usable, decided by looking at every one of them on contact sheets. A keyword search on a photo aggregator returns nests of empty trolleys, aisles, a tram, chefs dicing potatoes and a vernier caliper; 115 images yielded 24. Recording the decision here rather than deleting the rest keeps the yield visible, so the next person knows what these queries cost.",
+ "criterion": "Several distinct packaged grocery products, in one casual photograph, at a scale where packaging is legible. A cart interior is the target; a haul spread on a counter is accepted because it has the property a shelf does not, which is products piled at angles and overlapping each other rather than faced in rows.",
+ "tiers": {
+  "cart": "products inside a shopping cart or trolley, the exact use case",
+  "haul": "a shop's worth of products on a table or counter, piled and overlapping",
+  "reject": "everything else"
+ },
+ "cart": [
+  "ov-a098628b-048",
+  "ov-16dca705-1c1",
+  "ov-8497f254-280",
+  "ov-b43062a4-5bd",
+  "ov-a1c7f353-1d8",
+  "ov-1fd5fc9a-747"
+ ],
+ "haul": [
+  "ov-eb3a6e5a-8de",
+  "ov-04303310-e76",
+  "ov-b26600fb-8bb",
+  "ov-b282ea1d-b15",
+  "ov-8ce1fa68-5d3",
+  "ov-c52a4b58-33c",
+  "ov-e4d2f8b8-780",
+  "ov-5291a291-a8d",
+  "ov-d8f59685-21f",
+  "ov-51426d9a-fb3",
+  "ov-7936c733-875",
+  "ov-d18f0991-9a5",
+  "ov-3604eb57-1cb",
+  "ov-8d57c04e-af7",
+  "ov-f164b3c0-eae",
+  "ov-bd79303c-0a1",
+  "ov-a4166c24-e0b",
+  "ov-1f5f8012-c91"
+ ],
+ "near_duplicates": {
+  "note": "Three photographs of one cart from almost the same angle. Kept deliberately: they are the only thing in this corpus resembling several looks at one scene, which is what the tracker and the multi-frame fusion exist to exploit. They must never be split across a train/test boundary.",
+  "group": ["ov-8497f254-280", "ov-b43062a4-5bd", "ov-a1c7f353-1d8"]
+ }
+}

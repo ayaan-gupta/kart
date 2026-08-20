@@ -104,6 +104,12 @@ def main(argv=None):
                              "well as the whole frame, and merge. The standard fix for many "
                              "small objects, and measured as harmful on RPC, where the objects "
                              "are neither many nor small")
+    parser.add_argument("--group-members", type=int, default=None,
+                        help="override regions.GROUP_MEMBERS for this run")
+    parser.add_argument("--group-containment", type=float, default=None,
+                        help="override regions.GROUP_CONTAINMENT for this run")
+    parser.add_argument("--no-degroup", action="store_true",
+                        help="skip the group-box pass entirely")
     parser.add_argument("--no-dedupe", action="store_true",
                         help="skip the service's de-duplication, to separate what the model "
                              "proposes from what the pipeline keeps")
@@ -111,6 +117,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     set_match_iou(args.match_iou)
+    if args.group_members is not None:
+        regions.GROUP_MEMBERS = args.group_members
+    if args.group_containment is not None:
+        regions.GROUP_CONTAINMENT = args.group_containment
+    if args.no_degroup:
+        # Large enough that no box can ever hold that many others, which is the cleanest way to
+        # disable a pass without a second code path through it.
+        regions.GROUP_MEMBERS = 10_000
 
     import torch
     from PIL import Image
