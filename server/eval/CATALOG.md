@@ -369,6 +369,33 @@ the distinguishing detail between two variants is a small printed panel. A visio
 that can read that panel is the other, and it only has to run on the ambiguous half, which is
 where every error already is.
 
+## A larger encoder is worse, not better
+
+The small encoders were chosen on the reasoning that the matcher had to be edge-deployable. It
+does not: it runs server-side in the same container as a 700MB detector. That reasoning was
+wrong, and correcting it did not help, which is the more useful finding.
+
+| encoder | parameters | easy | medium | hard | R@1 | R@5 |
+|---|---|---|---|---|---|---|
+| MobileCLIP-S2 | 35M | 92.6% | 66.4% | 65.2% | 71.2% | 89.7% |
+| SigLIP-B/16 | 86M | 94.7% | 79.0% | 77.5% | 81.5% | 95.1% |
+| **SigLIP-B/16, fine-tuned** | 86M | **96.8%** | **85.3%** | **83.7%** | **86.9%** | **97.6%** |
+| SigLIP2-L/16 at 256px | 316M | 94.7% | 78.3% | 73.6% | 79.4% | 96.1% |
+
+A model three and a half times larger, from a newer and stronger family, at a higher input
+resolution, scores two points *below* the small one and seven and a half points below the small
+one after fine-tuning. It is worst exactly where the product hurts most, the stacked scenes,
+73.6% against 83.7%.
+
+The lesson is that this task is not bottlenecked by how good the general-purpose features are.
+Web-scale contrastive training buys semantic breadth, which is the ability to tell a chocolate
+bar from a milk carton, and the remaining errors are not that. They are two chocolate bars from
+one brand. Nothing in a general pretraining objective rewards separating those, so more of it
+does not help, and a few minutes of training on the store's own catalog does.
+
+Capacity is not the lever. Adaptation is, and after adaptation the lever is something that can
+read the packaging.
+
 ## Measured and rejected
 
 Recorded so they are not tried again.
