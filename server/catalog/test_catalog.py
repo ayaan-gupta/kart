@@ -387,3 +387,66 @@ def test_descriptor_cache_keeps_what_was_used_most_recently(tmp_path):
     matcher._reference_described(2)
     assert index.references[1] not in matcher._described
     assert index.references[0] in matcher._described
+
+
+def test_index_round_trips_a_finetuned_encoder(tmp_path):
+    """The features and head were produced by these weights.
+
+    A saved index that forgets them loads the pretrained encoder instead and compares crops
+    against a catalog encoded by a different model. Nothing raises; matching just gets worse.
+    """
+    import torch
+
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.encoder_state = {"block.weight": torch.ones(3, 4), "block.bias": torch.zeros(3)}
+    index.save(tmp_path / "index.npz")
+    back = matcher_module.Index.load(tmp_path / "index.npz")
+    assert back.encoder_state is not None
+    assert sorted(back.encoder_state) == ["block.bias", "block.weight"]
+    assert torch.equal(back.encoder_state["block.weight"], torch.ones(3, 4))
+
+
+def test_a_frozen_index_records_that_it_has_no_finetuned_weights(tmp_path):
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.save(tmp_path / "index.npz")
+    assert not (tmp_path / "index-encoder.pt").exists()
+    assert matcher_module.Index.load(tmp_path / "index.npz").encoder_state is None
+
+
+def test_matcher_applies_finetuned_weights_to_its_own_encoder_and_not_to_colour(tmp_path):
+    """Colour is a histogram, not a network, and has no weights to restore."""
+    from catalog import encode, matcher as matcher_module
+
+    index, directions, colors = synthetic_index(tmp_path)
+    index.encoder = "siglipb16"
+    index.encoder_state = {"pretend": 1}
+
+    asked = {}
+    original = encode.load
+
+    def record(name, state=None):
+        asked[name] = state
+        return (lambda images: images, lambda batch: batch)
+
+    encode.load = record
+    try:
+        matcher = matcher_module.Matcher(index)
+        matcher._encoders = {}
+        matcher._encode("siglipb16", [])
+        matcher._encode("color", [])
+    finally:
+        encode.load = original
+    assert asked["siglipb16"] == {"pretend": 1}
+    assert asked["color"] is None
+
+
+def test_embedding_nothing_returns_nothing_rather_than_failing():
+    """A frame where the detector found nothing is a legitimate call, not a mistake."""
+    from catalog import encode
+
+    empty = encode.embed([], lambda images: images, lambda batch: batch)
+    assert empty.shape[0] == 0

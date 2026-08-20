@@ -1,4 +1,13 @@
 """
+Superseded. Kept because it produced the nearest-neighbour baseline every later number is
+compared against, and rerunning it reproduces that baseline.
+
+What it measures is a lookup: embed the crop, embed the catalog, take the nearest. That is what
+shipped and it scores 65.2%. `build_cache.py` followed by `score_probe.py` measures the same
+question with a head trained on the catalog and scores 84.3%, and `score_rerank.py` with
+`fuse_rerank.py` adds the reranker. Use those for anything new. This one also re-decodes
+nineteen parquet shards on every run, which the cache exists to avoid.
+
 Scores the closed-world half of the architecture: given a crop and the store's catalog, is the
 right product in the shortlist, and is it first.
 

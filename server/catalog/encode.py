@@ -42,24 +42,46 @@ def device():
     return "mps" if torch.backends.mps.is_available() else "cpu"
 
 
-def _load_open_clip(model_id, pretrained):
+def open_clip_visual(name):
+    """The vision tower on its own, plus its evaluation transform.
+
+    Exposed separately because fine-tuning needs the module itself, not a closure over it, and
+    because a fine-tuned index has to load its own weights back into that module rather than the
+    pretrained ones.
+    """
+    import open_clip
+
+    loader, model_id, pretrained = ENCODERS[name]
+    if loader != "open_clip":
+        raise ValueError(f"{name} is not an open_clip encoder")
+    model, _, preprocess = open_clip.create_model_and_transforms(model_id, pretrained=pretrained)
+    return preprocess, model.visual.to(device()).eval()
+
+
+def _load_open_clip(model_id, pretrained, state=None):
     import open_clip
     import torch
 
     model, _, preprocess = open_clip.create_model_and_transforms(model_id, pretrained=pretrained)
-    model = model.to(device()).eval()
+    visual = model.visual
+    if state is not None:
+        visual.load_state_dict(state)
+    visual = visual.to(device()).eval()
 
     def prepare(images):
         return torch.stack([preprocess(i) for i in images])
 
     def encode(batch):
         with torch.no_grad():
-            return model.encode_image(batch)
+            return visual(batch)
 
     return prepare, encode
 
 
-def _load_hf(model_id, _pretrained):
+def _load_hf(model_id, _pretrained, state=None):
+    if state is not None:
+        raise ValueError("fine-tuned weights are only supported for open_clip encoders")
+
     import torch
     from transformers import AutoImageProcessor, AutoModel
 
@@ -91,7 +113,7 @@ def _load_hf(model_id, _pretrained):
     return prepare, encode
 
 
-def _load_color(_model_id, _pretrained):
+def _load_color(_model_id, _pretrained, state=None):
     import cv2
     import torch
 
@@ -120,16 +142,23 @@ def _load_color(_model_id, _pretrained):
 LOADERS = {"open_clip": _load_open_clip, "hf": _load_hf, "color": _load_color}
 
 
-def load(name):
+def load(name, state=None):
+    """Returns (prepare, encode). `state` replaces the pretrained weights with fine-tuned ones."""
     if name not in ENCODERS:
         raise KeyError(f"unknown encoder {name}; have {sorted(ENCODERS)}")
     loader, model_id, pretrained = ENCODERS[name]
-    return LOADERS[loader](model_id, pretrained)
+    return LOADERS[loader](model_id, pretrained, state)
 
 
 def embed(images, prepare, encode):
     """L2-normalized float32 rows for a list of PIL images."""
     import torch
+
+    if not len(images):
+        # An empty batch is a legitimate call, not a mistake: a frame where the detector found
+        # nothing. Without this it fails inside numpy with "need at least one array to
+        # concatenate", which says nothing about what went wrong.
+        return np.zeros((0, 0), dtype=np.float32)
 
     out = []
     for start in range(0, len(images), BATCH):

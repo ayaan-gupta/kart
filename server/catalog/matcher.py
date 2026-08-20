@@ -32,7 +32,7 @@ import pathlib
 
 import numpy as np
 
-from . import encode, geometry, head, rank
+from . import encode, finetune, geometry, head, rank
 
 # Fitted by 4-fold cross-validation on scene, averaged over the ten best grid points per fold
 # rather than the single best, because one grid point chosen on a couple of hundred queries is
@@ -75,8 +75,13 @@ DESCRIPTOR_CACHE = 2048
 class Index:
     """A built catalog: features, a trained head, and where the reference images live."""
 
-    def __init__(self, encoder, skus, features, colors, labels, references, weights):
+    def __init__(self, encoder, skus, features, colors, labels, references, weights,
+                 encoder_state=None):
         self.encoder = encoder
+        # Present only for a fine-tuned index. The features and the head were produced by these
+        # weights, so a matcher that loaded the pretrained ones instead would be comparing
+        # against a catalog encoded by a different model, which fails quietly rather than loudly.
+        self.encoder_state = encoder_state
         self.skus = list(skus)
         self.features = features
         self.colors = colors
@@ -86,11 +91,15 @@ class Index:
         self.groups = [np.flatnonzero(labels == s) for s in range(len(self.skus))]
 
     @classmethod
-    def build(cls, root, encoder="siglipb16", log=print):
+    def build(cls, root, encoder="siglipb16", finetune_epochs=0, log=print):
         """Compiles a directory of `root/<sku>/*.jpg` into an index.
 
         One directory per product, its photographs inside. That is the shape a store can
         actually produce, and it is the shape a turntable rig writes out.
+
+        `finetune_epochs` above zero moves the encoder itself rather than only the head on top
+        of it. Worth about five points and tens of minutes per epoch, so it is off by default
+        and chosen deliberately (finetune.py).
         """
         from PIL import Image
 
@@ -129,7 +138,29 @@ class Index:
         colors = np.concatenate(color_chunks)
         weights, held = head.train(features, labels, len(skus), log=log)
         log(f"  head trained, held-out catalog accuracy {held:.1%}")
-        return cls(encoder, skus, features, colors, labels, paths, weights)
+        if not finetune_epochs:
+            return cls(encoder, skus, features, colors, labels, paths, weights)
+
+        log(f"  fine-tuning the encoder for {finetune_epochs} epochs")
+        visual, weights = finetune.train(
+            paths, labels, len(skus), encoder,
+            head.prototypes(features, labels, len(skus)),
+            epochs=finetune_epochs, log=log,
+        )
+        state = finetune.state_dict(visual)
+        # Re-encoded through the same load path the matcher will use, so a mistake in restoring
+        # the weights shows up here at build time rather than as quietly worse matching later.
+        image_encoder = encode.load(encoder, state)
+        features = np.concatenate(
+            [
+                encode.embed(
+                    [Image.open(q).convert("RGB") for q in paths[s : s + ENCODE_CHUNK]],
+                    *image_encoder,
+                )
+                for s in range(0, len(paths), ENCODE_CHUNK)
+            ]
+        )
+        return cls(encoder, skus, features, colors, labels, paths, weights, state)
 
     def save(self, path):
         # np.savez appends .npz when it is missing, so without this the sidecar json and the
@@ -142,9 +173,14 @@ class Index:
             labels=self.labels,
             weights=self.weights,
         )
+        if self.encoder_state is not None:
+            import torch
+
+            torch.save(self.encoder_state, path.with_name(path.stem + "-encoder.pt"))
         path.with_suffix(".json").write_text(
             json.dumps({"encoder": self.encoder, "skus": self.skus,
-                        "references": self.references})
+                        "references": self.references,
+                        "finetuned": self.encoder_state is not None})
         )
 
     @classmethod
@@ -152,9 +188,14 @@ class Index:
         path = pathlib.Path(path).with_suffix(".npz")
         arrays = np.load(path)
         meta = json.loads(path.with_suffix(".json").read_text())
+        state = None
+        if meta.get("finetuned"):
+            import torch
+
+            state = torch.load(path.with_name(path.stem + "-encoder.pt"), map_location="cpu")
         return cls(
             meta["encoder"], meta["skus"], arrays["features"], arrays["colors"],
-            arrays["labels"], meta["references"], arrays["weights"],
+            arrays["labels"], meta["references"], arrays["weights"], state,
         )
 
 
@@ -177,7 +218,8 @@ class Matcher:
 
     def _encode(self, name, images):
         if name not in self._encoders:
-            self._encoders[name] = encode.load(name)
+            state = self.index.encoder_state if name == self.index.encoder else None
+            self._encoders[name] = encode.load(name, state)
         prepare, run = self._encoders[name]
         return encode.embed(images, prepare, run)
 
