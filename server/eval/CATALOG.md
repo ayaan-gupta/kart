@@ -359,10 +359,23 @@ candidates with no keypoint support, and letting appearance rank the survivors, 
 leaving it as a weighted ranker at every threshold tried. It earns its place by rejecting
 unrelated candidates, not by separating variants.
 
-**A larger angular margin: worse where it should help most.** An additive margin at 0.1 is worth
-about a point. The 0.2 to 0.5 that face recognition uses collapses the near-identical case: on a
-controlled pair separated by a small component under heavy noise, accuracy runs 100% up to 0.15
-and 83% at 0.2. Demanding more angular separation than the data contains destroys it.
+**An angular margin: helps one feature set and hurts the other, so it stays off.** The ArcFace
+construction should force a gap between two near-identical SKUs, which is exactly the failure
+here. Measured on the same scene split, it does the opposite of what it does on a frozen encoder:
+
+| margin | 0 | 0.05 | 0.10 | 0.20 |
+|---|---|---|---|---|
+| frozen encoder | **84.1%** | 82.5% | 81.6% | 80.3% |
+| fine-tuned encoder | 87.1% | 87.1% | 87.7% | 88.0% |
+
+It costs 2.5 points on the frozen encoder, which is the default deployment, and buys at most 0.9
+on a fine-tuned one, inside the standard error of the 156 scenes measuring it. Frozen features
+are already spread apart by contrastive pretraining and a margin over-constrains them; fine-tuned
+features have collapsed towards their class centres and can afford one. A large margin is worse
+again, collapsing the near-identical case it exists for.
+
+This was briefly shipped at 0.1 on the strength of the fine-tuned column alone, which regressed
+the default path by 2.5 points until the frozen column was measured. Both feature sets, always.
 
 What is left is better features or a reader. Higher encoder resolution and capacity is one, since
 the distinguishing detail between two variants is a small printed panel. A vision-language model

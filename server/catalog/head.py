@@ -29,21 +29,28 @@ SCALE = 20.0
 # The catalog is not clean supervision: a crop of the back of a packet genuinely could be
 # several SKUs, and a head trained to be certain about those is learning the noise.
 LABEL_SMOOTHING = 0.1
-# Additive angular margin, the ArcFace construction. Plain cosine cross-entropy is satisfied the
-# moment the right class outscores the rest, so two near-identical SKUs end up separated by
-# almost nothing and any occlusion flips them. Subtracting a margin from the true class's angle
-# before the softmax forces a gap to be opened and held. This is the failure that dominates what
-# is left: 44% of remaining errors are two variants of one product, and one pair of chocolate
-# SKUs alone accounts for a fifth of every error made.
+# Additive angular margin, the ArcFace construction, available and off by default.
 #
-# 0.1 rather than the 0.2 to 0.5 the face-recognition literature uses, and the reason is the
-# opposite of what it looks like. On a controlled case of two classes separated by a small
-# component under heavy noise, which is the near-identical-SKU case in miniature, this scores
-# 100% at margins up to 0.15 and 83% at 0.2, 75% at 0.3. A large margin demands more angular
-# separation than the data contains and collapses the very case it was added for. The 465 query
-# crops mildly prefer a larger value, by less than the standard error of the 156 scenes choosing
-# it, so the controlled case is the better evidence and this follows it.
-MARGIN = 0.1
+# The reasoning for it was sound and the measurement did not support it. Plain cosine
+# cross-entropy is satisfied the moment the right class outscores the rest, so two near-identical
+# SKUs end up separated by almost nothing, and 46% of the errors that remain are two variants of
+# one product. Subtracting a margin from the true class's angle should force a gap.
+#
+# What it actually does depends on the features underneath, in opposite directions:
+#
+#     margin        0      0.05     0.10     0.20
+#     frozen     84.1%    82.5%    81.6%    80.3%
+#     fine-tuned 87.1%    87.1%    87.7%    88.0%
+#
+# It costs 2.5 points on a frozen encoder, which is the default deployment, and buys at most 0.9
+# on a fine-tuned one, which is inside the standard error of the 156 scenes measuring it. A
+# larger margin is worse still on a controlled near-identical pair, where accuracy runs 100% up
+# to 0.15 and 83% at 0.2, because it demands more angular separation than the data contains.
+#
+# So it stays off. Frozen features are already spread by contrastive pretraining and a margin
+# over-constrains them; fine-tuned features have collapsed towards their class centres and can
+# afford one. Anyone fine-tuning can pass margin=0.1 and should measure it first.
+MARGIN = 0.0
 EPOCHS = 60
 BATCH = 1024
 LEARNING_RATE = 1e-3

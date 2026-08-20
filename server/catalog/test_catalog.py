@@ -623,5 +623,6 @@ def test_too_large_a_margin_destroys_the_case_it_was_added_for():
         trained, _ = head.train(features, labels, 2, epochs=600, seed=1, margin=margin)
         return (np.argmax(head.score(features, trained), axis=1) == labels).mean()
 
-    assert accuracy(head.MARGIN) > 0.95, "the shipped margin must not break this case"
+    assert accuracy(head.MARGIN) > 0.95, "the shipped setting must not break this case"
+    assert accuracy(0.15) > 0.95, "a small margin stays safe, which is why it is offered at all"
     assert accuracy(0.3) < accuracy(head.MARGIN), "a large margin is worse, not better"
