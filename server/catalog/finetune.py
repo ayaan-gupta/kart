@@ -24,6 +24,12 @@ handful of labelled carts. A store cannot reach this from product photographs al
 Augmentation deliberately excludes horizontal flips and hue jitter. Packaging carries text,
 which does not appear mirrored in a cart, and hue is one of the things that separates two
 flavours of one product, so both would teach the model to ignore real evidence.
+
+It does include occlusion, and that is the point rather than a detail. A store's catalog is
+clean isolated products and a cart is a pile, so a head trained only on whole packets has never
+been asked to name one that is 40% covered by the thing on top of it. Erasing rectangles at
+training time is the cheapest available stand-in for the pile, and the errors that remain are
+concentrated exactly where it should help: the crowded scenes.
 """
 import numpy as np
 
@@ -70,11 +76,21 @@ def augmentation(preprocess):
     side = sized[0] if isinstance(sized, (list, tuple)) else sized
     return T.Compose(
         [
-            T.RandomResizedCrop(side, scale=(0.7, 1.0), ratio=(0.85, 1.18)),
-            T.RandomApply([T.ColorJitter(brightness=0.25, contrast=0.25)], p=0.5),
-            T.RandomApply([T.RandomRotation(8)], p=0.3),
+            # Wider scale range than a standard recipe. A cart crop is often a corner of a
+            # packet rather than the packet, and the catalog only ever shows the whole thing.
+            T.RandomResizedCrop(side, scale=(0.5, 1.0), ratio=(0.8, 1.25)),
+            T.RandomApply([T.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2)], p=0.6),
+            T.RandomApply([T.RandomRotation(12)], p=0.4),
+            # Blur and JPEG-like degradation. A catalog photograph is sharp and a phone frame of
+            # a moving trolley is not, and a model that has only seen sharp packaging leans on
+            # detail that is simply absent at inference.
+            T.RandomApply([T.GaussianBlur(5, sigma=(0.1, 1.5))], p=0.3),
             T.ToTensor(),
             normalize,
+            # Two erased rectangles, not one. A single hole reads as damage to the image; two
+            # read as something lying across the product, which is what a cart actually does.
+            T.RandomErasing(p=0.5, scale=(0.02, 0.20), ratio=(0.3, 3.3)),
+            T.RandomErasing(p=0.3, scale=(0.02, 0.15), ratio=(0.3, 3.3)),
         ]
     )
 

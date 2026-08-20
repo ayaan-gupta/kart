@@ -596,3 +596,32 @@ def test_matching_no_regions_at_all_returns_no_results(tmp_path):
     index, _, _ = synthetic_index(tmp_path)
     matcher = matcher_module.Matcher(index)
     assert matcher.match_regions(Image.new("RGB", (100, 100)), []) == []
+
+
+def test_too_large_a_margin_destroys_the_case_it_was_added_for():
+    """The angular margin has a ceiling, and it is lower than the literature's.
+
+    Face recognition uses 0.2 to 0.5. Here the distinguishing component between two SKUs is
+    small and the noise around it is not, and demanding a large angular gap asks for more
+    separation than the data contains. The result is that the margin collapses precisely the
+    near-identical case it exists to fix, which is the opposite of the intended effect and would
+    be invisible without a controlled case to check it against.
+    """
+    rng = np.random.default_rng(0)
+    shared = np.array([1.0, 0.0, 0.0])
+    features, labels = [], []
+    for sku, tell in enumerate([np.array([0.0, 0.06, 0.0]), np.array([0.0, -0.06, 0.0])]):
+        noise = rng.normal(0, 0.25, size=(60, 3))
+        noise[:, 1] = 0.0
+        block = shared + tell + noise
+        features.append(block / np.linalg.norm(block, axis=1, keepdims=True))
+        labels += [sku] * 60
+    features = np.concatenate(features).astype(np.float32)
+    labels = np.array(labels)
+
+    def accuracy(margin):
+        trained, _ = head.train(features, labels, 2, epochs=600, seed=1, margin=margin)
+        return (np.argmax(head.score(features, trained), axis=1) == labels).mean()
+
+    assert accuracy(head.MARGIN) > 0.95, "the shipped margin must not break this case"
+    assert accuracy(0.3) < accuracy(head.MARGIN), "a large margin is worse, not better"

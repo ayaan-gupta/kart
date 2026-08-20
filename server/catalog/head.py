@@ -29,6 +29,21 @@ SCALE = 20.0
 # The catalog is not clean supervision: a crop of the back of a packet genuinely could be
 # several SKUs, and a head trained to be certain about those is learning the noise.
 LABEL_SMOOTHING = 0.1
+# Additive angular margin, the ArcFace construction. Plain cosine cross-entropy is satisfied the
+# moment the right class outscores the rest, so two near-identical SKUs end up separated by
+# almost nothing and any occlusion flips them. Subtracting a margin from the true class's angle
+# before the softmax forces a gap to be opened and held. This is the failure that dominates what
+# is left: 44% of remaining errors are two variants of one product, and one pair of chocolate
+# SKUs alone accounts for a fifth of every error made.
+#
+# 0.1 rather than the 0.2 to 0.5 the face-recognition literature uses, and the reason is the
+# opposite of what it looks like. On a controlled case of two classes separated by a small
+# component under heavy noise, which is the near-identical-SKU case in miniature, this scores
+# 100% at margins up to 0.15 and 83% at 0.2, 75% at 0.3. A large margin demands more angular
+# separation than the data contains and collapses the very case it was added for. The 465 query
+# crops mildly prefer a larger value, by less than the standard error of the 156 scenes choosing
+# it, so the controlled case is the better evidence and this follows it.
+MARGIN = 0.1
 EPOCHS = 60
 BATCH = 1024
 LEARNING_RATE = 1e-3
@@ -51,7 +66,8 @@ def prototypes(features, labels, classes):
     )
 
 
-def train(features, labels, classes, holdout=0.1, epochs=EPOCHS, seed=17, log=None):
+def train(features, labels, classes, holdout=0.1, epochs=EPOCHS, seed=17, log=None,
+          margin=MARGIN, scale=SCALE):
     """Fits a cosine classifier over the catalog and returns its per-SKU weight vectors.
 
     Initialized at the prototypes rather than at random. The prototypes are already a workable
@@ -90,12 +106,20 @@ def train(features, labels, classes, holdout=0.1, epochs=EPOCHS, seed=17, log=No
         shuffle = torch.randperm(len(x), device=device)
         for start in range(0, len(x), BATCH):
             rows = shuffle[start : start + BATCH]
-            logits = SCALE * (
+            cosine = (
                 torch.nn.functional.normalize(x[rows], dim=-1)
                 @ torch.nn.functional.normalize(weight, dim=-1).T
-            )
+            ).clamp(-1 + 1e-7, 1 - 1e-7)
+            if margin > 0:
+                # theta + m for the true class only, which is a harder target than theta, so the
+                # boundary has to move past the class rather than just up to it. Clamped above
+                # because acos is undefined outside [-1, 1] and a normalized dot product lands
+                # exactly on the boundary often enough in float32 to produce NaNs.
+                theta = torch.acos(cosine)
+                target = torch.nn.functional.one_hot(y[rows], classes).bool()
+                cosine = torch.where(target, torch.cos(theta + margin), cosine)
             loss = torch.nn.functional.cross_entropy(
-                logits, y[rows], label_smoothing=LABEL_SMOOTHING
+                scale * cosine, y[rows], label_smoothing=LABEL_SMOOTHING
             )
             optimizer.zero_grad()
             loss.backward()

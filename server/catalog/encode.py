@@ -20,6 +20,10 @@ ENCODERS = {
     "mobileclip": ("open_clip", "MobileCLIP-S2", "datacompdr"),
     "siglipb16": ("open_clip", "ViT-B-16-SigLIP", "webli"),
     "vitl14": ("open_clip", "ViT-L-14", "datacomp_xl_s13b_b90k"),
+    # SigLIP Large at 256px. Registered because the reason the small encoders were chosen does
+    # not hold: this runs server-side in the same container as a 700MB detector on an A10G, not
+    # on a phone, so a phone-sized vision tower was answering a constraint nobody imposed.
+    "siglip2l16": ("open_clip", "ViT-L-16-SigLIP2-256", "webli"),
     "dinov2b": ("hf", "facebook/dinov2-base", None),
     "color": ("color", None, None),
 }
