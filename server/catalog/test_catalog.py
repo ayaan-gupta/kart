@@ -703,3 +703,79 @@ def test_the_finetuned_suffix_resolves_to_its_base_architecture():
     # The suffixed name is accepted, which is what lets an ensemble hold both towers.
     assert "siglipb16" in encode.ENCODERS
     assert "siglipb16:ft".split(":", 1)[0] in encode.ENCODERS
+
+
+def test_extra_views_never_mirror_the_crop():
+    """Packaging carries text, and mirrored text is not something a cart contains.
+
+    A flipped view would be a vote cast from evidence that cannot occur, which is worse than no
+    extra vote at all. Same reason the rotations are small.
+    """
+    from PIL import Image
+
+    from catalog.matcher import views
+
+    # An image with a distinguishable left and right, so a mirror would be detectable.
+    image = Image.new("RGB", (100, 100), (255, 255, 255))
+    for x in range(20):
+        for y in range(100):
+            image.putpixel((x, y), (0, 0, 0))
+
+    def left_is_darker(img):
+        w, h = img.size
+        left = sum(img.getpixel((x, h // 2))[0] for x in range(w // 4))
+        right = sum(img.getpixel((w - 1 - x, h // 2))[0] for x in range(w // 4))
+        return left < right
+
+    assert all(left_is_darker(v) for v in views(image))
+
+
+def test_the_crop_itself_is_always_the_first_view():
+    from PIL import Image
+
+    from catalog.matcher import views
+
+    image = Image.new("RGB", (80, 60))
+    got = views(image)
+    assert got[0] is image
+    assert len(got) == 1 + len(matcher_module_crops()) + len(matcher_module_rotations())
+
+
+def matcher_module_crops():
+    from catalog.matcher import TTA_CROPS
+
+    return TTA_CROPS
+
+
+def matcher_module_rotations():
+    from catalog.matcher import TTA_ROTATIONS
+
+    return TTA_ROTATIONS
+
+
+def test_colour_is_never_given_extra_views(tmp_path):
+    """Colour is a nine-cell layout histogram. Averaging it over rotations and crops blurs the
+    layout it exists to describe, which is the one signal that would be actively damaged."""
+    from PIL import Image
+
+    from catalog import matcher as matcher_module
+
+    index, directions, colors = synthetic_index(tmp_path)
+    matcher = matcher_module.Matcher(index, tta=True)
+    seen = {}
+
+    import torch
+
+    def fake_load(name, state=None):
+        def run(batch):
+            seen[name] = seen.get(name, 0) + len(batch)
+            return batch
+
+        return (lambda images: torch.ones(len(images), 4), run)
+
+    matcher._encoders = {n: fake_load(n) for n in (index.encoders[0], "color")}
+    images = [Image.new("RGB", (60, 60)) for _ in range(3)]
+    matcher._encode(index.encoders[0], images)
+    matcher._encode("color", images)
+    assert seen[index.encoders[0]] == 3 * len(matcher_module.views(images[0]))
+    assert seen["color"] == 3

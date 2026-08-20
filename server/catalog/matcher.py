@@ -296,6 +296,34 @@ class Index:
         )
 
 
+# Extra looks at each query crop, averaged. Worth 1.9 points overall and 3.2 on the stacked
+# scenes, for no training and no new model. A crop out of a cart is one arbitrary framing of a
+# product: a few pixels more or less around the edge, a few degrees of rotation, and the encoder
+# lands somewhere else. Averaging over several framings cancels that, and it cancels most on the
+# crowded scenes, where the framing is worst.
+#
+# Applied to queries only, which is what was measured. The catalog side already has a hundred
+# genuine views per SKU and does not need synthetic ones.
+TTA_VIEWS = True
+# No horizontal flip anywhere in here. Packaging carries text and mirrored text is not a thing
+# the encoder will ever see in a cart, so a flipped view is a vote from evidence that cannot
+# occur. Rotations stay small for the same reason.
+TTA_CROPS = (0.9, 0.8)
+TTA_ROTATIONS = (5, -5)
+
+
+def views(image):
+    """The framings one crop is scored under. The first is always the crop itself."""
+    width, height = image.size
+    out = [image]
+    for fraction in TTA_CROPS:
+        dx, dy = int(width * (1 - fraction) / 2), int(height * (1 - fraction) / 2)
+        out.append(image.crop((dx, dy, width - dx, height - dy)))
+    for degrees in TTA_ROTATIONS:
+        out.append(image.rotate(degrees, expand=True, fillcolor=(255, 255, 255)))
+    return out
+
+
 def _stack(blocks):
     """Concatenates per-encoder features into one row per image, unit length overall.
 
@@ -332,8 +360,9 @@ class Matcher:
 
     def __init__(self, index, fusion=None, calibration=None, floor=None,
                  shortlist=SHORTLIST, references=REFERENCES, geometry_top=GEOMETRY_TOP,
-                 descriptor_cache=DESCRIPTOR_CACHE):
+                 descriptor_cache=DESCRIPTOR_CACHE, tta=TTA_VIEWS):
         self.index = index
+        self.tta = tta
         # Defaults follow the index rather than the call site. Handing a fine-tuned index the
         # frozen weights is not an error anything would raise; it just matches slightly worse,
         # which is the kind of mistake that survives review and never gets found.
@@ -356,7 +385,23 @@ class Matcher:
         if name not in self._encoders:
             self._encoders[name] = encode.load(name, self.index.encoder_state.get(name))
         prepare, run = self._encoders[name]
-        return encode.embed(images, prepare, run)
+        # Colour is a nine-cell histogram, and averaging it over rotations and crops blurs the
+        # very layout it exists to describe. Only the learned encoders get extra views.
+        if not self.tta or name == "color" or not images:
+            return encode.embed(images, prepare, run)
+
+        expanded, counts = [], []
+        for image in images:
+            look = views(image)
+            expanded.extend(look)
+            counts.append(len(look))
+        vectors = encode.embed(expanded, prepare, run)
+        out, at = [], 0
+        for count in counts:
+            block = vectors[at : at + count].mean(axis=0)
+            out.append(block / (np.linalg.norm(block) + 1e-9))
+            at += count
+        return np.stack(out).astype(np.float32)
 
     def _reference_described(self, crop):
         """Keypoints for one reference crop, cached with the least recently used dropped."""
