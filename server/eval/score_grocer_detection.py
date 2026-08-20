@@ -95,7 +95,7 @@ def main(argv=None):
     print(f"{len(chosen)} photographs, "
           f"{sum(len(s.crops) for s in chosen)} labelled instances")
 
-    found = missed = proposed = 0
+    found = missed = proposed = raw_proposed = 0
     per_scene, occluded_found, occluded_total = [], 0, 0
     by_size = {"small": [0, 0], "medium": [0, 0], "large": [0, 0]}
     started = time.time()
@@ -116,6 +116,7 @@ def main(argv=None):
 
         boxes = [[float(v) for v in row] for row in result["boxes"].cpu().numpy()]
         scores = [float(s) for s in result["scores"].cpu()]
+        raw_proposed += len(boxes)
         if boxes:
             keep = regions.dedupe(boxes, scores)
             keep.sort(key=lambda i: -scores[i])
@@ -157,8 +158,10 @@ def main(argv=None):
     print(f"  recall                {recall:.1%}   (unbiased)")
     print(f"  precision             {precision_floor:.1%}   (a floor: unlabelled products "
           f"found correctly count against it)")
-    print(f"  proposals per scene   {statistics.mean(b for _, b, _ in per_scene):.1f} "
-          f"against {statistics.mean(t for t, _, _ in per_scene):.1f} labelled")
+    print(f"  proposals per scene   {raw_proposed / len(chosen):.1f} raw, "
+          f"{statistics.mean(b for _, b, _ in per_scene):.1f} after de-duplication and the "
+          f"{regions.MAX_INSTANCES}-instance cap, against "
+          f"{statistics.mean(t for t, _, _ in per_scene):.1f} labelled")
     print("\n  recall by instance size (shorter edge in the original photograph)")
     for band, (hit, total) in by_size.items():
         if total:
@@ -178,6 +181,8 @@ def main(argv=None):
         "recall": recall,
         "precision_floor": precision_floor,
         "proposals": proposed,
+        "raw_proposals": raw_proposed,
+        "max_side": args.max_side,
         "recall_by_size": {k: (v[0] / v[1] if v[1] else None) for k, v in by_size.items()},
         "recall_covered": occluded_found / occluded_total if occluded_total else None,
         "covered_instances": occluded_total,
@@ -186,8 +191,10 @@ def main(argv=None):
                 "not measurable on this corpus and is deliberately absent.",
     }
     out = pathlib.Path(args.out)
-    existing = json.loads(out.read_text()) if out.exists() else {}
-    existing[str(args.threshold)] = summary
+    existing = json.loads(out.read_text() or "{}") if out.exists() else {}
+    # Keyed by both, because resolution turned out to matter more than the threshold and a
+    # results file keyed on the threshold alone would have overwritten the evidence for it.
+    existing[f"threshold={args.threshold} max_side={args.max_side}"] = summary
     out.write_text(json.dumps(existing, indent=1))
     print(f"\nwrote {out}")
     return summary

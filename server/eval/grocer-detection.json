@@ -1,0 +1,19 @@
+{
+ "0.23": {
+  "threshold": 0.23,
+  "scenes": 100,
+  "labelled_instances": 1424,
+  "recall": 0.3532303370786517,
+  "precision_floor": 0.42772108843537415,
+  "proposals": 1176,
+  "recall_by_size": {
+   "small": 0.24233983286908078,
+   "medium": 0.3482142857142857,
+   "large": 0.4213938411669368
+  },
+  "recall_covered": 0.21656050955414013,
+  "covered_instances": 157,
+  "seconds": 76.2,
+  "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
+ }
+}

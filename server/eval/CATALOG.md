@@ -5,6 +5,11 @@ what it buys depends entirely on how it is used. Used as a lookup table it buys 
 neighbour search. Used as what it actually is, the complete set of possible answers, it buys a
 classifier, and that difference is the largest single gain measured in this project.
 
+Everything below is measured on RPC, which lays products on a white tray. The same pipeline was
+later measured on real store shelves and the numbers are very different:
+[`SHELVES.md`](SHELVES.md). Read that one before carrying any constant from this file into a
+deployment, because two of them do not survive the move.
+
 ## How these numbers are made
 
 RPC, 200 SKUs. The catalog comes from the train split, which is single-product exemplars, the
@@ -549,3 +554,8 @@ unmeasured because the key is deferred, not because it was judged unpromising.
 **Anything about a real cart.** The paired cart photographs specified in
 `server/eval/corpus/README.md` are still outstanding, and until they exist every number here
 describes a tray.
+
+Two of these have since been partly answered on a denser corpus, and the answers are in
+[`SHELVES.md`](SHELVES.md): naming falls from 88.0% to 49.3% when the background stops being
+white, fine-tuning is worth twice as much there as it is here, and the confidence floor fitted on
+this corpus admits every crop on that one.

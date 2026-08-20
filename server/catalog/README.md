@@ -17,7 +17,10 @@ It is also cheaper to run than the lookup it replaces, two hundred dot products 
 twenty thousand, and refitting it when a product is added takes seconds rather than a re-encode.
 
 Numbers, corpus sizes and the things that were measured and rejected are in
-[`server/eval/CATALOG.md`](../eval/CATALOG.md).
+[`server/eval/CATALOG.md`](../eval/CATALOG.md), for products photographed on a white tray, and in
+[`server/eval/SHELVES.md`](../eval/SHELVES.md), for real store shelves. The second is the one
+that describes the product's actual conditions, and several constants in `matcher.py` do not
+survive the move between them.
 
 ## The pipeline
 
