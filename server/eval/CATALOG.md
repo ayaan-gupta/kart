@@ -330,6 +330,45 @@ measured here. The census path already carries an `isProduct` judgement from a v
 model, which is a second opinion from a completely different kind of evidence. And nothing here
 has been tested against an actual non-product, because RPC contains none.
 
+## What the last 12% actually is
+
+Worth knowing before spending anything on it. Of 56 errors remaining after reranking, on 465
+crops:
+
+- **46% are two variants of one product**, not two different products. One pair of chocolate
+  SKUs accounts for 13 errors by itself, a fifth of everything wrong.
+- **79% still hold the truth in the top five.** Only 3 errors in 465 put it outside the top
+  twenty, so retrieval finds the right neighbourhood almost every time.
+- Splitting queries by how close their top two candidates are, **the clear half is 100% correct
+  and every error is in the other half.**
+
+So this is not a recognition problem in the ordinary sense. The system knows what kind of thing
+it is looking at and cannot tell two near-identical packages apart. That is a different problem
+with different fixes, and three plausible ones were measured and rejected.
+
+**Reweighting per regime: no gain, exactly zero.** Fitting separate fusion weights for the
+ambiguous and clear halves, cross-fit on scene, scores identically to one global set. The
+signals are saturated; the ambiguous half needs different evidence, not a different mixture.
+
+**Geometry as a veto rather than a ranker: 87.7% against 88.0%.** Keypoint matching is the
+signal built for near-identical packaging, and on the errors that matter it points the wrong
+way: where truth and the top pick are the same product family, geometry favours the wrong
+variant 20 times against 4. Two variants share almost all their artwork, so the shared region
+dominates the match and the small differing panel is drowned. Using it only to eliminate
+candidates with no keypoint support, and letting appearance rank the survivors, is worse than
+leaving it as a weighted ranker at every threshold tried. It earns its place by rejecting
+unrelated candidates, not by separating variants.
+
+**A larger angular margin: worse where it should help most.** An additive margin at 0.1 is worth
+about a point. The 0.2 to 0.5 that face recognition uses collapses the near-identical case: on a
+controlled pair separated by a small component under heavy noise, accuracy runs 100% up to 0.15
+and 83% at 0.2. Demanding more angular separation than the data contains destroys it.
+
+What is left is better features or a reader. Higher encoder resolution and capacity is one, since
+the distinguishing detail between two variants is a small printed panel. A vision-language model
+that can read that panel is the other, and it only has to run on the ambiguous half, which is
+where every error already is.
+
 ## Measured and rejected
 
 Recorded so they are not tried again.
