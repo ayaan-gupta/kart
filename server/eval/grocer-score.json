@@ -1,0 +1,71 @@
+{
+ "smoke-notta": {
+  "query_crops": 1500,
+  "answerable": 1463,
+  "coverage": 0.9753333333333334,
+  "top1": 0.49282296650717705,
+  "top5": 0.6671223513328777,
+  "shortlist_ceiling": 0.7293233082706767,
+  "declined": 0.11551606288448393,
+  "silent_error": 0.39166097060833904,
+  "tag": "smoke-notta",
+  "encoders": [
+   "siglipb16"
+  ],
+  "finetune_epochs": 0,
+  "tta": false,
+  "catalog_products": 343,
+  "seconds": 177.2,
+  "corpus": {
+   "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
+   "catalog_share": 0.6,
+   "per_class_cap": 40,
+   "min_side": 32,
+   "photographs": 6289,
+   "catalog_photographs": 3748,
+   "query_photographs": 2541,
+   "catalog_crops": 11783,
+   "query_crops": 34883,
+   "catalog_classes": 555,
+   "query_classes": 521,
+   "shared_classes": 453,
+   "query_crops_in_shared": 34600,
+   "seconds": 25.3
+  }
+ },
+ "b16-spread-notta": {
+  "query_crops": 1500,
+  "answerable": 1442,
+  "coverage": 0.9613333333333334,
+  "top1": 0.5638002773925104,
+  "top5": 0.7309292649098474,
+  "shortlist_ceiling": 0.79750346740638,
+  "declined": 0.1158113730929265,
+  "silent_error": 0.32038834951456313,
+  "tag": "b16-spread-notta",
+  "encoders": [
+   "siglipb16"
+  ],
+  "finetune_epochs": 0,
+  "tta": false,
+  "catalog_products": 292,
+  "seconds": 182.1,
+  "corpus": {
+   "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
+   "catalog_share": 0.6,
+   "per_class_cap": 60,
+   "per_scene_cap": 3,
+   "min_side": 32,
+   "photographs": 6289,
+   "catalog_photographs": 3748,
+   "query_photographs": 2541,
+   "catalog_crops": 11752,
+   "query_crops": 34883,
+   "catalog_classes": 555,
+   "query_classes": 521,
+   "shared_classes": 453,
+   "query_crops_in_shared": 34600,
+   "seconds": 31.7
+  }
+ }
+}
