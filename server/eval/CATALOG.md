@@ -29,12 +29,17 @@ code that deploys rather than a copy of it that has since drifted.
 | MobileCLIP-S2, trained head | 94.7% | 69.9% | 67.8% | 74.0% | 91.2% |
 | SigLIP-B/16, nearest neighbour | 90.5% | 76.2% | 64.8% | 73.5% | 91.4% |
 | SigLIP-B/16, trained head | 94.7% | 82.5% | 81.1% | 84.3% | 96.6% |
-| **SigLIP-B/16, trained head, reranked** | **95.8%** | **82.5%** | **83.3%** | **85.6%** | |
+| SigLIP-B/16, trained head, reranked | 95.8% | 82.5% | 83.3% | 85.6% | |
+| SigLIP-B/16 fine-tuned, trained head | 95.8% | 85.3% | 83.3% | 86.5% | 97.2% |
+| **SigLIP-B/16 fine-tuned, head, reranked** | **95.8%** | **86.7%** | **85.5%** | **88.0%** | |
 | published comparable, ~180 references per SKU | | | | 77.0% | 94.5% |
 
 Published figures are from arXiv:2605.18029, 190 open-source models on 409 grocery SKUs.
-Fine-tuning the encoder is worth another 5.9 points on top and is reported separately below,
-because it is scored on a subset of these queries rather than all of them.
+
+The two fine-tuned rows carry a caveat the others do not. The epoch count was chosen on 20
+scenes whose queries are among these 465, so one bit of information about a third of them went
+into the configuration. The clean comparison is in the fine-tuning section below, on 40 scenes
+that took no part in training or selection: 90.0% against 84.1%.
 
 Two changes account for almost all of it, and neither is a better matching algorithm. Train on
 the catalog rather than search it, and stop using an encoder chosen for a phone in a pipeline
@@ -237,6 +242,44 @@ observation. The gain is real and it is only reachable if something can tell the
 stop, which nothing inside its own product photographs can. Twenty labelled carts was enough
 here. Without them a store following the same recipe would have no way to know whether it landed
 on 90.0% or trained past it.
+
+### After fine-tuning, the head is nearly redundant
+
+The head and the fine-tune are doing the same job. Both learn what separates this store's
+products from each other; one learns it in a fixed feature space and the other by changing the
+space. Once the second has happened, the first has little left to add.
+
+| stage one | frozen encoder | fine-tuned encoder |
+|---|---|---|
+| nearest neighbour | 73.5% | 87.1% |
+| trained head | 84.3% | 86.5% |
+| weight the fusion gives the head | 0.41 | 0.08 |
+| weight the fusion gives nearest neighbour | 0.04 | 0.42 |
+
+On a frozen encoder the head is worth 10.8 points over the lookup and the fusion leans on it. On
+a fine-tuned one the lookup is *better* than the head, and the fusion moves almost all of the
+weight across without being told to. So the two configurations want different constants, and
+`matcher.py` picks them from the index rather than the call site: handing a fine-tuned index the
+frozen weights raises nothing and quietly matches worse.
+
+The head is still worth keeping in a fine-tuned deployment. It costs 200 dot products, it is
+what produces the shortlist, and it still carries 0.08 of the fused score.
+
+### The reranker still earns its place afterwards
+
+Worth checking rather than assuming, because a reranker recovers the gap between first choice
+and top five, and fine-tuning shrinks that gap from 12.3 points to 10.7.
+
+| tier | queries | fine-tuned head | reranked | gain |
+|---|---|---|---|---|
+| easy | 95 | 95.8% | 95.8% | +0.0 |
+| medium | 143 | 85.3% | 86.7% | +1.4 |
+| hard | 227 | 83.3% | 85.5% | +2.2 |
+| ALL | 465 | 86.5% | 88.0% | +1.5 |
+
+The same shape as on a frozen encoder: nothing on the uncluttered scenes, most on the stacked
+ones. Confidence stays calibrated to 2.1 points, and the floor that keeps silent additions right
+90% of the time moves to 0.62, where it defers 31 items of 465 rather than 43.
 
 ## Items that are not in the catalog
 

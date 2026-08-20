@@ -475,3 +475,37 @@ def test_the_padded_group_table_scores_every_sku_exactly_as_a_plain_loop_would(t
     vectorized = np.where(index.group_mask, row[index.group_table], -np.inf).max(axis=1)
     plain = np.array([row[g].max() for g in index.groups])
     assert np.allclose(vectorized, plain)
+
+
+def test_a_finetuned_index_gets_the_weights_that_were_fitted_for_it(tmp_path):
+    """Handing a fine-tuned index the frozen constants raises nothing and matches worse.
+
+    The two configurations genuinely want different weights: once the encoder has learned what
+    separates the store's products, the head is nearly redundant and the plain lookup carries
+    the evidence, so the fusion moves most of its weight across. Picking by hand at the call
+    site would eventually get it wrong somewhere and nothing would say so.
+    """
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    frozen = matcher_module.Matcher(index)
+    assert frozen.fusion == matcher_module.FUSION
+    assert frozen.calibration == matcher_module.CALIBRATION
+    assert frozen.floor == matcher_module.FLOOR
+
+    index.encoder_state = {"pretend": 1}
+    tuned = matcher_module.Matcher(index)
+    assert tuned.fusion == matcher_module.FUSION_FINETUNED
+    assert tuned.calibration == matcher_module.CALIBRATION_FINETUNED
+    assert tuned.floor == matcher_module.FLOOR_FINETUNED
+    # The lookup carries the weight after fine-tuning and the head carries it before.
+    assert tuned.fusion["nearest"] > tuned.fusion["head"]
+    assert frozen.fusion["head"] > frozen.fusion["nearest"]
+
+
+def test_an_explicit_floor_still_wins_over_the_index_default(tmp_path):
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.encoder_state = {"pretend": 1}
+    assert matcher_module.Matcher(index, floor=0.0).floor == 0.0

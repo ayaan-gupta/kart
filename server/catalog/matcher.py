@@ -40,9 +40,18 @@ from . import encode, finetune, geometry, head, rank
 # server/eval/fuse_rerank.py reproduces them.
 FUSION = {"head": 0.41, "nearest": 0.04, "color": 0.23, "geometry": 0.32}
 
-# Logistic on the first-to-second margin. Held out, it says 60% and is right 56% of the time,
-# says 92% and is right 92%, says 98% and is right 98%. Average gap 1.4 points.
+# A fine-tuned index needs its own weights, and the reason is worth stating rather than tuning
+# around. The head and the fine-tune do the same job: both learn what separates this store's
+# products. Once the encoder itself has learned it, a plain nearest-neighbour lookup in that
+# space scores 87.1% against the head's 86.5%, and the fusion moves almost all of the weight
+# across accordingly. On a frozen encoder the same comparison is 73.5% against 84.3%.
+FUSION_FINETUNED = {"head": 0.08, "nearest": 0.42, "color": 0.15, "geometry": 0.35}
+
+# Logistic on the first-to-second margin. Held out, the frozen one says 60% and is right 56% of
+# the time, says 92% and is right 92%, says 98% and is right 98%. Average gap 1.4 points; the
+# fine-tuned one, 2.1.
 CALIBRATION = (2.25, -0.18)
+CALIBRATION_FINETUNED = (2.17, -0.23)
 
 SHORTLIST = 10
 REFERENCES = 3
@@ -56,6 +65,8 @@ GEOMETRY_TOP = 8
 # is a different product. An item below the floor is not lost, it is the one the interface
 # offers as alternatives, and that shortlist holds the right answer 98.9% of the time.
 FLOOR = 0.59
+# The same 90% target on a fine-tuned index, which reaches it while deferring 31 rather than 43.
+FLOOR_FINETUNED = 0.62
 
 # Below this many reference images a SKU has too little for the head to learn from and the
 # whole advantage disappears (head.py). It is a requirement on the store, not a preference.
@@ -213,13 +224,21 @@ class Index:
 class Matcher:
     """Names crops against a built index. Loads its encoders on first use."""
 
-    def __init__(self, index, fusion=None, calibration=CALIBRATION, floor=FLOOR,
+    def __init__(self, index, fusion=None, calibration=None, floor=None,
                  shortlist=SHORTLIST, references=REFERENCES, geometry_top=GEOMETRY_TOP,
                  descriptor_cache=DESCRIPTOR_CACHE):
         self.index = index
-        self.fusion = dict(fusion or FUSION)
-        self.calibration = calibration
-        self.floor = floor
+        # Defaults follow the index rather than the call site. Handing a fine-tuned index the
+        # frozen weights is not an error anything would raise; it just matches slightly worse,
+        # which is the kind of mistake that survives review and never gets found.
+        finetuned = index.encoder_state is not None
+        self.fusion = dict(fusion or (FUSION_FINETUNED if finetuned else FUSION))
+        self.calibration = calibration or (
+            CALIBRATION_FINETUNED if finetuned else CALIBRATION
+        )
+        self.floor = FLOOR_FINETUNED if finetuned else FLOOR
+        if floor is not None:
+            self.floor = floor
         self.shortlist = shortlist
         self.references = references
         self.geometry_top = geometry_top
