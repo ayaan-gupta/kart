@@ -547,3 +547,52 @@ def test_a_crop_too_small_to_read_is_declined_rather_than_matched():
 
     image = Image.new("RGB", (1000, 1000))
     assert crop_region(image, {"x": 0.5, "y": 0.5, "w": 0.01, "h": 0.01}) is None
+
+
+def test_region_matches_line_up_with_the_boxes_they_came_from(tmp_path):
+    """A box too small to read yields None in place, never a shorter list.
+
+    The caller has already numbered these regions and drawn those numbers on the image. Dropping
+    an entry shifts every number after it, so the model's answer for badge 7 lands on badge 8,
+    which is the exact failure set-of-mark prompting is most vulnerable to.
+    """
+    from PIL import Image
+
+    from catalog import matcher as matcher_module
+
+    index, directions, colors = synthetic_index(tmp_path)
+    matcher = matcher_module.Matcher(index)
+    matcher._encoders = {
+        index.encoder: (lambda images: images, lambda batch: batch),
+        "color": (lambda images: images, lambda batch: batch),
+    }
+    seen = {}
+
+    def fake_encode(name, images):
+        seen[name] = len(images)
+        source = directions if name == index.encoder else colors
+        return np.repeat(source[:1], len(images), axis=0)
+
+    matcher._encode = fake_encode
+
+    image = Image.new("RGB", (1000, 1000))
+    boxes = [
+        {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2},
+        {"x": 0.5, "y": 0.5, "w": 0.005, "h": 0.005},  # too small to carry a brand mark
+        {"x": 0.7, "y": 0.7, "w": 0.2, "h": 0.2},
+    ]
+    results = matcher.match_regions(image, boxes)
+    assert len(results) == len(boxes)
+    assert results[1] is None
+    assert results[0] is not None and results[2] is not None
+    assert seen[index.encoder] == 2  # the unreadable crop never reached the encoder
+
+
+def test_matching_no_regions_at_all_returns_no_results(tmp_path):
+    from PIL import Image
+
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    matcher = matcher_module.Matcher(index)
+    assert matcher.match_regions(Image.new("RGB", (100, 100)), []) == []

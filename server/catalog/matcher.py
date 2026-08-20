@@ -294,6 +294,26 @@ class Matcher:
                 self._described.popitem(last=False)
         return self._described[path]
 
+    def match_regions(self, image, boxes):
+        """Matches one frame's detected regions. Returns one entry per box, or None for a box
+        too small to read.
+
+        Aligned with `boxes` by position rather than filtered, because the caller has already
+        numbered these regions and a shorter list would silently shift every number after the
+        first unreadable one. That renumbering is the exact failure set-of-mark prompting is
+        most vulnerable to: the model reports an answer for badge 7 and it lands on badge 8.
+        """
+        crops, slots = [], []
+        for i, box in enumerate(boxes):
+            piece = crop_region(image, box)
+            if piece is not None:
+                crops.append(piece)
+                slots.append(i)
+        out = [None] * len(boxes)
+        for slot, result in zip(slots, self.match(crops)):
+            out[slot] = result
+        return out
+
     def match(self, images):
         """One result per image: the chosen SKU or None, a confidence, and the runners-up."""
         if not images:

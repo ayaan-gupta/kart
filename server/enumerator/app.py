@@ -13,10 +13,26 @@ the same two functions wrapped their own way; the contract below is what matters
 Contract, matching server/src/enumerate.ts:
 
     POST  { "image": "<base64 jpeg>" }
-    200   { "instances": [ { "box": {x,y,w,h}, "polygon": [x0,y0,x1,y1,...], "score": 0..1 } ] }
+    200   { "instances": [ {
+              "box": {x,y,w,h},
+              "polygon": [x0,y0,x1,y1,...],
+              "score": 0..1,
+              "catalog": {                        # only when a store catalog is mounted
+                "sku": "..." | null,              # null below the matcher's floor
+                "confidence": 0..1,
+                "alternatives": [ {"sku": "...", "score": 0.0} ]
+              }
+            } ] }
 
 Boxes and polygons are normalized to the frame with origin top-left, which is the convention
 every other coordinate in this codebase uses.
+
+The catalog field is what turns naming from open-world description into a choice among the
+products this store actually sells. It is absent when no catalog has been uploaded, which is the
+configuration that shipped: enumerate.ts parses it either way and the census falls back to naming
+in the open world. A null sku with a populated alternatives list is not a failure, it is the
+matcher declining to name something it is not sure of, and those alternatives are what the
+shopper gets asked about.
 """
 import base64
 import io
@@ -131,14 +147,29 @@ image = (
     .pip_install(
         "torch==2.8.0", "torchvision", "transformers>=4.45", "timm",
         "opencv-python-headless", "pillow", "numpy",
+        # The catalog matcher's encoder. Only needed when a catalog is mounted, but installed
+        # unconditionally because a container that fails on first request rather than at build
+        # time is far harder to diagnose.
+        "open_clip_torch",
         "git+https://github.com/facebookresearch/sam2.git",
     )
+    .add_local_dir(
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "catalog"),
+        remote_path="/root/catalog",
+    )
 )
+
+# Where a store's built index lives, if one has been uploaded. Absent is the configuration that
+# shipped and stays supported: regions come back with no catalog field and the census names them
+# in the open world, which is the same degraded mode enumerate.ts already handles for an
+# unconfigured enumerator.
+CATALOG_VOLUME = modal.Volume.from_name("kart-catalog", create_if_missing=True)
+CATALOG_INDEX = "/catalog/index.npz"
 
 app = modal.App("kart-enumerator", image=image)
 
 
-@app.cls(gpu="A10G", scaledown_window=300)
+@app.cls(gpu="A10G", scaledown_window=300, volumes={"/catalog": CATALOG_VOLUME})
 class Enumerator:
     @modal.enter()
     def load(self):
@@ -157,6 +188,15 @@ class Enumerator:
             "configs/sam2.1/sam2.1_hiera_t.yaml",
             os.path.join(MODEL_DIR, "sam2.1_hiera_tiny.pt"),
             device=self.device, apply_postprocessing=False))
+
+        # Loaded once per container, because an index is tens of megabytes of features and a
+        # head, and reloading it per request would dominate the request.
+        self.matcher = None
+        if os.path.exists(CATALOG_INDEX):
+            from catalog.matcher import Index, Matcher
+
+            self.matcher = Matcher(Index.load(CATALOG_INDEX))
+            print(f"catalog loaded: {len(self.matcher.index.skus)} SKUs")
 
     def _polygon(self, mask, w, h):
         """Largest external contour, simplified the way ios/Kart/MaskContour.swift simplifies."""
@@ -236,5 +276,22 @@ class Enumerator:
                 # DINO's own ranking, so the tracker's low-score recovery pass still has spread.
                 "score": round(min(0.99, max(0.55, 0.55 + 0.44 * (score - BOX_THRESHOLD) / 0.80)), 6),
             })
+
+        # Matched after the instances are final, not before. Boxes whose mask yields no usable
+        # polygon are dropped above, and matching the pre-filter list would offset every
+        # shortlist by however many were dropped ahead of it.
+        if self.matcher is not None and instances:
+            for instance, match in zip(
+                instances, self.matcher.match_regions(pil, [i["box"] for i in instances])
+            ):
+                if match is not None:
+                    instance["catalog"] = {
+                        "sku": match["sku"],
+                        "confidence": round(float(match["confidence"]), 6),
+                        "alternatives": [
+                            {"sku": a["sku"], "score": round(float(a["score"]), 6)}
+                            for a in match["alternatives"]
+                        ],
+                    }
 
         return {"instances": instances}
