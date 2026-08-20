@@ -46,25 +46,35 @@ MATCH_IOU = 0.5
 
 
 def match(predicted, truth):
-    """Greedy one-to-one matching by IoU, best score first. The usual convention.
+    """Maximum one-to-one matching by IoU, above `MATCH_IOU`.
 
-    One-to-one matters more here than the choice of threshold: a detector that proposes four
-    boxes over one yogurt should be credited with finding one yogurt, not four.
+    One-to-one matters more than the threshold: a detector that proposes four boxes over one
+    yogurt has found one yogurt, not four.
+
+    Optimal rather than greedy. Greedily walking the predictions in score order lets a mediocre
+    box claim a ground-truth item at IoU 0.51 that a later, better box would have matched at 0.9,
+    after which the better box matches nothing and recall reads low. The artefact grows with the
+    number of predictions, so a greedy matcher can report *falling* recall as a detector proposes
+    more boxes, which is not a fact about the detector at all.
+
+    On this corpus it turned out to change nothing: greedy and optimal agree to the printed digit
+    at both 0.23 (51.3%) and 0.12 (28.1%) on 25 photographs. Kept anyway, because it is correct
+    rather than approximately correct and the failure it prevents is one that would have been
+    read as a detector result. The recorded gain from de-duplication is therefore attributable to
+    the de-duplication alone.
     """
-    taken = set()
-    hits = 0
-    for box in predicted:
-        best, best_iou = None, MATCH_IOU
-        for i, target in enumerate(truth):
-            if i in taken:
-                continue
-            score = regions._iou(box, target)
-            if score >= best_iou:
-                best, best_iou = i, score
-        if best is not None:
-            taken.add(best)
-            hits += 1
-    return hits, taken
+    if not predicted or not truth:
+        return 0, set()
+    import numpy as np
+    from scipy.optimize import linear_sum_assignment
+
+    iou = np.zeros((len(predicted), len(truth)))
+    for i, box in enumerate(predicted):
+        for j, target in enumerate(truth):
+            iou[i, j] = regions._iou(box, target)
+    rows, cols = linear_sum_assignment(-iou)
+    taken = {int(j) for i, j in zip(rows, cols) if iou[i, j] >= MATCH_IOU}
+    return len(taken), taken
 
 
 def main(argv=None):
@@ -72,7 +82,12 @@ def main(argv=None):
     parser.add_argument("--scenes", type=int, default=120)
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
     parser.add_argument("--max-side", type=int, default=1333,
-                        help="longest edge the detector sees; these photographs are 12MP")
+                        help="longest edge before the processor sees it. Measured as a no-op: "
+                             "the Grounding DINO processor resizes to its own fixed size, so "
+                             "1333, 2000 and 2800 give identical boxes")
+    parser.add_argument("--no-dedupe", action="store_true",
+                        help="skip the service's de-duplication, to separate what the model "
+                             "proposes from what the pipeline keeps")
     parser.add_argument("--out", default=str(HERE / "grocer-detection.json"))
     args = parser.parse_args(argv)
 
@@ -117,7 +132,7 @@ def main(argv=None):
         boxes = [[float(v) for v in row] for row in result["boxes"].cpu().numpy()]
         scores = [float(s) for s in result["scores"].cpu()]
         raw_proposed += len(boxes)
-        if boxes:
+        if boxes and not args.no_dedupe:
             keep = regions.dedupe(boxes, scores)
             keep.sort(key=lambda i: -scores[i])
             keep = keep[: regions.MAX_INSTANCES]
@@ -183,6 +198,7 @@ def main(argv=None):
         "proposals": proposed,
         "raw_proposals": raw_proposed,
         "max_side": args.max_side,
+        "dedupe": not args.no_dedupe,
         "recall_by_size": {k: (v[0] / v[1] if v[1] else None) for k, v in by_size.items()},
         "recall_covered": occluded_found / occluded_total if occluded_total else None,
         "covered_instances": occluded_total,
@@ -194,7 +210,8 @@ def main(argv=None):
     existing = json.loads(out.read_text() or "{}") if out.exists() else {}
     # Keyed by both, because resolution turned out to matter more than the threshold and a
     # results file keyed on the threshold alone would have overwritten the evidence for it.
-    existing[f"threshold={args.threshold} max_side={args.max_side}"] = summary
+    existing[f"threshold={args.threshold} max_side={args.max_side} "
+             f"dedupe={not args.no_dedupe}"] = summary
     out.write_text(json.dumps(existing, indent=1))
     print(f"\nwrote {out}")
     return summary

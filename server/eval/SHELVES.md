@@ -107,6 +107,57 @@ and changing a global default on the strength of one corpus is precisely the mis
 2.5 points when an angular margin measured on fine-tuned features was made universal. A store
 fits this the way it fits the fine-tune: on labelled carts of its own.
 
+## Detection is the binding constraint, and the pipeline was deleting its own findings
+
+Naming can only ever name what the detector proposes. On RPC the enumerator finds 86% of
+labelled instances. On these shelves, at the shipped threshold, it found 35.3%.
+
+Splitting the pipeline apart showed the model was not the problem:
+
+| threshold | de-duplication | raw boxes/scene | kept | recall | precision floor |
+|---|---|---|---|---|---|
+| 0.23 | shipped | 12.0 | 8.4 | 51.3% | 48.3% |
+| 0.23 | off | 12.0 | 12.0 | 66.8% | 44.3% |
+| 0.12 | shipped | 107.4 | 36.1 | 28.1% | 6.2% |
+| 0.12 | off | 107.4 | 107.4 | 85.9% | 6.4% |
+
+(25 photographs. Precision is a floor throughout; at 0.12 it is a very low floor and that
+configuration is not a candidate, it is a diagnostic.)
+
+Grounding DINO proposes the items. `dedupe` then removed them. The cause was a single inverted
+comparison in its second pass, which drops the larger of two boxes when one sits inside the
+other. The pass is guarded by `NESTED_MAX_RATIO` so that it only fires on boxes of comparable
+size, on the reasoning that a small box inside a much larger one is two real items, one standing
+in front of the other, and deleting the larger one deletes the item being occluded. The guard
+compared the *smaller* box's area against four times the larger's. The pass visits boxes
+smallest first, so that comparison is always true and the guard never fired once.
+
+An item with something standing in front of it is not an edge case here. It is the case the
+product exists to notice, and the pipeline was silently deleting it.
+
+Fixed, on the same 25 photographs at 0.23: recall 51.3% to 60.3%, precision floor 48.3% to
+49.6%. On the full 100: 35.3% to 39.3%. On RPC, unchanged threshold: recall 86% to 92.9%,
+precision 89% to 89.3%, count error 0.37 to 0.72.
+
+That last number is a genuine regression and it is a corpus artefact. Products laid out on a
+white tray almost never truly nest, so the broken guard only ever fired there on spurious group
+boxes, where deleting the larger box is right. It looked like a working rule because the only
+corpus that could see it had none of the case it breaks.
+
+The threshold stays at 0.23. Re-tuning it now would mean tuning on the corpus that cannot show
+the failure just fixed, and this repository has paid for that mistake twice already.
+
+**Detection remains the binding constraint by a wide margin.** 39.3% recall means three in five
+labelled items never reach the naming stage at all. The size breakdown says where they go:
+50.2% of large instances are found, 36.2% of medium, 24.2% of small. And recall on items the
+covered rule flags is 26.1% against 40.9% for the rest, so the items most likely to be missed
+are the ones most likely to be hidden, which is the compounding failure the guided-capture flow
+exists to interrupt.
+
+Tiling the photograph is the obvious next move and is measured as *harmful* on RPC (-36 points).
+That measurement was made on sparse trays and should not be trusted here; it is the largest
+untried lever for this corpus.
+
 ## Covered items
 
 `hiddenFraction` scores each item by how much of it the items in front of it cover, where "in

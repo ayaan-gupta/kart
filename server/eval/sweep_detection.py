@@ -64,23 +64,16 @@ def matched(predicted, truth):
 
 
 def dedupe(boxes, scores, nms_iou, containment, max_ratio):
-    """app.dedupe with its constants lifted into arguments, so they can be swept."""
-    import app
+    """The service's own de-duplication, with its constants lifted into arguments.
 
-    order = sorted(range(len(boxes)), key=lambda i: -scores[i])
-    kept = []
-    for i in order:
-        if all(app._iou(boxes[i], boxes[k]) < nms_iou for k in kept):
-            kept.append(i)
-    survivors = []
-    for i in sorted(kept, key=lambda i: app._area(boxes[i])):
-        if not any(
-            app._containment(boxes[i], boxes[k]) >= containment
-            and app._area(boxes[k]) <= max_ratio * app._area(boxes[i])
-            for k in survivors
-        ):
-            survivors.append(i)
-    return survivors
+    This used to be a copy of the function rather than a call to it, and the copy carried the
+    same inverted size guard the original had. A sweep that reimplements the thing it is tuning
+    cannot find a bug in it: both agreed, so both looked right, and the threshold that came out
+    of this file was chosen against behaviour nobody intended.
+    """
+    import regions
+
+    return regions.dedupe(boxes, scores, nms_iou, containment, max_ratio)
 
 
 def collect(truth, tile):
@@ -94,18 +87,18 @@ def collect(truth, tile):
     from PIL import Image
     from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
 
-    import app
+    import regions  # noqa: F401
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     processor = AutoProcessor.from_pretrained("IDEA-Research/grounding-dino-base")
     model = AutoModelForZeroShotObjectDetection.from_pretrained(
         "IDEA-Research/grounding-dino-base"
     ).to(device)
-    print(f"device: {device}   tiled: {tile}\nprompt: {app.GROCERY_PROMPT}\n")
+    print(f"device: {device}   tiled: {tile}\nprompt: {regions.GROCERY_PROMPT}\n")
 
     def run(image):
         inputs = processor(
-            images=image, text=app.GROCERY_PROMPT, return_tensors="pt"
+            images=image, text=regions.GROCERY_PROMPT, return_tensors="pt"
         ).to(device)
         with torch.no_grad():
             outputs = model(**inputs)
@@ -192,11 +185,14 @@ def main():
     if not truth:
         sys.exit("no ground truth; run server/eval/corpus/fetch_rpc.py first")
 
-    import app
+    # `regions`, not `app`: app.py builds a modal.Volume at import and cannot be loaded
+    # without credentials, which is why this file used to hold its own copy of the logic.
+    import regions
 
     raw = collect(truth, args.tile)
-    shipped = evaluate(raw, truth, app.BOX_THRESHOLD, app.NMS_IOU, app.NESTED_CONTAINMENT,
-                       app.NESTED_MAX_RATIO, app.MAX_INSTANCES)
+    shipped = evaluate(raw, truth, regions.BOX_THRESHOLD, regions.NMS_IOU,
+                       regions.NESTED_CONTAINMENT, regions.NESTED_MAX_RATIO,
+                       regions.MAX_INSTANCES)
     print(f"shipped: recall {shipped['recall']:.1%}  precision {shipped['precision']:.1%}  "
           f"F1 {shipped['f1']:.3f}  count error {shipped['count_error']:.2f}\n")
 
@@ -209,7 +205,7 @@ def main():
     results = []
     for threshold, nms_iou, containment, max_ratio in grid:
         scored = evaluate(raw, truth, threshold, nms_iou, containment, max_ratio,
-                          app.MAX_INSTANCES)
+                          regions.MAX_INSTANCES)
         results.append({"threshold": threshold, "nms": nms_iou, "containment": containment,
                         "ratio": max_ratio, **scored})
     print(f"{len(results)} configurations\n")
@@ -232,8 +228,8 @@ def main():
     for floor, fraction, nms_iou in itertools.product(
         (0.05, 0.10, 0.15), (0.35, 0.45, 0.55, 0.65, 0.75), (0.5,)
     ):
-        scored = evaluate(raw, truth, floor, nms_iou, app.NESTED_CONTAINMENT,
-                          app.NESTED_MAX_RATIO, app.MAX_INSTANCES, relative=fraction)
+        scored = evaluate(raw, truth, floor, nms_iou, regions.NESTED_CONTAINMENT,
+                          regions.NESTED_MAX_RATIO, regions.MAX_INSTANCES, relative=fraction)
         relative_results.append({"floor": floor, "fraction": fraction, **scored})
 
     print("relative cut, as a fraction of the best box in the same photograph:")

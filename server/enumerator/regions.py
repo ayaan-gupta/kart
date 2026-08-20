@@ -28,7 +28,7 @@ NESTED_MAX_RATIO = 4.0
 MAX_POLYGON_VERTICES = 64
 SIMPLIFY_EPSILON = 0.004
 MAX_INSTANCES = 64
-# Measured on 465 labelled instances across 60 scenes (server/eval/sweep_detection.py), not
+# Measured on 465 labelled instances across 60 RPC scenes (server/eval/sweep_detection.py), not
 # chosen by eye on overlays, which is how the previous 0.20 was picked.
 #
 #     0.18   70% recall   64% precision   1.4  items count error
@@ -50,6 +50,20 @@ MAX_INSTANCES = 64
 # A cut expressed as a fraction of the best box in the same photograph was tried, on the theory
 # it would survive the move from this corpus to a real cart better than an absolute number. It
 # peaked lower, at F1 0.852 against 0.898, with a narrower plateau, so it lost on both counts.
+#
+# The whole table above was produced with the inverted size guard in `nested` below. With that
+# guard fixed, the same threshold on the same 465 instances reads
+#
+#     0.23   92.9% recall   89.3% precision   0.72 items count error
+#
+# so the fix is worth 6.9 points of recall and a third of a point of precision, and costs 0.35
+# items on the count. That last one is a real regression on this corpus and it is a corpus
+# artefact: products laid out on a tray almost never genuinely nest, so the broken guard only
+# ever fired on spurious group boxes, where deleting the larger box happens to be right. On
+# shelves, where one item standing in front of another is ordinary, the same guard was deleting
+# 9 points of real items (server/eval/SHELVES.md). The threshold stays at 0.23 rather than being
+# re-tuned, because the corpus that would be doing the tuning is the one that cannot show the
+# failure being fixed.
 BOX_THRESHOLD = 0.23
 
 def _iou(a, b):
@@ -80,7 +94,7 @@ def _area(b):
     return max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
 
 
-def dedupe(boxes, scores):
+def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
     """Collapse the several proposals Grounding DINO makes for one physical item.
 
     The model scores every query phrase against every region independently and never suppresses
@@ -97,19 +111,48 @@ def dedupe(boxes, scores):
     tighter one is the better outline. One box drawn over a row of four cartons alongside boxes
     for the cartons themselves: keeping the group box would erase three items from the count.
 
+    `NESTED_MAX_RATIO` is what keeps the second pass from eating the scene. A small box inside a
+    much larger one is usually two real items, one standing in front of the other, and dropping
+    the larger one deletes the item that is being occluded, which is the case the product exists
+    to notice. The guard was inverted for its whole life: it compared the smaller box's area
+    against four times the larger's, and since the loop visits boxes smallest first that is
+    always true, so it never once fired. Measured on 25 shelf photographs, the second pass with
+    the broken guard cost 15.5 points of recall and bought 4 points of a precision floor.
+
     Returns indices into the input, so the caller keeps whatever it had alongside the boxes.
     """
-    order = sorted(range(len(boxes)), key=lambda i: -scores[i])
-    kept = []
-    for i in order:
-        if all(_iou(boxes[i], boxes[k]) < NMS_IOU for k in kept):
-            kept.append(i)
+    return nested(nms(boxes, scores, nms_iou), boxes, containment, max_ratio)
 
+
+def nms(boxes, scores, nms_iou=None):
+    """One box per region, highest score first.
+
+    Split out so the two passes can be measured apart; each was worth a very different amount
+    and the pair was only ever measured together.
+
+    The constants are arguments defaulting to the module's values so a sweep can vary them
+    through this function rather than through a copy of it. `sweep_detection.py` did hold a
+    copy, and the copy carried the same inverted size guard as the original, which is exactly
+    why the sweep that chose the threshold could not see the bug in the code it was tuning.
+    """
+    nms_iou = NMS_IOU if nms_iou is None else nms_iou
+    kept = []
+    for i in sorted(range(len(boxes)), key=lambda i: -scores[i]):
+        if all(_iou(boxes[i], boxes[k]) < nms_iou for k in kept):
+            kept.append(i)
+    return kept
+
+
+def nested(kept, boxes, containment=None, max_ratio=None):
+    """Of two boxes where one sits inside the other and they are of comparable size, keep the
+    smaller. Comparable size is the whole safety of this pass: see `NESTED_MAX_RATIO`."""
+    containment = NESTED_CONTAINMENT if containment is None else containment
+    max_ratio = NESTED_MAX_RATIO if max_ratio is None else max_ratio
     survivors = []
     for i in sorted(kept, key=lambda i: _area(boxes[i])):
         if not any(
-            _containment(boxes[i], boxes[k]) >= NESTED_CONTAINMENT
-            and _area(boxes[k]) <= NESTED_MAX_RATIO * _area(boxes[i])
+            _containment(boxes[i], boxes[k]) >= containment
+            and _area(boxes[i]) <= max_ratio * _area(boxes[k])
             for k in survivors
         ):
             survivors.append(i)

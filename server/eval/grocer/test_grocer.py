@@ -167,3 +167,51 @@ def test_the_shared_occlusion_fixture_is_present_and_exercised():
     assert len(cases) > 40
     assert any(c["hidden"] == 0 for c in cases)
     assert any(c["hidden"] >= 0.2 for c in cases)
+
+
+def test_nesting_keeps_a_large_item_with_a_small_one_in_front_of_it():
+    """The guard that was inverted for the whole life of the file.
+
+    A small box well inside a much larger one is two real items, one standing in front of the
+    other. Dropping the larger deletes the item that is being occluded, which is the case the
+    product exists to notice. The old comparison was `area(smaller) <= 4 * area(larger)`, and
+    since the pass visits boxes smallest first that is always true, so the guard never fired.
+    """
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    big = [0, 0, 100, 100]
+    small = [40, 40, 50, 50]
+    assert sorted(regions.nested([0, 1], [big, small])) == [0, 1]
+
+
+def test_nesting_still_collapses_two_proposals_on_one_item():
+    # The pass has to keep doing the job it was added for: of two boxes on one bottle, the
+    # tighter one is the better outline.
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    outer = [0, 0, 100, 100]
+    inner = [2, 2, 98, 98]
+    assert regions.nested([0, 1], [outer, inner]) == [1]
+
+
+def test_nesting_drops_a_group_box_drawn_over_its_own_members():
+    # The other case it was added for: one box over a row of cartons alongside boxes for the
+    # cartons. Keeping the group box would erase items from the count. The members here are
+    # each within the size ratio of the group, so the guard does not protect it.
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    group = [0, 0, 100, 100]
+    member = [0, 0, 55, 100]
+    assert regions.nested([0, 1], [group, member]) == [1]
+
+
+def test_dedupe_is_its_two_passes_in_order():
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    boxes = [[0, 0, 100, 100], [2, 2, 98, 98], [300, 300, 340, 340]]
+    scores = [0.9, 0.5, 0.8]
+    assert regions.dedupe(boxes, scores) == regions.nested(regions.nms(boxes, scores), boxes)
