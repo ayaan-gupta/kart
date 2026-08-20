@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { enumerateRegions, enumeratorConfigured, MAX_REGIONS } from "../src/enumerate.js";
+import {
+  enumerateRegions,
+  enumeratorConfigured,
+  marksFromRegions,
+  MAX_CANDIDATES,
+  MAX_REGIONS,
+} from "../src/enumerate.js";
 
 const jpeg = Buffer.from("not really a jpeg, this module never decodes it");
 
@@ -155,5 +161,60 @@ describe("enumerateRegions", () => {
     const result = await enumerateRegions(jpeg, { endpoint: "https://gpu.example/e", fetchImpl: impl });
     expect(result.degraded).toBe("enumerator returned 500");
     expect(JSON.stringify(result)).not.toContain("hunter2");
+  });
+});
+
+describe("catalog matches arriving with the regions", () => {
+  const withCatalog = (sku: string | null, alternatives: string[]) => ({
+    ...square(0.1, 0.1),
+    catalog: {
+      sku,
+      confidence: 0.87,
+      alternatives: alternatives.map((s, i) => ({ sku: s, score: 2 - i })),
+    },
+  });
+
+  it("still parses a response with no catalog field, which is what ships today", async () => {
+    const { regions, degraded } = await enumerateRegions(jpeg, {
+      endpoint: "https://example.invalid/enumerate",
+      fetchImpl: stubFetch({ body: { instances: [square(0.1, 0.1)] } }).impl,
+    });
+    expect(degraded).toBeNull();
+    expect(regions).toHaveLength(1);
+    expect(marksFromRegions(regions)[0].candidates).toBeUndefined();
+  });
+
+  it("numbers marks from one, positionally, so the drawn badge matches the prompt row", () => {
+    const marks = marksFromRegions([square(0.1, 0.1), square(0.5, 0.5), square(0.8, 0.2)]);
+    expect(marks.map((m) => m.id)).toEqual([1, 2, 3]);
+  });
+
+  it("carries the catalog shortlist across, best first, capped", () => {
+    const [mark] = marksFromRegions([
+      withCatalog("Froot Loops", ["Froot Loops", "Apple Jacks", "Corn Pops", "Krave", "Raisin Bran", "Special K"]),
+    ]);
+    expect(mark.candidates).toHaveLength(MAX_CANDIDATES);
+    expect(mark.candidates?.[0]).toEqual({ sku: "Froot Loops", confidence: 0.87 });
+  });
+
+  it("gives no candidate but the matcher's own choice a confidence", () => {
+    // The matcher reports one confidence, for its top choice. Repeating it on every row would
+    // tell the model the fifth candidate is as likely as the first, which is the opposite of
+    // what a shortlist means.
+    const [mark] = marksFromRegions([withCatalog("Froot Loops", ["Froot Loops", "Apple Jacks"])]);
+    expect(mark.candidates?.[1].confidence).toBe(0);
+  });
+
+  it("still offers the shortlist when the matcher declined to name anything", () => {
+    // Below the floor the matcher names nothing, and that is exactly when the alternatives
+    // matter most: the shopper is asked which of these it is rather than told wrongly.
+    const [mark] = marksFromRegions([withCatalog(null, ["Froot Loops", "Apple Jacks"])]);
+    expect(mark.candidates).toHaveLength(2);
+    expect(mark.candidates?.every((c) => c.confidence === 0)).toBe(true);
+  });
+
+  it("treats an empty shortlist as no catalog rather than an empty one", () => {
+    const [mark] = marksFromRegions([withCatalog(null, [])]);
+    expect(mark.candidates).toBeUndefined();
   });
 });

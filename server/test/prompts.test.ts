@@ -138,3 +138,48 @@ describe("system prompts", () => {
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/productKey brand segment/);
   });
 });
+
+describe("censusUserText offers the catalog's shortlist", () => {
+  const mark = (id: number, candidates?: { sku: string; confidence: number }[]) => ({
+    id,
+    box: { x: 0.1, y: 0.2, w: 0.3, h: 0.4 },
+    ...(candidates ? { candidates } : {}),
+  });
+
+  it("adds no catalog line when no catalog was consulted", () => {
+    // An empty "catalog:" line would read as the catalog having considered this region and
+    // rejected every product it sells, which is a far stronger claim than not being asked.
+    expect(censusUserText([mark(1)])).not.toContain("catalog:");
+  });
+
+  it("lists the candidates for a region that has them, in order", () => {
+    const text = censusUserText([
+      mark(1, [
+        { sku: "Froot Loops", confidence: 0.9 },
+        { sku: "Apple Jacks", confidence: 0 },
+      ]),
+    ]);
+    expect(text).toContain("catalog: Froot Loops, Apple Jacks");
+  });
+
+  it("keeps each region's candidates on that region's own row", () => {
+    const text = censusUserText([
+      mark(1, [{ sku: "Froot Loops", confidence: 0.9 }]),
+      mark(2),
+      mark(3, [{ sku: "Whole Milk", confidence: 0.8 }]),
+    ]);
+    const lines = text.split("\n");
+    const rowOf = (id: number) => lines.findIndex((l) => l.trim().startsWith(`${id}:`));
+    expect(lines[rowOf(1) + 1]).toContain("Froot Loops");
+    // Region 2 has none, so the line after it is region 3's row, not a stray catalog line.
+    expect(lines[rowOf(2) + 1].trim()).toMatch(/^3:/);
+    expect(lines[rowOf(3) + 1]).toContain("Whole Milk");
+  });
+
+  it("tells the model it may reject every candidate", () => {
+    // Without this the model picks the closest of a bad set, which is precisely the failure a
+    // shortlist introduces: it makes a wrong answer look sanctioned by the store's own records.
+    expect(CENSUS_SYSTEM_PROMPT).toContain("do not pick the closest");
+    expect(CENSUS_SYSTEM_PROMPT).toContain("catalogSku to null");
+  });
+});

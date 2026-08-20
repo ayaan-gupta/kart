@@ -20,7 +20,7 @@ const bananaMark = {
   size: null,
   category: "produce",
   confidence: 0.9,
-  needsCloserLook: false, isProduct: true,
+  needsCloserLook: false, isProduct: true, catalogSku: null,
 };
 
 const froskMark = {
@@ -30,7 +30,7 @@ const froskMark = {
   size: null,
   category: "cereal",
   confidence: 0.9,
-  needsCloserLook: false, isProduct: true,
+  needsCloserLook: false, isProduct: true, catalogSku: null,
 };
 
 const bananaTruth: TruthItem[] = [{ name: "Bananas", brand: null, qty: 1, occluded: false }];

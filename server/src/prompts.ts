@@ -1,5 +1,8 @@
 import type { Mark } from "./compositor.js";
 
+/** Candidates shown per region. Matches MAX_CANDIDATES in enumerate.ts. */
+const SHOWN_CANDIDATES = 5;
+
 /**
  * Kept as one frozen string and placed first in the request so it caches. Cached input is
  * $0.075/1M on gpt-5.4-mini against $0.75/1M uncached, so anything volatile must come after.
@@ -77,7 +80,18 @@ Rules:
     folded to plain ASCII letters, for example "kelloggs::froot loops". A brand like "Café
     Bustelo" folds to "cafe bustelo", not "café bustelo". Use "" for the brand of unbranded
     produce, giving "::bananas".
-15. occlusion describes whether items appear stacked or buried such that products are present
+15. Some regions are listed with "catalog:" followed by product names. Those are the closest
+    matches to that region from the store's full product list, best first, and they are the
+    only products this store sells. Treat them as strong evidence rather than a suggestion: if
+    one of them is consistent with what you can see, use it, and set catalogSku to that entry
+    copied character for character, so it joins to the store's records. Fill name, brand and
+    size from what you can actually read, following rule 1, rather than from the catalog entry.
+    If none of the offered entries fits what you can see, set catalogSku to null, describe what
+    you see in your own words, and set needsCloserLook to true; do not pick the closest of a bad
+    set. A region with no "catalog:" line was not looked up at all, which is not the same as
+    being looked up and found to match nothing, so judge those on the image alone and set
+    catalogSku to null. Anything with isProduct false always has catalogSku null.
+16. occlusion describes whether items appear stacked or buried such that products are present
     but not visible. severity "none" means you can see everything in the basket, "some" means
     a few things are partly covered, "many" means the cart is stacked and a significant part
     of the contents is hidden. itemsLikelyHidden is true whenever severity is "some" or
@@ -120,7 +134,14 @@ export function censusUserText(marks: Mark[]): string {
     .map((m) => {
       const cx = (m.box.x + m.box.w / 2).toFixed(2);
       const cy = (m.box.y + m.box.h / 2).toFixed(2);
-      return `  ${m.id}: centre (${cx}, ${cy}), size ${m.box.w.toFixed(2)} by ${m.box.h.toFixed(2)}`;
+      const row = `  ${m.id}: centre (${cx}, ${cy}), size ${m.box.w.toFixed(2)} by ${m.box.h.toFixed(2)}`;
+      // Only when a catalog was actually consulted. An empty "catalog:" line would read as the
+      // catalog having considered this region and rejected every product, which is a far
+      // stronger claim than not having been asked.
+      const candidates = m.candidates ?? [];
+      if (candidates.length === 0) return row;
+      const names = candidates.slice(0, SHOWN_CANDIDATES).map((c) => c.sku).join(", ");
+      return `${row}\n     catalog: ${names}`;
     })
     .join("\n");
   return `There are ${marks.length} numbered regions. Their normalized positions, where (0,0) is top-left and (1,1) is bottom-right:\n${rows}\n\nIdentify the product in each.`;

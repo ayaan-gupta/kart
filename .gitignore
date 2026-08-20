@@ -60,3 +60,4 @@ server/eval/rerank-score.json
 server/eval/probe-score-*.json
 server/eval/finetune-score-*.json
 server/eval/openset-score.json
+server/eval/detection-sweep*.json

@@ -21,6 +21,8 @@
  */
 import { z } from "zod";
 
+import type { Mark } from "./compositor.js";
+
 /** Normalized to the frame, origin top-left, matching every other box in this codebase. */
 export const EnumeratedBox = z.object({
   x: z.number().min(0).max(1),
@@ -28,6 +30,21 @@ export const EnumeratedBox = z.object({
   w: z.number().min(0).max(1),
   h: z.number().min(0).max(1),
 });
+
+/**
+ * What the store's catalog matcher made of this region, when one is configured.
+ *
+ * `sku` is null when the matcher's confidence fell below its floor, which is not a failure: it
+ * is the case where the shortlist is offered as alternatives instead of one name being added
+ * silently. `alternatives` is always populated regardless, best first.
+ */
+export const CatalogMatch = z.object({
+  sku: z.string().nullable(),
+  confidence: z.number().min(0).max(1),
+  alternatives: z.array(z.object({ sku: z.string(), score: z.number() })),
+});
+
+export type CatalogMatch = z.infer<typeof CatalogMatch>;
 
 export const EnumeratedRegion = z.object({
   box: EnumeratedBox,
@@ -47,11 +64,46 @@ export const EnumeratedRegion = z.object({
    * a score in these units; `grounded.py` documents the mapping it uses.
    */
   score: z.number().min(0).max(1),
+  /**
+   * Optional, because an enumerator with no catalog loaded is the configuration that shipped
+   * and must keep parsing. Absent and null mean the same thing to everything downstream.
+   */
+  catalog: CatalogMatch.nullish(),
 });
 
 export const EnumerateResponse = z.object({ instances: z.array(EnumeratedRegion) });
 
 export type EnumeratedRegion = z.infer<typeof EnumeratedRegion>;
+
+/** How many catalog candidates are offered to the model per region. */
+export const MAX_CANDIDATES = 5;
+
+/**
+ * Numbers the regions and carries their catalog shortlists across to the census.
+ *
+ * Numbering is one-based and positional, so the number drawn on the image is the number listed
+ * in the prompt and the number the model reports back. Gaps never appear here; the prompt's
+ * rule about preserving gaps exists for callers that drop a region later.
+ *
+ * A region with no catalog match yields a mark with no candidates rather than an empty list.
+ * The distinction matters in the prompt: an empty list would read as "the catalog considered
+ * this and found nothing", which is a much stronger claim than "no catalog was consulted".
+ */
+export function marksFromRegions(regions: EnumeratedRegion[]): Mark[] {
+  return regions.map((region, index) => {
+    const mark: Mark = { id: index + 1, box: region.box };
+    const alternatives = region.catalog?.alternatives ?? [];
+    if (alternatives.length > 0) {
+      mark.candidates = alternatives.slice(0, MAX_CANDIDATES).map((a) => ({
+        sku: a.sku,
+        // The matcher's confidence describes its top choice, not each alternative. Attaching it
+        // to every row would tell the model that the fifth candidate is as likely as the first.
+        confidence: a.sku === region.catalog?.sku ? (region.catalog?.confidence ?? 0) : 0,
+      }));
+    }
+    return mark;
+  });
+}
 
 /**
  * Ceiling on regions accepted from the enumerator, matching `MAX_MARKS` in `api/census.ts`.

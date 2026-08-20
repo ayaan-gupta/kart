@@ -41,7 +41,7 @@ const wellFormedMark = {
   size: "family size",
   category: "cereal",
   confidence: 0.9,
-  needsCloserLook: false, isProduct: true,
+  needsCloserLook: false, isProduct: true, catalogSku: null,
 };
 
 const wellFormedOcclusion = { itemsLikelyHidden: false, severity: "none", reason: "" };

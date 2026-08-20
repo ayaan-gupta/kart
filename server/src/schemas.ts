@@ -24,6 +24,16 @@ export const MarkIdentification = z.object({
    * Confidence cannot stand in for it: the model was 0.98 sure about the cart frame.
    */
   isProduct: z.boolean(),
+  /**
+   * Which of the catalog candidates this identification is, copied exactly, or null.
+   *
+   * Null covers three different situations deliberately: no catalog was consulted for this
+   * region, a catalog was consulted and nothing it offered fits, or the badge is not on a
+   * product at all. All three mean the same thing downstream, which is that there is no store
+   * SKU to join to, and separating them would be a distinction the model cannot report
+   * reliably anyway.
+   */
+  catalogSku: z.string().nullable(),
 });
 
 export const UnmarkedItem = z.object({
@@ -121,8 +131,9 @@ export const censusJsonSchema = {
           confidence: { type: "number", minimum: 0, maximum: 1 },
           needsCloserLook: { type: "boolean" },
           isProduct: { type: "boolean" },
+          catalogSku: { type: ["string", "null"] },
         },
-        required: ["id", "name", "brand", "size", "category", "confidence", "needsCloserLook", "isProduct"],
+        required: ["id", "name", "brand", "size", "category", "confidence", "needsCloserLook", "isProduct", "catalogSku"],
         additionalProperties: false,
       },
     },

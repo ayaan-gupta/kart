@@ -37,7 +37,7 @@ describe("census schema", () => {
           size: "family size",
           category: "Pantry",
           confidence: 0.92,
-          needsCloserLook: false, isProduct: true,
+          needsCloserLook: false, isProduct: true, catalogSku: null,
         },
       ],
       unmarkedItems: [],
@@ -52,7 +52,7 @@ describe("census schema", () => {
       marks: [
         {
           id: 1, name: "x", brand: null, size: null, category: "Other",
-          confidence: 1.4, needsCloserLook: false, isProduct: true,
+          confidence: 1.4, needsCloserLook: false, isProduct: true, catalogSku: null,
         },
       ],
       unmarkedItems: [],

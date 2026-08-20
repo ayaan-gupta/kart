@@ -44,7 +44,22 @@ NESTED_MAX_RATIO = 4.0
 MAX_POLYGON_VERTICES = 64
 SIMPLIFY_EPSILON = 0.004
 MAX_INSTANCES = 64
-BOX_THRESHOLD = 0.20
+# Measured on 465 labelled instances across 60 scenes (server/eval/sweep_detection.py), not
+# chosen by eye on overlays, which is how the previous 0.20 was picked. The curve is a broad
+# plateau from 0.23 to 0.27, all at F1 0.876 or better, with steep falls on both sides of it:
+#
+#     0.18   70% recall   64% precision   F1 0.670
+#     0.20   79%          77%             F1 0.780     <- was here, at the edge of the fall
+#     0.25   87%          93%             F1 0.898     <- peak, with margin either side
+#     0.30   69%          98%             F1 0.809
+#
+# So the old value was not a safe choice that gave up some accuracy. It sat one step from a
+# collapse, and moving to the middle of the plateau buys both the accuracy and the margin.
+#
+# A cut expressed as a fraction of the best box in the same photograph was tried, on the theory
+# that it would survive the move from this corpus to a real cart better than an absolute number.
+# It peaked at F1 0.852 with a narrower plateau, so it is worse on both counts and was dropped.
+BOX_THRESHOLD = 0.25
 
 def _iou(a, b):
     """Standard IoU on pixel xyxy. Scale free, so it does not matter that these are not
