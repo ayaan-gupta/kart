@@ -6,8 +6,13 @@ import {
   persistentAmber,
   RecognitionSession,
   tracksNeedingThumbnail,
+  worthACensus,
 } from '../orchestrator';
-import { GREEN_CONFIDENCE, MAX_IDENTIFY_CALLS_PER_SESSION } from '../config';
+import {
+  GREEN_CONFIDENCE,
+  MAX_CENSUS_CALLS_PER_SESSION,
+  MAX_IDENTIFY_CALLS_PER_SESSION,
+} from '../config';
 import { applyCensus, bagLines, createFusionState, productKey } from '../fusion';
 import { createTrackerState } from '../byteTrack';
 import type { Track } from '../types';
@@ -720,5 +725,52 @@ describe('RecognitionSession.onCapture: the capture path', () => {
     const result = await s.onCapture('img', createTrackerState(), 1000);
     const named = result!.tracks.map((t) => s.state.fusion.identities[t.id]?.name).filter(Boolean);
     expect(named).toEqual(['Bananas']);
+  });
+});
+
+describe('worthACensus', () => {
+  const confirmed = (id: string): Track =>
+    ({ id, box: { x: 0, y: 0, w: 0.2, h: 0.2 }, polygon: [0, 0, 0.2, 0, 0.2, 0.2], score: 0.9,
+       state: 'confirmed', hits: 5, lastSeenAt: 0, barcode: null,
+       filter: {} as Track['filter'] }) as Track;
+
+  const named = (id: string) => ({
+    ...createSessionState(),
+    censusCalls: MAX_CENSUS_CALLS_PER_SESSION / 2,
+    fusion: {
+      ...createFusionState(),
+      identities: {
+        [id]: { key: '::x', name: 'X', brand: null, size: null, category: 'Grocery',
+                confidence: 0.9, needsCloserLook: false, source: 'vlm' as const,
+                placeholder: false, verifiedByIdentify: false },
+      },
+    },
+  });
+
+  it('spends the first half of the budget on any confirmed track', () => {
+    // Repeat calls early are how a wrong name is corrected and how a quantity is refined, so the
+    // early budget is deliberately unconditional.
+    expect(worthACensus(createSessionState(), [confirmed('a')])).toBe(true);
+  });
+
+  it('stops spending the second half on a frame where everything is already named', () => {
+    // Measured on four thirty-second sessions of real handheld footage: the whole budget went in
+    // the first fourteen to sixteen seconds, every call landing on the same items as the camera
+    // lingered, and everything that entered frame afterwards was never examined.
+    expect(worthACensus(named('a'), [confirmed('a')])).toBe(false);
+  });
+
+  it('still spends the second half when something in frame has no name yet', () => {
+    expect(worthACensus(named('a'), [confirmed('a'), confirmed('fresh')])).toBe(true);
+  });
+
+  it('never spends on a frame with no confirmed track', () => {
+    const tentative = { ...confirmed('a'), state: 'tentative' as const };
+    expect(worthACensus(createSessionState(), [tentative])).toBe(false);
+  });
+
+  it('never spends past the budget', () => {
+    const spent = { ...createSessionState(), censusCalls: MAX_CENSUS_CALLS_PER_SESSION };
+    expect(worthACensus(spent, [confirmed('fresh')])).toBe(false);
   });
 });

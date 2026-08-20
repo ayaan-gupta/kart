@@ -43,6 +43,33 @@ export interface SessionState {
   lastError: string | null;
 }
 
+/**
+ * Whether a frame is worth one of the session's census calls.
+ *
+ * Pure, and outside the class, for the same reason `outlineStateFor` is outside the component:
+ * it is a rule rather than a piece of session plumbing, and a test of it should not have to
+ * construct a session and reach into its private state.
+ *
+ * Past the halfway point of the budget, only a frame holding something not yet named is worth
+ * spending on. Measured over four thirty-second sessions of real handheld footage of a Costco
+ * haul: the whole budget went in the first fourteen to sixteen seconds, every call landing on
+ * the same items as the camera lingered over them, and every item that entered frame afterwards
+ * was never looked at once. The last frame of every session was dominated by tracks nothing had
+ * examined.
+ *
+ * The first half is unconditional on purpose. Repeat calls early are how a wrong name gets
+ * corrected and how `inViewCounts` refines a quantity, so this reserves budget for new items
+ * rather than forbidding second looks.
+ */
+export function worthACensus(state: SessionState, tracks: Track[]): boolean {
+  if (state.censusCalls >= MAX_CENSUS_CALLS_PER_SESSION) return false;
+  const confirmed = tracks.filter((t) => t.state === 'confirmed');
+  if (confirmed.length === 0) return false;
+  if (state.censusCalls * 2 < MAX_CENSUS_CALLS_PER_SESSION) return true;
+  return confirmed.some((t) => state.fusion.identities[t.id] === undefined);
+}
+
+
 export function createSessionState(): SessionState {
   return {
     fusion: createFusionState(),
@@ -222,9 +249,8 @@ export class RecognitionSession {
   wantsKeyframe(tracks: Track[], paced = true): boolean {
     if (this.disposed || this.permanentlyUnavailable) return false;
     if (this.censusInFlight) return false;
-    if (this.state.censusCalls >= MAX_CENSUS_CALLS_PER_SESSION) return false;
     if (!paced) return false;
-    return tracks.some((t) => t.state === 'confirmed');
+    return worthACensus(this.state, tracks);
   }
 
   /**

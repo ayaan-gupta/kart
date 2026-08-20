@@ -64,3 +64,12 @@ server/eval/detection-sweep*.json
 
 # Python eval environment (models + deps, never committed)
 server/.venv/
+
+# Cart and video corpora: fetched on demand under open licences, manifests are committed
+server/eval/corpus/carts/
+server/eval/corpus/videos/
+server/eval/carts-frames.json
+server/eval/carts-states.json
+server/eval/video-frames.json
+server/eval/video-states.json
+server/eval/grocer-detection.json

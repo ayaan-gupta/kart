@@ -19,7 +19,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MAX_CENSUS_CALLS_PER_SESSION } from '../../../src/engine/liveVision/config';
+import { createSessionState, worthACensus } from '../../../src/engine/liveVision/orchestrator';
 import { applyCensus, bagLines, createFusionState, type CensusMark, type FusionState } from '../../../src/engine/liveVision/fusion';
 import { hiddenFractions } from '../../../src/engine/liveVision/occlusion';
 import { outlineStateFor, type OutlineState } from '../../../src/engine/liveVision/outlineState';
@@ -122,11 +122,12 @@ function runSession(frames: Frame[], label: string) {
       if (track.state === 'confirmed') everConfirmed.add(track.id);
     });
 
-    // A census call only happens on a keyframe, and only while the session's budget lasts. That
-    // is what makes an identity worth anything here: it has to survive frames in which nothing
-    // is re-examined.
+    // A census call only happens on a keyframe, and only when the session judges the frame worth
+    // one. That is what makes an identity worth anything here: it has to survive frames in which
+    // nothing is re-examined. `worthACensus` is the shipped rule, not a copy of it.
     let ranCensus = false;
-    if (stepped.keyframe.fire && censusCalls < MAX_CENSUS_CALLS_PER_SESSION) {
+    const session = { ...createSessionState(), censusCalls, fusion };
+    if (stepped.keyframe.fire && worthACensus(session, live)) {
       censusCalls += 1;
       ranCensus = true;
       const detection = detectionFor(live, frame.boxes);

@@ -6,9 +6,10 @@ neighbour search. Used as what it actually is, the complete set of possible answ
 classifier, and that difference is the largest single gain measured in this project.
 
 Everything below is measured on RPC, which lays products on a white tray. The same pipeline was
-later measured on real store shelves and the numbers are very different:
-[`SHELVES.md`](SHELVES.md). Read that one before carrying any constant from this file into a
-deployment, because two of them do not survive the move.
+later measured on real store shelves ([`SHELVES.md`](SHELVES.md)) and end to end on carts,
+grocery hauls and video ([`CARTS.md`](CARTS.md)). Read those before carrying any constant from
+this file into a deployment: the confidence floor fitted here names every unfamiliar product
+it is shown, and test-time augmentation is worth nothing outside this corpus.
 
 ## How these numbers are made
 

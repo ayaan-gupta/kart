@@ -1,5 +1,9 @@
 # Real store shelves: what changed when the corpus stopped being a white tray
 
+Naming and detection, one stage at a time, on still photographs of shelves. The whole
+pipeline run end to end on carts, hauls and video is in [`CARTS.md`](CARTS.md), and the
+original white-tray numbers are in [`CATALOG.md`](CATALOG.md).
+
 Every accuracy number this project quoted before this file came from RPC, which photographs
 individual products laid out on a clean background, evenly lit, unoccluded, one camera. On RPC
 the pipeline names 88.0% of crops correctly.
