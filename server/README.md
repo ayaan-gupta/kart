@@ -77,9 +77,20 @@ Request body:
   marks?: Array<{
     id: number;               // integer, unique within the request
     box: { x: number; y: number; w: number; h: number }; // normalized 0..1, origin top-left
+    candidates?: Array<{ sku: string; confidence: number }>; // the store catalog's shortlist
   }>;
 }
 ```
+
+`candidates` is what the store's catalog matcher made of that region, best first, and it is
+optional in the strong sense: a mark without it was never looked up, which is not the same as
+being looked up and matching nothing. The prompt says so explicitly, because an empty list would
+read to the model as the store rejecting every product it sells. `marksFromRegions`
+(`src/enumerate.ts`) builds these from an enumerator response; nothing else needs to.
+
+Only the matcher's own first choice carries a confidence. Repeating it down the list would tell
+the model the fifth candidate is as likely as the first, which is the opposite of what a
+shortlist means.
 
 `marks` is optional and defaults to `[]`. Up to 40 marks are accepted per request
 (`MAX_MARKS` in `api/census.ts`); more than that is rejected before any compositing or model
@@ -97,6 +108,7 @@ call happens. If `marks` is empty, the prompt asks the model to list everything 
     size: string | null;
     category: string;             // free-text aisle category, e.g. "cereal"
     confidence: number;           // 0..1
+    catalogSku: string | null;    // which candidate this is, verbatim, or null
     needsCloserLook: boolean;
   }>;
   unmarkedItems: Array<{
