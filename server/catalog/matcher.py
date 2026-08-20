@@ -71,6 +71,13 @@ CALIBRATION = (2.41, -0.38)
 CALIBRATION_FINETUNED = (1.87, 0.05)
 
 SHORTLIST = 10
+
+# How many candidates travel back with a result. The census step names a region by choosing from
+# this list (`MAX_CANDIDATES` in server/src/enumerate.ts), so it is the width of the question the
+# model is asked, and three was narrower than the endpoint believed it was: the API offered five
+# slots and the matcher could structurally never fill more than three of them.
+ALTERNATIVES = 5
+
 REFERENCES = 3
 # Keypoint matching is the expensive stage. Beyond the eighth candidate it is nearly never the
 # answer, so those slots score zero and the fusion falls back to the cheaper signals.
@@ -444,8 +451,15 @@ class Matcher:
             out[slot] = result
         return out
 
-    def match(self, images):
-        """One result per image: the chosen SKU or None, a confidence, and the runners-up."""
+    def match(self, images, detail=False):
+        """One result per image: the chosen SKU or None, a confidence, and the runners-up.
+
+        `detail` adds the full ranked shortlist under `"shortlist"` and the unweighted signals
+        that produced it under `"signals"`. It is off by default because nothing in the product
+        needs either and every result crosses a network, and on in the eval harness, which
+        measures the ceiling the shortlist sets on everything downstream and refits the fusion
+        weights. Both go through this one code path so the measurement describes what ships.
+        """
         if not images:
             return []
         index = self.index
@@ -492,7 +506,19 @@ class Matcher:
                     )
                 signals["geometry"] = rank.standardize(counts, log=True)
             fused = rank.fuse(signals, self.fusion)
-            results.append(
-                rank.decide(index.skus, row, fused, self.calibration, self.floor)
+            decided = rank.decide(
+                index.skus, row, fused, self.calibration, self.floor, ALTERNATIVES
             )
+            if detail:
+                ranking = np.argsort(-fused)
+                decided["shortlist"] = [index.skus[row[i]] for i in ranking]
+                # The signals as the fusion saw them, before weighting. Every constant in this
+                # file was fitted on one feature set and is a property of that feature set, not
+                # of the task, so a new corpus has to refit them or it inherits weights chosen
+                # for features it does not have. Returning the signals means that refit costs
+                # one encode of the corpus rather than one per candidate weighting.
+                decided["signals"] = {
+                    k: [float(v[i]) for i in ranking] for k, v in signals.items()
+                }
+            results.append(decided)
         return results

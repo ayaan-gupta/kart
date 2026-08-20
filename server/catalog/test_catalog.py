@@ -9,10 +9,13 @@ not the shapes of the arrays.
 
     pytest server/catalog/test_catalog.py
 """
+import pathlib
+import re
+
 import numpy as np
 import pytest
 
-from catalog import geometry, head, rank
+from catalog import geometry, head, matcher, rank
 
 
 # ---- shortlist -------------------------------------------------------------------------
@@ -309,7 +312,30 @@ def test_matcher_names_the_product_the_evidence_points_at(tmp_path):
     ).match([query_image])
     assert got[0]["sku"] == f"sku{target}"
     assert got[0]["confidence"] > 0.5
-    assert len(got[0]["alternatives"]) == 3
+    assert len(got[0]["alternatives"]) == matcher.ALTERNATIVES
+
+
+def test_alternatives_can_fill_the_shortlist_the_census_endpoint_offers():
+    """The width of the question the census model gets asked.
+
+    `MAX_CANDIDATES` in server/src/enumerate.ts slices the matcher's alternatives to five before
+    rendering them into the prompt. For a long time the matcher returned three, so two of those
+    five slots could never be filled and nothing anywhere failed: the endpoint asked for a
+    shortlist wider than the matcher was built to produce, and simply got a narrower one. The
+    two numbers have to be read together or they drift again.
+    """
+    max_candidates = re.search(
+        r"MAX_CANDIDATES = (\d+)",
+        (pathlib.Path(__file__).resolve().parents[1] / "src" / "enumerate.ts").read_text(),
+    )
+    assert max_candidates, "MAX_CANDIDATES is no longer declared in enumerate.ts"
+    assert matcher.ALTERNATIVES >= int(max_candidates.group(1))
+
+
+def test_alternatives_never_exceeds_the_shortlist_it_is_drawn_from():
+    # decide() slices the ranked shortlist; asking for more entries than the shortlist holds
+    # would silently return a shorter list than the constant promises.
+    assert matcher.ALTERNATIVES <= matcher.SHORTLIST
 
 
 def test_matcher_declines_when_nothing_distinguishes_the_candidates(tmp_path):
