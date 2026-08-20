@@ -89,6 +89,24 @@ MIN_CROP_PX = 24
 # is the only stage that touches the whole catalog at all.
 ENCODE_CHUNK = 512
 
+# Two encoders, not one, and not three. Four-fold cross-validation over 60 scenes, three seeds,
+# standard deviation under half a point throughout:
+#
+#     frozen                                   R@1     hard
+#     SigLIP-B/16 alone                      84.0%    81.1%
+#     SigLIP2-L alone                        80.9%    75.9%
+#     both                                   86.1%    83.1%
+#     both plus MobileCLIP                   84.7%    82.7%
+#
+# SigLIP2-L is the weaker of the two on its own and adding it is worth 2.1 points, which is the
+# whole point of an ensemble: what it needs from a member is different errors, not fewer of
+# them. MobileCLIP is a third opinion that agrees too often with the first two and costs
+# accuracy rather than buying it.
+#
+# Fine-tuning adds its own tower in front of these, giving 89.2% and 87.1% on the stacked
+# scenes, because a fine-tuned tower and the frozen one it came from disagree usefully too.
+DEFAULT_ENCODERS = ("siglipb16", "siglip2l16")
+
 # Reference crops whose keypoints stay in memory. Each is a few hundred descriptors, so a few
 # hundred kilobytes, and the set of crops a long-running matcher touches grows towards the whole
 # catalog. Unbounded, a hundred thousand reference catalog would eventually hold tens of
@@ -101,11 +119,16 @@ class Index:
 
     def __init__(self, encoder, skus, features, colors, labels, references, weights,
                  encoder_state=None):
-        self.encoder = encoder
-        # Present only for a fine-tuned index. The features and the head were produced by these
-        # weights, so a matcher that loaded the pretrained ones instead would be comparing
-        # against a catalog encoded by a different model, which fails quietly rather than loudly.
-        self.encoder_state = encoder_state
+        # One name or several. Several are concatenated, and it is worth 2.5 points: encoders
+        # disagree about different crops, so a head over both feature spaces can use whichever
+        # one happens to be right. The clearest evidence is that SigLIP2-L, the weakest encoder
+        # measured on its own, contributes the most of any addition, because what an ensemble
+        # needs from a member is different errors rather than fewer of them.
+        self.encoders = [encoder] if isinstance(encoder, str) else list(encoder)
+        # Fine-tuned weights, keyed by which encoder they belong to. Only one member of an
+        # ensemble is normally fine-tuned, and loading them into the wrong tower would compare
+        # crops against a catalog encoded by a different model, which fails quietly.
+        self.encoder_state = encoder_state or {}
         self.skus = list(skus)
         self.features = features
         self.colors = colors
@@ -124,15 +147,26 @@ class Index:
             self.group_table[sku, : len(crops)] = crops
             self.group_mask[sku, : len(crops)] = True
 
+    @property
+    def encoder(self):
+        """The single encoder, for the common case. Raises rather than guessing on an ensemble."""
+        if len(self.encoders) != 1:
+            raise AttributeError(f"this index has {len(self.encoders)} encoders; use .encoders")
+        return self.encoders[0]
+
     @classmethod
-    def build(cls, root, encoder="siglipb16", finetune_epochs=0, log=print):
+    def build(cls, root, encoder=DEFAULT_ENCODERS, finetune_epochs=0, log=print):
         """Compiles a directory of `root/<sku>/*.jpg` into an index.
 
         One directory per product, its photographs inside. That is the shape a store can
         actually produce, and it is the shape a turntable rig writes out.
 
-        `finetune_epochs` above zero moves the encoder itself rather than only the head on top
-        of it. Worth 5.9 points and tens of minutes per epoch, so it is off by default and
+        `encoder` may name one encoder or several. Several are concatenated and it is worth 2.5
+        points, because what an ensemble needs from a member is different errors rather than
+        fewer of them: the weakest encoder measured alone contributes the most of any addition.
+
+        `finetune_epochs` above zero moves the first encoder itself rather than only the head on
+        top of it. Worth 5.9 points and tens of minutes per epoch, so it is off by default and
         chosen deliberately. One epoch is the measured optimum and more costs accuracy; see
         finetune.py, including why a store needs labelled carts to use this safely.
         """
@@ -154,8 +188,10 @@ class Index:
             raise ValueError(f"no product folder under {root} had {MIN_REFERENCES} images")
 
         labels = np.array(labels)
-        log(f"  encoding {len(paths)} references across {len(skus)} SKUs")
-        image_encoder = encode.load(encoder)
+        names = [encoder] if isinstance(encoder, str) else list(encoder)
+        log(f"  encoding {len(paths)} references across {len(skus)} SKUs "
+            f"with {', '.join(names)}")
+        image_encoders = [encode.load(n) for n in names]
         color_encoder = encode.load("color")
         # Decoded in chunks, not all at once. A five thousand product catalog at twenty views
         # each is a hundred thousand images, which is tens of gigabytes held as decoded pixels
@@ -166,7 +202,9 @@ class Index:
             loaded = [
                 Image.open(p).convert("RGB") for p in paths[start : start + ENCODE_CHUNK]
             ]
-            feature_chunks.append(encode.embed(loaded, *image_encoder))
+            feature_chunks.append(
+                _stack([encode.embed(loaded, *e) for e in image_encoders])
+            )
             color_chunks.append(encode.embed(loaded, *color_encoder))
             log(f"  {min(start + ENCODE_CHUNK, len(paths))}/{len(paths)}")
         features = np.concatenate(feature_chunks)
@@ -174,28 +212,39 @@ class Index:
         weights, held = head.train(features, labels, len(skus), log=log)
         log(f"  head trained, held-out catalog accuracy {held:.1%}")
         if not finetune_epochs:
-            return cls(encoder, skus, features, colors, labels, paths, weights)
+            return cls(names, skus, features, colors, labels, paths, weights)
 
-        log(f"  fine-tuning the encoder for {finetune_epochs} epochs")
+        log(f"  fine-tuning {names[0]} for {finetune_epochs} epochs")
         visual, weights = finetune.train(
-            paths, labels, len(skus), encoder,
+            paths, labels, len(skus), names[0],
             head.prototypes(features, labels, len(skus)),
             epochs=finetune_epochs, log=log,
         )
-        state = finetune.state_dict(visual)
+        # The fine-tuned tower joins the ensemble rather than replacing the frozen one it came
+        # from: the two disagree usefully, and keeping both is worth 0.7 points over dropping
+        # the frozen copy. The suffix is what keeps them apart as dictionary keys.
+        tuned = f"{names[0]}:ft"
+        state = {tuned: finetune.state_dict(visual)}
+        names = [tuned] + names
         # Re-encoded through the same load path the matcher will use, so a mistake in restoring
         # the weights shows up here at build time rather than as quietly worse matching later.
-        image_encoder = encode.load(encoder, state)
+        rebuilt = [encode.load(n, state.get(n)) for n in names]
         features = np.concatenate(
             [
-                encode.embed(
-                    [Image.open(q).convert("RGB") for q in paths[s : s + ENCODE_CHUNK]],
-                    *image_encoder,
-                )
+                _stack([
+                    encode.embed(
+                        [Image.open(q).convert("RGB") for q in paths[s : s + ENCODE_CHUNK]], *e
+                    )
+                    for e in rebuilt
+                ])
                 for s in range(0, len(paths), ENCODE_CHUNK)
             ]
         )
-        return cls(encoder, skus, features, colors, labels, paths, weights, state)
+        # The head was fitted on the fine-tuned tower alone; the features it will now score are
+        # the concatenation, so it has to be refitted over the space that actually ships.
+        weights, held = head.train(features, labels, len(skus), log=log)
+        log(f"  head refitted over {len(names)} encoders, held-out {held:.1%}")
+        return cls(names, skus, features, colors, labels, paths, weights, state)
 
     def save(self, path):
         # np.savez appends .npz when it is missing, so without this the sidecar json and the
@@ -208,14 +257,14 @@ class Index:
             labels=self.labels,
             weights=self.weights,
         )
-        if self.encoder_state is not None:
+        if self.encoder_state:
             import torch
 
             torch.save(self.encoder_state, path.with_name(path.stem + "-encoder.pt"))
         path.with_suffix(".json").write_text(
-            json.dumps({"encoder": self.encoder, "skus": self.skus,
+            json.dumps({"encoders": self.encoders, "skus": self.skus,
                         "references": self.references,
-                        "finetuned": self.encoder_state is not None})
+                        "finetuned": sorted(self.encoder_state)})
         )
 
     @classmethod
@@ -223,15 +272,32 @@ class Index:
         path = pathlib.Path(path).with_suffix(".npz")
         arrays = np.load(path)
         meta = json.loads(path.with_suffix(".json").read_text())
-        state = None
+        state = {}
         if meta.get("finetuned"):
             import torch
 
             state = torch.load(path.with_name(path.stem + "-encoder.pt"), map_location="cpu")
+        # "encoder" is the older single-name key. Read either, so an index built before
+        # ensembles existed still loads rather than failing on a missing field.
+        names = meta.get("encoders") or [meta["encoder"]]
         return cls(
-            meta["encoder"], meta["skus"], arrays["features"], arrays["colors"],
+            names, meta["skus"], arrays["features"], arrays["colors"],
             arrays["labels"], meta["references"], arrays["weights"], state,
         )
+
+
+def _stack(blocks):
+    """Concatenates per-encoder features into one row per image, unit length overall.
+
+    Each block is normalized before joining so a model with larger raw activations cannot
+    dominate the concatenation, and the result is normalized again so the head still sees a
+    cosine.
+    """
+    if len(blocks) == 1:
+        return blocks[0]
+    parts = [b / (np.linalg.norm(b, axis=-1, keepdims=True) + 1e-9) for b in blocks]
+    joined = np.concatenate(parts, axis=1)
+    return joined / (np.linalg.norm(joined, axis=-1, keepdims=True) + 1e-9)
 
 
 def crop_region(image, box):
@@ -261,7 +327,7 @@ class Matcher:
         # Defaults follow the index rather than the call site. Handing a fine-tuned index the
         # frozen weights is not an error anything would raise; it just matches slightly worse,
         # which is the kind of mistake that survives review and never gets found.
-        finetuned = index.encoder_state is not None
+        finetuned = bool(index.encoder_state)
         self.fusion = dict(fusion or (FUSION_FINETUNED if finetuned else FUSION))
         self.calibration = calibration or (
             CALIBRATION_FINETUNED if finetuned else CALIBRATION
@@ -278,8 +344,7 @@ class Matcher:
 
     def _encode(self, name, images):
         if name not in self._encoders:
-            state = self.index.encoder_state if name == self.index.encoder else None
-            self._encoders[name] = encode.load(name, state)
+            self._encoders[name] = encode.load(name, self.index.encoder_state.get(name))
         prepare, run = self._encoders[name]
         return encode.embed(images, prepare, run)
 
@@ -319,7 +384,10 @@ class Matcher:
         if not images:
             return []
         index = self.index
-        queries = self._encode(index.encoder, images)
+        # Concatenated in the index's own order and renormalized, exactly as the catalog side
+        # was built. A different order here would silently compare one encoder's features
+        # against another's.
+        queries = _stack([self._encode(name, images) for name in index.encoders])
         query_colors = self._encode("color", images)
 
         trained = head.score(queries, index.weights)

@@ -147,10 +147,16 @@ LOADERS = {"open_clip": _load_open_clip, "hf": _load_hf, "color": _load_color}
 
 
 def load(name, state=None):
-    """Returns (prepare, encode). `state` replaces the pretrained weights with fine-tuned ones."""
-    if name not in ENCODERS:
-        raise KeyError(f"unknown encoder {name}; have {sorted(ENCODERS)}")
-    loader, model_id, pretrained = ENCODERS[name]
+    """Returns (prepare, encode). `state` replaces the pretrained weights with fine-tuned ones.
+
+    A ":ft" suffix names the fine-tuned tower of an architecture, so an ensemble can hold both
+    it and the frozen one without the two colliding on a single key. The suffix carries no
+    weights of its own; it only distinguishes which entry the state dict belongs to.
+    """
+    base = name.split(":", 1)[0]
+    if base not in ENCODERS:
+        raise KeyError(f"unknown encoder {base}; have {sorted(ENCODERS)}")
+    loader, model_id, pretrained = ENCODERS[base]
     return LOADERS[loader](model_id, pretrained, state)
 
 

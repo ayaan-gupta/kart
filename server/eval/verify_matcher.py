@@ -31,7 +31,10 @@ from catalog.matcher import Index, Matcher  # noqa: E402
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--encoder", default="siglipb16")
+    parser.add_argument(
+        "--encoder", nargs="+", default=list(Index.build.__defaults__[0]),
+        help="one or more encoders; several are concatenated, as the shipped default does",
+    )
     parser.add_argument("--skus", type=int, default=8)
     parser.add_argument("--per-sku", type=int, default=15)
     args = parser.parse_args()
@@ -61,6 +64,7 @@ def main():
 
         print(f"building an index over {len(chosen)} SKUs from {root}")
         index = Index.build(root, encoder=args.encoder)
+        print(f"index encoders: {index.encoders}")
         index.save(root / "index.npz")
         # Loaded back rather than reused, so anything the save path drops shows up here.
         matcher = Matcher(Index.load(root / "index.npz"))

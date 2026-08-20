@@ -382,6 +382,32 @@ the distinguishing detail between two variants is a small printed panel. A visio
 that can read that panel is the other, and it only has to run on the ambiguous half, which is
 where every error already is.
 
+## Two encoders beat one, including the one that is worse
+
+The single most useful thing SigLIP2-L does is disagree. On its own it is the weakest encoder
+measured; concatenated with SigLIP-B/16 it is worth 2.1 points, and after fine-tuning the same
+trick pays again. Four-fold cross-validation over 60 scenes and three seeds, standard deviation
+under half a point throughout:
+
+| | R@1 | hard tier |
+|---|---|---|
+| SigLIP-B/16 | 84.0% | 81.1% |
+| SigLIP2-L | 80.9% | 75.9% |
+| **both** | **86.1%** | **83.1%** |
+| both plus MobileCLIP | 84.7% | 82.7% |
+| fine-tuned B/16 | 86.7% | 83.1% |
+| fine-tuned plus SigLIP2-L | 88.5% | 85.8% |
+| **fine-tuned plus frozen B/16 plus SigLIP2-L** | **89.2%** | **87.1%** |
+
+What an ensemble needs from a member is different errors, not fewer of them. That is why the
+weaker encoder helps and why MobileCLIP does not: it is a third opinion that agrees too often
+with the first two, and it costs accuracy rather than buying it. It is also why a fine-tuned
+tower is kept alongside the frozen one it came from rather than replacing it, worth 0.7 points.
+
+This is the reading that makes the previous section's result useful rather than merely
+disappointing. A larger encoder is not better at this task on its own and is still worth having,
+because it is wrong about different crops.
+
 ## A larger encoder is worse, not better
 
 The small encoders were chosen on the reasoning that the matcher had to be edge-deployable. It

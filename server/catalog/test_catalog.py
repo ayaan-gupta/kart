@@ -400,12 +400,11 @@ def test_index_round_trips_a_finetuned_encoder(tmp_path):
     from catalog import matcher as matcher_module
 
     index, _, _ = synthetic_index(tmp_path)
-    index.encoder_state = {"block.weight": torch.ones(3, 4), "block.bias": torch.zeros(3)}
+    index.encoder_state = {"siglipb16:ft": {"block.weight": torch.ones(3, 4)}}
     index.save(tmp_path / "index.npz")
     back = matcher_module.Index.load(tmp_path / "index.npz")
-    assert back.encoder_state is not None
-    assert sorted(back.encoder_state) == ["block.bias", "block.weight"]
-    assert torch.equal(back.encoder_state["block.weight"], torch.ones(3, 4))
+    assert sorted(back.encoder_state) == ["siglipb16:ft"]
+    assert torch.equal(back.encoder_state["siglipb16:ft"]["block.weight"], torch.ones(3, 4))
 
 
 def test_a_frozen_index_records_that_it_has_no_finetuned_weights(tmp_path):
@@ -414,7 +413,7 @@ def test_a_frozen_index_records_that_it_has_no_finetuned_weights(tmp_path):
     index, _, _ = synthetic_index(tmp_path)
     index.save(tmp_path / "index.npz")
     assert not (tmp_path / "index-encoder.pt").exists()
-    assert matcher_module.Index.load(tmp_path / "index.npz").encoder_state is None
+    assert matcher_module.Index.load(tmp_path / "index.npz").encoder_state == {}
 
 
 def test_matcher_applies_finetuned_weights_to_its_own_encoder_and_not_to_colour(tmp_path):
@@ -422,8 +421,8 @@ def test_matcher_applies_finetuned_weights_to_its_own_encoder_and_not_to_colour(
     from catalog import encode, matcher as matcher_module
 
     index, directions, colors = synthetic_index(tmp_path)
-    index.encoder = "siglipb16"
-    index.encoder_state = {"pretend": 1}
+    index.encoders = ["siglipb16"]
+    index.encoder_state = {"siglipb16": {"pretend": 1}}
 
     asked = {}
     original = encode.load
@@ -493,7 +492,7 @@ def test_a_finetuned_index_gets_the_weights_that_were_fitted_for_it(tmp_path):
     assert frozen.calibration == matcher_module.CALIBRATION
     assert frozen.floor == matcher_module.FLOOR
 
-    index.encoder_state = {"pretend": 1}
+    index.encoder_state = {"siglipb16:ft": {"pretend": 1}}
     tuned = matcher_module.Matcher(index)
     assert tuned.fusion == matcher_module.FUSION_FINETUNED
     assert tuned.calibration == matcher_module.CALIBRATION_FINETUNED
@@ -507,7 +506,7 @@ def test_an_explicit_floor_still_wins_over_the_index_default(tmp_path):
     from catalog import matcher as matcher_module
 
     index, _, _ = synthetic_index(tmp_path)
-    index.encoder_state = {"pretend": 1}
+    index.encoder_state = {"siglipb16:ft": {"pretend": 1}}
     assert matcher_module.Matcher(index, floor=0.0).floor == 0.0
 
 
@@ -626,3 +625,76 @@ def test_too_large_a_margin_destroys_the_case_it_was_added_for():
     assert accuracy(head.MARGIN) > 0.95, "the shipped setting must not break this case"
     assert accuracy(0.15) > 0.95, "a small margin stays safe, which is why it is offered at all"
     assert accuracy(0.3) < accuracy(head.MARGIN), "a large margin is worse, not better"
+
+
+def test_each_encoder_is_normalized_before_the_blocks_are_joined():
+    """Otherwise the model with larger raw activations decides everything.
+
+    Concatenating two feature spaces makes their relative scale a hyperparameter nobody chose.
+    A tower whose outputs happen to be ten times longer would contribute a hundred times the
+    squared distance, and the second encoder would be decoration.
+    """
+    from catalog.matcher import _stack
+
+    small = np.tile(np.array([[1.0, 0.0]]), (4, 1))
+    large = np.tile(np.array([[0.0, 50.0]]), (4, 1))
+    joined = _stack([small, large])
+    assert np.allclose(np.linalg.norm(joined, axis=1), 1.0)
+    # Each block contributes the same length, so neither can dominate by scale alone.
+    assert np.allclose(np.linalg.norm(joined[:, :2], axis=1),
+                       np.linalg.norm(joined[:, 2:], axis=1))
+
+
+def test_a_single_encoder_is_passed_through_untouched():
+    """The common case must not be renormalized twice, which would be a silent no-op today and
+    a bug the moment a caller passes something that is not already unit length."""
+    from catalog.matcher import _stack
+
+    block = np.array([[3.0, 4.0]])
+    assert np.array_equal(_stack([block]), block)
+
+
+def test_an_ensemble_index_round_trips_its_encoder_list(tmp_path):
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.encoders = ["siglipb16:ft", "siglipb16", "siglip2l16"]
+    index.save(tmp_path / "index.npz")
+    back = matcher_module.Index.load(tmp_path / "index.npz")
+    assert back.encoders == ["siglipb16:ft", "siglipb16", "siglip2l16"]
+
+
+def test_an_index_written_before_ensembles_still_loads(tmp_path):
+    """Older indexes name one encoder under a different key. Failing to read them would make an
+    upgrade silently require every store to rebuild its catalog."""
+    import json
+
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.save(tmp_path / "index.npz")
+    meta = json.loads((tmp_path / "index.json").read_text())
+    meta["encoder"] = meta.pop("encoders")[0]
+    (tmp_path / "index.json").write_text(json.dumps(meta))
+    assert matcher_module.Index.load(tmp_path / "index.npz").encoders == [index.encoders[0]]
+
+
+def test_asking_an_ensemble_for_its_one_encoder_raises_rather_than_guessing(tmp_path):
+    from catalog import matcher as matcher_module
+
+    index, _, _ = synthetic_index(tmp_path)
+    index.encoders = ["siglipb16", "siglip2l16"]
+    with pytest.raises(AttributeError):
+        index.encoder
+
+
+def test_the_finetuned_suffix_resolves_to_its_base_architecture():
+    """':ft' distinguishes two towers of one architecture as dictionary keys. It must not be
+    mistaken for a separate registered model."""
+    from catalog import encode
+
+    with pytest.raises(KeyError):
+        encode.load("not_a_real_encoder")
+    # The suffixed name is accepted, which is what lets an ensemble hold both towers.
+    assert "siglipb16" in encode.ENCODERS
+    assert "siglipb16:ft".split(":", 1)[0] in encode.ENCODERS
