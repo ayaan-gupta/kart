@@ -450,3 +450,28 @@ def test_embedding_nothing_returns_nothing_rather_than_failing():
 
     empty = encode.embed([], lambda images: images, lambda batch: batch)
     assert empty.shape[0] == 0
+
+
+def test_the_padded_group_table_scores_every_sku_exactly_as_a_plain_loop_would(tmp_path):
+    """The vectorized best-reference-per-SKU has to agree with the obvious version.
+
+    Padding a ragged grouping into a rectangle is the kind of change that is easy to get subtly
+    wrong: a SKU with fewer references than the widest one carries filler entries, and if the
+    mask misses them that SKU is scored against another product's crop.
+    """
+    index, _, _ = synthetic_index(tmp_path, skus=5, per_sku=11)
+    # Make the groups ragged, which is the case padding exists for and the uniform case hides.
+    index.groups[2] = index.groups[2][:3]
+    index.groups[4] = index.groups[4][:7]
+    widest = max(len(g) for g in index.groups)
+    index.group_table = np.zeros((len(index.skus), widest), dtype=np.int64)
+    index.group_mask = np.zeros((len(index.skus), widest), dtype=bool)
+    for sku, crops in enumerate(index.groups):
+        index.group_table[sku, : len(crops)] = crops
+        index.group_mask[sku, : len(crops)] = True
+
+    rng = np.random.default_rng(2)
+    row = rng.normal(size=len(index.features))
+    vectorized = np.where(index.group_mask, row[index.group_table], -np.inf).max(axis=1)
+    plain = np.array([row[g].max() for g in index.groups])
+    assert np.allclose(vectorized, plain)

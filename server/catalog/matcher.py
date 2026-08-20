@@ -89,6 +89,16 @@ class Index:
         self.references = [str(p) for p in references]
         self.weights = weights
         self.groups = [np.flatnonzero(labels == s) for s in range(len(self.skus))]
+        # The same grouping as a rectangular table, padded, with a mask marking the real
+        # entries. Scoring every SKU then costs one numpy call per crop instead of one Python
+        # iteration per SKU per crop, which at a five thousand product catalog is the
+        # difference between a matmul and a third of a million interpreted loop steps.
+        widest = max(len(g) for g in self.groups)
+        self.group_table = np.zeros((len(self.skus), widest), dtype=np.int64)
+        self.group_mask = np.zeros((len(self.skus), widest), dtype=bool)
+        for sku, crops in enumerate(self.groups):
+            self.group_table[sku, : len(crops)] = crops
+            self.group_mask[sku, : len(crops)] = True
 
     @classmethod
     def build(cls, root, encoder="siglipb16", finetune_epochs=0, log=print):
@@ -245,7 +255,10 @@ class Matcher:
         trained = head.score(queries, index.weights)
         similarity = queries @ index.features.T
         nearest = np.stack(
-            [np.array([row[g].max() for g in index.groups]) for row in similarity]
+            [
+                np.where(index.group_mask, row[index.group_table], -np.inf).max(axis=1)
+                for row in similarity
+            ]
         )
         color_similarity = query_colors @ index.colors.T
         order = rank.shortlist(trained, self.shortlist)
