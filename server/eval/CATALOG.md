@@ -31,7 +31,9 @@ code that deploys rather than a copy of it that has since drifted.
 | SigLIP-B/16, trained head | 94.7% | 82.5% | 81.1% | 84.3% | 96.6% |
 | SigLIP-B/16, trained head, reranked | 95.8% | 82.5% | 83.3% | 85.6% | |
 | SigLIP-B/16 fine-tuned, trained head | 95.8% | 85.3% | 83.3% | 86.5% | 97.2% |
-| **SigLIP-B/16 fine-tuned, head, reranked** | **95.8%** | **86.7%** | **85.5%** | **88.0%** | |
+| SigLIP-B/16 fine-tuned, head, reranked | 95.8% | 86.7% | 85.5% | 88.0% | |
+| ensemble of three, trained head | 97.9% | 85.3% | 87.2% | 88.8% | 98.3% |
+| **ensemble of three, head, reranked** | **96.8%** | **86.0%** | **89.0%** | **89.7%** | |
 | published comparable, ~180 references per SKU | | | | 77.0% | 94.5% |
 
 Published figures are from arXiv:2605.18029, 190 open-source models on 409 grocery SKUs.
