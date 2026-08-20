@@ -46,6 +46,25 @@ cannot show, which is why only the geometry was swept and the prompt held fixed.
 as a fraction of the best box in the same photograph was tried on the theory that it would
 transfer better; it peaked lower, at F1 0.852 against 0.898, with a narrower plateau.
 
+## Tiling the frame makes it much worse
+
+The obvious way to find small items is to run the detector on overlapping quarters as well as the
+whole frame, since an item that is 3% of a photograph is 12% of a quarter and the detector's own
+resizing is what makes small things hard. Measured, nine half-overlapping tiles plus the full
+frame, swept over the same 288 configurations:
+
+| | recall | precision | F1 |
+|---|---|---|---|
+| whole frame only | 87% | 93% | 0.898 |
+| plus nine tiles | 59% | 49% | 0.534 |
+
+Not a small loss and not a tuning problem: no configuration in the sweep recovered it. A tile
+boundary cuts objects, and each cut piece is a confident proposal for something that is not a
+whole item. Those fragments then survive deduplication, because a fragment of one product does
+not overlap its neighbours enough to be suppressed and is not nested inside anything, so the two
+mechanisms that clean up the single-pass output are both blind to exactly this failure. Ten times
+the GPU cost to lose thirty points.
+
 ## Why a supervised detector does not replace it
 
 The obvious objection to renting a GPU is that a small supervised detector runs on the phone
