@@ -228,10 +228,12 @@ def test_degroup_drops_a_box_drawn_over_several_items():
     sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
     import regions
 
+    # As many members as the shipped constant demands, so the test tracks the constant rather
+    # than a number that happened to be right when it was written.
     trolley = [0, 0, 100, 100]
-    items = [[10, 10, 25, 25], [30, 10, 45, 25], [50, 10, 65, 25], [70, 10, 85, 25]]
+    items = [[10 + 18 * i, 10, 25 + 18 * i, 25] for i in range(regions.GROUP_MEMBERS)]
     boxes = [trolley] + items
-    assert regions.degroup(list(range(len(boxes))), boxes) == [1, 2, 3, 4]
+    assert regions.degroup(list(range(len(boxes))), boxes) == list(range(1, len(boxes)))
 
 
 def test_degroup_keeps_a_large_item_with_one_thing_in_front_of_it():
@@ -242,14 +244,17 @@ def test_degroup_keeps_a_large_item_with_one_thing_in_front_of_it():
     assert sorted(regions.degroup([0, 1], [big, one])) == [0, 1]
 
 
-def test_degroup_keeps_a_large_item_with_two_things_in_front_of_it():
-    # Two is still an occluded item, not a group. The bar is GROUP_MEMBERS.
+def test_degroup_keeps_a_large_item_one_member_short_of_a_group():
+    """The measured edge. Three members at 80% containment cost 6.7 points of recall on the
+    photographs most like a cart, because a large product with a few small ones in front of it
+    matches that description exactly. The bar is GROUP_MEMBERS and it has to bind here."""
     sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
     import regions
 
     big = [0, 0, 100, 100]
-    boxes = [big, [10, 10, 25, 25], [40, 40, 55, 55]]
-    assert 0 in regions.degroup([0, 1, 2], boxes)
+    items = [[10 + 18 * i, 10, 25 + 18 * i, 25] for i in range(regions.GROUP_MEMBERS - 1)]
+    boxes = [big] + items
+    assert 0 in regions.degroup(list(range(len(boxes))), boxes)
 
 
 def test_degroup_is_not_a_cap_on_box_area():

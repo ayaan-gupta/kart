@@ -34,8 +34,23 @@ NESTED_MAX_RATIO = 4.0
 # cart is far more than NESTED_MAX_RATIO times the size of a tin, so the repaired guard protects
 # it. Counting members is what separates the two cases. An item being occluded has one thing in
 # front of it; a group box has the whole shelf inside it.
-GROUP_MEMBERS = 3
-GROUP_CONTAINMENT = 0.80
+# Swept on 150 shelf photographs, because the pass has to remove a trolley box without removing
+# a large product that happens to have things in front of it, and those look alike from a
+# distance:
+#
+#     members  containment   recall   precision floor   recall on sparse photographs
+#     off               --    41.9%             45.9%                         66.7%
+#     3               0.80    41.3%             46.2%                         60.0%
+#     5               0.90    41.8%             46.3%                         65.9%
+#     8               0.90    41.9%             46.0%                         66.7%
+#
+# Three members at 80% containment costs 6.7 points on the sparse photographs, which are the ones
+# most like a cart, because a large product with a few small ones in front of it matches that
+# description. Five at 90% costs 0.8 and still removes the trolley: a whole-cart proposal holds
+# ten to twenty-five boxes, so it clears the bar by a wide margin. Eight is indistinguishable
+# from switching the pass off, which is what says five is at the edge of what is worth having.
+GROUP_MEMBERS = 5
+GROUP_CONTAINMENT = 0.90
 
 MAX_POLYGON_VERTICES = 64
 SIMPLIFY_EPSILON = 0.004
