@@ -18,6 +18,36 @@ version, on ten real cart photographs with 92 hand-labelled items:
 
 Nothing that runs on a phone produces outlines worth drawing. That is what this service is for.
 
+## What the threshold was worth
+
+`BOX_THRESHOLD` was 0.20, chosen by looking at overlays on five cart photographs. Scored against
+465 labelled instances across 60 scenes (`server/eval/sweep_detection.py`), 0.25 is better on
+every axis but one:
+
+| | recall | precision | count error |
+|---|---|---|---|
+| 0.20, chosen by eye | 79% | 77% | 0.53 |
+| **0.25, measured** | **87%** | **93%** | 0.63 |
+
+Per tier, the uncrowded scenes are now close to solved: easy 99% recall and 99% precision,
+medium 82% and 89%, hard 85% and 93%.
+
+Count error is the exception and it moved the wrong way, 0.53 to 0.63 items per scene. The two
+measure different things and the trade is worth taking: recall and precision say whether the
+right items are found, count error says whether the total is right, and a scene can hit the
+total by missing one item and inventing another. Eight more points of recall is worth a tenth of
+an item on the count.
+
+The old value was not a cautious choice. The curve is a plateau from 0.23 to 0.27, all at F1
+0.876 or better, and 0.20 sat one step outside it: 0.18 collapses to 0.670. Moving to the middle
+of the plateau buys accuracy and margin at once.
+
+Two things this cannot tell you. The corpus lays products on a white tray, so a cart's scores may
+sit elsewhere, and the prompt was tuned to stop whole-trolley proposals, a failure this corpus
+cannot show, which is why only the geometry was swept and the prompt was held fixed. A cut
+expressed as a fraction of the best box in the same photograph was tried on the theory that it
+would transfer better; it peaked lower, at F1 0.852, with a narrower plateau.
+
 ## Why a supervised detector does not replace it
 
 The obvious objection to renting a GPU is that a small supervised detector runs on the phone

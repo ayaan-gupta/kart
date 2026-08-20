@@ -509,3 +509,41 @@ def test_an_explicit_floor_still_wins_over_the_index_default(tmp_path):
     index, _, _ = synthetic_index(tmp_path)
     index.encoder_state = {"pretend": 1}
     assert matcher_module.Matcher(index, floor=0.0).floor == 0.0
+
+
+def test_a_crop_keeps_a_margin_around_the_box():
+    """Every number in CATALOG.md was measured on crops with this margin.
+
+    A box drawn tight against a package clips the logo often enough to matter. Changing the
+    margin silently changes what the head is being shown against what it was trained on.
+    """
+    from PIL import Image
+
+    from catalog.matcher import crop_region, CROP_PADDING
+
+    image = Image.new("RGB", (1000, 1000))
+    piece = crop_region(image, {"x": 0.4, "y": 0.4, "w": 0.2, "h": 0.2})
+    assert CROP_PADDING > 0
+    # 0.2 wide plus 8% of 0.2 on each side, so 0.2 * 1.16 of a 1000px frame.
+    assert piece.size == (232, 232)
+
+
+def test_a_crop_clamps_to_the_frame_rather_than_running_off_it():
+    from PIL import Image
+
+    from catalog.matcher import crop_region
+
+    image = Image.new("RGB", (1000, 1000))
+    piece = crop_region(image, {"x": 0.0, "y": 0.0, "w": 0.2, "h": 0.2})
+    assert piece.size == (216, 216)  # padding trimmed on the two edges at the frame border
+
+
+def test_a_crop_too_small_to_read_is_declined_rather_than_matched():
+    """A twelve pixel crop carries no legible brand mark, so a name for it is noise with a
+    confidence attached, which is worse than no name."""
+    from PIL import Image
+
+    from catalog.matcher import crop_region
+
+    image = Image.new("RGB", (1000, 1000))
+    assert crop_region(image, {"x": 0.5, "y": 0.5, "w": 0.01, "h": 0.01}) is None

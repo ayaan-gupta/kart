@@ -73,6 +73,18 @@ FLOOR_FINETUNED = 0.62
 # whole advantage disappears (head.py). It is a requirement on the store, not a preference.
 MIN_REFERENCES = head.MIN_REFERENCES
 
+# Context kept around a detector's box before matching it.
+#
+# Not cosmetic and not free to change. Every number in CATALOG.md was measured on crops taken
+# with exactly this margin, because a box drawn tight against a package clips the logo often
+# enough to matter, and a wider one drags in the neighbouring product. Whoever crops in
+# production must use this, or the crops stop resembling the ones the head was trained on.
+CROP_PADDING = 0.08
+
+# The smallest crop worth asking about. Below this there is no legible brand mark left and the
+# answer is noise wearing a confidence.
+MIN_CROP_PX = 24
+
 # References decoded at once while building an index. Bounds peak memory during import, which
 # is the only stage that touches the whole catalog at all.
 ENCODE_CHUNK = 512
@@ -220,6 +232,23 @@ class Index:
             meta["encoder"], meta["skus"], arrays["features"], arrays["colors"],
             arrays["labels"], meta["references"], arrays["weights"], state,
         )
+
+
+def crop_region(image, box):
+    """A padded crop for one normalized box, or None if there is too little of it to read.
+
+    `box` is {x, y, w, h} normalized to the frame with origin top-left, which is the convention
+    every coordinate in this codebase uses.
+    """
+    width, height = image.size
+    pad_x, pad_y = box["w"] * CROP_PADDING, box["h"] * CROP_PADDING
+    left = max(0, int((box["x"] - pad_x) * width))
+    top = max(0, int((box["y"] - pad_y) * height))
+    right = min(width, int((box["x"] + box["w"] + pad_x) * width))
+    bottom = min(height, int((box["y"] + box["h"] + pad_y) * height))
+    if right - left < MIN_CROP_PX or bottom - top < MIN_CROP_PX:
+        return None
+    return image.crop((left, top, right, bottom))
 
 
 class Matcher:
