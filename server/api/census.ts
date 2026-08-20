@@ -1,5 +1,5 @@
 import { runCensus } from "../src/recognize.js";
-import { enumerateRegions, type EnumeratedRegion } from "../src/enumerate.js";
+import { enumerateRegions, marksFromRegions, type EnumeratedRegion } from "../src/enumerate.js";
 import type { Mark } from "../src/compositor.js";
 import {
   assertJsonContentType,
@@ -91,7 +91,10 @@ export default async function handler(req: Request): Promise<Response> {
       regions = enumerated.regions;
       degraded = enumerated.degraded;
       if (degraded !== null) console.warn("[census] enumeration degraded:", degraded);
-      marks = regions.map((region, index) => ({ id: index + 1, box: region.box }));
+      // Through marksFromRegions, not by hand: it carries each region's catalog shortlist
+      // across as candidates, and building the marks here without it silently drops them, which
+      // turns the question the model is asked back into open-world naming.
+      marks = marksFromRegions(regions);
     }
 
     const result = await withTimeout(runCensus(image, marks));

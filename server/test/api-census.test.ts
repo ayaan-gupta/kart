@@ -12,7 +12,11 @@ vi.mock("../src/recognize.js", () => ({
 // The enumerator reaches a GPU host over the network. Mocked here for the same reason
 // recognize.js is: these tests are about what the endpoint does with the answer, not about
 // whether anything is reachable. src/enumerate.test.ts covers the module itself.
-vi.mock("../src/enumerate.js", () => ({
+vi.mock("../src/enumerate.js", async (importOriginal) => ({
+  // Only the network call is replaced. marksFromRegions is pure and is the thing that carries a
+  // region's catalog shortlist across to the prompt, so stubbing it would hide the endpoint
+  // dropping candidates, which is exactly the bug this import once had.
+  ...(await importOriginal<typeof import("../src/enumerate.js")>()),
   enumerateRegions: vi.fn(async () => ({ regions: [], degraded: "no enumerator configured" })),
 }));
 
@@ -459,5 +463,46 @@ describe("POST /api/census: the capture path, where the server finds the regions
     const body = await (await handler(post({ image: validImage, marks: [] }))).json();
     expect(enumerateMock).toHaveBeenCalledTimes(1);
     expect(body.regions).toHaveLength(1);
+  });
+});
+
+describe("the catalog shortlist reaches the prompt", () => {
+  it("carries candidates from enumerated regions through to the marks", async () => {
+    // The endpoint once built marks by hand from regions, which dropped the catalog's shortlist
+    // and quietly turned the question back into open-world naming. Nothing failed; the model was
+    // simply asked a harder question than it needed to be.
+    enumerateMock.mockResolvedValueOnce({
+      regions: [
+        {
+          box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
+          polygon: [0.1, 0.1, 0.3, 0.1, 0.3, 0.3],
+          score: 0.9,
+          catalog: {
+            sku: "Froot Loops",
+            confidence: 0.87,
+            alternatives: [
+              { sku: "Froot Loops", score: 2 },
+              { sku: "Apple Jacks", score: 1 },
+            ],
+          },
+        },
+      ],
+      degraded: null,
+    });
+    runCensusMock.mockResolvedValueOnce({
+      marks: [],
+      unmarkedItems: [],
+      inViewCounts: [],
+      occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+    });
+
+    await handler(post({ image: validImage }));
+
+    const [, marks] = runCensusMock.mock.calls.at(-1) as [unknown, Array<Record<string, unknown>>];
+    expect(marks).toHaveLength(1);
+    expect(marks[0].candidates).toEqual([
+      { sku: "Froot Loops", confidence: 0.87 },
+      { sku: "Apple Jacks", confidence: 0 },
+    ]);
   });
 });
