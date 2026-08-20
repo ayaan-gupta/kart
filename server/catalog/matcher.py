@@ -17,7 +17,7 @@ The pipeline, and why each stage is there rather than a simpler one:
      on the crowded scenes, from arithmetic on values already computed.
   5. return a calibrated probability, and decline to choose below the floor.
 
-Measured end to end on 465 held-out cart crops against a 200-SKU catalog: 86.9% first choice,
+Measured end to end on 465 held-out cart crops against a 200-SKU catalog: 88.0% first choice,
 or 89.7% with a fine-tuned index, against 65.2% for the MobileCLIP nearest-neighbour lookup this
 replaces. The shortlist behind those holds the right answer 98.9% of the time, so what remains is
 a choice among ten candidates rather than a recognition problem. Full numbers and the negative
@@ -41,19 +41,33 @@ from . import encode, finetune, geometry, head, rank
 # fit to their noise. Spread across folds is 0.02 to 0.05, so these are stable.
 # server/eval/fuse_rerank.py reproduces them.
 # Fitted by four-fold cross-validation on scene, averaged over the best few grid points rather
-# than the single best, since one grid point chosen on a couple of hundred queries is fit to
-# their noise. Measured on the shipped two-encoder ensemble.
-FUSION = {"head": 0.50, "nearest": 0.03, "color": 0.13, "geometry": 0.34}
+# than the single best, since one grid point chosen on a couple of hundred queries is fit to its
+# noise. Measured on the shipped configuration, which is the two-encoder ensemble with five-view
+# queries, and that combination changes the answer:
+#
+#     signals                          R@1     hard
+#     head alone                     88.0%    86.3%
+#     head + geometry                88.0%    87.2%
+#     head + colour + geometry       88.0%    86.3%
+#     all four                       87.5%    86.3%
+#
+# Averaging five views moves a query towards its class centre and away from any single catalog
+# crop. The head models class centres, so it gains; a nearest-neighbour lookup compares against
+# individual crops, so it loses, falling from 88.4% to 80.2% on its own. Carrying it into the
+# fusion then costs half a point. Colour is neutral overall and a point worse on the stacked
+# scenes, which is where it matters. Both are kept at zero rather than deleted, so the weights
+# read as a measurement rather than an omission.
+FUSION = {"head": 0.65, "nearest": 0.0, "color": 0.0, "geometry": 0.35}
 
-# A fine-tuned index needs its own weights, and the reason is worth stating rather than tuning
-# around. The head and the fine-tune do the same job: both learn what separates this store's
-# products. Once the encoder itself has learned it, a plain nearest-neighbour lookup carries
-# real evidence of its own and the fusion moves weight across accordingly, 0.03 to 0.22.
+# Fitted on a fine-tuned single encoder WITHOUT five-view queries, which is the one configuration
+# here not measured as shipped: reproducing it needs the fine-tuned weights, and the runs that
+# produced these saved embeddings rather than the model. Anyone fine-tuning should refit these
+# against their own index. The shape is expected to move the same way the frozen one did, since
+# the cause is what averaging does to a lookup, not anything specific to frozen features.
 FUSION_FINETUNED = {"head": 0.38, "nearest": 0.22, "color": 0.12, "geometry": 0.28}
 
-# Logistic on the first-to-second margin. Held out, the frozen one is calibrated to within 2.0
-# points of what it claims and the fine-tuned one to 2.5.
-CALIBRATION = (2.29, -0.25)
+# Logistic on the first-to-second margin, held out.
+CALIBRATION = (2.41, -0.38)
 CALIBRATION_FINETUNED = (1.87, 0.05)
 
 SHORTLIST = 10
@@ -65,18 +79,14 @@ GEOMETRY_TOP = 8
 # Confidence below which nothing is named and the shopper is asked instead. Measured as the
 # lowest floor at which the items added silently are right 90% of the time.
 #
-#     configuration        floor   covers   actually right   asks about
-#     frozen ensemble       0.55    93.5%           90.1%    30 of 465
-#     fine-tuned ensemble   0.48    99.4%           90.0%     3 of 465
-#
-# The second line is what fine-tuning buys that the headline accuracy does not show. Holding the
-# same promise about silent additions, it asks the shopper about three items in a cart of 465
-# rather than thirty. Holding out for 95% instead costs a floor of 0.84 and 115 questions on the
-# frozen path, which is a different product.
+#     configuration                  floor   covers   actually right   asks about
+#     frozen ensemble, five views     0.51    95.1%           90.3%    23 of 465
+#     fine-tuned ensemble             0.48    99.4%           90.0%     3 of 465
 #
 # An item below the floor is not lost. It is the one the interface offers as alternatives, and
-# that shortlist holds the right answer 98.9% of the time.
-FLOOR = 0.55
+# that shortlist holds the right answer 99.4% of the time, so the question put to the shopper
+# almost always contains its own answer.
+FLOOR = 0.51
 FLOOR_FINETUNED = 0.48
 
 # Below this many reference images a SKU has too little for the head to learn from and the

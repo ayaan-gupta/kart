@@ -32,8 +32,10 @@ code that deploys rather than a copy of it that has since drifted.
 | SigLIP-B/16, trained head, reranked | 95.8% | 82.5% | 83.3% | 85.6% | |
 | SigLIP-B/16 fine-tuned, trained head | 95.8% | 85.3% | 83.3% | 86.5% | 97.2% |
 | SigLIP-B/16 fine-tuned, head, reranked | 95.8% | 86.7% | 85.5% | 88.0% | |
-| ensemble of three, trained head | 97.9% | 85.3% | 87.2% | 88.8% | 98.3% |
-| **ensemble of three, head, reranked** | **96.8%** | **86.0%** | **89.0%** | **89.7%** | |
+| ensemble of two, trained head | 95.8% | 83.9% | 83.3% | 86.1% | 98.9% |
+| **ensemble of two, five-view queries, reranked** | **97.9%** | **83.9%** | **87.2%** | **88.0%** | **98.9%** |
+| ensemble of three fine-tuned, trained head | 97.9% | 85.3% | 87.2% | 88.8% | 98.3% |
+| **ensemble of three fine-tuned, reranked** | **96.8%** | **86.0%** | **89.0%** | **89.7%** | **99.4%** |
 | published comparable, ~180 references per SKU | | | | 77.0% | 94.5% |
 
 Published figures are from arXiv:2605.18029, 190 open-source models on 409 grocery SKUs.
@@ -383,6 +385,39 @@ What is left is better features or a reader. Higher encoder resolution and capac
 the distinguishing detail between two variants is a small printed panel. A vision-language model
 that can read that panel is the other, and it only has to run on the ambiguous half, which is
 where every error already is.
+
+## Five views of one crop, averaged
+
+Worth 1.9 points overall and 3.2 on the stacked scenes, with no training and no new model. It is
+the second largest single gain measured here and the cheapest by a wide margin.
+
+| queries | R@1 | hard tier |
+|---|---|---|
+| one view | 86.1% | 83.1% |
+| five views averaged | **88.0%** | **86.3%** |
+
+A crop out of a cart is one arbitrary framing of a product. A few pixels more or less around the
+edge, a few degrees of rotation, and the encoder lands somewhere else in feature space. Averaging
+over several framings cancels that, and it cancels most where the framing is worst, which is
+exactly the crowded scenes.
+
+No horizontal flip in the set. Packaging carries text and mirrored text is not something a cart
+contains, so a flipped view is a vote cast from evidence that cannot occur.
+
+It also changes what the reranker is worth, which is the part worth reading carefully. Averaging
+moves a query towards its class centre and away from any single catalog crop, so a trained head
+gains and a nearest-neighbour lookup loses, falling from 88.4% to 80.2% on its own:
+
+| signals, with five-view queries | R@1 | hard |
+|---|---|---|
+| head alone | 88.0% | 86.3% |
+| **head + geometry** | **88.0%** | **87.2%** |
+| all four | 87.5% | 86.3% |
+
+So two of the four reranker signals now subtract, and the shipped weights drop them. Two
+improvements that each looked good alone overlap: they were both compensating for the same
+instability, and once one is in place the other has less to do. Neither was wrong, and adding
+them up would have been.
 
 ## Two encoders beat one, including the one that is worse
 
