@@ -192,6 +192,55 @@ Ninety percent is cheap and ninety-five is not. An item below the floor is not a
 the one the interface offers as a short list of alternatives instead of adding silently, and the
 shortlist it offers holds the right answer 98.9% of the time.
 
+## Items that are not in the catalog
+
+The closed-world assumption is what makes every number above good, and this is its bill. All of
+them are measured on crops whose right answer is definitely present. `score_openset.py` withholds
+20 of the 200 SKUs from the catalog, trains the head on the remaining 180, and treats the queries
+belonging to the withheld 20 as items with no right answer.
+
+That is a generous proxy. A withheld SKU is still a grocery product photographed the same way as
+the rest, where the real case is a trolley strut, a hand, a shopper's own bag. Read these as an
+upper bound.
+
+| floor | declines the absent | wrongly declines the present | accuracy of what it accepted |
+|---|---|---|---|
+| 0.40 | 0% | 0% | 74% |
+| **0.59, the shipped floor** | **39%** | **10%** | **82%** |
+| 0.70 | 58% | 17% | 85% |
+| 0.80 | 71% | 25% | 88% |
+| 0.90 | 85% | 41% | 91% |
+
+Median confidence is 0.93 for a product that is present and 0.67 for one that is not, so the two
+groups do separate, and not nearly well enough. At the shipped floor three fifths of the absent
+products are accepted and named as something the shopper did not buy.
+
+The reason is structural rather than a tuning problem. The confidence is a function of the margin
+between the first and second candidate, and a margin answers "which of these is it", not "is it
+any of them". A product the catalog does not contain, which happens to resemble one kept SKU more
+than the others, produces a large margin and a confident wrong name. That is the classic failure
+of a closed-set classifier asked an open-set question.
+
+Absolute evidence answers the open-set question better than relative evidence does:
+
+| signal | separation |
+|---|---|
+| confidence, from the margin (what ships) | 0.789 |
+| keypoint inliers, absolute count | 0.777 |
+| head score, absolute cosine | 0.815 |
+| all three combined, fitted and scored on opposite halves of the scenes | 0.844 |
+
+Separation is the area under the ROC curve: the chance that a present product outranks an absent
+one. 0.5 is a coin toss.
+
+So there is a real improvement available and it is not enough. 0.844 cannot be the only thing
+standing between a trolley strut and the shopper's bag, which is why no presence score is shipped
+from this: a number that looks like a guard and is right five times in six would be trusted
+further than it deserves. Two things would change that, and both are outside what has been
+measured here. The census path already carries an `isProduct` judgement from a vision-language
+model, which is a second opinion from a completely different kind of evidence. And nothing here
+has been tested against an actual non-product, because RPC contains none.
+
 ## Measured and rejected
 
 Recorded so they are not tried again.
