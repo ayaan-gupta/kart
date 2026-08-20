@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Circle as SvgCircle, Path as SvgPath } from 'react-native-svg';
 import { ItemHighlights, outlineStateFor } from '../ItemHighlights';
-import { GREEN_CONFIDENCE } from '../../engine/liveVision/config';
+import { COVERED_FRACTION, GREEN_CONFIDENCE } from '../../engine/liveVision/config';
 import { polygonBounds, polygonCentroid, polygonToSvgPath } from '../../engine/liveVision/geometry';
 import type { Identity, Track } from '../../engine/liveVision/types';
 
@@ -42,6 +42,37 @@ describe('outlineStateFor', () => {
 
   it('is counted for a resolved barcode', () => {
     expect(outlineStateFor(track(), identity({ source: 'barcode', confidence: 1 }))).toBe('counted');
+  });
+
+  it('is covered when enough of it sits behind the items in front', () => {
+    expect(outlineStateFor(track(), undefined, COVERED_FRACTION)).toBe('covered');
+  });
+
+  it('prefers covered over forming, because only covered says what to do about it', () => {
+    // Both describe an unidentified item. 'forming' invites the shopper to hold still and wait,
+    // which will never work for something behind a cereal box; 'covered' asks them to move it.
+    expect(outlineStateFor(track({ state: 'tentative' }), undefined, 0.9)).toBe('covered');
+    expect(outlineStateFor(track({ state: 'tentative' }), undefined, 0)).toBe('forming');
+  });
+
+  it('prefers covered over closer for a half-seen item we guessed at', () => {
+    const unsure = identity({ confidence: GREEN_CONFIDENCE - 0.01 });
+    expect(outlineStateFor(track(), unsure, 0.9)).toBe('covered');
+  });
+
+  it('leaves an already counted item counted when something is set down in front of it', () => {
+    // The answer is banked. Re-opening it because the view got worse would drop an item out of
+    // the bag that we were right about.
+    expect(outlineStateFor(track(), identity({ confidence: 0.99 }), 0.95)).toBe('counted');
+  });
+
+  it('stays in its old state just below the covered threshold', () => {
+    expect(outlineStateFor(track(), undefined, COVERED_FRACTION - 0.001)).toBe('forming');
+  });
+
+  it('collapses to the three original states when nothing is covering anything', () => {
+    // The default argument is what keeps every existing caller's behaviour intact.
+    expect(outlineStateFor(track(), undefined)).toBe(outlineStateFor(track(), undefined, 0));
   });
 
   it('needs a closer look when confidence is NaN, and never fails open to counted', () => {

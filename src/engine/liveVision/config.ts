@@ -76,6 +76,21 @@ export const MAX_KEYFRAME_MOTION = 0.06;
 export const THUMBNAIL_PADDING = 0.08;
 
 /**
+ * At or above this share of an item covered by the items in front of it, that one item is shown
+ * as covered rather than merely unidentified, and the shopper is asked to move what is on top.
+ *
+ * Read off the curve in `server/eval/score_grocer_occlusion.py` rather than chosen: on 1,442
+ * crops of real store shelves, items at or above 0.2 are named correctly 47.1% of the time
+ * against 57.6% for the rest, and the gap is flat from there upwards while the flagged share
+ * keeps shrinking. Lower than 0.2 and ordinary crowding is called hiding; higher and the state
+ * stops firing on items that are genuinely lost without buying any accuracy back.
+ *
+ * This is per item. `OCCLUSION_THRESHOLD` below is a separate, scene-level verdict about
+ * whether the whole cart needs walking around, and the two answer different questions.
+ */
+export const COVERED_FRACTION = 0.2;
+
+/**
  * Above this an occlusion score flips the verdict to hidden and guided capture opens. Set above
  * the strongest single signal's own maximum contribution (see `assessOcclusion` in
  * `occlusion.ts`, where the semantic signal alone tops out at 0.45) so that no one signal can

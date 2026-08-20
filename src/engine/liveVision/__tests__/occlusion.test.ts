@@ -1,4 +1,13 @@
-import { assessOcclusion, containment, OCCLUSION_THRESHOLD, peakOverlap } from '../occlusion';
+import {
+  assessOcclusion,
+  containment,
+  hiddenFraction,
+  hiddenFractions,
+  OCCLUSION_THRESHOLD,
+  peakOverlap,
+} from '../occlusion';
+import type { Box } from '../types';
+import { COVERED_FRACTION } from '../config';
 
 const B = (x: number, y: number, w: number, h: number) => ({ x, y, w, h });
 
@@ -81,5 +90,94 @@ describe('assessOcclusion', () => {
     // If this stops holding, one signal can trip the guide by itself and the "two of three"
     // design is silently gone.
     expect(OCCLUSION_THRESHOLD).toBeGreaterThan(0.45);
+  });
+});
+
+describe('hiddenFraction', () => {
+  const box = (x: number, y: number, w: number, h: number): Box => ({ x, y, w, h });
+
+  it('is zero when nothing overlaps', () => {
+    expect(hiddenFraction(box(0, 0, 0.2, 0.2), [box(0.5, 0.5, 0.2, 0.2)])).toBe(0);
+  });
+
+  it('ignores an item behind, however much of the subject it overlaps', () => {
+    // The overlapping item ends higher in the frame, so it is further away. A tin at the back
+    // of the cart does not hide the one at the front no matter how the boxes intersect.
+    const subject = box(0, 0.4, 0.4, 0.4);
+    const behind = box(0, 0.3, 0.4, 0.4);
+    expect(hiddenFraction(subject, [behind])).toBe(0);
+  });
+
+  it('measures the share an item in front covers', () => {
+    // Spans the subject's full height and its right half, and ends lower, so it is in front.
+    const subject = box(0, 0, 0.4, 0.4);
+    const front = box(0.2, 0, 0.4, 0.5);
+    expect(hiddenFraction(subject, [front])).toBeCloseTo(0.5, 5);
+  });
+
+  it('only counts the part of an occluder that actually lands on the subject', () => {
+    // x 0.2..0.4 of 0.4 wide and y 0.1..0.4 of 0.4 tall is 0.06 of an area of 0.16.
+    const subject = box(0, 0, 0.4, 0.4);
+    const front = box(0.2, 0.1, 0.4, 0.4);
+    expect(hiddenFraction(subject, [front])).toBeCloseTo(0.375, 5);
+  });
+
+  it('counts overlapping occluders once rather than summing them', () => {
+    // Each of these covers 0.65625 of the subject and they overlap each other down the middle.
+    // Summing containment reports 1.3125, which is more of the item than exists. The union is
+    // 0.875, which is what a camera would actually see.
+    const subject = box(0, 0, 0.4, 0.4);
+    const a = box(0, 0.05, 0.3, 0.4);
+    const b = box(0.1, 0.05, 0.3, 0.4);
+    expect(containment(subject, a) + containment(subject, b)).toBeGreaterThan(1);
+    expect(hiddenFraction(subject, [a, b])).toBeCloseTo(0.875, 5);
+  });
+
+  it('never exceeds fully hidden', () => {
+    const subject = box(0.4, 0.4, 0.2, 0.2);
+    const swamped = [box(0, 0, 1, 1), box(0.1, 0.1, 0.9, 0.9), box(0.3, 0.3, 0.5, 0.5)];
+    expect(hiddenFraction(subject, swamped)).toBeCloseTo(1, 5);
+  });
+
+  it('is zero for a degenerate box rather than dividing by zero', () => {
+    expect(hiddenFraction(box(0.1, 0.1, 0, 0.2), [box(0, 0, 1, 1)])).toBe(0);
+  });
+
+  it('reports one number per box, positionally', () => {
+    // The overlay indexes into this by track position, so a filtered or reordered result would
+    // paint one item's state onto another.
+    const boxes = [box(0, 0, 0.4, 0.4), box(0.2, 0, 0.4, 0.5), box(0.8, 0.8, 0.1, 0.1)];
+    const fractions = hiddenFractions(boxes);
+    expect(fractions).toHaveLength(3);
+    expect(fractions[0]).toBeCloseTo(0.5, 5);
+    expect(fractions[2]).toBe(0);
+  });
+});
+
+describe('hiddenFraction matches the harness that set the threshold', () => {
+  // COVERED_FRACTION was read off a curve produced by server/eval/score_grocer_occlusion.py.
+  // That measurement only describes the app if the app computes the same number, and the two
+  // implementations are in different languages with no shared code. These cases come from the
+  // Python one; drift in either direction fails here rather than silently making the shipped
+  // threshold mean something else.
+  const fixture = require('../../../../server/eval/grocer/occlusion_cases.json') as {
+    cases: { subject: number[]; others: number[][]; hidden: number }[];
+  };
+  const toBox = ([x0, y0, x1, y1]: number[]): Box => ({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+
+  it('reproduces every case', () => {
+    expect(fixture.cases.length).toBeGreaterThan(40);
+    for (const testCase of fixture.cases) {
+      const got = hiddenFraction(toBox(testCase.subject), testCase.others.map(toBox));
+      expect(got).toBeCloseTo(testCase.hidden, 9);
+    }
+  });
+
+  it('covers cases on both sides of the shipped threshold', () => {
+    // A fixture that happened to be all zeroes would pass the test above while proving nothing.
+    const values = fixture.cases.map((c) => c.hidden);
+    expect(values.some((v) => v === 0)).toBe(true);
+    expect(values.some((v) => v >= COVERED_FRACTION)).toBe(true);
+    expect(values.some((v) => v > 0 && v < COVERED_FRACTION)).toBe(true);
   });
 });

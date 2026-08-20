@@ -125,6 +125,15 @@ export const overlay = {
   closerStroke: 'rgba(255, 179, 0, 0.95)',
   closerFill: 'rgba(255, 179, 0, 0.20)',
   formingStroke: 'rgba(255, 255, 255, 0.45)',
+  /**
+   * Covered items get a dashed outline and a dark scrim rather than a fourth hue. Green and
+   * amber already carry meaning here, a third colour would compete with them, and the thing
+   * being communicated is not a confidence level at all: it is that we cannot see this item.
+   * A dashed edge reads as incomplete and the scrim reads as obscured, which is what it is.
+   */
+  coveredStroke: 'rgba(255, 255, 255, 0.85)',
+  coveredFill: 'rgba(0, 0, 0, 0.35)',
+  coveredDash: '6 4',
   /** CaptureGuide's always-visible ring track, underneath the per-sector progress arcs. */
   guideTrack: 'rgba(255, 255, 255, 0.14)',
   /** CaptureGuide's arc for a sector not yet covered. */
