@@ -18,7 +18,8 @@ The pipeline, and why each stage is there rather than a simpler one:
   5. return a calibrated probability, and decline to choose below the floor.
 
 Measured end to end on 465 held-out cart crops against a 200-SKU catalog: 85.6% first choice,
-against 65.2% for the MobileCLIP nearest-neighbour lookup this replaces. Full numbers and the negative
+or 88.0% with a fine-tuned index, against 65.2% for the MobileCLIP nearest-neighbour lookup this
+replaces. Full numbers and the negative
 results in server/eval/CATALOG.md.
 
     index = Index.build("catalog/", encoder="siglipb16")

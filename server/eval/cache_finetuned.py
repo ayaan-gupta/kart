@@ -4,7 +4,8 @@ Fine-tunes the encoder once and caches its embeddings, so the reranker can be me
 score_finetune.py answers whether fine-tuning beats a frozen encoder and stops there, because
 what it varies is the epoch count. The remaining question is whether the reranker still earns
 its place once the encoder underneath it is stronger: a reranker exists to recover the gap
-between first choice and top five, and fine-tuning shrinks that gap from 12.3 points to 8.4.
+between first choice and top five, and fine-tuning shrinks that gap from 12.3 points to
+10.7. It does still earn it: 86.5% to 88.0% overall, and +2.2 on the stacked scenes.
 
 Writing the embeddings under their own tag means every existing script works unchanged, since
 they read the cache before they consult the encoder registry.
