@@ -72,6 +72,48 @@ def confidence(gap, coefficients):
     return 1 / (1 + np.exp(-(slope * np.asarray(gap, dtype=np.float64) + intercept)))
 
 
+def fit_floor(confidences, correct, target=0.90, minimum_named=0.05, minimum_count=20):
+    """The lowest confidence at which the names added silently are right `target` of the time.
+
+    The criterion `FLOOR` in matcher.py was always chosen by, written down here so it can be
+    re-run rather than re-derived. It has to be re-run, because a floor is a property of a
+    feature set and not of the product: the value fitted on RPC admits everything on real store
+    shelves. At 0.51 the fine-tuned matcher names 100% of shelf crops and is right about 67% of
+    them, so every one of its mistakes is silent. At 0.90 it names 48% and is right about 92%,
+    and the rest become a question with the answer usually in it.
+
+    Lowest, not best. A higher floor always looks better on precision and says less; the
+    product wants the most items named subject to the promise holding.
+
+    `minimum_named` refuses to satisfy the target by naming almost nothing. Without it a corpus
+    the matcher is hopeless on returns a floor of 0.999, which reads as a calibrated system and
+    is a system that has stopped answering.
+
+    `minimum_count` is the same guard in absolute terms, and it is the one that binds on a small
+    validation set: five crops of which the most confident happens to be right would otherwise
+    fit a floor of 0.99 at "100% precision", a precision estimated from a single observation.
+
+    Returns None when no floor reaches the target while still naming enough, which is a real
+    answer: these features are not good enough for this catalog to name anything safely.
+    """
+    pairs = sorted(zip(np.asarray(confidences, dtype=np.float64), np.asarray(correct, dtype=bool)))
+    total = len(pairs)
+    if total == 0:
+        return None
+    # Walk downwards, so `named`/`right` describe everything at or above the current cut and the
+    # first candidate that clears the target is also the lowest one that does.
+    right = named = 0
+    best = None
+    for value, hit in reversed(pairs):
+        named += 1
+        right += 1 if hit else 0
+        if named < minimum_count or named / total < minimum_named:
+            continue
+        if right / named >= target:
+            best = float(value)
+    return best
+
+
 def decide(names, order, fused, coefficients, floor, alternatives=3):
     """The product-facing result for one crop.
 

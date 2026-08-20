@@ -22,6 +22,9 @@ What is reported and why:
                      rather than getting wrong. Being wrong and knowing it is a different
                      outcome from being wrong confidently, and the two must never be summed.
   silent error       named confidently and wrong. The only failure the shopper cannot see.
+  fitted floor       where the confidence cut would have to sit for 90% of the names added
+                     silently to be right, fitted on half the photographs and reported on the
+                     other half. The shipped default was fitted on a different corpus.
 
 Accuracy is reported per crop, not per class. Per class would weight a product that appears
 twice as heavily as one that appears fifteen hundred times, and the cart contains instances.
@@ -44,8 +47,12 @@ CACHE = HERE / ".cache" / "grocer"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 
-from catalog import matcher as matcher_module  # noqa: E402
+from catalog import matcher as matcher_module, rank  # noqa: E402
 from catalog.matcher import Index, Matcher  # noqa: E402
+
+# The share of silently added names that must be right. The product's promise, and the thing
+# `rank.fit_floor` solves the floor for.
+FLOOR_TARGET = 0.90
 
 
 def query_crops(limit=None, seed="grocer"):
@@ -167,6 +174,35 @@ def report(rows, log=print):
         log(f"    {low:4d}-{high if high < 10_000 else '  +':>4}  n={len(band):6d}  "
             f"top-1 {hit / len(band):.1%}")
 
+    # The floor is a fitted constant, not a universal one, and the shipped value was fitted on a
+    # different corpus. Fitting it on the photographs this run reports on would be choosing a
+    # threshold on the test set, so it is fitted on half the photographs and its behaviour
+    # reported on the other half.
+    scenes = sorted({pathlib.Path(r["path"]).name.split("-")[0] for r in answerable})
+    fitting = {s for i, s in enumerate(scenes) if i % 2 == 0}
+    side = lambda rows, inside: [
+        r for r in rows if (pathlib.Path(r["path"]).name.split("-")[0] in fitting) == inside
+    ]
+    fit_rows, held_rows = side(answerable, True), side(answerable, False)
+    fitted = rank.fit_floor(
+        [r["confidence"] for r in fit_rows],
+        [r["sku"] == r["truth"] for r in fit_rows],
+        target=FLOOR_TARGET,
+    )
+    log("")
+    log(f"  floor fitted for {FLOOR_TARGET:.0%} precision, on half the photographs")
+    if fitted is None:
+        log("    unreachable: no cut names enough crops at that precision")
+    else:
+        named = [r for r in held_rows if r["confidence"] >= fitted]
+        precise = sum(1 for r in named if r["sku"] == r["truth"]) / max(len(named), 1)
+        log(f"    fitted floor        {fitted:.3f}   (shipped default {matcher_module.FLOOR})")
+        log(f"    on the other half   names {len(named) / max(len(held_rows), 1):.1%} of crops, "
+            f"right {precise:.1%} of the time")
+        summary["fitted_floor"] = fitted
+        summary["fitted_floor_names"] = len(named) / max(len(held_rows), 1)
+        summary["fitted_floor_precision"] = precise
+
     log("")
     log("  worst classes by instances lost")
     lost = collections.Counter()
@@ -197,7 +233,6 @@ def main(argv=None):
     tag = args.tag or "-".join(encoders) + (f"-ft{args.finetune_epochs}"
                                             if args.finetune_epochs else "")
     if args.no_tta:
-        matcher_module.TTA_VIEWS = False
         tag += "-notta"
 
     if not (CACHE / "manifest.json").exists():
@@ -207,8 +242,14 @@ def main(argv=None):
         )
     manifest = json.loads((CACHE / "manifest.json").read_text())
 
+    # The index is the same either way: test-time augmentation is applied to queries only, so
+    # the cached index for the augmented run is reused here rather than rebuilt.
     index = build_or_load(CACHE / f"index-{tag}.npz", encoders, args.finetune_epochs)
-    matcher = Matcher(index)
+    # Passed explicitly. Setting `matcher_module.TTA_VIEWS` does nothing, because it is a
+    # default argument on `Matcher.__init__` and default arguments are bound when the module is
+    # imported, not when the constructor is called. This harness did assign the module constant,
+    # and every run that claimed to have augmentation switched off in fact had it switched on.
+    matcher = Matcher(index, tta=not args.no_tta)
     items = query_crops(args.limit)
     print(f"scoring {len(items)} crops against {len(index.skus)} catalog products")
     started = time.time()

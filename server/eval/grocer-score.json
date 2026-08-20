@@ -1,5 +1,5 @@
 {
- "smoke-notta": {
+ "smoke": {
   "query_crops": 1500,
   "answerable": 1463,
   "coverage": 0.9753333333333334,
@@ -13,7 +13,7 @@
    "siglipb16"
   ],
   "finetune_epochs": 0,
-  "tta": false,
+  "tta": true,
   "catalog_products": 343,
   "seconds": 177.2,
   "corpus": {
@@ -31,9 +31,10 @@
    "shared_classes": 453,
    "query_crops_in_shared": 34600,
    "seconds": 25.3
-  }
+  },
+  "note": "labelled -notta when recorded; the harness's --no-tta flag did not take effect, so this run used test-time augmentation"
  },
- "b16-spread-notta": {
+ "b16-spread": {
   "query_crops": 1500,
   "answerable": 1442,
   "coverage": 0.9613333333333334,
@@ -47,9 +48,84 @@
    "siglipb16"
   ],
   "finetune_epochs": 0,
-  "tta": false,
+  "tta": true,
   "catalog_products": 292,
   "seconds": 182.1,
+  "corpus": {
+   "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
+   "catalog_share": 0.6,
+   "per_class_cap": 60,
+   "per_scene_cap": 3,
+   "min_side": 32,
+   "photographs": 6289,
+   "catalog_photographs": 3748,
+   "query_photographs": 2541,
+   "catalog_crops": 11752,
+   "query_crops": 34883,
+   "catalog_classes": 555,
+   "query_classes": 521,
+   "shared_classes": 453,
+   "query_crops_in_shared": 34600,
+   "seconds": 31.7
+  },
+  "note": "labelled -notta when recorded; the harness's --no-tta flag did not take effect, so this run used test-time augmentation"
+ },
+ "b16-ft1": {
+  "query_crops": 1500,
+  "answerable": 1442,
+  "coverage": 0.9613333333333334,
+  "top1": 0.6740638002773925,
+  "top5": 0.8120665742024965,
+  "shortlist_ceiling": 0.8543689320388349,
+  "declined": 0.0,
+  "silent_error": 0.3259361997226075,
+  "tag": "b16-ft1",
+  "encoders": [
+   "siglipb16"
+  ],
+  "finetune_epochs": 1,
+  "tta": true,
+  "catalog_products": 292,
+  "seconds": 263.7,
+  "corpus": {
+   "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
+   "catalog_share": 0.6,
+   "per_class_cap": 60,
+   "per_scene_cap": 3,
+   "min_side": 32,
+   "photographs": 6289,
+   "catalog_photographs": 3748,
+   "query_photographs": 2541,
+   "catalog_crops": 11752,
+   "query_crops": 34883,
+   "catalog_classes": 555,
+   "query_classes": 521,
+   "shared_classes": 453,
+   "query_crops_in_shared": 34600,
+   "seconds": 31.7
+  },
+  "note": "labelled -notta when recorded; the harness's --no-tta flag did not take effect, so this run used test-time augmentation"
+ },
+ "b16-ft1-notta": {
+  "query_crops": 1500,
+  "answerable": 1442,
+  "coverage": 0.9613333333333334,
+  "top1": 0.6761442441054092,
+  "top5": 0.8072122052704577,
+  "shortlist_ceiling": 0.8495145631067961,
+  "declined": 0.0,
+  "silent_error": 0.32385575589459087,
+  "fitted_floor": 0.8842908477859556,
+  "fitted_floor_names": 0.515818431911967,
+  "fitted_floor_precision": 0.9253333333333333,
+  "tag": "b16-ft1-notta",
+  "encoders": [
+   "siglipb16"
+  ],
+  "finetune_epochs": 1,
+  "tta": false,
+  "catalog_products": 292,
+  "seconds": 133.0,
   "corpus": {
    "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
    "catalog_share": 0.6,

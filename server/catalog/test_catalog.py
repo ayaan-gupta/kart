@@ -805,3 +805,68 @@ def test_colour_is_never_given_extra_views(tmp_path):
     matcher._encode("color", images)
     assert seen[index.encoders[0]] == 3 * len(matcher_module.views(images[0]))
     assert seen["color"] == 3
+
+
+def test_fit_floor_finds_the_cut_that_keeps_the_promise():
+    # Everything at or above 0.8 is right; below it, half are.
+    confidences = [0.95, 0.90, 0.85, 0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20]
+    correct = [True, True, True, True, False, True, False, True, False, False]
+    # minimum_count is relaxed because this fixture is testing where the cut lands, not the
+    # small-sample guard, which has its own test below.
+    assert rank.fit_floor(
+        confidences, correct, target=0.90, minimum_count=1
+    ) == pytest.approx(0.80)
+
+
+def test_fit_floor_returns_the_lowest_qualifying_cut_not_the_highest():
+    """A higher floor always looks better and says less.
+
+    0.95 and 0.90 both hold the promise here. Returning 0.95 would name one item where 0.90
+    names four, for a precision that is already met.
+    """
+    confidences = [0.95, 0.90, 0.85, 0.80, 0.10]
+    correct = [True, True, True, True, False]
+    assert rank.fit_floor(
+        confidences, correct, target=0.90, minimum_named=0.2, minimum_count=1
+    ) == pytest.approx(0.80)
+
+
+def test_fit_floor_declines_when_the_target_is_unreachable():
+    # Right 40% of the time at every cut, with confidence carrying no information about which.
+    # Nothing this matcher says is worth adding silently, and saying so is the right answer.
+    confidences = [i / 200 for i in range(200)]
+    correct = [i % 5 < 2 for i in range(200)]
+    assert rank.fit_floor(confidences, correct, target=0.90) is None
+
+
+def test_fit_floor_will_not_fit_a_precision_to_a_handful_of_crops():
+    # The most confident of five happens to be right. That is not a 100% precise matcher, it is
+    # one observation, and a floor fitted to it would admit nothing in production.
+    assert rank.fit_floor([0.99, 0.98, 0.97, 0.96, 0.95],
+                          [True, False, True, False, False], target=0.90) is None
+
+
+def test_fit_floor_will_not_meet_the_target_by_naming_almost_nothing():
+    # One correct answer at the very top would hit 100% precision on a sample of one. A floor
+    # that names 1% of a cart is a system that has stopped answering, not a calibrated one.
+    confidences = [0.99] + [0.5 + i / 1000 for i in range(200)]
+    correct = [True] + [i % 2 == 0 for i in range(200)]
+    assert rank.fit_floor(confidences, correct, target=0.95, minimum_named=0.05) is None
+
+
+def test_fit_floor_handles_an_empty_corpus():
+    assert rank.fit_floor([], [], target=0.9) is None
+
+
+def test_shipped_floor_is_recorded_as_fitted_not_universal():
+    """Guards the lesson, not the number.
+
+    FLOOR is fitted on a feature set. Measured on real store shelves the fine-tuned matcher
+    needs roughly 0.88 to keep the same promise the shipped 0.48 keeps on RPC, so a reader who
+    takes these constants as universal will ship a matcher that never declines. The docstring is
+    where that is written down; this asserts it is still written down.
+    """
+    source = pathlib.Path(matcher.__file__).read_text()
+    doc = source[source.index("# Confidence below which nothing is named") : source.index("FLOOR = ")]
+    assert "Grocer-Help" in doc, "the floor's comment no longer records the shelf corpus"
+    assert "fit_floor" in doc, "the floor's comment no longer points at the code that fits it"

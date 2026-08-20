@@ -83,16 +83,33 @@ REFERENCES = 3
 # answer, so those slots score zero and the fusion falls back to the cheaper signals.
 GEOMETRY_TOP = 8
 
-# Confidence below which nothing is named and the shopper is asked instead. Measured as the
-# lowest floor at which the items added silently are right 90% of the time.
+# Confidence below which nothing is named and the shopper is asked instead. The criterion is
+# the lowest floor at which the items added silently are right 90% of the time; `rank.fit_floor`
+# is that criterion as code, so it can be re-run rather than re-derived.
 #
-#     configuration                  floor   covers   actually right   asks about
-#     frozen ensemble, five views     0.51    95.1%           90.3%    23 of 465
-#     fine-tuned ensemble             0.48    99.4%           90.0%     3 of 465
+# This is fitted on a feature set and a corpus. It is not a property of the product, and the two
+# corpora measured here disagree about it by nearly a factor of two:
+#
+#     corpus                            floor   names   right   asks about
+#     RPC, products on a white tray
+#       frozen ensemble, five views      0.51   95.1%   90.3%   23 of 465
+#       fine-tuned ensemble              0.48   99.4%   90.0%    3 of 465
+#     Grocer-Help, real store shelves
+#       fine-tuned siglipb16             0.88   51.1%   90.1%   706 of 1442
+#       ...at the RPC floor of 0.48      0.48  100.0%   67.4%     0 of 1442
+#
+# That last row is the failure this comment exists to prevent. Carried onto real shelves, the
+# RPC floor admits every single crop, so the matcher never declines, a third of what it adds is
+# wrong, and nothing is ever flagged as unsure. The system does not degrade, it goes silent
+# about being wrong, which is the one failure mode a shopper cannot see or correct.
+#
+# A store fits this the same way it fits the fine-tune: on labelled carts of its own. The values
+# below are RPC's, kept because they are what the shipped RPC measurements were made with, and
+# they are a starting point for a deployment rather than an answer for one.
 #
 # An item below the floor is not lost. It is the one the interface offers as alternatives, and
-# that shortlist holds the right answer 99.4% of the time, so the question put to the shopper
-# almost always contains its own answer.
+# on shelves that shortlist holds the right answer 85.4% of the time, so the question put to the
+# shopper usually contains its own answer.
 FLOOR = 0.51
 FLOOR_FINETUNED = 0.48
 
