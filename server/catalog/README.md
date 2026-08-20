@@ -25,6 +25,7 @@ Numbers, corpus sizes and the things that were measured and rejected are in
 |---|---|---|
 | encode | `encode.py` | image features, plus a colour-layout descriptor no encoder provides |
 | classify | `head.py` | a head trained on this store's catalog |
+| adapt | `finetune.py` | optionally moves the encoder itself, not only the head on top |
 | shortlist | `rank.py` | the ten best, which is the ceiling everything after inherits |
 | rerank | `geometry.py`, `rank.py` | colour and keypoint evidence the encoder cannot represent |
 | decide | `rank.py` | a calibrated probability, and a floor below which it declines |
@@ -52,6 +53,24 @@ matcher = Matcher(Index.load("index.npz"))
 matcher.match([crop])       # [{"sku": ..., "confidence": ..., "alternatives": [...]}]
 ```
 
+A fine-tuned index moves the encoder itself rather than only the head on top of it:
+
+```python
+Index.build("catalog/", encoder="siglipb16", finetune_epochs=1).save("index.npz")
+```
+
+It is off by default for two reasons. It costs tens of minutes per epoch against seconds to
+refit a head, and it must be rerun when the catalog changes. And it overfits quickly: accuracy
+peaks after one epoch and falls after that, while the training loss keeps dropping and held-out
+catalog accuracy stays above 99%, so nothing visible in a store's own product photographs says
+when to stop. Getting the gain reliably means labelling a modest number of real carts to
+validate against, which is a requirement on the store rather than a setting.
+
+A fine-tuned index writes the vision tower's weights beside it as `<name>-encoder.pt`, and
+`Index.load` restores them. The catalog features and the head were produced by those weights, so
+an index that lost them would compare crops against a catalog encoded by a different model, and
+match worse without anything raising.
+
 A product with fewer than `MIN_REFERENCES` photographs is skipped rather than added badly: below
 that floor the head has too little to learn from and scores no better than the lookup, so a
 thinly photographed product would silently get the worse pipeline.
@@ -73,3 +92,4 @@ cd server && pytest catalog/test_catalog.py
 They need `numpy`, `opencv-python` and `torch`. No network and no model weights: the encoders
 are stubbed, because what these tests exist to check is the wiring, and downloading a
 four-hundred megabyte encoder to assert that a shortlist is sorted would be a worse test.
+`torchvision` is needed only by `finetune.py`, and only when actually fine-tuning.
