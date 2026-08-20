@@ -7,13 +7,19 @@ boundary separates them and no head can help. This moves the features themselves
 encoder learns to attend to whatever actually distinguishes these particular products, which is
 what "a model fine-tuned for this store" means in full.
 
-Measured on 465 held-out cart crops against a 200-SKU catalog, SigLIP-B/16: a frozen encoder
-with a trained head reaches 84.3% first choice, and one epoch of this reaches 89.2%. The gain
-concentrates on the crowded scenes, 81.1% to 89.0%, which is where the product actually fails.
+Measured on cart crops from 40 test scenes against a 200-SKU catalog, SigLIP-B/16, with the
+epoch chosen on 20 scenes the score never sees: a frozen encoder with a trained head reaches
+84.1% first choice, and this reaches 90.0%. The gain concentrates where the product fails.
 
 It is by far the most expensive thing in the pipeline. A frozen pass over the catalog is
 minutes; this is tens of minutes per epoch, and it has to be rerun when the catalog changes
 rather than refitted in seconds. That trade is the reason both paths exist.
+
+It also carries a requirement that is easy to miss. Accuracy peaks after one epoch and falls
+afterwards, while the training loss keeps dropping and held-out catalog accuracy stays above
+99%: the encoder overfits away from cart scenes towards the clean exemplars it trains on, and
+every signal inside the catalog says the run is going well. Choosing when to stop needs a
+handful of labelled carts. A store cannot reach this from product photographs alone.
 
 Augmentation deliberately excludes horizontal flips and hue jitter. Packaging carries text,
 which does not appear mirrored in a cart, and hue is one of the things that separates two
@@ -23,7 +29,10 @@ import numpy as np
 
 from . import encode, head as head_module
 
-EPOCHS = 3
+# One. Measured across four, with the stopping point chosen on scenes the score never saw, and
+# the first is the best on both the validation and the test scenes. More epochs cost accuracy
+# rather than buying it.
+EPOCHS = 1
 BATCH = 32
 # The encoder moves slowly and the head moves fast. The encoder already knows what a product
 # looks like and only needs nudging towards this catalog's distinctions; the head starts from

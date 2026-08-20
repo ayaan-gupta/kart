@@ -108,8 +108,9 @@ class Index:
         actually produce, and it is the shape a turntable rig writes out.
 
         `finetune_epochs` above zero moves the encoder itself rather than only the head on top
-        of it. Worth about five points and tens of minutes per epoch, so it is off by default
-        and chosen deliberately (finetune.py).
+        of it. Worth 5.9 points and tens of minutes per epoch, so it is off by default and
+        chosen deliberately. One epoch is the measured optimum and more costs accuracy; see
+        finetune.py, including why a store needs labelled carts to use this safely.
         """
         from PIL import Image
 
