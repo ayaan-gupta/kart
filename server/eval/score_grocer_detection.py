@@ -99,6 +99,11 @@ def main(argv=None):
                              "the Grounding DINO processor resizes to its own fixed size, so "
                              "1333, 2000 and 2800 give identical boxes")
     parser.add_argument("--match-iou", type=float, default=MATCH_IOU)
+    parser.add_argument("--tiles", type=int, default=1,
+                        help="run the detector over an NxN grid of half-overlapping tiles as "
+                             "well as the whole frame, and merge. The standard fix for many "
+                             "small objects, and measured as harmful on RPC, where the objects "
+                             "are neither many nor small")
     parser.add_argument("--no-dedupe", action="store_true",
                         help="skip the service's de-duplication, to separate what the model "
                              "proposes from what the pipeline keeps")
@@ -137,16 +142,43 @@ def main(argv=None):
         shrunk = pil.copy()
         shrunk.thumbnail((args.max_side, args.max_side))
 
-        inputs = proc(images=shrunk, text=regions.GROCERY_PROMPT, return_tensors="pt").to(device)
-        with torch.no_grad():
-            outputs = dino(**inputs)
-        result = proc.post_process_grounded_object_detection(
-            outputs, inputs.input_ids, threshold=args.threshold,
-            text_threshold=args.threshold, target_sizes=[shrunk.size[::-1]],
-        )[0]
+        def detect(view):
+            inputs = proc(
+                images=view, text=regions.GROCERY_PROMPT, return_tensors="pt"
+            ).to(device)
+            with torch.no_grad():
+                outputs = dino(**inputs)
+            found = proc.post_process_grounded_object_detection(
+                outputs, inputs.input_ids, threshold=args.threshold,
+                text_threshold=args.threshold, target_sizes=[view.size[::-1]],
+            )[0]
+            return (
+                [[float(v) for v in row] for row in found["boxes"].cpu().numpy()],
+                [float(s) for s in found["scores"].cpu()],
+            )
 
-        boxes = [[float(v) for v in row] for row in result["boxes"].cpu().numpy()]
-        scores = [float(s) for s in result["scores"].cpu()]
+        boxes, scores = detect(shrunk)
+        if args.tiles > 1:
+            # Half-overlapping tiles, so an item on a seam is whole in at least one of them.
+            # The whole frame is kept in the pool as well: tiles alone lose anything larger than
+            # a tile, which on a cart is the big items and on a shelf is the multipacks.
+            tw, th = shrunk.size[0] / args.tiles, shrunk.size[1] / args.tiles
+            for row in range(args.tiles * 2 - 1):
+                for col in range(args.tiles * 2 - 1):
+                    left, top = col * tw / 2, row * th / 2
+                    tile = shrunk.crop((
+                        int(left), int(top),
+                        int(min(left + tw, shrunk.size[0])),
+                        int(min(top + th, shrunk.size[1])),
+                    ))
+                    if min(tile.size) < 32:
+                        continue
+                    tile_boxes, tile_scores = detect(tile)
+                    boxes += [
+                        [b[0] + int(left), b[1] + int(top), b[2] + int(left), b[3] + int(top)]
+                        for b in tile_boxes
+                    ]
+                    scores += tile_scores
         raw_proposed += len(boxes)
         if boxes and not args.no_dedupe:
             keep = regions.dedupe(boxes, scores)
@@ -234,6 +266,7 @@ def main(argv=None):
         "raw_proposals": raw_proposed,
         "max_side": args.max_side,
         "dedupe": not args.no_dedupe,
+        "tiles": args.tiles,
         "recall_by_size": {k: (v[0] / v[1] if v[1] else None) for k, v in by_size.items()},
         "recall_by_density": {
             (f"{low}-{high - 1}" if high < 10_000 else f"{low}+"): (
@@ -253,7 +286,7 @@ def main(argv=None):
     # Keyed by both, because resolution turned out to matter more than the threshold and a
     # results file keyed on the threshold alone would have overwritten the evidence for it.
     existing[f"threshold={args.threshold} iou={args.match_iou} "
-             f"dedupe={not args.no_dedupe}"] = summary
+             f"dedupe={not args.no_dedupe} tiles={args.tiles}"] = summary
     out.write_text(json.dumps(existing, indent=1))
     print(f"\nwrote {out}")
     return summary

@@ -187,9 +187,31 @@ find and drew a loose box around. Both numbers are reported because they answer 
 questions: 0.5 is what a detection paper would print, 0.3 is closer to what this pipeline can
 actually use.
 
-Tiling the photograph is the obvious next move and is measured as *harmful* on RPC (-36 points).
-That measurement was made on sparse trays and should not be trusted here; it is the largest
-untried lever for this corpus.
+### Tiling was tried, and it is a density knob rather than an improvement
+
+Running the detector over a grid of half-overlapping tiles as well as the whole frame is the
+standard fix for many small objects, and it was measured as harmful on RPC (-36 points) where
+the objects are neither many nor small. On 120 shelf photographs, at ten detector passes per
+photograph instead of one:
+
+| labelled items in the photograph | whole frame | plus 2x2 tiles |
+|---|---|---|
+| 1-5 | 66.1% | 31.3% |
+| 6-12 | 50.6% | 40.4% |
+| 13-25 | 52.0% | 57.0% |
+| 26+ | 30.0% | 50.8% |
+| all | 39.3% | 49.8% |
+| precision floor | 44.5% | 21.3% |
+
+It nearly doubles recall on the most crowded photographs and halves it on the sparsest, because
+a tile boundary cuts a large item into pieces and the pipeline then keeps the pieces. That is
+the same effect the RPC measurement saw, and this explains it rather than contradicting it: RPC
+is sparse with large items, and so is the low band here.
+
+A cart holds ten to thirty items, which is the two middle bands, where tiling loses ten points
+in one and gains five in the other while halving the precision floor and costing ten times the
+compute. It is not shipped. It would be the right move for a fixture aimed at a shelf, and this
+product is not that.
 
 ## Covered items
 

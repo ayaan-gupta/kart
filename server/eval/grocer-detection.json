@@ -261,5 +261,59 @@
   "covered_instances": 281,
   "seconds": 217.0,
   "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
+ },
+ "threshold=0.23 iou=0.5 dedupe=True tiles=1": {
+  "threshold": 0.23,
+  "scenes": 120,
+  "labelled_instances": 1668,
+  "recall": 0.39268585131894485,
+  "precision_floor": 0.44467073998642226,
+  "proposals": 1473,
+  "raw_proposals": 1683,
+  "max_side": 1333,
+  "dedupe": true,
+  "tiles": 1,
+  "recall_by_size": {
+   "small": 0.2191142191142191,
+   "medium": 0.3612167300380228,
+   "large": 0.520336605890603
+  },
+  "recall_by_density": {
+   "1-5": 0.6608695652173913,
+   "6-12": 0.5060240963855421,
+   "13-25": 0.5195530726256983,
+   "26+": 0.30029154518950435
+  },
+  "recall_covered": 0.24431818181818182,
+  "covered_instances": 176,
+  "seconds": 113.4,
+  "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
+ },
+ "threshold=0.23 iou=0.5 dedupe=True tiles=2": {
+  "threshold": 0.23,
+  "scenes": 120,
+  "labelled_instances": 1668,
+  "recall": 0.49760191846522783,
+  "precision_floor": 0.2133676092544987,
+  "proposals": 3890,
+  "raw_proposals": 10947,
+  "max_side": 1333,
+  "dedupe": true,
+  "tiles": 2,
+  "recall_by_size": {
+   "small": 0.42657342657342656,
+   "medium": 0.55893536121673,
+   "large": 0.4950911640953717
+  },
+  "recall_by_density": {
+   "1-5": 0.3130434782608696,
+   "6-12": 0.4036144578313253,
+   "13-25": 0.5698324022346368,
+   "26+": 0.5082604470359572
+  },
+  "recall_covered": 0.25,
+  "covered_instances": 176,
+  "seconds": 979.8,
+  "note": "precision is a lower bound; the corpus is partially annotated. Count error is not measurable on this corpus and is deliberately absent."
  }
 }
