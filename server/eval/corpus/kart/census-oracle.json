@@ -1,0 +1,193 @@
+{
+ "note": "What a correct census would return for every region on the six trolley photographs, and for the products no region landed on. Written from the committed per-region labels in still-labels.json and query-labels.json plus the item lists in counts.json, not invented here.",
+ "why": "The census is built and has never executed: it needs an OpenAI key. Its two jobs are both measurable without the model. `isProduct` decides whether a region reaches the bag, which is the whole of the over-count on this corpus. `unmarkedItems` and `inViewCounts` carry the products no badge landed on, which is the whole of the under-count. Running the shipped `applyCensus` over marks a correct model would produce measures the pipeline around the model, and puts a number on what the key is worth.",
+ "photographs": {
+  "IMG_0244": {
+   "products": 1,
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "isProduct": true
+    },
+    {
+     "id": 1,
+     "name": "the trolley's plastic disc",
+     "isProduct": false
+    }
+   ],
+   "unmarkedItems": []
+  },
+  "IMG_0245": {
+   "products": 1,
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "isProduct": true
+    }
+   ],
+   "unmarkedItems": []
+  },
+  "IMG_0246": {
+   "products": 2,
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "isProduct": true
+    },
+    {
+     "id": 1,
+     "name": "brussels_sprouts",
+     "isProduct": true
+    },
+    {
+     "id": 2,
+     "name": "the trolley's plastic disc",
+     "isProduct": false
+    }
+   ],
+   "unmarkedItems": []
+  },
+  "IMG_0249": {
+   "products": 3,
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "isProduct": true
+    },
+    {
+     "id": 1,
+     "name": "brussels_sprouts",
+     "isProduct": true
+    },
+    {
+     "id": 2,
+     "name": "asparagus",
+     "isProduct": true
+    }
+   ],
+   "unmarkedItems": []
+  },
+  "IMG_0252": {
+   "products": 10,
+   "marks": [
+    {
+     "id": 0,
+     "name": "oreo",
+     "isProduct": true
+    },
+    {
+     "id": 1,
+     "name": "cauliflower",
+     "isProduct": true
+    },
+    {
+     "id": 2,
+     "name": "seedtastic_bread",
+     "isProduct": true
+    },
+    {
+     "id": 3,
+     "name": "granny_smith_apples",
+     "isProduct": true
+    },
+    {
+     "id": 4,
+     "name": "brussels_sprouts",
+     "isProduct": true
+    },
+    {
+     "id": 5,
+     "name": "baguette",
+     "isProduct": true
+    },
+    {
+     "id": 6,
+     "name": "asparagus",
+     "isProduct": true
+    },
+    {
+     "id": 7,
+     "name": "purple_produce_bag",
+     "isProduct": true
+    }
+   ],
+   "unmarkedItems": [
+    "tomatoes on the vine",
+    "yellow produce bag"
+   ]
+  },
+  "IMG_0254": {
+   "products": 16,
+   "marks": [
+    {
+     "id": 0,
+     "name": "seedtastic_bread",
+     "isProduct": true
+    },
+    {
+     "id": 1,
+     "name": "cauliflower",
+     "isProduct": true
+    },
+    {
+     "id": 2,
+     "name": "egg carton",
+     "isProduct": true
+    },
+    {
+     "id": 3,
+     "name": "jar",
+     "isProduct": true
+    },
+    {
+     "id": 4,
+     "name": "the shopper's tote bag",
+     "isProduct": false
+    },
+    {
+     "id": 5,
+     "name": "granny_smith_apples",
+     "isProduct": true
+    },
+    {
+     "id": 6,
+     "name": "muenster cheese",
+     "isProduct": true
+    },
+    {
+     "id": 7,
+     "name": "baguette",
+     "isProduct": true
+    },
+    {
+     "id": 8,
+     "name": "alaskan sockeye salmon",
+     "isProduct": true
+    },
+    {
+     "id": 9,
+     "name": "egg carton",
+     "isProduct": true
+    },
+    {
+     "id": 10,
+     "name": "purple_produce_bag",
+     "isProduct": true
+    }
+   ],
+   "unmarkedItems": [
+    "muenster cheese",
+    "beef pack",
+    "asparagus bag",
+    "tomatoes on the vine",
+    "yellow produce bag",
+    "broccoli"
+   ]
+  }
+ },
+ "unmarked_note": "The products in the trolley that no region landed on. On the shipped path these arrive through `unmarkedItems` and `inViewCounts`, which is how the census is designed to carry what detection misses: enumeration recall is the reason that field exists."
+}
