@@ -89,6 +89,25 @@ doing exactly its job on two objects that are not products at all.
 On the four shelf photographs 80.8% is amber, which is correct: those products are not in this
 catalog and the system declines all of them.
 
+## Moving the camera recovers what a single frame cannot
+
+IMG_0252 and the video are the same trolley, so the two can be compared directly.
+
+| | products found |
+|---|---|
+| the best single still | 8 of 10 |
+| somewhere in the 27 video frames | **9 of 10** |
+
+The yellow produce bag, which no still ever proposed, gets its own box in frame 4 once the camera
+has moved a few centimetres. The tomatoes are never isolated in any frame: they sit between the
+purple bag and the apples and are always inside somebody else's box.
+
+This matters more than the difference of one item suggests. Occlusion is the whole of the
+remaining count error, and the shipped path is a video scan rather than a single photograph, so
+the video number is the one that describes the product. It also says what the `covered` state is
+for: an item the system can see is covered is an item it can ask the shopper to move, and moving
+the camera alone already recovers some of them.
+
 ## What this corpus still cannot answer
 
 **The census has never run**, and nothing local can stand in for it. Two attempts were

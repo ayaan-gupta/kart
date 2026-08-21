@@ -146,5 +146,18 @@
    "why": "a chicken cabinet, same"
   }
  ],
- "non_products_note": "Regions the census's `isProduct` field would reject, identified by looking at every numbered proposal. They are the whole of the over-count on this corpus. Recorded so the value of a step that has never executed can be stated as a number rather than asserted. At a lower detector threshold the shopper's shoes, visible through the trolley mesh, join them."
+ "non_products_note": "Regions the census's `isProduct` field would reject, identified by looking at every numbered proposal. They are the whole of the over-count on this corpus. Recorded so the value of a step that has never executed can be stated as a number rather than asserted. At a lower detector threshold the shopper's shoes, visible through the trolley mesh, join them.",
+ "video_recovery": {
+  "note": "IMG_0252 and the video are the same trolley. A single still finds 8 of its 10 products; the video finds 9. The yellow produce bag, which no still ever proposed, is proposed in video frame 4 as its own box once the camera has moved. The tomatoes are never isolated in any of the 27 frames: they sit between the purple bag and the apples and are always inside somebody else's box.",
+  "products_in_trolley": 10,
+  "found_by_the_best_still": 8,
+  "found_somewhere_in_the_video": 9,
+  "recovered_by_moving_the_camera": [
+   "yellow produce bag"
+  ],
+  "never_found": [
+   "tomatoes on the vine"
+  ],
+  "why_it_matters": "Occlusion is the whole of the remaining count error and this is the mechanism that addresses it. The shipped path is a video scan, not a single photograph, so the number that describes the product is the video one."
+ }
 }
