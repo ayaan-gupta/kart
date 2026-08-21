@@ -1,0 +1,528 @@
+{
+ "catalog_products": 310,
+ "store_products": 8,
+ "answerable": 13,
+ "top1": 0.9230769230769231,
+ "top5": 1.0,
+ "ceiling": 1.0,
+ "named": 0.6153846153846154,
+ "precision": 1.0,
+ "right_of_all": 0.6153846153846154,
+ "out_of_catalog": 5,
+ "declined": 5,
+ "rows": [
+  {
+   "photograph": "IMG_0252",
+   "box": 0,
+   "truth": "oreo",
+   "expected": "kart_oreo",
+   "sku": null,
+   "confidence": 0.8123656537492296,
+   "alternatives": [
+    "kart_oreo",
+    "Oreo",
+    "Cadbury",
+    "Salt",
+    "Chips"
+   ],
+   "shortlist": [
+    "kart_oreo",
+    "Oreo",
+    "Cadbury",
+    "Salt",
+    "Chips",
+    "Nestle",
+    "Detergent",
+    "Cookies",
+    "BabyPants",
+    "Pepsi"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 1,
+   "truth": "cauliflower",
+   "expected": "kart_cauliflower",
+   "sku": "kart_cauliflower",
+   "confidence": 0.9893901013083309,
+   "alternatives": [
+    "kart_cauliflower",
+    "kart_brussels_sprouts",
+    "Cashews",
+    "kart_asparagus",
+    "kart_granny_smith_apples"
+   ],
+   "shortlist": [
+    "kart_cauliflower",
+    "kart_brussels_sprouts",
+    "Cashews",
+    "kart_asparagus",
+    "kart_granny_smith_apples",
+    "GoodLife",
+    "Salt",
+    "Rice",
+    "BabyPants",
+    "Cheese"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 2,
+   "truth": "seedtastic_bread",
+   "expected": "kart_seedtastic_bread",
+   "sku": "kart_seedtastic_bread",
+   "confidence": 0.9941140440355278,
+   "alternatives": [
+    "kart_seedtastic_bread",
+    "Bread",
+    "Flour",
+    "Rice",
+    "Pasta"
+   ],
+   "shortlist": [
+    "kart_seedtastic_bread",
+    "Bread",
+    "Flour",
+    "Rice",
+    "Pasta",
+    "SnacTac",
+    "DryFruit",
+    "Chips",
+    "kart_purple_produce_bag",
+    "BrownRice"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 3,
+   "truth": "granny_smith_apples",
+   "expected": "kart_granny_smith_apples",
+   "sku": "kart_granny_smith_apples",
+   "confidence": 0.9659282492813801,
+   "alternatives": [
+    "kart_granny_smith_apples",
+    "kart_brussels_sprouts",
+    "kart_seedtastic_bread",
+    "kart_purple_produce_bag",
+    "kart_cauliflower"
+   ],
+   "shortlist": [
+    "kart_granny_smith_apples",
+    "kart_brussels_sprouts",
+    "kart_seedtastic_bread",
+    "kart_purple_produce_bag",
+    "kart_cauliflower",
+    "kart_baguette",
+    "GoodLife",
+    "Baggrys",
+    "Rice",
+    "Chips"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 4,
+   "truth": "brussels_sprouts",
+   "expected": "kart_brussels_sprouts",
+   "sku": null,
+   "confidence": 0.7721411233304171,
+   "alternatives": [
+    "kart_brussels_sprouts",
+    "kart_cauliflower",
+    "kart_asparagus",
+    "Rice",
+    "kart_granny_smith_apples"
+   ],
+   "shortlist": [
+    "kart_brussels_sprouts",
+    "kart_cauliflower",
+    "kart_asparagus",
+    "Rice",
+    "kart_granny_smith_apples",
+    "SnacTac",
+    "kart_seedtastic_bread",
+    "Pasta",
+    "kart_purple_produce_bag",
+    "Cheese"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 5,
+   "truth": "baguette",
+   "expected": "kart_baguette",
+   "sku": "kart_baguette",
+   "confidence": 0.9916312391783538,
+   "alternatives": [
+    "kart_baguette",
+    "kart_seedtastic_bread",
+    "Flour",
+    "Pasta",
+    "kart_brussels_sprouts"
+   ],
+   "shortlist": [
+    "kart_baguette",
+    "kart_seedtastic_bread",
+    "Flour",
+    "Pasta",
+    "kart_brussels_sprouts",
+    "SnacTac",
+    "Chips",
+    "Bread",
+    "Baggrys",
+    "Bourbon"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 6,
+   "truth": "asparagus",
+   "expected": "kart_asparagus",
+   "sku": null,
+   "confidence": 0.7254426463778225,
+   "alternatives": [
+    "kart_asparagus",
+    "kart_brussels_sprouts",
+    "kart_purple_produce_bag",
+    "kart_seedtastic_bread",
+    "Pulses"
+   ],
+   "shortlist": [
+    "kart_asparagus",
+    "kart_brussels_sprouts",
+    "kart_purple_produce_bag",
+    "kart_seedtastic_bread",
+    "Pulses",
+    "kart_baguette",
+    "SnacTac",
+    "Salt",
+    "kart_granny_smith_apples",
+    "Tata_Gold"
+   ]
+  },
+  {
+   "photograph": "IMG_0252",
+   "box": 7,
+   "truth": "purple_produce_bag",
+   "expected": "kart_purple_produce_bag",
+   "sku": "kart_purple_produce_bag",
+   "confidence": 0.9639722471927429,
+   "alternatives": [
+    "kart_purple_produce_bag",
+    "kart_baguette",
+    "kart_granny_smith_apples",
+    "kart_seedtastic_bread",
+    "Salt"
+   ],
+   "shortlist": [
+    "kart_purple_produce_bag",
+    "kart_baguette",
+    "kart_granny_smith_apples",
+    "kart_seedtastic_bread",
+    "Salt",
+    "kart_brussels_sprouts",
+    "Maggi",
+    "SnacTac",
+    "Rice",
+    "Bourbon"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 0,
+   "truth": "seedtastic_bread",
+   "expected": "kart_seedtastic_bread",
+   "sku": "kart_seedtastic_bread",
+   "confidence": 0.9971114803355112,
+   "alternatives": [
+    "kart_seedtastic_bread",
+    "Bread",
+    "Rice",
+    "SnacTac",
+    "Chips"
+   ],
+   "shortlist": [
+    "kart_seedtastic_bread",
+    "Bread",
+    "Rice",
+    "SnacTac",
+    "Chips",
+    "Flour",
+    "Pasta",
+    "BrownRice",
+    "GoodLife",
+    "kart_purple_produce_bag"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 1,
+   "truth": "cauliflower",
+   "expected": "kart_cauliflower",
+   "sku": "kart_cauliflower",
+   "confidence": 0.9924926010207771,
+   "alternatives": [
+    "kart_cauliflower",
+    "kart_brussels_sprouts",
+    "kart_granny_smith_apples",
+    "kart_asparagus",
+    "Cashews"
+   ],
+   "shortlist": [
+    "kart_cauliflower",
+    "kart_brussels_sprouts",
+    "kart_granny_smith_apples",
+    "kart_asparagus",
+    "Cashews",
+    "Rice",
+    "BabyPants",
+    "Cheese",
+    "GoodLife",
+    "Salt"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 2,
+   "truth": "out_of_catalog",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.9235022032159016,
+   "alternatives": [
+    "kart_brussels_sprouts",
+    "Baggrys",
+    "Drinks",
+    "kart_seedtastic_bread",
+    "BrownRice"
+   ],
+   "shortlist": [
+    "kart_brussels_sprouts",
+    "Baggrys",
+    "Drinks",
+    "kart_seedtastic_bread",
+    "BrownRice",
+    "Rice",
+    "SnacTac",
+    "Weikfield",
+    "Chips",
+    "Kissan"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 3,
+   "truth": "out_of_catalog",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.9234196780002739,
+   "alternatives": [
+    "Nescafe",
+    "Veeba",
+    "Honey",
+    "Mayonnaise",
+    "Bru"
+   ],
+   "shortlist": [
+    "Nescafe",
+    "Veeba",
+    "Honey",
+    "Mayonnaise",
+    "Bru",
+    "BrownRice",
+    "Pickle",
+    "Storia",
+    "Nutella",
+    "Catch"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 4,
+   "truth": "not_a_product",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.9349457635014249,
+   "alternatives": [
+    "kart_purple_produce_bag",
+    "kart_baguette",
+    "MiniMeBakers",
+    "Tata_Gold",
+    "Weikfield"
+   ],
+   "shortlist": [
+    "kart_purple_produce_bag",
+    "kart_baguette",
+    "MiniMeBakers",
+    "Tata_Gold",
+    "Weikfield",
+    "Baggrys",
+    "Pasta",
+    "Rice",
+    "Flour",
+    "SnacTac"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 5,
+   "truth": "granny_smith_apples",
+   "expected": "kart_granny_smith_apples",
+   "sku": null,
+   "confidence": 0.9093403374305005,
+   "alternatives": [
+    "kart_granny_smith_apples",
+    "kart_brussels_sprouts",
+    "kart_purple_produce_bag",
+    "Baggrys",
+    "Rice"
+   ],
+   "shortlist": [
+    "kart_granny_smith_apples",
+    "kart_brussels_sprouts",
+    "kart_purple_produce_bag",
+    "Baggrys",
+    "Rice",
+    "kart_seedtastic_bread",
+    "kart_asparagus",
+    "Chips",
+    "Salt",
+    "Pasta"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 6,
+   "truth": "out_of_catalog",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.7791439089439992,
+   "alternatives": [
+    "kart_brussels_sprouts",
+    "Drinks",
+    "kart_baguette",
+    "Britannia",
+    "kart_cauliflower"
+   ],
+   "shortlist": [
+    "kart_brussels_sprouts",
+    "Drinks",
+    "kart_baguette",
+    "Britannia",
+    "kart_cauliflower",
+    "Milk_Amul",
+    "Chips",
+    "Baggrys",
+    "Veeba",
+    "Salt"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 7,
+   "truth": "baguette",
+   "expected": "kart_baguette",
+   "sku": "kart_baguette",
+   "confidence": 0.9798434601695563,
+   "alternatives": [
+    "kart_baguette",
+    "kart_brussels_sprouts",
+    "kart_seedtastic_bread",
+    "Flour",
+    "Salt"
+   ],
+   "shortlist": [
+    "kart_baguette",
+    "kart_brussels_sprouts",
+    "kart_seedtastic_bread",
+    "Flour",
+    "Salt",
+    "kart_purple_produce_bag",
+    "SnacTac",
+    "Rice",
+    "Baggrys",
+    "Pasta"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 8,
+   "truth": "out_of_catalog",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.933049519409391,
+   "alternatives": [
+    "kart_brussels_sprouts",
+    "CheeseSlices",
+    "Baggrys",
+    "Cheese",
+    "MiniMeBakers"
+   ],
+   "shortlist": [
+    "kart_brussels_sprouts",
+    "CheeseSlices",
+    "Baggrys",
+    "Cheese",
+    "MiniMeBakers",
+    "Nilons",
+    "kart_granny_smith_apples",
+    "Rice",
+    "Everest",
+    "SnacTac"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 9,
+   "truth": "out_of_catalog",
+   "expected": null,
+   "sku": null,
+   "confidence": 0.7740475506564569,
+   "alternatives": [
+    "CheeseSlices",
+    "Pasta",
+    "Weikfield",
+    "Cheese_Amul",
+    "BabyPants"
+   ],
+   "shortlist": [
+    "CheeseSlices",
+    "Pasta",
+    "Weikfield",
+    "Cheese_Amul",
+    "BabyPants",
+    "Veeba",
+    "Cheese",
+    "Cookies",
+    "kart_seedtastic_bread",
+    "Pulses"
+   ]
+  },
+  {
+   "photograph": "IMG_0254",
+   "box": 10,
+   "truth": "purple_produce_bag",
+   "expected": "kart_purple_produce_bag",
+   "sku": null,
+   "confidence": 0.7515035777479135,
+   "alternatives": [
+    "kart_brussels_sprouts",
+    "kart_asparagus",
+    "kart_purple_produce_bag",
+    "kart_seedtastic_bread",
+    "SnacTac"
+   ],
+   "shortlist": [
+    "kart_brussels_sprouts",
+    "kart_asparagus",
+    "kart_purple_produce_bag",
+    "kart_seedtastic_bread",
+    "SnacTac",
+    "Pulses",
+    "kart_baguette",
+    "Rice",
+    "Tata_Gold",
+    "24Mantra"
+   ]
+  }
+ ]
+}

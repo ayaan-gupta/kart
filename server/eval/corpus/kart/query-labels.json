@@ -1,0 +1,40 @@
+{
+ "note": "What each detected box on the two query photographs is. These photographs contribute nothing to the catalog: their references come from the video and from the four earlier photographs, so a correct name here is recognition and not recall.",
+ "out_of_catalog": "a real product the catalog does not contain. The right answer for these is to decline, and they are what makes the floor measurable at all.",
+ "not_a_product": "the shopper's own tote bag, and boxes drawn across several items at once",
+ "boxes": {
+  "IMG_0252": [
+   "oreo",
+   "cauliflower",
+   "seedtastic_bread",
+   "granny_smith_apples",
+   "brussels_sprouts",
+   "baguette",
+   "asparagus",
+   "purple_produce_bag"
+  ],
+  "IMG_0254": [
+   "seedtastic_bread",
+   "cauliflower",
+   "out_of_catalog",
+   "out_of_catalog",
+   "not_a_product",
+   "granny_smith_apples",
+   "out_of_catalog",
+   "baguette",
+   "out_of_catalog",
+   "out_of_catalog",
+   "purple_produce_bag"
+  ]
+ },
+ "identified": {
+  "IMG_0254": {
+   "2": "egg carton",
+   "3": "a jar",
+   "4": "the shopper's woven tote",
+   "6": "Muenster cheese and the second egg carton in one box",
+   "8": "Alaskan sockeye salmon",
+   "9": "Muenster cheese"
+  }
+ }
+}

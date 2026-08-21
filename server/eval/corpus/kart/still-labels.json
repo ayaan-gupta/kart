@@ -1,0 +1,33 @@
+{
+ "note": "What each detected box on the early trolley photographs is. These four photographs are catalog references; IMG_0252 and IMG_0254 are the query set and are deliberately not labelled here. The split is by photograph, which is the same discipline the shelf corpus uses and for the same reason: two crops of one photograph share the lighting, the angle and the item, so a crop-level split scores the recognizer on pictures it has already seen.",
+ "catalog_photographs": [
+  "IMG_0244",
+  "IMG_0245",
+  "IMG_0246",
+  "IMG_0249"
+ ],
+ "query_photographs": [
+  "IMG_0252",
+  "IMG_0254"
+ ],
+ "boxes": {
+  "IMG_0244": [
+   "cauliflower",
+   "skip"
+  ],
+  "IMG_0245": [
+   "cauliflower"
+  ],
+  "IMG_0246": [
+   "cauliflower",
+   "brussels_sprouts",
+   "skip"
+  ],
+  "IMG_0249": [
+   "cauliflower",
+   "brussels_sprouts",
+   "asparagus"
+  ]
+ },
+ "skip_note": "the trolley's own moulded plastic disc, which is not a product"
+}

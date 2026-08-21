@@ -1,0 +1,31 @@
+{
+ "note": "What each appearance-consistent run of the video is, judged from a contact sheet of its frames. A run whose tiles show more than one product is labelled `skip`: a contaminated reference is worse than a missing one, because it teaches the catalog that one product looks like another. Two splits are labelled, a coarse one at similarity 0.75 and a fine one at 0.86: the coarse split keeps long clean runs whole, the fine one recovers the clean parts of runs the coarse split could not separate. Their outputs are unioned by video frame.",
+ "runs": {
+  "track_3-0": "brussels_sprouts",
+  "track_5-2": "skip",
+  "track_10-3": "seedtastic_bread",
+  "track_6-4": "purple_produce_bag",
+  "track_1-5": "oreo",
+  "track_4-6": "granny_smith_apples",
+  "track_9-7": "asparagus",
+  "track_12-8": "baguette",
+  "track_12-9": "skip",
+  "track_2-10": "cauliflower",
+  "track_14-13": "skip",
+  "track_18-14": "cauliflower",
+  "track_3-2": "skip",
+  "track_5-6": "baguette",
+  "track_5-7": "purple_produce_bag",
+  "track_10-11": "seedtastic_bread",
+  "track_10-15": "skip",
+  "track_6-19": "purple_produce_bag",
+  "track_6-20": "purple_produce_bag",
+  "track_1-21": "oreo",
+  "track_4-23": "granny_smith_apples",
+  "track_9-24": "asparagus",
+  "track_12-26": "baguette",
+  "track_2-32": "cauliflower",
+  "track_14-36": "brussels_sprouts",
+  "track_18-38": "cauliflower"
+ }
+}
