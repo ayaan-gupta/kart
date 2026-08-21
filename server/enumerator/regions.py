@@ -77,7 +77,14 @@ PRODUCE_PROMPT = (
 # onions have nothing to be inside of.
 #
 # Swept between the two: the trolley gains nothing until 0.12, so there is no intermediate value
-# that helps one without the other's failure. 0.30 stays because the corpus it protects has more
+# that helps one without the other's failure.
+#
+# Collapsing tight clusters of second-pass boxes was tried, on the reasoning that a shattered net
+# bag is several similar boxes packed into one compact region while a recovered tomato is an
+# isolated addition. It fails by transitive chaining: on a dense trolley every box touches
+# something, so linking boxes that overlap at all and taking the closure swallowed 26 of the 27
+# boxes on the shattered haul into a single cluster. A linkage rule that does not chain would
+# have to be fitted to that one photograph, which is not evidence. 0.30 stays because the corpus it protects has more
 # hand-counted evidence behind it, and because the video path already recovers the yellow bag at
 # 0.30 by moving the camera, which is what the shipped product does.
 PRODUCE_THRESHOLD = 0.30
