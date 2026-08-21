@@ -6,25 +6,41 @@
  * for a phone held over a trolley looking down, where lower means further along the basket and
  * most items lie in a single layer.
  *
- * Measured on the six trolley photographs, seven regions are drawn as covered. Judged against the
- * rendered overlays, four are real (the Muenster under an egg carton at 0.91 hidden, the purple
- * bag under the shopper's tote) and three are not: brussels sprouts and asparagus lying beside
- * their neighbours, whose boxes overlap while their pixels do not.
+ * Measured on the six trolley photographs, seven regions are drawn as covered. Judged from
+ * cropped views of each flagged region rather than from the full frame, which changed the
+ * answer: three are real and four are not.
  *
- *     really covered   0.27  0.28  0.37  0.91
- *     side by side     0.21  0.26  0.27
+ *     really covered   0.28  0.37  0.91   jar behind the apples, Muenster under an egg
+ *                                         carton, salmon under the shopper's tote
+ *     not covered      0.21  0.26  0.27  0.27
  *
- * The ranges overlap at 0.27, so no value of COVERED_FRACTION separates them. A rule requiring
- * the occluder to contain the subject's centre was tried: it removes all three false flags and
- * two of the four real ones, trading the direction that matters (an item wrongly cleared is an
- * item that never reaches the bag) for the one that does not.
+ * Those separate at 0.28, and raising COVERED_FRACTION would clear all four false flags here.
+ * It is not raised, for two reasons. Seven flags is too few to fit a shipped constant on, and
+ * the value would be fitted on the same seven it was judged against. And the shelf corpus that
+ * produced 0.2 disagrees: there the flagged items are named 7.5 points worse than the rest at
+ * 0.2 and only 3 points worse at 0.3, so the signal is strongest exactly where this corpus says
+ * it over-fires.
  *
- * The measure is wrong rather than the threshold. Two items side by side have overlapping boxes
- * and disjoint pixels; an item underneath another has genuinely overlapping pixels. The service
- * already computes the masks that would tell them apart, in `app.py` via SAM, but `Track` carries
- * only a box, so the masks never reach this rule. That is the fix, and it cannot be verified here
- * because sam2 is not installed locally. Seven flags is in any case too few to tune a replacement
- * on.
+ * The disagreement is the finding. The two corpora photograph from different places. A shelf is
+ * shot facing forward, where lower in the frame does mean nearer the camera and `isInFront` is
+ * a real depth cue. A trolley is shot from above, where lower in the frame means further along
+ * the basket and most items lie in one layer.
+ *
+ * The fourth false flag shows the cue can be worse than uninformative. It is the shopper's
+ * woven tote, drawn as covered because the salmon sits lower in the frame. The tote lies on top
+ * of the salmon. In a top-down view the test is sometimes exactly backwards.
+ *
+ * A rule requiring the occluder to contain the subject's centre was also tried: it clears all
+ * the false flags and two of the real ones, trading the direction that matters (an item wrongly
+ * cleared never reaches the bag) for the one that does not.
+ *
+ * Masks do not fix it either, and the reason is worth writing down. A mask covers what can be
+ * seen, so SAM never labels the hidden part of an occluded item and mask-against-mask overlap
+ * is ~0 even for a real occlusion; measured on all six photographs it is 0.00 everywhere. The
+ * silhouette's fill of its own box does carry some signal but not enough: really covered items
+ * fill 0.44 to 0.58 of their box and the false ones 0.47 to 0.73.
+ *
+ * What this needs is a depth cue rather than a better threshold on a geometric proxy.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
