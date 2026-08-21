@@ -11,7 +11,15 @@
    "items": [
     "Mr Lucky cauliflower"
    ],
-   "note": "One item in an otherwise empty trolley. Two proposals: the cauliflower, and the white plastic disc moulded into the trolley's child seat. The disc is correctly detected and correctly not a product, which is the judgement `isProduct` exists for and which has never run."
+   "note": "One item in an otherwise empty trolley. Two proposals: the cauliflower, and the white plastic disc moulded into the trolley's child seat. The disc is correctly detected and correctly not a product, which is the judgement `isProduct` exists for and which has never run.",
+   "non_products": {
+    "boxes": [
+     1
+    ],
+    "what": [
+     "the trolley's moulded plastic disc"
+    ]
+   }
   },
   {
    "id": "IMG_0245",
@@ -21,7 +29,11 @@
    "items": [
     "Mr Lucky cauliflower"
    ],
-   "note": "One proposal for one product. The only exactly right photograph in the set."
+   "note": "One proposal for one product. The only exactly right photograph in the set.",
+   "non_products": {
+    "boxes": [],
+    "what": []
+   }
   },
   {
    "id": "IMG_0246",
@@ -32,7 +44,15 @@
     "Mr Lucky cauliflower",
     "brussels sprouts bag"
    ],
-   "note": "Both found. The third proposal is the trolley's plastic disc again."
+   "note": "Both found. The third proposal is the trolley's plastic disc again.",
+   "non_products": {
+    "boxes": [
+     2
+    ],
+    "what": [
+     "the trolley's moulded plastic disc"
+    ]
+   }
   },
   {
    "id": "IMG_0249",
@@ -44,7 +64,11 @@
     "brussels sprouts bag",
     "asparagus bag"
    ],
-   "note": "Three proposals, three products, one each. Exactly right."
+   "note": "Three proposals, three products, one each. Exactly right.",
+   "non_products": {
+    "boxes": [],
+    "what": []
+   }
   },
   {
    "id": "IMG_0252",
@@ -63,7 +87,11 @@
     "brussels sprouts bag",
     "Mr Lucky cauliflower"
    ],
-   "note": "Eight proposals. The tomatoes and the yellow bag drew nothing; both sit behind and under the purple bag. The baguette's box is loose, spanning it and the space around it, but it is the only box on the baguette so it counts as found."
+   "note": "Eight proposals. The tomatoes and the yellow bag drew nothing; both sit behind and under the purple bag. The baguette's box is loose, spanning it and the space around it, but it is the only box on the baguette so it counts as found.",
+   "non_products": {
+    "boxes": [],
+    "what": []
+   }
   },
   {
    "id": "IMG_0254",
@@ -89,7 +117,15 @@
     "yellow produce bag",
     "broccoli"
    ],
-   "note": "The fullest trolley, and the only count here that is not certain: the shopper's woven tote lies across the middle and the purple and yellow produce bags are partly under it, so two of the sixteen are judged rather than read. Eleven proposals, one of them the tote itself, which is not a product."
+   "note": "The fullest trolley, and the only count here that is not certain: the shopper's woven tote lies across the middle and the purple and yellow produce bags are partly under it, so two of the sixteen are judged rather than read. Eleven proposals, one of them the tote itself, which is not a product.",
+   "non_products": {
+    "boxes": [
+     4
+    ],
+    "what": [
+     "the shopper's woven tote bag"
+    ]
+   }
   }
  ],
  "not_countable": [
@@ -109,5 +145,6 @@
    "id": "IMG_0251",
    "why": "a chicken cabinet, same"
   }
- ]
+ ],
+ "non_products_note": "Regions the census's `isProduct` field would reject, identified by looking at every numbered proposal. They are the whole of the over-count on this corpus. Recorded so the value of a step that has never executed can be stated as a number rather than asserted. At a lower detector threshold the shopper's shoes, visible through the trolley mesh, join them."
 }
