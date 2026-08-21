@@ -60,17 +60,48 @@ export const GREEN_CONFIDENCE = 0.55;
 /**
  * Variance-of-Laplacian floor for a frame worth uploading. Below this the image is motion
  * blurred or out of focus, and a blurry frame is both the most expensive kind to get wrong and
- * the most common. Tuned against `npm run bench:detector` output once real cart photos exist;
- * until then this is a starting value, not a measured one.
+ * the most common.
+ *
+ * Still a starting value rather than a tuned one, but it has now been checked against a real
+ * handheld scan and behaves: it rejects 1 frame of 26, where the frames it keeps have a median
+ * sharpness of 90. With MAX_KEYFRAME_MOTION relaxed to 0.15 this is the only blur test left, so
+ * it is now load-bearing where before it was shadowed by the motion ceiling rejecting everything.
  */
 export const MIN_KEYFRAME_SHARPNESS = 12;
 
 /**
- * Mean absolute inter-frame difference ceiling. Above this the camera is still moving and the
- * frame will be smeared. FrameMetrics reports 1.0 (maximum motion) for the first frame of a
- * session and whenever the buffer size changes, so a session never uploads its own first frame.
+ * Mean absolute inter-frame difference ceiling. FrameMetrics reports 1.0 (maximum motion) for the
+ * first frame of a session and whenever the buffer size changes, so any value below 1.0 keeps the
+ * property that a session never uploads its own first frame.
+ *
+ * This was 0.06, chosen by eye on the reasoning that a frame above it "will be smeared". Measured
+ * against a real handheld scan of a loaded trolley, that reasoning does not hold and the value
+ * was catastrophic. Of 26 frames, 25 exceeded 0.06 while only 1 fell below the sharpness floor:
+ * the proxy rejected almost everything the direct measure of blur accepted. Motion and sharpness
+ * correlate at only -0.285 on that clip, and the frames above 0.08 still have a median sharpness
+ * of 58 against a floor of 12. A phone held over a trolley moves; that is the interaction.
+ *
+ * What the shipped value cost, on a nine-second scan:
+ *
+ *     ceiling   census calls   items reaching the bag   frames rejected as moving
+ *     0.06                 1                       0                   23 of 27
+ *     0.10                 3                       3                         12
+ *     0.15                 4                       3                          0
+ *     unbounded            4                       3                          0
+ *
+ * One census call and nothing in the bag. At 0.15 the gate stops binding and the limiter becomes
+ * `minIntervalMs`, which is the control that is supposed to pace this. Above 0.15 nothing further
+ * changes, so this is the point where the motion test stops removing anything a real scan
+ * produces while still rejecting the first-frame sentinel.
+ *
+ * Not a regression on the corpus it was previously exercised against: on the 360-frame haul
+ * video, 0.15 removes all 22 motion rejections, leaves every census count unchanged, and takes
+ * one segment from 1 item reaching the bag to 2.
+ *
+ * Blur is still gated, by MIN_KEYFRAME_SHARPNESS, which is the measurement of blur rather than a
+ * proxy for it.
  */
-export const MAX_KEYFRAME_MOTION = 0.06;
+export const MAX_KEYFRAME_MOTION = 0.15;
 
 /** Padding around a thumbnail crop, as a fraction of the box, so items are not cut flush. */
 export const THUMBNAIL_PADDING = 0.08;

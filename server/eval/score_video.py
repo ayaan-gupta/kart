@@ -160,11 +160,27 @@ def main(argv=None):
         boxes = [[float(v) for v in row] for row in found["boxes"].cpu().numpy()]
         scores = [float(s) for s in found["scores"].cpu()]
         if boxes:
-            keep = regions.dedupe(boxes, scores)
+            keep = regions.dedupe(boxes, scores, size=pil.size)
             keep.sort(key=lambda i: -scores[i])
             keep = keep[: regions.MAX_INSTANCES]
             boxes = [boxes[i] for i in keep]
             scores = [scores[i] for i in keep]
+        # The same second pass the service runs. Without it this harness measures a detector the
+        # product does not have, and a trolley is mostly produce.
+        produce = proc(images=pil, text=regions.PRODUCE_PROMPT, return_tensors="pt").to(device)
+        with torch.no_grad():
+            produce_out = dino(**produce)
+        produce_found = proc.post_process_grounded_object_detection(
+            produce_out, produce.input_ids, threshold=regions.PRODUCE_THRESHOLD,
+            text_threshold=regions.PRODUCE_THRESHOLD, target_sizes=[pil.size[::-1]],
+        )[0]
+        produce_boxes = [[float(v) for v in r] for r in produce_found["boxes"].cpu().numpy()]
+        produce_scores = [float(s) for s in produce_found["scores"].cpu()]
+        for i in regions.merge_produce(boxes, produce_boxes, produce_scores):
+            if len(boxes) >= regions.MAX_INSTANCES:
+                break
+            boxes.append(produce_boxes[i])
+            scores.append(produce_scores[i])
 
         normalized = [
             {"x": b[0] / width, "y": b[1] / height,

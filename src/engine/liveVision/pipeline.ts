@@ -1,6 +1,8 @@
 import { createTrackerState, updateTracks } from './byteTrack';
 import { createKeyframeState, evaluateKeyframe } from './keyframe';
-import type { BarcodeHit, Box, FrameScan, KeyframeReason, PipelineState, Track } from './types';
+import type {
+  BarcodeHit, Box, FrameScan, KeyframeConfig, KeyframeReason, PipelineState, Track,
+} from './types';
 
 export function createPipelineState(): PipelineState {
   return { tracker: createTrackerState(), keyframe: createKeyframeState() };
@@ -101,6 +103,7 @@ export function processFrame(
   state: PipelineState,
   scan: FrameScan,
   now: number,
+  keyframeOverrides: Partial<KeyframeConfig> = {},
 ): { state: PipelineState; tracks: Track[]; keyframe: { fire: boolean; reason: KeyframeReason } } {
   const tracker = updateTracks(state.tracker, scan.instances, now);
   const tracks = attachBarcodes(tracker.tracks, scan.barcodes);
@@ -108,12 +111,16 @@ export function processFrame(
   // The gate counts confirmed tracks, not raw detections. A frame whose only content is
   // unconfirmed noise is not worth an upload.
   const confirmed = tracks.filter((track) => track.state === 'confirmed').length;
+  // `keyframeOverrides` exists so the gate's thresholds can be measured rather than asserted.
+  // Nothing in the app passes it; `server/eval/pipeline/video-states.ts` sweeps the motion
+  // ceiling with it, which is how the shipped value was found to reject 25 of 26 frames of a
+  // real handheld scan.
   const keyframe = evaluateKeyframe(state.keyframe, {
     sharpness: scan.sharpness,
     motion: scan.motion,
     trackCount: confirmed,
     now,
-  });
+  }, keyframeOverrides);
 
   return {
     state: { tracker: { ...tracker, tracks }, keyframe: keyframe.state },

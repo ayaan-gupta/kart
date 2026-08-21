@@ -63,7 +63,7 @@ def matched(predicted, truth):
     return len(used_t)
 
 
-def dedupe(boxes, scores, nms_iou, containment, max_ratio):
+def dedupe(boxes, scores, nms_iou, containment, max_ratio, size=None):
     """The service's own de-duplication, with its constants lifted into arguments.
 
     This used to be a copy of the function rather than a call to it, and the copy carried the
@@ -73,7 +73,7 @@ def dedupe(boxes, scores, nms_iou, containment, max_ratio):
     """
     import regions
 
-    return regions.dedupe(boxes, scores, nms_iou, containment, max_ratio)
+    return regions.dedupe(boxes, scores, nms_iou, containment, max_ratio, size)
 
 
 def collect(truth, tile):
@@ -152,7 +152,8 @@ def evaluate(raw, truth, threshold, nms_iou, containment, max_ratio, max_instanc
         keep_raw = [i for i, s in enumerate(scene["scores"]) if s >= cut]
         boxes = [scene["boxes"][i] for i in keep_raw]
         scores = [scene["scores"][i] for i in keep_raw]
-        keep = dedupe(boxes, scores, nms_iou, containment, max_ratio)
+        keep = dedupe(boxes, scores, nms_iou, containment, max_ratio,
+                      (scene["width"], scene["height"]))
         keep.sort(key=lambda i: -scores[i])
         keep = keep[:max_instances]
         predicted = [boxes[i] for i in keep]

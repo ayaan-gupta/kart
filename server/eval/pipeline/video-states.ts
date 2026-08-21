@@ -28,6 +28,20 @@ import type { Box, DetectedInstance, FrameScan, Track } from '../../../src/engin
 
 const HERE = join(import.meta.dirname, '..');
 const IN = join(HERE, 'video-frames.json');
+
+/**
+ * The gate's thresholds, overridable from the command line so they can be measured rather than
+ * asserted. `MAX_KEYFRAME_MOTION` was never measured against a real scan: its own comment says
+ * the frame above it "will be smeared", and on a phone held over a trolley that claim does not
+ * hold. Pass `--max-motion 0.15` to sweep it.
+ */
+const KEYFRAME_OVERRIDES: { maxMotion?: number; minSharpness?: number } = {};
+for (let i = 2; i < process.argv.length - 1; i += 1) {
+  if (process.argv[i] === '--max-motion') KEYFRAME_OVERRIDES.maxMotion = Number(process.argv[i + 1]);
+  if (process.argv[i] === '--min-sharpness') {
+    KEYFRAME_OVERRIDES.minSharpness = Number(process.argv[i + 1]);
+  }
+}
 const OUT = join(HERE, 'video-states.json');
 
 interface Frame {
@@ -112,7 +126,7 @@ function runSession(frames: Frame[], label: string) {
       keyframe: null,
       crops: [],
     };
-    const stepped = processFrame(pipeline, scan, frame.t * 1000);
+    const stepped = processFrame(pipeline, scan, frame.t * 1000, KEYFRAME_OVERRIDES);
     pipeline = stepped.state;
     const live = stepped.tracks.filter((t) => t.state !== 'lost');
     live.forEach((track) => {

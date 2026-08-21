@@ -1,3 +1,4 @@
+import { MAX_KEYFRAME_MOTION } from '../config';
 import { createKeyframeState, evaluateKeyframe } from '../keyframe';
 import type { KeyframeSignals } from '../types';
 
@@ -76,5 +77,37 @@ describe('evaluateKeyframe', () => {
     const first = evaluateKeyframe(createKeyframeState(), GOOD);
     const second = evaluateKeyframe(first.state, { ...GOOD, now: GOOD.now + 100, sharpness: 5 });
     expect(second.state).toEqual(first.state);
+  });
+});
+
+describe('the motion ceiling against a real handheld scan', () => {
+  it('admits the motion a phone held over a trolley actually produces', () => {
+    // Median motion across a nine-second handheld scan of a loaded trolley was 0.1009, and the
+    // frames at that level have a median sharpness of 58 against a floor of 12. The previous
+    // ceiling of 0.06 rejected 25 of 26 frames and the session made one census call and put
+    // nothing in the bag.
+    const state = createKeyframeState();
+    const result = evaluateKeyframe(state, {
+      sharpness: 58, motion: 0.1009, trackCount: 3, now: 10_000,
+    });
+    expect(result.reason).not.toBe('moving');
+  });
+
+  it('still refuses the first frame of a session', () => {
+    // FrameMetrics reports 1.0 for the first frame and whenever the buffer size changes. Any
+    // ceiling at or above 1.0 would silently start uploading it.
+    expect(MAX_KEYFRAME_MOTION).toBeLessThan(1);
+    const result = evaluateKeyframe(createKeyframeState(), {
+      sharpness: 200, motion: 1, trackCount: 3, now: 10_000,
+    });
+    expect(result.fire).toBe(false);
+    expect(result.reason).toBe('moving');
+  });
+
+  it('still refuses a genuinely blurred frame, which is now the only blur test', () => {
+    const result = evaluateKeyframe(createKeyframeState(), {
+      sharpness: 4, motion: 0.02, trackCount: 3, now: 10_000,
+    });
+    expect(result.reason).toBe('blurry');
   });
 });
