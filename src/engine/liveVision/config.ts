@@ -110,13 +110,51 @@ export const THUMBNAIL_PADDING = 0.08;
  * At or above this share of an item covered by the items in front of it, that one item is shown
  * as covered rather than merely unidentified, and the shopper is asked to move what is on top.
  *
- * Read off the curve in `server/eval/score_grocer_occlusion.py` rather than chosen. On 1,442
- * crops of real store shelves, with fine-tuned features and the enclosing guard in place, items
- * at or above 0.2 are named correctly 60.6% of the time against 68.1% for the rest, and the
- * accuracy falls monotonically as the score rises: 68.9% below 0.05, 59.3%, 56.8%, and 51.4%
- * above 0.6. Below 0.2 ordinary crowding gets called hiding; above 0.3 the gap narrows to three
- * points while the flagged share keeps shrinking, so the state stops firing on items that are
- * genuinely lost without buying accuracy back.
+ * This was 0.2, read off the curve in `server/eval/score_grocer_occlusion.py`: on 1,442 crops of
+ * real store shelves, items at or above 0.2 are named correctly 60.6% of the time against 68.1%
+ * for the rest, and the gap narrows to three points by 0.3. On that corpus 0.2 is the better
+ * value and 0.3 gives some signal away.
+ *
+ * That corpus photographs shelves facing forward, and the product photographs a trolley from
+ * above. `isInFront` decides an item occludes another when its box ends lower in the frame, which
+ * is a real depth cue facing a shelf and a much weaker one looking down into a basket, where
+ * lower means further along the basket and most items lie in a single layer. Measured on the real
+ * trolley, 0.2 fires on ordinary crowding:
+ *
+ *     really covered   0.2786  0.3720  0.9056   Muenster under an egg carton, salmon under the
+ *                                                shopper's tote, a jar behind the apples
+ *     not covered      0.2110  0.2646  0.2669  0.2720
+ *
+ * The four false ones are items lying beside their neighbours, and one is the shopper's tote
+ * drawn as covered by the salmon lying underneath it, where the test is exactly backwards. The
+ * video says the same thing independently: across 137 regions of the loaded trolley the hidden
+ * fractions cluster between 0.08 and 0.24, which is the crowding band, with a separate tail above
+ * 0.27, and 0.2 flags 26.3% of all regions against 10.9% at 0.3.
+ *
+ * Those two groups do not overlap, but the gap between them is 0.0066 wide, which is noise on
+ * seven points rather than a separation. The value is not taken from that gap.
+ *
+ * It is taken from the video, where the same geometry is sampled 137 times: the hidden fractions
+ * run 0.08 to 0.24 in a dense band, which is ordinary crowding, then jump to 0.27. 0.27 sits in
+ * that break. At 0.2 the video flags 26.3% of all regions as covered, which no loaded trolley
+ * justifies; at 0.27, 13.9%.
+ *
+ * On the stills 0.27 removes three of the four false flags and keeps all three real occlusions.
+ * The one it keeps wrongly is the shopper's woven tote, at 0.2720, drawn as covered because the
+ * salmon lies lower in the frame while the tote lies on top of it. That one is a non-product and
+ * `isProduct` removes it for a different and better reason.
+ *
+ * This is a regression on the shelf corpus by that corpus's own measure, where the accuracy gap
+ * between flagged and unflagged items is 7.5 points at 0.2 and about 3 by 0.3. It is taken
+ * because the trolley is the use case CLAUDE.md names and the shelf corpus is a substitute for
+ * it. Six countable trolley photographs is not many; more would settle it properly.
+ *
+ * Four other measures were tried and none separates the two cases at all. Mask against mask is
+ * 0.00 everywhere, because a mask only labels what can be seen and never the hidden part of an
+ * occluded item. Silhouette fill of the box runs 0.44 to 0.58 for real against 0.47 to 0.73 for
+ * false. A neighbour's mask inside the subject's box runs 0.09 to 0.17 against 0.07 to 0.20.
+ * Requiring the occluder to contain the subject's centre clears all four false flags and two of
+ * the three real ones. Box overlap is the best of the five; only its threshold was wrong.
  *
  * The guard matters more than the threshold. Before enclosing boxes were excluded this flagged
  * 11.9% of crops at a 10.5 point deficit; now it flags 6.5% at 7.5. Fewer, and more of them
@@ -125,7 +163,7 @@ export const THUMBNAIL_PADDING = 0.08;
  * This is per item. `OCCLUSION_THRESHOLD` below is a separate, scene-level verdict about
  * whether the whole cart needs walking around, and the two answer different questions.
  */
-export const COVERED_FRACTION = 0.2;
+export const COVERED_FRACTION = 0.27;
 
 /**
  * Above this an occlusion score flips the verdict to hidden and guided capture opens. Set above

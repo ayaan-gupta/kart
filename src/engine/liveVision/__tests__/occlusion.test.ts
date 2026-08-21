@@ -223,3 +223,22 @@ describe('enclosing boxes are not occluders', () => {
     expect(containment(large, small)).toBeCloseTo(0.01, 6);
   });
 });
+
+describe('the covered threshold against a trolley photographed from above', () => {
+  it('leaves an item merely lying beside its neighbour alone', () => {
+    // Measured on the real trolley: items side by side reach 0.211 to 0.267 hidden, because
+    // their boxes overlap while their pixels do not. At the old 0.2 every one was drawn as
+    // covered and the shopper was asked to move something that was not on top of anything.
+    for (const hidden of [0.2110, 0.2646, 0.2669]) {
+      expect(hidden).toBeLessThan(COVERED_FRACTION);
+    }
+  });
+
+  it('still catches an item genuinely underneath another', () => {
+    // The three real occlusions on the same photographs: a Muenster pack under an egg carton, a
+    // salmon tray under the shopper's tote, a jar behind the apples.
+    for (const hidden of [0.2786, 0.3720, 0.9056]) {
+      expect(hidden).toBeGreaterThanOrEqual(COVERED_FRACTION);
+    }
+  });
+});

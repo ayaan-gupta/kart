@@ -2,8 +2,8 @@
  "replay": 6,
  "tally": {
   "counted": 23,
-  "covered": 18,
-  "closer": 86,
+  "covered": 11,
+  "closer": 93,
   "forming": 0
  },
  "results": [
@@ -165,12 +165,12 @@
     "closer",
     "closer",
     "closer",
-    "covered",
+    "closer",
     "closer",
     "closer",
     "counted",
     "closer",
-    "covered",
+    "closer",
     "closer",
     "closer"
    ],
@@ -388,7 +388,7 @@
     "closer",
     "closer",
     "closer",
-    "covered",
+    "closer",
     "closer",
     "closer",
     "covered",
@@ -538,7 +538,7 @@
    "states": [
     "counted",
     "closer",
-    "covered"
+    "closer"
    ],
    "hidden": [
     0.24714321599704253,
@@ -610,7 +610,7 @@
     "closer",
     "covered",
     "closer",
-    "covered",
+    "closer",
     "closer",
     "closer",
     "counted",
@@ -1122,9 +1122,9 @@
     "counted",
     "counted",
     "counted",
-    "covered",
+    "closer",
     "counted",
-    "covered",
+    "closer",
     "counted"
    ],
    "hidden": [
