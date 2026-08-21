@@ -277,3 +277,52 @@ def test_dedupe_runs_all_three_passes():
         regions.nested(regions.nms(boxes, scores), boxes), boxes
     )
     assert regions.dedupe(boxes, scores) == expected
+
+
+def _floor_report():
+    sys.path.insert(0, str(HERE.parents[0]))
+    import report_grocer_floor
+
+    return report_grocer_floor
+
+
+def test_the_curve_reads_the_answer_off_the_shortlist_not_off_the_stored_sku():
+    """The stored `sku` is None below whatever floor was current when the run was written, so a
+    curve built from it can only ever go one direction. Reading the shortlist head recovers the
+    answer the matcher actually gave, which is what makes two runs written under different floors
+    comparable at all."""
+    report = _floor_report()
+    declined = {"truth": "Maggi", "sku": None, "shortlist": ["Maggi", "Lays"], "confidence": 0.5}
+    named = {"truth": "Lays", "sku": "Lays", "shortlist": ["Lays", "Maggi"], "confidence": 0.99}
+    assert report.answer(declined) == "Maggi"
+    assert report.answer(named) == named["sku"]
+
+    rows = [dict(r, head=report.answer(r)) for r in (declined, named)]
+    (_, coverage, precision, overall), = report.curve(rows, steps=(0.0,))
+    assert coverage == 1.0
+    assert precision == 1.0
+    assert overall == 1.0
+
+
+def test_raising_the_floor_never_lowers_precision():
+    """The whole point of the floor. If a cut ever bought less precision than a lower one, the
+    confidence it sorts on would not be ranking anything and the amber state would be noise."""
+    report = _floor_report()
+    rows = [
+        {"truth": "A", "shortlist": ["A"], "confidence": 0.99, "head": "A"},
+        {"truth": "A", "shortlist": ["B"], "confidence": 0.60, "head": "B"},
+        {"truth": "C", "shortlist": ["C"], "confidence": 0.95, "head": "C"},
+        {"truth": "D", "shortlist": ["E"], "confidence": 0.55, "head": "E"},
+    ]
+    precisions = [p for _, _, p, _ in report.curve(rows, steps=(0.0, 0.7, 0.96))]
+    assert precisions == sorted(precisions)
+
+
+def test_coverage_falls_as_the_floor_rises():
+    report = _floor_report()
+    rows = [
+        {"truth": "A", "shortlist": ["A"], "confidence": c, "head": "A"}
+        for c in (0.5, 0.7, 0.9, 0.99)
+    ]
+    coverages = [c for _, c, _, _ in report.curve(rows, steps=(0.0, 0.6, 0.8, 0.95))]
+    assert coverages == sorted(coverages, reverse=True)

@@ -108,30 +108,59 @@ a change.
 the mechanism behind capability 4 in CLAUDE.md, and behind the amber outline.
 
 It was fitted on RPC at 0.51, where it names 95% of crops and is right about 90% of them.
-Carried onto shelves, it admits every crop:
+Carried onto shelves, it admitted every crop, and the failure was not that accuracy was 67%. It
+was that at that floor the matcher declined nothing, so every point of error arrived as a
+confident answer and the interface never had cause to draw a single amber outline. The system did
+not degrade visibly. It went quiet about being wrong, which is the one failure a shopper cannot
+catch.
 
-| floor | names | right |
-|---|---|---|
-| 0.48 / 0.51 (shipped) | 100.0% | 67.4% |
-| 0.70 | 75.3% | 79.6% |
-| 0.884 (fitted here) | 51.6% | 92.5% |
-| 0.95 | 35.2% | 93.9% |
+`rank.fit_floor` is the criterion the floor is chosen by, the lowest cut at which the names
+added silently are right 90% of the time, written down as code so it is re-run per feature set
+rather than re-derived. It refuses to reach the target by naming almost nothing, both as a share
+and as an absolute count, because a precision estimated from four crops is not a precision.
 
-The failure is not that accuracy is 67%. It is that at the shipped floor the matcher declines
-nothing, so all 33 points of error arrive as confident answers, and the interface never has
-cause to draw a single amber outline. The system does not degrade visibly. It goes quiet about
-being wrong, which is the one failure a shopper cannot catch.
+`FLOOR` is now 0.96 and `FLOOR_FINETUNED` 0.87, fitted here. RPC's own values did not disappear
+into them: they moved to `FLOOR_RPC` and `FLOOR_RPC_FINETUNED`, because a floor is a property of
+a feature set and not of the task, and collapsing two corpora into one constant is how the
+original 0.51 came to be applied to shelves in the first place.
 
-`rank.fit_floor` is the criterion the floor was always chosen by — the lowest cut at which the
-names added silently are right 90% of the time — written down as code so it is re-run per
-feature set rather than re-derived. It refuses to reach the target by naming almost nothing,
-both as a share and as an absolute count, because a precision estimated from four crops is not a
-precision.
+### The whole curve, not the cut
 
-The shipped constants stay at RPC's values. They are what the RPC numbers were measured with,
-and changing a global default on the strength of one corpus is precisely the mistake that cost
-2.5 points when an angular margin measured on fine-tuned features was made universal. A store
-fits this the way it fits the fine-tune: on labelled carts of its own.
+`report_grocer_floor.py` reads the coverage/precision curve back out of a finished run without
+touching a GPU: every naming run stores each crop's full ranked shortlist and its raw confidence
+before any floor, so the answer the matcher would give at *any* cut is recoverable. On 1,442
+answerable crops from the query half:
+
+| floor | ensemble names | right | fine-tuned names | right |
+|---|---|---|---|---|
+| 0.00 | 100.0% | 64.3% | 100.0% | 67.6% |
+| 0.70 | 74.9% | 76.6% | 75.0% | 79.9% |
+| 0.87 | 58.0% | 84.4% | **52.6%** | **90.0%** |
+| 0.93 | 48.5% | 89.6% | 41.0% | 94.1% |
+| 0.96 | **39.7%** | **92.0%** | 30.5% | 95.9% |
+
+Bold is each configuration's shipped cut. Read down the column rather than across: the two
+configurations are at different cuts because 90% precision arrives at different places on their
+curves, which is the entire reason the constant is fitted per feature set.
+
+Two things follow, and only the second is about the floor.
+
+The ensemble reaches 90% precision between 0.93 and 0.96, and `fit_floor` takes 0.96 because
+0.93 reads 89.6% and misses. That single notch costs 6.9 points of correctly-named crops
+(43.4% → 36.5% of all crops). It is the correct call under a 90% target and it is worth knowing
+that the target is expensive here, because the target is a product decision and not a
+measurement.
+
+The larger finding is not on the floor axis at all. **A single fine-tuned encoder names 52.6% of
+crops at 90.0% precision where the shipped frozen ensemble names 39.7% at 92.0%**: 47.4%
+against 36.5% of all crops named correctly, at comparable precision, using one encoder instead of
+two. Fine-tuning is worth roughly eleven points of the number the goal is written in, and the
+shipped default does not use it. CLAUDE.md already assumes a model fine-tuned per store, so this
+is the configuration the deployment was designed around; it simply was never the default.
+
+Note also that the shortlist ceiling is 85.0% for both. Fine-tuning does not retrieve more
+candidates, it ranks better among the same ones. Anything that moves the ceiling has to change
+retrieval, and nothing measured here does.
 
 ## Detection is the binding constraint, and the pipeline was deleting its own findings
 
