@@ -52,13 +52,23 @@ PROMPTS = {
     "grocery-noun": "a grocery product. a packaged food item. a drink container.",
     # The shipped list plus one word for the case the whole design is about: an item that is
     # partly behind another one.
-    # Every miss on the one photograph in the cart corpus where a person can count every item
-    # was loose or netted produce: celery, parsley, a leek bunch, a parsnip, a net bag of onions,
-    # a net bag of potatoes. Seven packaged items on the same table were all found. None of the
-    # three shipped phrases names an unpackaged vegetable, and a cart is full of them.
+    # Kept as a recorded negative. Every miss on the one photograph in the cart corpus where a
+    # person can count every item was loose or netted produce: celery, parsley, a leek bunch, a
+    # parsnip, a net bag of onions, a net bag of potatoes, while seven packaged items on the same
+    # table were all found. None of the three shipped phrases names an unpackaged vegetable, so
+    # adding one looked obvious. It is wrong twice over.
+    #
+    # On 60 shelf photographs it costs 9.0 points of recall (61.2% -> 52.2%) and 6.4 of precision
+    # at an unchanged 14.7 proposals per scene, so the phrase redistributes boxes rather than
+    # adding them.
+    #
+    # On the photograph that motivated it, run directly, it recovers none of the six and loses
+    # the loaf of bread. The misses are not a vocabulary gap.
     "produce": "a grocery product. a packaged food item. a drink container. a fruit or vegetable.",
-    # The same addition split into two phrases. Grounding DINO scores each phrase separately, so
-    # whether one phrase or two localises better is a measurement and not a style choice.
+    # The same addition split in two, since Grounding DINO scores each phrase separately. Worse
+    # again: 50.8% recall on shelves, and on the motivating photograph it takes the proposals
+    # from 7 to 22, recovers celery and parsley, and loses the apples and the clementines. Two
+    # items bought for fifteen phantom boxes is a count error traded from -6 to +9.
     "produce-split": (
         "a grocery product. a packaged food item. a drink container. a fresh fruit. "
         "a fresh vegetable."

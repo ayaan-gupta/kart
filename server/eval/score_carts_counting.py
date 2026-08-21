@@ -98,7 +98,18 @@ def main(argv=None):
     if errors:
         print(f"\n    mean signed error   {sum(errors) / len(errors):+.1f} items")
         print(f"    mean absolute error {sum(abs(e) for e in errors) / len(errors):.1f} items")
-        print(f"    n = {len(errors)}. This is a characterisation, not a metric: a handful of")
+        kinds = {}
+        for entry in truth["counted"]:
+            for item in entry.get("missed", []):
+                kinds[item["kind"]] = kinds.get(item["kind"], 0) + 1
+        if kinds:
+            total_missed = sum(kinds.values())
+            produce = sum(n for k, n in kinds.items() if "produce" in k)
+            print(f"\n    of {total_missed} items the detector drew nothing for, "
+                  f"{produce} are produce")
+            for kind, n in sorted(kinds.items(), key=lambda kv: -kv[1]):
+                print(f"      {n:2d}  {kind}")
+        print(f"\n    n = {len(errors)}. This is a characterisation, not a metric: a handful of")
         print("    photographs is too few to quote as an accuracy, and it is here because the")
         print("    alternative was to quote nothing at all about counting.")
     return {"nested_share": nested / max(total, 1), "errors": errors}

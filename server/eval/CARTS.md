@@ -145,28 +145,82 @@ a filled trolley the true number is not knowable from the photograph at all. Two
 done.
 
 **Counted by hand, where a person can actually count.** Every proposal was numbered on the image
-and judged one at a time (`corpus/cart-counts.json`, `score_carts_counting.py`).
+and judged one at a time (`corpus/cart-counts.json`, `score_carts_counting.py`). Sixteen of the
+twenty-four have been judged; six are countable, and the counts were redone against the
+proposals the current prompt produces.
 
-| photograph | real products | proposed | found | error |
+| photograph | real products | proposed | correct | error |
 |---|---|---|---|---|
-| Asian groceries on a glass table | 7 | 7 | 7 | 0 |
-| wine, yogurt, oranges, a six-pack | 7 | 12 | 7 | +5 |
-| peanut butter, hummus, bananas | 5 | 9 | 5 | +4 |
+| Asian groceries on a glass table | 7 | 6 | 6 | -1 |
+| wine, yogurt, oranges, a six-pack | 7 | 5 | 5 | -2 |
+| peanut butter, hummus, bananas | 5 | 6 | 5 | +1 |
+| tortillas, spices, bulbs, sprays | 8 | 8 | 7 | 0 |
+| two turkey packs and a cheese bag | 3 | 2 | 2 | -1 |
+| produce haul laid out on a table | 13 | 7 | 7 | -6 |
 
-Nothing was missed in any of the three. Every error is an over-count. Three photographs is far
-too few to quote as an accuracy, and it is recorded because the alternative was to say nothing
-about counting at all.
+Mean signed error -1.5 items, mean absolute 1.8, n=6. Still far too few to quote as an accuracy,
+and recorded because the alternative was to say nothing about counting at all.
 
-**The mechanism, measurable across all 24.** Every over-count found by hand had one shape: a
-proposal sitting inside another proposal. A twin-pack of peanut butter arrives as the pack and
-both jars. A six-pack of ale arrives as the carrier and three bottle necks. A jar arrives with a
-second box drawn around its label. Across all 342 proposals, 6.7% sit at least 80% inside a
-larger one.
+`correct` counts real products covered by at least one proposal, and it depends on the detector
+prompt where `products` does not. All six were re-judged against the current prompt; the first
+three had been counted under the shape-word prompt and two of them changed. Every item that drew
+nothing is listed individually in `cart-counts.json` rather than summarised, so the next detector
+change can recount rather than re-argue.
 
-That is what `applyCensus` folding by containment exists to fix, and it barely fires here because
-only 10.5% of regions are named at all against a catalog that holds none of these products. The
-remaining error is the napkin holder: an object correctly detected, correctly not a product, and
-rejected by the census's `isProduct` field, which has never run.
+The sign has flipped since the prompt was chosen by measurement. Under the shape-word prompt
+nothing was ever missed and every error was an over-count. The counts now run short.
+
+Note the fourth row. Eight proposals for eight products, error zero, and it is wrong twice: one
+proposal is on a napkin holder and one product, a tortilla packet standing behind another,
+drew nothing. `correct` is recorded separately from `products` because a harness comparing
+totals alone would have scored that photograph perfect.
+
+**The mechanism, measurable across all 24.** Under the old prompt every over-count had one
+shape: a proposal sitting inside another proposal. A twin-pack of peanut butter arriving as the
+pack and both jars, a six-pack of ale as the carrier and three bottle necks. That is what
+`applyCensus` folding by containment exists to fix. It is now down to 2.6% of 268 proposals, and
+the errors it explained have gone with it.
+
+### The misses are produce, and it is not a vocabulary gap
+
+Across the six photographs the detector drew nothing for eleven items, and **nine of the eleven
+are produce**: seven loose, two in net bags. The other two are packaged items in the one
+configuration that also defeats it, an item standing directly behind another and one of two
+near-identical bags lying side by side.
+
+| what was missed | count |
+|---|---|
+| loose produce | 7 |
+| netted produce | 2 |
+| packaged, standing behind another item | 1 |
+| packaged, beside a near-identical one | 1 |
+
+The last row of the table above is the cleanest case in the corpus: thirteen items laid flat on a
+table, nothing behind anything, even lighting. All seven packaged items were found. All six
+loose or netted items were missed: celery, parsley, a leek bunch, a parsnip, a net bag of
+onions, a net bag of potatoes.
+
+None of the three phrases in the shipped prompt names an unpackaged vegetable, so the obvious
+move is to add one. It was measured on both corpora and it fails on both.
+
+| prompt | shelf recall | shelf precision | proposals/scene |
+|---|---|---|---|
+| shipped | 61.2% | 45.9% | 14.8 |
+| plus "a fruit or vegetable." | 52.2% | 39.5% | 14.7 |
+| plus "a fresh fruit. a fresh vegetable." | 50.8% | 37.4% | 15.1 |
+
+Nine points of recall for no change in how many boxes come back, so the phrase moves boxes onto
+worse targets rather than finding more items.
+
+Run directly on the photograph that motivated it, the single-phrase version recovers **none** of
+the six and loses the loaf of bread. The split version recovers two, celery and parsley, by
+taking the proposals from 7 to 22 and losing the apples and the clementines: two items bought
+for fifteen phantom boxes, trading a count error of -6 for one of +9.
+
+Both are kept in `sweep_prompt.py` as recorded negatives so the idea is not had twice. What this
+leaves is a real and unexplained limitation rather than a fix: Grounding DINO at the shipped
+threshold does not localise loose produce on a table, and telling it the word for produce does
+not change that.
 
 ## What is still missing
 

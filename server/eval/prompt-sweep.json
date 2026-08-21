@@ -1,53 +1,5 @@
 {
  "shipped": {
-  "prompt": "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub.",
-  "recall": 0.4542728635682159,
-  "precision_floor": 0.4583963691376702,
-  "proposals_per_scene": 11.016666666666667,
-  "recall_by_density": {
-   "13-25": 0.5609756097560976,
-   "26+": 0.34328358208955223,
-   "1-12": 0.5714285714285714
-  },
-  "seconds": 84.9
- },
- "product-only": {
-  "prompt": "a product.",
-  "recall": 0.6146926536731634,
-  "precision_floor": 0.4418103448275862,
-  "proposals_per_scene": 15.466666666666667,
-  "recall_by_density": {
-   "13-25": 0.725609756097561,
-   "26+": 0.5611940298507463,
-   "1-12": 0.6130952380952381
-  },
-  "seconds": 72.7
- },
- "more-shapes": {
-  "prompt": "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub. a packet. a pouch. a bag of food. a tube. a tray of food. a carton of eggs.",
-  "recall": 0.41529235382308843,
-  "precision_floor": 0.41654135338345866,
-  "proposals_per_scene": 11.083333333333334,
-  "recall_by_density": {
-   "13-25": 0.4634146341463415,
-   "26+": 0.3373134328358209,
-   "1-12": 0.5238095238095238
-  },
-  "seconds": 64.4
- },
- "no-produce": {
-  "prompt": "a product. a box. a bottle. a carton. a can. a jar. a tub.",
-  "recall": 0.4542728635682159,
-  "precision_floor": 0.5083892617449665,
-  "proposals_per_scene": 9.933333333333334,
-  "recall_by_density": {
-   "13-25": 0.5426829268292683,
-   "26+": 0.3492537313432836,
-   "1-12": 0.5773809523809523
-  },
-  "seconds": 63.9
- },
- "grocery-noun": {
   "prompt": "a grocery product. a packaged food item. a drink container.",
   "recall": 0.6116941529235382,
   "precision_floor": 0.4594594594594595,
@@ -57,18 +9,30 @@
    "26+": 0.591044776119403,
    "1-12": 0.6011904761904762
   },
-  "seconds": 66.7
+  "seconds": 50.0
  },
- "shipped-plus-packet": {
-  "prompt": "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub. a packet. a bag of food.",
-  "recall": 0.42278860569715143,
-  "precision_floor": 0.42727272727272725,
-  "proposals_per_scene": 11.0,
+ "produce": {
+  "prompt": "a grocery product. a packaged food item. a drink container. a fruit or vegetable.",
+  "recall": 0.5217391304347826,
+  "precision_floor": 0.3945578231292517,
+  "proposals_per_scene": 14.7,
   "recall_by_density": {
-   "13-25": 0.4817073170731707,
-   "26+": 0.34626865671641793,
-   "1-12": 0.5178571428571429
+   "13-25": 0.5853658536585366,
+   "26+": 0.46567164179104475,
+   "1-12": 0.5714285714285714
   },
-  "seconds": 63.9
+  "seconds": 55.6
+ },
+ "produce-split": {
+  "prompt": "a grocery product. a packaged food item. a drink container. a fresh fruit. a fresh vegetable.",
+  "recall": 0.5082458770614693,
+  "precision_floor": 0.3741721854304636,
+  "proposals_per_scene": 15.1,
+  "recall_by_density": {
+   "13-25": 0.5670731707317073,
+   "26+": 0.4537313432835821,
+   "1-12": 0.5595238095238095
+  },
+  "seconds": 49.1
  }
 }
