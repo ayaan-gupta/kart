@@ -61,10 +61,30 @@ def detector(device=None):
     return ground, device
 
 
-def propose(pil, ground, produce_pass=True, threshold=None):
-    """The regions the service would return for one frame, in normalized coordinates."""
+def propose(pil, ground, produce_pass=True, threshold=None, tiles=1):
+    """The regions the service would return for one frame, in normalized coordinates.
+
+    `tiles` also runs the detector over an NxN grid of half-overlapping tiles, merged with the
+    whole-frame pass. The whole frame stays in the pool because tiles alone lose anything larger
+    than a tile, which in a trolley is the bread and the baguette. Measured as harmful on RPC,
+    where objects are neither many nor small; a loaded trolley is a different question, and this
+    is here to answer it rather than to assume it.
+    """
     threshold = regions.BOX_THRESHOLD if threshold is None else threshold
     boxes, scores = ground(pil, regions.GROCERY_PROMPT, threshold)
+    if tiles > 1:
+        tw, th = pil.size[0] / tiles, pil.size[1] / tiles
+        for row in range(tiles * 2 - 1):
+            for col in range(tiles * 2 - 1):
+                left, top = col * tw / 2, row * th / 2
+                tile = pil.crop((int(left), int(top),
+                                 int(min(left + tw, pil.size[0])),
+                                 int(min(top + th, pil.size[1]))))
+                if tile.size[0] < 32 or tile.size[1] < 32:
+                    continue
+                tb, ts = ground(tile, regions.GROCERY_PROMPT, threshold)
+                boxes += [[b[0] + left, b[1] + top, b[2] + left, b[3] + top] for b in tb]
+                scores += ts
     raw = len(boxes)
     if boxes:
         keep = regions.dedupe(boxes, scores, size=pil.size)
@@ -171,6 +191,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-produce-pass", action="store_true")
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
+    parser.add_argument("--tiles", type=int, default=1,
+                        help="also run over an NxN grid of half-overlapping tiles and merge")
     parser.add_argument("--render", default=None, help="directory for numbered overlays")
     parser.add_argument("--out", default=str(CACHE / "frames.json"))
     parser.add_argument("--index", default=None,
@@ -204,7 +226,7 @@ def main(argv=None):
             pil = ImageOps.exif_transpose(handle).convert("RGB")
         pil.thumbnail((MAX_SIDE, MAX_SIDE))
         result = propose(pil, ground, produce_pass=not args.no_produce_pass,
-                         threshold=args.threshold)
+                         threshold=args.threshold, tiles=args.tiles)
         result["id"] = path.stem
         result["pixels"] = list(pil.size)
         frames.append(result)

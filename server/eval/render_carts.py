@@ -32,9 +32,12 @@ FILL = {
 
 
 def draw(states, boxes, path):
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageOps
 
     with Image.open(path) as handle:
+        # Phone photographs carry EXIF orientation; without this the overlay is drawn a quarter
+        # turn from the picture it is describing.
+        handle = ImageOps.exif_transpose(handle)
         image = handle.convert("RGB")
     width, height = image.size
     layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
@@ -62,11 +65,13 @@ def draw(states, boxes, path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="/tmp/kart-overlays")
+    parser.add_argument("--images", default=None,
+                        help="directory holding the photographs, if not corpus/carts")
     parser.add_argument("--cell", type=int, default=560)
     parser.add_argument("--cols", type=int, default=3)
     args = parser.parse_args(argv)
 
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageOps
 
     frames = {f["id"]: f for f in json.loads((HERE / "carts-frames.json").read_text())["frames"]}
     states = json.loads((HERE / "carts-states.json").read_text())
@@ -76,7 +81,8 @@ def main(argv=None):
     rendered = []
     for result in states["results"]:
         frame = frames[result["id"]]
-        image = draw(result["states"], result["trackBoxes"], CORPUS / "carts" / frame["file"])
+        root = pathlib.Path(args.images) if args.images else CORPUS / "carts"
+        image = draw(result["states"], result["trackBoxes"], root / frame["file"])
         image.save(out / f"{result['id']}.jpg", quality=88)
         rendered.append((result, image))
 
