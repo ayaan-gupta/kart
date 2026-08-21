@@ -55,6 +55,12 @@ the catalog holds, using one encoder (SigLIP-B/16) and the shipped fusion.
 | plus one epoch of fine-tuning | 67.6% | 80.7% | 85.0% |
 | plus test-time augmentation | 67.4% | 81.2% | 85.4% |
 
+The top-1 column above counts a declined crop as an error, which is what the product does. The
+confidence floor changed partway through this work, so a later run is not comparable to an
+earlier one on that column alone. Ignoring the floor and asking only whether the winner was
+right, the same runs read 52.5%, 58.9%, 67.6% and 67.4%, and top-5 and the ceiling are
+independent of the floor throughout.
+
 **Spreading the references is worth 7.1 points and costs nothing.** A shelf presents a dozen
 faces of the same soap, so a per-class cap of 40 was filled by the first two photographs that
 contained the product, and the reference set then described two lighting conditions and two
@@ -73,6 +79,21 @@ encoding. The crops are tight annotator boxes on a crowded shelf, so cropping to
 discards packaging that carries the answer and rotating it fills the corners with white. It
 stays enabled by default because RPC is the corpus the default was measured on, but a deployment
 that looks like this one should turn it off and get its latency back.
+
+**The two-encoder ensemble is worth 5.4 points here against 2.1 on the tray**, and every row of
+the table above uses one encoder while `DEFAULT_ENCODERS` ships two. Measured on the same 1,500
+crops, ignoring the floor so the runs are comparable:
+
+| encoders | top-1 | top-5 | shortlist ceiling |
+|---|---|---|---|
+| SigLIP-B/16 | 58.9% | 73.1% | 79.8% |
+| SigLIP-B/16 + SigLIP2-L/16 | 64.3% | 79.7% | 85.0% |
+| SigLIP-B/16, fine-tuned | 67.6% | 80.7% | 85.0% |
+
+The frozen ensemble reaches the fine-tuned encoder's shortlist ceiling without any training at
+all, and lands within three points of its top-1. For a store unwilling to label carts, which is
+what fine-tuning requires, that is the configuration to ship. It costs six times the encoding
+time, and encoding is a per-catalog cost rather than a per-scan one.
 
 **Refitting the fusion weights is worth nothing.** Fitted on half the photographs and reported on
 the other half, the best weighting scores 74.6% within the shortlist against 74.5% for the
