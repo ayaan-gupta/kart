@@ -253,17 +253,24 @@ class Index:
         # each is a hundred thousand images, which is tens of gigabytes held as decoded pixels
         # and an out-of-memory crash on the one machine that matters, the one doing the import.
         # Both encoders run on the same chunk so each file is read from disk once.
-        feature_chunks, color_chunks = [], []
+        feature_chunks, color_chunks, first_chunks = [], [], []
         for start in range(0, len(paths), ENCODE_CHUNK):
             loaded = [
                 Image.open(p).convert("RGB") for p in paths[start : start + ENCODE_CHUNK]
             ]
-            feature_chunks.append(
-                _stack([encode.embed(loaded, *e) for e in image_encoders])
-            )
+            blocks = [encode.embed(loaded, *e) for e in image_encoders]
+            feature_chunks.append(_stack(blocks))
+            # The first encoder's own block, kept alongside the concatenation. Fine-tuning moves
+            # that one tower and needs prototypes in its space; taking them from the ensemble
+            # instead hands a 768-dimensional model a 1792-dimensional target and the matrix
+            # multiply fails. With a single encoder the two are the same array, which is why this
+            # never surfaced: the ensemble is the shipped default and had never been built with
+            # fine-tuning switched on.
+            first_chunks.append(blocks[0])
             color_chunks.append(encode.embed(loaded, *color_encoder))
             log(f"  {min(start + ENCODE_CHUNK, len(paths))}/{len(paths)}")
         features = np.concatenate(feature_chunks)
+        first_features = np.concatenate(first_chunks)
         colors = np.concatenate(color_chunks)
         weights, held = head.train(features, labels, len(skus), log=log)
         log(f"  head trained, held-out catalog accuracy {held:.1%}")
@@ -273,7 +280,7 @@ class Index:
         log(f"  fine-tuning {names[0]} for {finetune_epochs} epochs")
         visual, weights = finetune.train(
             paths, labels, len(skus), names[0],
-            head.prototypes(features, labels, len(skus)),
+            head.prototypes(first_features, labels, len(skus)),
             epochs=finetune_epochs, log=log,
         )
         # The fine-tuned tower joins the ensemble rather than replacing the frozen one it came

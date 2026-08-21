@@ -890,3 +890,46 @@ def test_floor_is_high_enough_to_reject_a_product_it_has_never_seen():
     # RPC's own values stay reachable for the harnesses that published numbers with them.
     assert matcher.FLOOR_RPC == 0.51
     assert matcher.FLOOR_RPC_FINETUNED == 0.48
+
+
+def test_finetune_gets_prototypes_in_the_tower_it_is_going_to_move(tmp_path, monkeypatch):
+    """The shipped default configuration could not be built at all.
+
+    `DEFAULT_ENCODERS` is two encoders and `finetune_epochs` moves only the first of them, but
+    the prototypes handed to the fine-tuner were taken from the concatenated ensemble. That gives
+    a 768-dimensional model a 1792-dimensional target and the first matrix multiply raises. With
+    one encoder the concatenation is the block, so every test and every run that had ever been
+    made passed: the two options are individually exercised and had never been combined.
+    """
+    from PIL import Image
+
+    widths = {"a": 8, "b": 12}
+    for sku in ("one", "two"):
+        folder = tmp_path / sku
+        folder.mkdir()
+        for i in range(matcher.MIN_REFERENCES):
+            Image.new("RGB", (32, 32), (i * 7 % 255, 40, 90)).save(folder / f"{i}.jpg")
+
+    def fake_load(name, state=None):
+        return (name, name)
+
+    def fake_embed(images, prepare, encode_fn):
+        width = widths.get(encode_fn, 4)
+        rng = np.random.default_rng(abs(hash(encode_fn)) % 2**32)
+        return rng.normal(size=(len(images), width)).astype(np.float32)
+
+    seen = {}
+
+    def fake_train(paths, labels, classes, name, prototypes, epochs=1, log=None):
+        seen["prototype_width"] = prototypes.shape[1]
+        raise RuntimeError("stop here; the wiring is what is under test")
+
+    monkeypatch.setattr(matcher.encode, "load", fake_load)
+    monkeypatch.setattr(matcher.encode, "embed", fake_embed)
+    monkeypatch.setattr(matcher.finetune, "train", fake_train)
+
+    with pytest.raises(RuntimeError, match="stop here"):
+        matcher.Index.build(tmp_path, encoder=("a", "b"), finetune_epochs=1, log=lambda *a: None)
+
+    # The first encoder's width, not the concatenation's. This assertion is the whole test.
+    assert seen["prototype_width"] == widths["a"]
