@@ -28,7 +28,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { applyCensus, bagLines, createFusionState } from '../../../src/engine/liveVision/fusion';
-import type { CensusMark } from '../../../src/engine/liveVision/types';
+import type { CensusMark } from '../../../src/engine/liveVision/fusion';
 
 const HERE = join(import.meta.dirname, '..');
 const oracle = JSON.parse(readFileSync(join(HERE, 'corpus/kart/census-oracle.json'), 'utf8'));
