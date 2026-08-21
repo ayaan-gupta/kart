@@ -62,6 +62,24 @@ PRODUCE_PROMPT = (
 # The second pass runs higher than the first. It has to: its proposals are kept only where the
 # first pass found nothing, so nothing suppresses them, and on a dense produce pile at the first
 # pass's threshold it returns 34 boxes on empty ground for six real items.
+#
+# Two corpora want different values here and 0.30 is the safe one rather than the best one.
+#
+# On the real trolley the second pass proposes nothing at all at 0.30, and at 0.12 it recovers
+# both items a single still misses on the fullest countable photograph: the tomatoes wedged
+# between the purple bag and the apples, and a yellow produce bag under the baguette. That takes
+# it from 8 of 10 products found to 10 of 10, and adds nothing to the other five photographs.
+#
+# The same 0.12 wrecks the cart corpus, where mean absolute count error goes from 0.5 items to
+# 2.7 and one dense produce haul goes from 12 proposals to 27. `merge_produce` cannot prevent it
+# there: its containment test drops a fruit lying inside a box the first pass drew, and on that
+# photograph the net bags of onions and potatoes are never proposed at all, so the individual
+# onions have nothing to be inside of.
+#
+# Swept between the two: the trolley gains nothing until 0.12, so there is no intermediate value
+# that helps one without the other's failure. 0.30 stays because the corpus it protects has more
+# hand-counted evidence behind it, and because the video path already recovers the yellow bag at
+# 0.30 by moving the camera, which is what the shipped product does.
 PRODUCE_THRESHOLD = 0.30
 # A second-pass box overlapping a first-pass box by this much is the same item seen twice, and
 # the first pass wins. Everything the second pass contributes therefore lands where the first

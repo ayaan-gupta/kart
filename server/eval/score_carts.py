@@ -61,7 +61,8 @@ def curated(tiers=("cart", "haul")):
     return out
 
 
-def detect_all(images, threshold, produce_pass=False, log=print):  # noqa: C901
+def detect_all(images, threshold, produce_pass=False, produce_threshold=None,
+               log=print):  # noqa: C901
     """Boxes per photograph, through the service's own prompt, threshold and de-duplication.
 
     `produce_pass` adds the second forward pass over `regions.PRODUCE_PROMPT`, keeping its boxes
@@ -105,7 +106,7 @@ def detect_all(images, threshold, produce_pass=False, log=print):  # noqa: C901
             scores = [scores[i] for i in keep]
         if produce_pass:
             produce_boxes, produce_scores = run(
-                regions.PRODUCE_PROMPT, regions.PRODUCE_THRESHOLD)
+                regions.PRODUCE_PROMPT, produce_threshold or regions.PRODUCE_THRESHOLD)
             raw += len(produce_boxes)
             extra = regions.merge_produce(boxes, produce_boxes, produce_scores)
             boxes += [produce_boxes[i] for i in extra]
@@ -171,6 +172,7 @@ def main(argv=None):
     parser.add_argument("--index", default=str(CACHE / "index-b16-ft1.npz"))
     parser.add_argument("--out", default=str(HERE / "carts-frames.json"))
     parser.add_argument("--tiers", default="cart,haul")
+    parser.add_argument("--produce-threshold", type=float, default=None)
     parser.add_argument("--produce-pass", action="store_true",
                         help="second forward pass over regions.PRODUCE_PROMPT, kept only where "
                              "the first pass found nothing")
@@ -187,7 +189,8 @@ def main(argv=None):
           f"{sum(1 for i in images if i['tier'] == 'haul')} hauls)")
 
     started = time.time()
-    frames = detect_all(images, args.threshold, produce_pass=args.produce_pass)
+    frames = detect_all(images, args.threshold, produce_pass=args.produce_pass,
+                        produce_threshold=args.produce_threshold)
     frames = name_all(frames, pathlib.Path(args.index))
     frames = add_coverage(frames)
 
