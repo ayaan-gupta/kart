@@ -108,6 +108,58 @@ the video number is the one that describes the product. It also says what the `c
 for: an item the system can see is covered is an item it can ask the shopper to move, and moving
 the camera alone already recovers some of them.
 
+## The census, as far as it can be taken without a key
+
+The census is built and has never executed. Three of its four parts turn out to be measurable
+anyway, and the fourth is the one to check first when a key exists.
+
+**The plumbing is correct.** `census-oracle.ts` supplies the marks a correct model would return,
+from the committed per-region labels, and everything downstream is shipped code:
+
+| census | units in the bag | photographs exact |
+|---|---|---|
+| none, detection alone | 25/33 | 2/6 |
+| `isProduct` from a real model | 31/33 | 5/6 |
+| a census that answers correctly | **33/33** | **6/6** |
+
+Every count error on this corpus closes when the census answers correctly. Detection recall, the
+produce threshold and the covered rule are no longer what limits counting.
+
+That run also exercised two cases nothing had: two egg cartons side by side arriving as two units
+rather than one, and a second Muenster that no badge landed on arriving through `unmarkedItems`.
+A wrong `isProduct` false is unrecoverable, because `applyCensus` refuses to build a bag line
+from an `inViewCounts` entry alone, so a model that rejects a real badge must also list it as
+unmarked or the item is gone.
+
+**The question is answerable from a crop.** Qwen2-VL-2B, asked the census's own `isProduct`
+question on the same 28 regions, scores 24 of 28 and rejects both plastic discs, which is the
+case neither the detector's score nor a negative prompt could reach.
+
+**The compositor is correct.** `compositeMarks` draws the badges on a real trolley photograph,
+EXIF orientation honoured, boxes aligned.
+
+**Badge alignment is the part at risk.** Set-of-mark prompting is what no per-crop measurement
+can test, and it is where a small model fails outright. On IMG_0249, three items and three
+badges, the simplest case here:
+
+| badge | truth | said |
+|---|---|---|
+| 0 | cauliflower | asparagus |
+| 1 | brussels sprouts | cauliflower |
+| 2 | asparagus | cauliflower |
+
+Every one misaligned, and every product named is really in the trolley. That is the failure the
+census prompt and `match_regions` both carry warnings about, observed rather than reasoned about.
+
+Asking one crop at a time cannot misalign. Same model, same regions: 17 of 23 named correctly,
+alignment perfect by construction, and it reads packaging it has never seen, returning "ALASKAN
+Sockeye Salmon", "Muenster cheese" and "Eggs" for three out-of-catalog products. It costs one
+call per region instead of one per frame.
+
+None of this shows the shipped census failing: a 2B model is not its model, and frontier models
+do set-of-mark far better. What it gives is a first diagnostic and a fallback with a number
+behind it.
+
 ## What this corpus still cannot answer
 
 **The census has never run**, and nothing local can stand in for it. Two attempts were
