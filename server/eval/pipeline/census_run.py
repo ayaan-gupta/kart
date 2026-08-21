@@ -3,6 +3,12 @@
 Same badged images the compositor draws, same frozen CENSUS_SYSTEM_PROMPT and censusUserText the
 service sends. Only the model differs. What this exercises that nothing before it did is
 set-of-mark prompting on a real photograph: whether an answer for badge 7 lands on badge 7.
+
+The shipped census sends `CENSUS_RESPONSE_SCHEMA` under OpenAI strict mode, where the API
+guarantees the shape and the model cannot return anything else. A local model has no such
+guarantee, so the schema is put in the prompt instead. Without that this measures format
+compliance, which strict mode makes free, rather than whether the model can answer the question,
+which is the part that is actually at risk.
 """
 import json, pathlib, re, sys
 import torch
@@ -14,6 +20,20 @@ MODEL = "Qwen/Qwen2-VL-2B-Instruct"
 CARTS = ["IMG_0244", "IMG_0245", "IMG_0246", "IMG_0249", "IMG_0252", "IMG_0254"]
 
 system = CENSUS.joinpath("system.txt").read_text()
+# What strict mode would guarantee, stated instead.
+SHAPE = """
+
+Reply with JSON only, exactly this shape and nothing else:
+{"marks": [{"id": <the badge number>, "name": "...", "brand": null, "size": null,
+  "category": "...", "confidence": 0.0, "needsCloserLook": false, "isProduct": true,
+  "catalogSku": null}],
+ "unmarkedItems": [{"description": "...", "confidence": 0.0}],
+ "inViewCounts": [{"productKey": "brand::name", "count": 1}]}
+
+There must be exactly one entry in marks for every badge number listed above, with its id."""
+# Note for anyone extending this: the placeholder above is echoed back verbatim by a small
+# model, which returned inViewCounts of [{"productKey": "brand::name", "count": 1}]. A literal
+# example in a prompt is something a weak model copies rather than fills in.
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 proc = AutoProcessor.from_pretrained(MODEL)
 model = Qwen2VLForConditionalGeneration.from_pretrained(
@@ -27,7 +47,7 @@ for pid in CARTS:
     messages = [
         {"role": "system", "content": [{"type": "text", "text": system}]},
         {"role": "user", "content": [{"type": "image"},
-                                     {"type": "text", "text": user + "\n\nReply with JSON only."}]},
+                                     {"type": "text", "text": user + SHAPE}]},
     ]
     text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = proc(text=[text], images=[image], return_tensors="pt").to(device)
