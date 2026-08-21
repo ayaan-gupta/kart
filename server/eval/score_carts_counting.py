@@ -54,7 +54,7 @@ def inside_of(inner, outer):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--frames", default=str(HERE / "carts-frames.json"))
-    parser.add_argument("--configuration", default="one-pass",
+    parser.add_argument("--configuration", default="produce-pass",
                         help="which detector configuration the hand counts should be read for; "
                              "see `configurations` in cart-counts.json")
     parser.add_argument("--truth", default=str(HERE / "corpus" / "cart-counts.json"))

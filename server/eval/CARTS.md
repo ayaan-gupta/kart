@@ -95,6 +95,7 @@ Together, on the same 24 photographs:
 |---|---|---|---|---|
 | before | 8.3% | 0.0% | 55.5% | 36.2% |
 | after | 9.6% | 57.9% | 32.5% | 0.0% |
+| with the produce pass, 289 regions | 6.9% | 57.8% | 35.3% | 0.0% |
 
 Amber dominating is the correct answer here, not a failure: these are products the catalog does
 not contain, and the system saying so on every one of them is the fourth capability working.
@@ -178,7 +179,7 @@ totals alone would have scored that photograph perfect.
 **The mechanism, measurable across all 24.** Under the old prompt every over-count had one
 shape: a proposal sitting inside another proposal. A twin-pack of peanut butter arriving as the
 pack and both jars, a six-pack of ale as the carrier and three bottle necks. That is what
-`applyCensus` folding by containment exists to fix. It is now down to 2.6% of 268 proposals, and
+`applyCensus` folding by containment exists to fix. It is now down to 2.8% of 289 proposals, and
 the errors it explained have gone with it.
 
 ### The misses are produce, and no wording of one prompt fixes it
@@ -252,8 +253,10 @@ because the product is covered, and it is still four boxes for one bag.
 **Naming on cart imagery.** It needs a catalog for these products, which 24 photographs cannot
 build. The number quoted for naming is the shelf number and belongs to shelves.
 
-**Counting accuracy, as a number.** See below: three photographs were counted by hand, which is a
-characterisation rather than a metric.
+**Counting accuracy, as a number.** Six photographs of twenty-four were counted by hand, which is
+a characterisation rather than a metric. The other ten judged are photographs where a person
+cannot count the items either, so the ceiling on this corpus is low; a number worth quoting needs
+carts photographed to be countable.
 
 **The census.** Every identity in every number above is the catalog matcher's own decision,
 standing in for a model that would choose among the candidates it offers. That step has still
