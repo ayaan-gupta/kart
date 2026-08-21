@@ -54,6 +54,9 @@ def inside_of(inner, outer):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--frames", default=str(HERE / "carts-frames.json"))
+    parser.add_argument("--configuration", default="one-pass",
+                        help="which detector configuration the hand counts should be read for; "
+                             "see `configurations` in cart-counts.json")
     parser.add_argument("--truth", default=str(HERE / "corpus" / "cart-counts.json"))
     args = parser.parse_args(argv)
 
@@ -94,13 +97,13 @@ def main(argv=None):
         error = proposed - entry["products"]
         errors.append(error)
         print(f"    {frame['id']:22s} {entry['products']:4d} {proposed:9d} "
-              f"{entry['correct']:8d} {error:+6d}")
+              f"{entry['correct'][args.configuration]:8d} {error:+6d}")
     if errors:
         print(f"\n    mean signed error   {sum(errors) / len(errors):+.1f} items")
         print(f"    mean absolute error {sum(abs(e) for e in errors) / len(errors):.1f} items")
         kinds = {}
         for entry in truth["counted"]:
-            for item in entry.get("missed", []):
+            for item in entry.get("missed", {}).get(args.configuration, []):
                 kinds[item["kind"]] = kinds.get(item["kind"], 0) + 1
         if kinds:
             total_missed = sum(kinds.values())

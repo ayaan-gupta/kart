@@ -54,8 +54,11 @@ from regions import (  # noqa: E402
     NESTED_CONTAINMENT,
     NESTED_MAX_RATIO,
     NMS_IOU,
+    PRODUCE_PROMPT,
+    PRODUCE_THRESHOLD,
     SIMPLIFY_EPSILON,
     dedupe,
+    merge_produce,
 )
 
 
@@ -150,28 +153,55 @@ class Enumerator:
         img = np.array(pil)
         h, w = img.shape[:2]
 
-        inputs = self.proc(images=pil, text=GROCERY_PROMPT, return_tensors="pt").to(self.device)
-        with self.torch.no_grad():
-            outputs = self.dino(**inputs)
-        res = self.proc.post_process_grounded_object_detection(
-            outputs, inputs.input_ids, threshold=BOX_THRESHOLD, text_threshold=BOX_THRESHOLD,
-            target_sizes=[pil.size[::-1]])[0]
+        def ground(text, cut):
+            inputs = self.proc(images=pil, text=text, return_tensors="pt").to(self.device)
+            with self.torch.no_grad():
+                outputs = self.dino(**inputs)
+            res = self.proc.post_process_grounded_object_detection(
+                outputs, inputs.input_ids, threshold=cut, text_threshold=cut,
+                target_sizes=[pil.size[::-1]])[0]
+            return (res["boxes"].cpu().numpy().tolist(),
+                    [float(s) for s in res["scores"].cpu()])
 
-        boxes = res["boxes"].cpu().numpy()
-        scores = [float(s) for s in res["scores"].cpu()]
-        if len(boxes) == 0:
-            return {"instances": []}
+        boxes, scores = ground(GROCERY_PROMPT, BOX_THRESHOLD)
 
         # Deduplicate before segmenting, not after: every proposal dropped here is one SAM
         # forward pass and one badge saved, and duplicates are a third of what DINO returns.
-        keep = dedupe(boxes.tolist(), scores)
-        keep.sort(key=lambda i: -scores[i])
-        keep = keep[:MAX_INSTANCES]
-        boxes, scores = boxes[keep], [scores[i] for i in keep]
+        if boxes:
+            keep = dedupe(boxes, scores)
+            keep.sort(key=lambda i: -scores[i])
+            keep = keep[:MAX_INSTANCES]
+            boxes, scores = [boxes[i] for i in keep], [scores[i] for i in keep]
+
+        # A second pass for loose produce, which the grocery prompt does not see and which no
+        # wording of a single prompt recovers: every produce phrase added to the prompt above
+        # cost between eight and ten points of shelf recall, because extra phrases dilute the
+        # working ones rather than adding to them. A separate forward pass does not.
+        #
+        # Its boxes are kept only where the first pass found neither an item nor the container of
+        # one, so it can add regions and never remove or replace one. Measured on 100 shelf
+        # photographs it is a literal no-op, recall and precision identical to three decimal
+        # places, because a packaged-goods shelf has no loose produce for it to find. Measured on
+        # the six cart photographs where every item can be counted by hand, it takes items
+        # counted correctly from 32 of 43 to 38 of 43 and mean absolute count error from 1.8
+        # items to 0.5.
+        #
+        # The cost is a second DINO forward pass per keyframe. SAM still runs once, over the
+        # merged set.
+        produce_boxes, produce_scores = ground(PRODUCE_PROMPT, PRODUCE_THRESHOLD)
+        for i in merge_produce(boxes, produce_boxes, produce_scores):
+            if len(boxes) >= MAX_INSTANCES:
+                break
+            boxes.append(produce_boxes[i])
+            scores.append(produce_scores[i])
+
+        if not boxes:
+            return {"instances": []}
+        boxes = np.asarray(boxes, dtype=np.float32)
 
         self.sam.set_image(img)
         with self.torch.no_grad():
-            masks, _, _ = self.sam.predict(box=boxes.astype(np.float32), multimask_output=False)
+            masks, _, _ = self.sam.predict(box=boxes, multimask_output=False)
         masks = np.asarray(masks)
         if masks.ndim == 4:
             masks = masks[:, 0]

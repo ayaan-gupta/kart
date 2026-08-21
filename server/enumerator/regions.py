@@ -35,6 +35,54 @@ Nothing here imports modal, torch, or anything that loads a model.
 # of the frame at all.
 GROCERY_PROMPT = "a grocery product. a packaged food item. a drink container."
 
+# Loose produce is what this prompt cannot see, and adding words for it to the prompt above
+# makes things worse rather than better. On 60 shelf photographs:
+#
+#     prompt                                        recall   precision   boxes/scene
+#     shipped, three phrases                         61.2%       45.9%          14.8
+#     + "a fruit or vegetable."                      52.2%       39.5%          14.7
+#     + "a fresh fruit. a fresh vegetable."          50.8%       37.4%          15.1
+#     + twenty-eight produce nouns                   53.2%       44.8%          13.2
+#
+# Extra phrases do not add proposals, they dilute the ones that work: the last row returns fewer
+# boxes per scene than the shipped prompt, not more. The same effect explains why nine shape
+# words lost fifteen points of recall to three grocery nouns.
+#
+# A second pass does not dilute the first, because it is a separate forward pass. Naming the
+# specific vegetable is also what works: on the one photograph in the cart corpus where every
+# item is separately visible, "a fruit or vegetable." lands on none of the six missed produce
+# items at the shipped threshold while a list of produce nouns lands on four. Grounding DINO
+# grounds concrete nouns and does badly on category words, which is what grounding means.
+PRODUCE_PROMPT = (
+    "bananas. apples. oranges. lemons. grapes. strawberries. avocados. tomatoes. "
+    "potatoes. onions. carrots. lettuce. broccoli. celery. cucumbers. peppers. "
+    "mushrooms. garlic. ginger. spinach. cabbage. cauliflower. herbs. leeks. "
+    "a melon. a pineapple. pears. sweet potatoes."
+)
+# The second pass runs higher than the first. It has to: its proposals are kept only where the
+# first pass found nothing, so nothing suppresses them, and on a dense produce pile at the first
+# pass's threshold it returns 34 boxes on empty ground for six real items.
+PRODUCE_THRESHOLD = 0.30
+# A second-pass box overlapping a first-pass box by this much is the same item seen twice, and
+# the first pass wins. Everything the second pass contributes therefore lands where the first
+# found nothing, which is why it cannot cost a packaged item: across the three cart photographs
+# with known produce misses, every packaged item found by one pass survived two.
+PRODUCE_OVERLAP = 0.3
+# ...and this much *inside* a first-pass box makes it a part of an item already proposed.
+#
+# Containment rather than overlap, because the two disagree exactly where it matters. A single
+# clementine inside a net of clementines has an IoU with the net of about 0.05, so an overlap
+# test passes it through and the net arrives as seven fruits. It is one purchasable unit and the
+# first pass already drew it. Measured on the produce haul: with an overlap test alone the second
+# pass took 7 proposals to 19, splitting one clementine net into seven boxes and one onion net
+# into four.
+#
+# This is the same judgement `degroup` makes in the other direction. There, a box holding several
+# separately-proposed items is a group and loses to its members. Here, a box inside an item that
+# was proposed as a whole is a part and loses to its container. What settles which way it goes is
+# which pass drew it: the grocery prompt is the one that knows a bag of fruit is a thing you buy.
+PRODUCE_INSIDE = 0.7
+
 # One box per region, whatever phrase matched it.
 NMS_IOU = 0.5
 # A box this far inside another is a second proposal on one item, not a neighbour.
@@ -225,6 +273,37 @@ def objectness(score, threshold=None):
     threshold = BOX_THRESHOLD if threshold is None else threshold
     scaled = DETECTOR_SCORE_FLOOR + 0.44 * (score - threshold) / DETECTOR_SCORE_SPAN
     return round(min(DETECTOR_SCORE_CEILING, max(DETECTOR_SCORE_FLOOR, scaled)), 6)
+
+
+def merge_produce(base, boxes, scores, overlap=None, inside=None):
+    """Indices of second-pass boxes that land where the first pass found nothing.
+
+    The first pass owns the frame. A produce proposal that overlaps a box the grocery prompt
+    already drew is the same item seen twice and is dropped, so this can only add regions, never
+    replace or remove one. That asymmetry is the whole reason a second pass is safe where a
+    longer prompt was not: a longer prompt changes what the working phrases find, and every
+    produce wording measured cost between eight and ten points of recall doing so.
+
+    Two tests, not one. Overlap catches a second proposal on the same item; containment catches a
+    proposal on a *part* of one. A clementine inside a net of clementines fails only the second,
+    at an IoU of roughly 0.05 against the net that already holds it.
+
+    Returned as indices rather than boxes so the caller can carry each box's score with it, the
+    same contract `dedupe` uses.
+    """
+    overlap = PRODUCE_OVERLAP if overlap is None else overlap
+    inside = PRODUCE_INSIDE if inside is None else inside
+    fresh = [
+        i for i, box in enumerate(boxes)
+        if max((_iou(box, other) for other in base), default=0.0) < overlap
+        and max((_inside_of(box, other) for other in base), default=0.0) < inside
+    ]
+    if not fresh:
+        return []
+    # De-duplicate the second pass against itself. Twenty-eight nouns describe one onion several
+    # ways, and without this a bag of them arrives once per matching noun.
+    picked = dedupe([boxes[i] for i in fresh], [scores[i] for i in fresh])
+    return [fresh[i] for i in picked]
 
 
 def degroup(kept, boxes, members=None, containment=None):

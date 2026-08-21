@@ -181,46 +181,71 @@ pack and both jars, a six-pack of ale as the carrier and three bottle necks. Tha
 `applyCensus` folding by containment exists to fix. It is now down to 2.6% of 268 proposals, and
 the errors it explained have gone with it.
 
-### The misses are produce, and it is not a vocabulary gap
+### The misses are produce, and no wording of one prompt fixes it
 
 Across the six photographs the detector drew nothing for eleven items, and **nine of the eleven
 are produce**: seven loose, two in net bags. The other two are packaged items in the one
 configuration that also defeats it, an item standing directly behind another and one of two
 near-identical bags lying side by side.
 
-| what was missed | count |
-|---|---|
-| loose produce | 7 |
-| netted produce | 2 |
-| packaged, standing behind another item | 1 |
-| packaged, beside a near-identical one | 1 |
-
-The last row of the table above is the cleanest case in the corpus: thirteen items laid flat on a
-table, nothing behind anything, even lighting. All seven packaged items were found. All six
-loose or netted items were missed: celery, parsley, a leek bunch, a parsnip, a net bag of
-onions, a net bag of potatoes.
-
 None of the three phrases in the shipped prompt names an unpackaged vegetable, so the obvious
-move is to add one. It was measured on both corpora and it fails on both.
+move is to add one. Measured on 60 shelf photographs, every wording loses:
 
 | prompt | shelf recall | shelf precision | proposals/scene |
 |---|---|---|---|
-| shipped | 61.2% | 45.9% | 14.8 |
+| shipped, three phrases | 61.2% | 45.9% | 14.8 |
 | plus "a fruit or vegetable." | 52.2% | 39.5% | 14.7 |
 | plus "a fresh fruit. a fresh vegetable." | 50.8% | 37.4% | 15.1 |
+| plus twenty-eight produce nouns | 53.2% | 44.8% | 13.2 |
 
-Nine points of recall for no change in how many boxes come back, so the phrase moves boxes onto
-worse targets rather than finding more items.
+The last row is the mechanism. Twenty-eight extra phrases return **fewer** boxes per scene than
+three, not more. Extra phrases do not add proposals, they dilute the ones that work. That is also
+what happened when nine shape words lost fifteen points of recall to three grocery nouns, which
+had been measured without being understood.
 
-Run directly on the photograph that motivated it, the single-phrase version recovers **none** of
-the six and loses the loaf of bread. The split version recovers two, celery and parsley, by
-taking the proposals from 7 to 22 and losing the apples and the clementines: two items bought
-for fifteen phantom boxes, trading a count error of -6 for one of +9.
+### A second pass does, because it does not dilute the first
 
-Both are kept in `sweep_prompt.py` as recorded negatives so the idea is not had twice. What this
-leaves is a real and unexplained limitation rather than a fix: Grounding DINO at the shipped
-threshold does not localise loose produce on a table, and telling it the word for produce does
-not change that.
+Naming the specific vegetable works where naming the category does not. On the produce haul at
+the shipped threshold, "a fruit or vegetable." lands on none of the six missed items while a list
+of produce nouns lands on four. Grounding DINO grounds concrete nouns, which is what grounding
+means.
+
+So the produce nouns run as a separate forward pass, and its boxes are kept only where the first
+pass found neither an item nor the container of one (`regions.merge_produce`).
+
+| | one pass | plus produce pass |
+|---|---|---|
+| items counted correctly, of 43 | 32 | **38** |
+| mean signed count error | -1.5 | **-0.2** |
+| mean absolute count error | 1.8 | **0.5** |
+| items missed | 11, 9 of them produce | 5, 3 of them produce |
+| shelf recall, 100 photographs | 56.3% | 56.3% |
+| shelf precision floor | 46.1% | 46.1% |
+| shelf proposals per scene | 17.4 | 17.4 |
+
+On a packaged-goods shelf it is a literal no-op, identical in every band, because there is no
+loose produce there for it to find. The cost is a second DINO forward pass per keyframe. SAM
+still runs once, over the merged set.
+
+### The bug in the first version, which the photographs caught
+
+The merge originally tested overlap. A single clementine inside a net of clementines has an IoU
+with that net of about 0.05, so an overlap test passed all seven through and the net arrived as
+seven fruits, with one onion net arriving as four onions. The produce haul went from 7 proposals
+to 19 and its count error from -6 to +6.
+
+The test has to be containment. A second-pass box sitting mostly inside a first-pass box is a
+*part* of an item already proposed, not a new item. That is the same judgement `degroup` makes in
+the other direction, where a box holding several separately-proposed items is a group and loses
+to its members. What settles which way it goes is which pass drew the box: the grocery prompt is
+the one that knows a bag of fruit is a thing you buy.
+
+Both directions are pinned by tests: a clementine inside a net is dropped, two loose oranges
+beside a yogurt are kept.
+
+What remains unfixed is a net bag of onions, which the first pass does not see and the second
+pass therefore splits into individual onions with nothing to contain them. It is counted as found
+because the product is covered, and it is still four boxes for one bag.
 
 ## What is still missing
 

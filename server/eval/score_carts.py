@@ -61,8 +61,13 @@ def curated(tiers=("cart", "haul")):
     return out
 
 
-def detect_all(images, threshold, log=print):  # noqa: C901
-    """Boxes per photograph, through the service's own prompt, threshold and de-duplication."""
+def detect_all(images, threshold, produce_pass=False, log=print):  # noqa: C901
+    """Boxes per photograph, through the service's own prompt, threshold and de-duplication.
+
+    `produce_pass` adds the second forward pass over `regions.PRODUCE_PROMPT`, keeping its boxes
+    only where the first pass found nothing. It is off by default so this file keeps producing
+    the numbers the rest of the corpus documentation was written against.
+    """
     import torch
     from PIL import Image
     from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
@@ -79,15 +84,18 @@ def detect_all(images, threshold, log=print):  # noqa: C901
         with Image.open(path) as handle:
             pil = handle.convert("RGB")
         width, height = pil.size
-        inputs = proc(images=pil, text=regions.GROCERY_PROMPT, return_tensors="pt").to(device)
-        with torch.no_grad():
-            outputs = dino(**inputs)
-        found = proc.post_process_grounded_object_detection(
-            outputs, inputs.input_ids, threshold=threshold, text_threshold=threshold,
-            target_sizes=[pil.size[::-1]],
-        )[0]
-        boxes = [[float(v) for v in row] for row in found["boxes"].cpu().numpy()]
-        scores = [float(s) for s in found["scores"].cpu()]
+        def run(text, cut):
+            inputs = proc(images=pil, text=text, return_tensors="pt").to(device)
+            with torch.no_grad():
+                outputs = dino(**inputs)
+            got = proc.post_process_grounded_object_detection(
+                outputs, inputs.input_ids, threshold=cut, text_threshold=cut,
+                target_sizes=[pil.size[::-1]],
+            )[0]
+            return ([[float(v) for v in row] for row in got["boxes"].cpu().numpy()],
+                    [float(s) for s in got["scores"].cpu()])
+
+        boxes, scores = run(regions.GROCERY_PROMPT, threshold)
         raw = len(boxes)
         if boxes:
             keep = regions.dedupe(boxes, scores)
@@ -95,6 +103,13 @@ def detect_all(images, threshold, log=print):  # noqa: C901
             keep = keep[: regions.MAX_INSTANCES]
             boxes = [boxes[i] for i in keep]
             scores = [scores[i] for i in keep]
+        if produce_pass:
+            produce_boxes, produce_scores = run(
+                regions.PRODUCE_PROMPT, regions.PRODUCE_THRESHOLD)
+            raw += len(produce_boxes)
+            extra = regions.merge_produce(boxes, produce_boxes, produce_scores)
+            boxes += [produce_boxes[i] for i in extra]
+            scores += [produce_scores[i] for i in extra]
         frames.append({
             "id": entry["id"], "file": entry["file"], "tier": entry["tier"],
             "width": width, "height": height, "raw_proposals": raw,
@@ -156,6 +171,9 @@ def main(argv=None):
     parser.add_argument("--index", default=str(CACHE / "index-b16-ft1.npz"))
     parser.add_argument("--out", default=str(HERE / "carts-frames.json"))
     parser.add_argument("--tiers", default="cart,haul")
+    parser.add_argument("--produce-pass", action="store_true",
+                        help="second forward pass over regions.PRODUCE_PROMPT, kept only where "
+                             "the first pass found nothing")
     args = parser.parse_args(argv)
 
     images = curated(tuple(args.tiers.split(",")))
@@ -169,7 +187,7 @@ def main(argv=None):
           f"{sum(1 for i in images if i['tier'] == 'haul')} hauls)")
 
     started = time.time()
-    frames = detect_all(images, args.threshold)
+    frames = detect_all(images, args.threshold, produce_pass=args.produce_pass)
     frames = name_all(frames, pathlib.Path(args.index))
     frames = add_coverage(frames)
 

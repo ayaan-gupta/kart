@@ -73,6 +73,33 @@ PROMPTS = {
         "a grocery product. a packaged food item. a drink container. a fresh fruit. "
         "a fresh vegetable."
     ),
+    # Naming produce generically fails; naming a specific vegetable works. Run on the produce
+    # haul at the shipped threshold, "a fruit or vegetable." lands on none of the six missed
+    # items while "celery. parsley. a leek. a parsnip. onions. potatoes." lands on five, the best
+    # at 0.52. Grounding DINO grounds concrete nouns and does poorly on category words, which is
+    # what "grounding" means and should have been the first guess.
+    #
+    # That phrase is leaked: it names the six items already known to be missing. This is the
+    # unleaked version, a produce list written from what a supermarket sells rather than from
+    # that photograph, and measured on the shelf corpus, which has never been inspected for
+    # produce. The overlap with the leaked six is unavoidable and is the point: a store knows its
+    # own produce list, and CLAUDE.md already assumes the catalog is known.
+    "produce-nouns": (
+        "a grocery product. a packaged food item. a drink container. "
+        "bananas. apples. oranges. lemons. grapes. strawberries. avocados. tomatoes. "
+        "potatoes. onions. carrots. lettuce. broccoli. celery. cucumbers. peppers. "
+        "mushrooms. garlic. ginger. spinach. cabbage. cauliflower. herbs. leeks. "
+        "a melon. a pineapple. pears. sweet potatoes."
+    ),
+    # The same nouns without the three shipped phrases, to separate what the produce list adds
+    # from what the shipped phrases were already doing. If this scores near the combined one, the
+    # list is carrying the whole prompt and the generic phrases are redundant.
+    "nouns-only": (
+        "bananas. apples. oranges. lemons. grapes. strawberries. avocados. tomatoes. "
+        "potatoes. onions. carrots. lettuce. broccoli. celery. cucumbers. peppers. "
+        "mushrooms. garlic. ginger. spinach. cabbage. cauliflower. herbs. leeks. "
+        "a melon. a pineapple. pears. sweet potatoes."
+    ),
     "shipped-plus-packet": (
         "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub. "
         "a packet. a bag of food."

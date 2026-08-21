@@ -110,6 +110,11 @@ def main(argv=None):
                         help="override regions.GROUP_CONTAINMENT for this run")
     parser.add_argument("--no-degroup", action="store_true",
                         help="skip the group-box pass entirely")
+    parser.add_argument("--produce-pass", action="store_true",
+                        help="run regions.PRODUCE_PROMPT as a second pass and keep its boxes "
+                             "wherever the first pass found nothing")
+    parser.add_argument("--produce-threshold", type=float, default=None,
+                        help="override regions.PRODUCE_THRESHOLD for the second pass")
     parser.add_argument("--no-dedupe", action="store_true",
                         help="skip the service's de-duplication, to separate what the model "
                              "proposes from what the pipeline keeps")
@@ -156,15 +161,15 @@ def main(argv=None):
         shrunk = pil.copy()
         shrunk.thumbnail((args.max_side, args.max_side))
 
-        def detect(view):
-            inputs = proc(
-                images=view, text=regions.GROCERY_PROMPT, return_tensors="pt"
-            ).to(device)
+        def detect(view, text=None, threshold=None):
+            text = regions.GROCERY_PROMPT if text is None else text
+            threshold = args.threshold if threshold is None else threshold
+            inputs = proc(images=view, text=text, return_tensors="pt").to(device)
             with torch.no_grad():
                 outputs = dino(**inputs)
             found = proc.post_process_grounded_object_detection(
-                outputs, inputs.input_ids, threshold=args.threshold,
-                text_threshold=args.threshold, target_sizes=[view.size[::-1]],
+                outputs, inputs.input_ids, threshold=threshold,
+                text_threshold=threshold, target_sizes=[view.size[::-1]],
             )[0]
             return (
                 [[float(v) for v in row] for row in found["boxes"].cpu().numpy()],
@@ -172,6 +177,18 @@ def main(argv=None):
             )
 
         boxes, scores = detect(shrunk)
+        if args.produce_pass:
+            # After the first pass has been de-duplicated, not before: the produce boxes are
+            # judged against the regions the pipeline actually keeps, which is what they will be
+            # judged against in the service.
+            first = regions.dedupe(boxes, scores) if boxes else []
+            settled = [boxes[i] for i in first]
+            produce_boxes, produce_scores = detect(
+                shrunk, regions.PRODUCE_PROMPT,
+                args.produce_threshold or regions.PRODUCE_THRESHOLD)
+            extra = regions.merge_produce(settled, produce_boxes, produce_scores)
+            boxes = settled + [produce_boxes[i] for i in extra]
+            scores = [scores[i] for i in first] + [produce_scores[i] for i in extra]
         if args.tiles > 1:
             # Half-overlapping tiles, so an item on a seam is whole in at least one of them.
             # The whole frame is kept in the pool as well: tiles alone lose anything larger than

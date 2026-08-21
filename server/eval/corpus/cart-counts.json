@@ -6,93 +6,152 @@
   {
    "id": "ov-eb3a6e5a-8de",
    "products": 7,
-   "correct": 6,
+   "correct": {
+    "one-pass": 6,
+    "produce-pass": 7
+   },
    "note": "Tofu, whole chilli, rice noodles, wasabi, ginger, mango: six proposals, six items, one each. The seventh item, a tied bunch of spring onions lying across the front of the table, drew nothing. Recounted against the current prompt; under the shape-word prompt this photograph was a clean seven of seven, and the item it now loses is loose produce.",
-   "missed": [
-    {
-     "item": "bunch of spring onions",
-     "kind": "loose produce"
-    }
-   ]
+   "missed": {
+    "one-pass": [
+     {
+      "item": "bunch of spring onions",
+      "kind": "loose produce"
+     }
+    ],
+    "produce-pass": []
+   }
   },
   {
    "id": "ov-8ce1fa68-5d3",
    "products": 5,
-   "correct": 5,
+   "correct": {
+    "one-pass": 5,
+    "produce-pass": 5
+   },
    "note": "Two Skippy jars, hummus tub, sun-dried tomato dip, bananas. Nine proposals: all five items found, plus a napkin holder that is not a product and three boxes drawn around parts of items already proposed.",
-   "missed": []
+   "missed": {
+    "one-pass": [],
+    "produce-pass": []
+   }
   },
   {
    "id": "ov-b282ea1d-b15",
    "products": 7,
-   "correct": 5,
+   "correct": {
+    "one-pass": 5,
+    "produce-pass": 7
+   },
    "note": "Sambazon carton, Clover yogurt tub, a six-pack of Bigfoot ale as one carrier, a small blue bottle: four clean proposals. A fifth box spans both a decorative vase and the Rodney Strong bottle behind it, so the wine is covered but not isolated; counted as found on the same rule used throughout, which is whether a real product is covered by any proposal. Two oranges sitting in the middle of the group drew nothing at all.",
-   "missed": [
-    {
-     "item": "orange",
-     "kind": "loose produce"
-    },
-    {
-     "item": "orange",
-     "kind": "loose produce"
-    }
-   ]
+   "missed": {
+    "one-pass": [
+     {
+      "item": "orange",
+      "kind": "loose produce"
+     },
+     {
+      "item": "orange",
+      "kind": "loose produce"
+     }
+    ],
+    "produce-pass": []
+   }
   },
   {
    "id": "ov-d8f59685-21f",
    "products": 3,
-   "correct": 2,
+   "correct": {
+    "one-pass": 2,
+    "produce-pass": 2
+   },
    "note": "Perdue ground turkey tray and one ShopRite deli bag proposed. The second ShopRite bag lying beside it, near-identical and fully visible, drew no proposal at all. Two proposals for three items: the first undercount in this set, and the first case of an item being missed rather than an extra one invented.",
-   "missed": [
-    {
-     "item": "second ShopRite deli bag",
-     "kind": "packaged, beside a near-identical one"
-    }
-   ]
+   "missed": {
+    "one-pass": [
+     {
+      "item": "second ShopRite deli bag",
+      "kind": "packaged, beside a near-identical one"
+     }
+    ],
+    "produce-pass": [
+     {
+      "item": "second ShopRite deli bag",
+      "kind": "packaged, beside a near-identical one"
+     }
+    ]
+   }
   },
   {
    "id": "ov-8d57c04e-af7",
    "products": 13,
-   "correct": 7,
+   "correct": {
+    "one-pass": 7,
+    "produce-pass": 10
+   },
    "note": "A produce haul laid out flat on a table with nothing behind anything, which is the easiest counting case in the corpus. Seven proposals, all seven correct: meat pack, grape bag, paper bag, bread bag, cauliflower, clementine bag, apple bag. Six items drew nothing: celery, parsley, a leek bunch, a parsnip, a net bag of onions and a net bag of potatoes. Every one of the six is loose or netted produce, and every one of the seven found is packaged. Not a hard-image problem.",
-   "missed": [
-    {
-     "item": "celery",
-     "kind": "loose produce"
-    },
-    {
-     "item": "parsley",
-     "kind": "loose produce"
-    },
-    {
-     "item": "leek bunch",
-     "kind": "loose produce"
-    },
-    {
-     "item": "parsnip",
-     "kind": "loose produce"
-    },
-    {
-     "item": "net bag of onions",
-     "kind": "netted produce"
-    },
-    {
-     "item": "net bag of potatoes",
-     "kind": "netted produce"
-    }
-   ]
+   "missed": {
+    "one-pass": [
+     {
+      "item": "celery",
+      "kind": "loose produce"
+     },
+     {
+      "item": "parsley",
+      "kind": "loose produce"
+     },
+     {
+      "item": "leek bunch",
+      "kind": "loose produce"
+     },
+     {
+      "item": "parsnip",
+      "kind": "loose produce"
+     },
+     {
+      "item": "net bag of onions",
+      "kind": "netted produce"
+     },
+     {
+      "item": "net bag of potatoes",
+      "kind": "netted produce"
+     }
+    ],
+    "produce-pass": [
+     {
+      "item": "celery",
+      "kind": "loose produce"
+     },
+     {
+      "item": "parsley",
+      "kind": "loose produce"
+     },
+     {
+      "item": "parsnip",
+      "kind": "loose produce"
+     }
+    ]
+   }
   },
   {
    "id": "ov-5291a291-a8d",
    "products": 8,
-   "correct": 7,
+   "correct": {
+    "one-pass": 7,
+    "produce-pass": 7
+   },
    "note": "Eight proposals for eight products, so the total is right, but not item for item. One proposal is the napkin holder, which is not a product; one product, a flour-tortilla packet standing behind the round tortillas, drew nothing. A count that is correct because two errors cancelled is the reason this file records `correct` separately from `products`.",
-   "missed": [
-    {
-     "item": "flour tortilla packet",
-     "kind": "packaged, standing behind another item"
-    }
-   ]
+   "missed": {
+    "one-pass": [
+     {
+      "item": "flour tortilla packet",
+      "kind": "packaged, standing behind another item"
+     }
+    ],
+    "produce-pass": [
+     {
+      "item": "flour tortilla packet",
+      "kind": "packaged, standing behind another item"
+     }
+    ]
+   }
   }
  ],
  "not_countable": [
@@ -137,7 +196,11 @@
    "why": "stacked identical chocolate bars and an opaque bag; the tray of plums behind the yogurt drew nothing, which is the same loose-produce miss as ov-8d57c04e-af7"
   }
  ],
- "recounted": "`correct` depends on the proposals and therefore on the detector prompt; `products` does not, being a fact about the photograph. All six entries were re-judged against the current prompt. The first three were originally counted under the shape-word prompt and two of them changed.",
+ "recounted": "`correct` and `missed` depend on the proposals and so on the detector configuration; `products` does not, being a fact about the photograph. Both configurations were judged by looking at every proposal on every photograph, not by re-scoring the earlier judgement.",
  "rule": "`correct` counts real products covered by at least one proposal. A proposal on a non-product does not subtract from it; it shows up as `proposed` exceeding `correct`.",
- "missed_field": "Each item the detector drew nothing for, and what kind of thing it is. Recorded per item rather than summarised so the pattern can be recounted when the detector changes, instead of being re-argued from prose."
+ "missed_field": "Each item the detector drew nothing for, and what kind of thing it is. Recorded per item rather than summarised so the pattern can be recounted when the detector changes, instead of being re-argued from prose.",
+ "configurations": {
+  "one-pass": "regions.GROCERY_PROMPT alone, which is what the service shipped.",
+  "produce-pass": "the same, plus a second forward pass over regions.PRODUCE_PROMPT whose boxes are kept only where the first pass found neither an item nor the container of one."
+ }
 }

@@ -326,3 +326,82 @@ def test_coverage_falls_as_the_floor_rises():
     ]
     coverages = [c for _, c, _, _ in report.curve(rows, steps=(0.0, 0.6, 0.8, 0.95))]
     assert coverages == sorted(coverages, reverse=True)
+
+
+def _regions():
+    sys.path.insert(0, str(HERE.parents[1] / "enumerator"))
+    import regions
+
+    return regions
+
+
+def test_the_produce_pass_only_adds_where_the_first_pass_found_nothing():
+    """The safety property the whole two-pass design rests on. A longer prompt changes what the
+    working phrases find, and every produce wording measured cost recall doing so. A second pass
+    that can only add cannot."""
+    regions = _regions()
+    base = [[0, 0, 100, 100]]
+    boxes = [[2, 2, 98, 98], [300, 300, 340, 340]]
+    kept = regions.merge_produce(base, boxes, [0.9, 0.9])
+    assert kept == [1]
+
+
+def test_the_produce_pass_deduplicates_against_itself():
+    """Twenty-eight nouns describe one onion several ways. Without this a bag of them arrives
+    once per matching noun, on empty ground where nothing else will suppress it."""
+    regions = _regions()
+    boxes = [[300, 300, 340, 340], [302, 302, 338, 338], [500, 500, 540, 540]]
+    kept = regions.merge_produce([], boxes, [0.9, 0.5, 0.8])
+    assert len(kept) == 2
+    assert 2 in kept
+
+
+def test_the_produce_pass_adds_everything_when_the_first_pass_is_empty():
+    regions = _regions()
+    boxes = [[0, 0, 40, 40], [300, 300, 340, 340]]
+    assert sorted(regions.merge_produce([], boxes, [0.9, 0.8])) == [0, 1]
+
+
+def test_the_produce_threshold_is_above_the_first_pass_threshold():
+    """Second-pass boxes are kept where nothing suppresses them, so they have to clear a higher
+    bar. At the first pass's threshold a dense produce pile returns 34 boxes on empty ground for
+    six real items."""
+    regions = _regions()
+    assert regions.PRODUCE_THRESHOLD > regions.BOX_THRESHOLD
+
+
+def test_the_produce_pass_drops_a_fruit_inside_a_bag_of_that_fruit():
+    """The case an overlap test cannot see. A single clementine has an IoU of about 0.05 with the
+    net holding it, so overlap passes it through and the net arrives as seven fruits. The net is
+    one purchasable unit and the grocery prompt already drew it."""
+    regions = _regions()
+    net = [0, 0, 200, 200]
+    one_fruit = [20, 20, 70, 70]
+    assert regions._iou(one_fruit, net) < 0.1
+    assert regions.merge_produce([net], [one_fruit], [0.9]) == []
+
+
+def test_the_produce_pass_still_adds_a_loose_item_beside_a_bag():
+    """The other half of the same rule. Two oranges sitting next to the yogurt, not inside
+    anything, are two products and the second pass is the only thing that finds them."""
+    regions = _regions()
+    bag = [0, 0, 200, 200]
+    beside = [260, 40, 320, 100]
+    assert regions.merge_produce([bag], [beside], [0.9]) == [0]
+
+
+def test_the_service_runs_the_produce_pass():
+    """`app.py` builds a modal.Volume at import and cannot be loaded without credentials, so this
+    reads the source. The wiring is what the cart measurement was of: without the second pass the
+    service counts 32 of 43 hand-counted items, with it 38."""
+    source = (HERE.parents[1] / "enumerator" / "app.py").read_text()
+    assert "merge_produce(" in source
+    assert "PRODUCE_PROMPT" in source
+
+
+def test_the_service_keeps_the_instance_cap_after_the_produce_pass():
+    """The cap is what bounds SAM's work and the number of badges a shopper is shown. A second
+    pass appending to an already-capped list would walk straight past it."""
+    source = (HERE.parents[1] / "enumerator" / "app.py").read_text()
+    after = source[source.index("merge_produce("):]
+    assert "MAX_INSTANCES" in after[:400]

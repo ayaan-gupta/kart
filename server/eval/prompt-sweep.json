@@ -9,30 +9,30 @@
    "26+": 0.591044776119403,
    "1-12": 0.6011904761904762
   },
-  "seconds": 50.0
+  "seconds": 44.8
  },
- "produce": {
-  "prompt": "a grocery product. a packaged food item. a drink container. a fruit or vegetable.",
-  "recall": 0.5217391304347826,
-  "precision_floor": 0.3945578231292517,
-  "proposals_per_scene": 14.7,
+ "produce-nouns": {
+  "prompt": "a grocery product. a packaged food item. a drink container. bananas. apples. oranges. lemons. grapes. strawberries. avocados. tomatoes. potatoes. onions. carrots. lettuce. broccoli. celery. cucumbers. peppers. mushrooms. garlic. ginger. spinach. cabbage. cauliflower. herbs. leeks. a melon. a pineapple. pears. sweet potatoes.",
+  "recall": 0.5322338830584707,
+  "precision_floor": 0.44766708701134933,
+  "proposals_per_scene": 13.216666666666667,
   "recall_by_density": {
-   "13-25": 0.5853658536585366,
-   "26+": 0.46567164179104475,
+   "13-25": 0.4695121951219512,
+   "26+": 0.5432835820895522,
    "1-12": 0.5714285714285714
   },
-  "seconds": 55.6
+  "seconds": 46.9
  },
- "produce-split": {
-  "prompt": "a grocery product. a packaged food item. a drink container. a fresh fruit. a fresh vegetable.",
-  "recall": 0.5082458770614693,
-  "precision_floor": 0.3741721854304636,
-  "proposals_per_scene": 15.1,
+ "nouns-only": {
+  "prompt": "bananas. apples. oranges. lemons. grapes. strawberries. avocados. tomatoes. potatoes. onions. carrots. lettuce. broccoli. celery. cucumbers. peppers. mushrooms. garlic. ginger. spinach. cabbage. cauliflower. herbs. leeks. a melon. a pineapple. pears. sweet potatoes.",
+  "recall": 0.004497751124437781,
+  "precision_floor": 0.15789473684210525,
+  "proposals_per_scene": 0.31666666666666665,
   "recall_by_density": {
-   "13-25": 0.5670731707317073,
-   "26+": 0.4537313432835821,
-   "1-12": 0.5595238095238095
+   "13-25": 0.0,
+   "26+": 0.0,
+   "1-12": 0.017857142857142856
   },
-  "seconds": 49.1
+  "seconds": 50.5
  }
 }
