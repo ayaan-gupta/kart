@@ -173,6 +173,10 @@ def main(argv=None):
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
     parser.add_argument("--render", default=None, help="directory for numbered overlays")
     parser.add_argument("--out", default=str(CACHE / "frames.json"))
+    parser.add_argument("--index", default=None,
+                        help="also name every region against this index, and write the frames in "
+                             "the shape pipeline/states.ts consumes so the overlay states can be "
+                             "measured on these photographs too")
     args = parser.parse_args(argv)
 
     from PIL import Image, ImageOps
@@ -212,6 +216,41 @@ def main(argv=None):
             note = f"   against {known['products']} products"
         print(f"  {path.stem}  {result['raw']:3d} raw -> {len(result['boxes']):3d} kept"
               f"  ({result['from_produce_pass']} from the produce pass){note}")
+
+    if args.index:
+        # Named through the shipped path: the same padded crop the service takes, the same
+        # matcher, so what the overlay is judged on is what the overlay would receive.
+        from catalog import head as head_module
+        from catalog import matcher as matcher_module
+        from catalog.matcher import Index, Matcher, crop_region
+
+        head_module.MIN_REFERENCES = 9
+        matcher_module.MIN_REFERENCES = 9
+        matcher = Matcher(Index.load(pathlib.Path(args.index)), tta=1)
+        for frame, path in zip(frames, photographs()):
+            with Image.open(path) as handle:
+                pil = ImageOps.exif_transpose(handle).convert("RGB")
+            pil.thumbnail((MAX_SIDE, MAX_SIDE))
+            crops, slots = [], []
+            for i, box in enumerate(frame["boxes"]):
+                piece = crop_region(pil, box)
+                if piece is not None:
+                    crops.append(piece)
+                    slots.append(i)
+            named = [None] * len(frame["boxes"])
+            for slot, result in zip(slots, matcher.match(crops) if crops else []):
+                named[slot] = {
+                    "sku": result["sku"],
+                    "confidence": float(result["confidence"]),
+                    "alternatives": [a["sku"] for a in result["alternatives"]],
+                }
+            frame["catalog"] = named
+            frame["file"] = f"{frame['id']}.jpg"
+            frame["tier"] = "trolley"
+            frame["width"], frame["height"] = frame["pixels"]
+            frame["hidden"] = [0.0] * len(frame["boxes"])
+        print(f"  named {sum(1 for f in frames for c in f['catalog'] if c and c['sku'])}"
+              f" of {sum(len(f['boxes']) for f in frames)} regions")
 
     summary = None
     if truth_path.exists():
