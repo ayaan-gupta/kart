@@ -91,7 +91,19 @@ catalog and the system declines all of them.
 
 ## What this corpus still cannot answer
 
-**The census has never run.** Every identity above is the catalog matcher's own decision standing
+**The census has never run**, and nothing local can stand in for it. Two attempts were
+measured on the three non-product boxes here, the trolley's moulded plastic disc and the
+shopper's tote:
+
+| test | non-products | real products | separable |
+|---|---|---|---|
+| detector score | 0.568, 0.569, 0.643 | 0.572 to 0.702 | no, the tote outscores 17 of 25 |
+| match against "a shopping trolley. a plastic fitting. a handbag. a shoe." | 0.315 to 0.390 | up to 0.416, all 25 match | no |
+
+Grounding DINO cannot make this judgement in either direction: it cannot be thresholded into it
+and it cannot be asked. `isProduct` needs the model the census was designed around.
+
+The original statement stands: **The census has never run.** Every identity above is the catalog matcher's own decision standing
 in for the model that would choose among the candidates it offers. `isProduct` is the field that
 would reject the plastic disc and the tote outright rather than leaving them amber.
 
