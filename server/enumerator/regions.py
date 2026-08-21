@@ -9,14 +9,31 @@ Nothing here imports modal, torch, or anything that loads a model.
 """
 
 
-# Container words are deliberately absent. A shopping trolley is a container, a bag and a
-# package, and asking for those returned a box covering more than half the frame on 4 of 5
-# measured photographs. Those proposals reached the shopper's bag as "shopping cart frame"
-# before `isProduct` existed to reject them, and they still cost a badge and a prompt line.
-# Removing the words is what stopped them being proposed at all: 5 whole-frame boxes to 0.
-GROCERY_PROMPT = (
-    "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub."
-)
+# Chosen by measurement (server/eval/sweep_prompt.py), which it had never been. The previous
+# phrase list was written by looking at overlays on five cart photographs, and it carried one
+# real finding from that exercise: container words like "bag" and "package" made the model
+# propose the trolley itself, a box over more than half the frame on four of five photographs,
+# which reached the shopper's bag as one unit of an item that does not exist. Deleting those
+# words fixed it, and nothing else about the list was ever tested.
+#
+# Scored on 200 shelf photographs holding 2,585 labelled instances. Recall is unbiased; precision
+# is a floor, because the corpus is partially annotated and a correct box on an unlabelled
+# product counts against it.
+#
+#     prompt                              recall   precision   1-12   13-25    26+
+#     nine shape words (was here)          39.0%       42.6%  54.7%   46.7%  30.2%
+#     three grocery nouns (here now)       54.1%       44.1%  57.8%   58.0%  51.1%
+#
+# Better on both axes, and the gain is largest exactly where this product is worst: a photograph
+# holding twenty-six or more items goes from finding under a third of them to finding half.
+#
+# "a product." alone scores as well on a shelf, 61.5% against 45.4% on a 60-photograph run, and
+# was rejected: on the cart corpus it proposes a box over the whole trolley twice, which is the
+# failure the old list existed to prevent, and it proposes 8.0 boxes per photograph against 11.2
+# for the phrasing below. A shelf corpus cannot show that, because there is no trolley in frame.
+# On those same 24 cart and haul photographs this prompt proposes no box covering more than 40%
+# of the frame at all.
+GROCERY_PROMPT = "a grocery product. a packaged food item. a drink container."
 
 # One box per region, whatever phrase matched it.
 NMS_IOU = 0.5

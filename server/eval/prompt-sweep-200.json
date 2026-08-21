@@ -1,0 +1,26 @@
+{
+ "shipped": {
+  "prompt": "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub.",
+  "recall": 0.3895551257253385,
+  "precision_floor": 0.4263336155800169,
+  "proposals_per_scene": 11.81,
+  "recall_by_density": {
+   "13-25": 0.4673748103186646,
+   "26+": 0.3017301038062284,
+   "1-12": 0.5467775467775468
+  },
+  "seconds": 177.9
+ },
+ "grocery-noun": {
+  "prompt": "a grocery product. a packaged food item. a drink container.",
+  "recall": 0.5411992263056092,
+  "precision_floor": 0.4409076583674756,
+  "proposals_per_scene": 15.865,
+  "recall_by_density": {
+   "13-25": 0.5796661608497724,
+   "26+": 0.5114186851211072,
+   "1-12": 0.577962577962578
+  },
+  "seconds": 203.3
+ }
+}

@@ -173,24 +173,50 @@ corpus that could see it had none of the case it breaks.
 The threshold stays at 0.23. Re-tuning it now would mean tuning on the corpus that cannot show
 the failure just fixed, and this repository has paid for that mistake twice already.
 
-**Detection remains the binding constraint by a wide margin**, but the headline number is mostly
-a statement about shelves rather than about the detector. On 250 photographs, 3,190 labelled
-instances:
+### The prompt was the largest single lever, and it had never been measured
 
-| labelled items in the photograph | photographs | instances | boxes returned | recall |
+`GROCERY_PROMPT` was written by looking at overlays on five cart photographs. It carried one real
+finding from that exercise, that container words made the model propose the trolley, and nothing
+else about the phrase list had ever been tested. Detection is the binding constraint on this
+product, and the prompt is the cheapest thing that could move it.
+
+Nine shape words ("a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a
+tub.") against three grocery nouns ("a grocery product. a packaged food item. a drink
+container."), on 200 photographs holding 2,585 labelled instances:
+
+| prompt | recall | precision floor | 1-12 | 13-25 | 26+ |
+|---|---|---|---|---|---|
+| nine shape words | 39.0% | 42.6% | 54.7% | 46.7% | 30.2% |
+| three grocery nouns | **54.1%** | **44.1%** | 57.8% | 58.0% | **51.1%** |
+
+Better on both axes, and the gain is largest exactly where the product is worst. On RPC the same
+change takes recall from 92.5% to 98.3%, precision from 89.2% to 99.6%, and count error from 0.68
+items per scene to **0.10**.
+
+`"a product."` alone scores as well on a shelf and was rejected. On the cart corpus it proposes a
+box over the whole trolley twice, which is the failure the old list existed to prevent, and it
+returns 8.0 boxes per photograph against 11.2. A shelf corpus cannot show that, because there is
+no trolley in frame. The three-noun prompt proposes no box covering more than 40% of the frame on
+any of the 24.
+
+**Detection remains the binding constraint**, but it is a different size now. On 250 photographs,
+3,190 labelled instances, before and after the prompt:
+
+| labelled items in the photograph | photographs | instances | recall before | recall after |
 |---|---|---|---|---|
-| 1-5 | 114 | 215 | 5.9 | 65.6% |
-| 6-12 | 54 | 420 | 11.0 | 48.8% |
-| 13-25 | 42 | 743 | 16.9 | 47.1% |
-| 26+ | 40 | 1,812 | 24.2 | 28.0% |
-| all | 250 | 3,190 | 13.5 | 37.7% |
+| 1-5 | 114 | 215 | 55.3% | 63.3% |
+| 6-12 | 54 | 420 | 48.3% | 57.4% |
+| 13-25 | 42 | 743 | 46.8% | 58.8% |
+| 26+ | 40 | 1,812 | 28.0% | 47.5% |
+| all | 250 | 3,190 | 36.9% | **52.5%** |
+
+By instance size: small 21.1% to 36.1%, medium 33.6% to 51.6%, large 47.2% to 59.6%.
 
 The overall figure is dragged down by the crowded photographs, which hold 57% of all the
-instances: a wall of a hundred packets against a detector that returns on the order of fifteen
-boxes however much is in front of it. A cart holds ten to thirty items, so the two middle bands
-are the ones that describe this product, and they sit near 47-49%.
+instances: a wall of a hundred packets, far more than a cart. A cart holds ten to thirty items,
+so the two middle bands are the ones that describe this product, and they now sit near 57-59%.
 
-That is still far below RPC's 92.9%, and it is the honest number for cart-like density in a real
+That is still below RPC's 98.3%, and it is the honest number for cart-like density in a real
 store environment rather than on a tray. Where the missing items go: 47.2% of large instances are
 found, 33.6% of medium, 21.1% of small. Recall on items the covered rule flags is 24.9% against
 38.9% for the rest, so the items most likely to be missed are the ones most likely to be hidden,

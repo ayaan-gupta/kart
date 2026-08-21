@@ -1,0 +1,20 @@
+{
+ "shipped": {
+  "proposals": 342,
+  "over_40pc": 0,
+  "over_60pc": 0,
+  "per_scene": 14.25
+ },
+ "product-only": {
+  "proposals": 191,
+  "over_40pc": 2,
+  "over_60pc": 2,
+  "per_scene": 7.958333333333333
+ },
+ "grocery-noun": {
+  "proposals": 268,
+  "over_40pc": 0,
+  "over_60pc": 0,
+  "per_scene": 11.166666666666666
+ }
+}
