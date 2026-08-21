@@ -36,6 +36,8 @@ const IN = join(HERE, 'video-frames.json');
  * hold. Pass `--max-motion 0.15` to sweep it.
  */
 const KEYFRAME_OVERRIDES: { maxMotion?: number; minSharpness?: number } = {};
+const TRACKER_OVERRIDES: { globalShift?: boolean } = {};
+if (process.argv.includes('--no-global-shift')) TRACKER_OVERRIDES.globalShift = false;
 for (let i = 2; i < process.argv.length - 1; i += 1) {
   if (process.argv[i] === '--max-motion') KEYFRAME_OVERRIDES.maxMotion = Number(process.argv[i + 1]);
   if (process.argv[i] === '--min-sharpness') {
@@ -126,7 +128,7 @@ function runSession(frames: Frame[], label: string) {
       keyframe: null,
       crops: [],
     };
-    const stepped = processFrame(pipeline, scan, frame.t * 1000, KEYFRAME_OVERRIDES);
+    const stepped = processFrame(pipeline, scan, frame.t * 1000, KEYFRAME_OVERRIDES, TRACKER_OVERRIDES);
     pipeline = stepped.state;
     const live = stepped.tracks.filter((t) => t.state !== 'lost');
     live.forEach((track) => {

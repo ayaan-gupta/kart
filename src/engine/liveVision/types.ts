@@ -65,6 +65,14 @@ export interface ByteTrackConfig {
   maxLostMs: number;
   /** Detections needed before a track is trusted enough to be confirmed. */
   minHits: number;
+  /**
+   * Shift every prediction by the translation common to all tracks before associating. The
+   * Kalman filter estimates each track's own velocity and cannot see a camera that pans, which
+   * at three frames a second is most of the movement in a handheld scan.
+   */
+  globalShift: boolean;
+  /** Below this many tracks or detections the shared shift is a coin toss, so it is not used. */
+  minTracksForShift: number;
 }
 
 export interface KeyframeSignals {

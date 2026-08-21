@@ -1,4 +1,4 @@
-import { createTrackerState, updateTracks } from '../byteTrack';
+import { createTrackerState, estimateGlobalShift, updateTracks } from '../byteTrack';
 import type { DetectedInstance, TrackerState } from '../types';
 
 function boxAt(x: number, y: number, size = 0.1): DetectedInstance['box'] {
@@ -221,5 +221,45 @@ describe('updateTracks', () => {
     const snapshot = JSON.stringify(initial);
     updateTracks(initial, [detection(0.5, 0.5)], 1300);
     expect(JSON.stringify(initial)).toBe(snapshot);
+  });
+});
+
+describe('estimateGlobalShift', () => {
+  const box = (x: number, y: number) => ({ box: { x, y, w: 0.1, h: 0.1 } });
+  const detection = (x: number, y: number) => ({
+    box: { x, y, w: 0.1, h: 0.1 }, polygon: [], score: 0.9,
+  });
+
+  it('finds the translation when every item moves together', () => {
+    // A phone panning: the trolley is rigid, so one shift describes all of it.
+    const tracks = [box(0.1, 0.1), box(0.5, 0.2), box(0.3, 0.6), box(0.7, 0.7)];
+    const detections = tracks.map((t) => detection(t.box.x + 0.05, t.box.y - 0.02));
+    const shift = estimateGlobalShift(tracks, detections, 3);
+    expect(shift?.dx).toBeCloseTo(0.05, 6);
+    expect(shift?.dy).toBeCloseTo(-0.02, 6);
+  });
+
+  it('ignores one item moving on its own', () => {
+    // A hand lowering something into the trolley while the camera is still. The median is
+    // unmoved by it, which is why the estimate is a median and not a mean.
+    const tracks = [box(0.1, 0.1), box(0.5, 0.2), box(0.3, 0.6), box(0.7, 0.7)];
+    const detections = [
+      detection(0.1, 0.1), detection(0.5, 0.2), detection(0.3, 0.6), detection(0.7, 0.2),
+    ];
+    const shift = estimateGlobalShift(tracks, detections, 3);
+    expect(shift?.dx).toBeCloseTo(0, 6);
+    expect(shift?.dy).toBeCloseTo(0, 6);
+  });
+
+  it('declines to guess from too few tracks', () => {
+    // Two points have no robust median, and a wrong shift applied to every prediction is worse
+    // than no shift at all.
+    expect(estimateGlobalShift([box(0.1, 0.1), box(0.5, 0.2)], [detection(0.4, 0.4)], 3))
+      .toBeNull();
+  });
+
+  it('declines to guess from too few detections', () => {
+    const tracks = [box(0.1, 0.1), box(0.5, 0.2), box(0.3, 0.6)];
+    expect(estimateGlobalShift(tracks, [detection(0.4, 0.4)], 3)).toBeNull();
   });
 });

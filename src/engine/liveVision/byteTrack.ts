@@ -1,7 +1,7 @@
 import { solveAssignment } from './assignment';
 import { fitPolygonToBox, intersectionOverUnion } from './geometry';
 import { createBoxFilter, filterToBox, predictBox, updateBox } from './kalman';
-import type { ByteTrackConfig, DetectedInstance, Track, TrackerState } from './types';
+import type { Box, ByteTrackConfig, DetectedInstance, Track, TrackerState } from './types';
 
 const DEFAULT_CONFIG: ByteTrackConfig = {
   highThreshold: 0.5,
@@ -10,6 +10,8 @@ const DEFAULT_CONFIG: ByteTrackConfig = {
   recoverMinIou: 0.5,
   maxLostMs: 2000,
   minHits: 3,
+  globalShift: true,
+  minTracksForShift: 3,
 };
 
 export function createTrackerState(): TrackerState {
@@ -57,6 +59,61 @@ function applyDetection(track: Track, detection: DetectedInstance, now: number, 
   };
 }
 
+/**
+ * The translation common to every track between the last frame and this one, or null when there
+ * is not enough evidence for one.
+ *
+ * A phone held over a trolley pans, and when it does every item in the frame moves the same way
+ * at once. The Kalman filter cannot absorb that: it estimates each track's velocity from its own
+ * short history, at three frames a second, so it lags a camera that changes direction. Measured
+ * on a real handheld scan, a box moves a median of 0.19 of its own size between frames but 11%
+ * of steps exceed 0.5, which is where IoU with itself reaches zero and association starts
+ * guessing. A single shift shared by all boxes explains 66% of that movement.
+ *
+ * The estimate is the component-wise median of each track's displacement to its nearest
+ * detection. Median rather than mean because the input is exactly the noisy nearest-neighbour
+ * matching this is meant to repair: half the pairs may be wrong and the answer still holds. One
+ * item moving on its own, a hand lowering something into the trolley, moves the median not at
+ * all, which is the behaviour wanted.
+ *
+ * Returns null below `minTracksForShift` tracks or `minTracksForShift` detections, where a median
+ * is not a robust statistic but a coin toss.
+ */
+export function estimateGlobalShift(
+  tracks: { box: Box }[],
+  detections: DetectedInstance[],
+  minTracks: number,
+): { dx: number; dy: number } | null {
+  if (tracks.length < minTracks || detections.length < minTracks) return null;
+  const dxs: number[] = [];
+  const dys: number[] = [];
+  for (const track of tracks) {
+    const cx = track.box.x + track.box.w / 2;
+    const cy = track.box.y + track.box.h / 2;
+    let best: DetectedInstance | null = null;
+    let bestDistance = Infinity;
+    for (const detection of detections) {
+      const ox = detection.box.x + detection.box.w / 2;
+      const oy = detection.box.y + detection.box.h / 2;
+      const distance = (ox - cx) ** 2 + (oy - cy) ** 2;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = detection;
+      }
+    }
+    if (best == null) continue;
+    dxs.push(best.box.x + best.box.w / 2 - cx);
+    dys.push(best.box.y + best.box.h / 2 - cy);
+  }
+  if (dxs.length < minTracks) return null;
+  const median = (xs: number[]) => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  };
+  return { dx: median(dxs), dy: median(dys) };
+}
+
 export function updateTracks(
   state: TrackerState,
   detections: DetectedInstance[],
@@ -80,6 +137,15 @@ export function updateTracks(
     return { ...track, filter, box, polygon: fitPolygonToBox(track.polygon, track.box, box) };
   });
 
+  // Then shift all of them by however much the camera moved, which the filter cannot know.
+  const shift = config.globalShift
+    ? estimateGlobalShift(predicted, detections, config.minTracksForShift)
+    : null;
+  const aimed = shift == null ? predicted : predicted.map((track) => {
+    const box = { ...track.box, x: track.box.x + shift.dx, y: track.box.y + shift.dy };
+    return { ...track, box, polygon: fitPolygonToBox(track.polygon, track.box, box) };
+  });
+
   const next: Track[] = [];
   const matchedTracks = new Set<number>();
   const matchedHigh = new Set<number>();
@@ -90,8 +156,8 @@ export function updateTracks(
   // detection here when doing so lowers the total assignment cost, so it is the genuinely better
   // geometric match. If identity continuity ever loses to a tentative track in practice, splitting
   // this into the reference's separate round is the fix.
-  for (const [t, d] of associate(predicted, high, config.minIou)) {
-    next.push(applyDetection(predicted[t], high[d], now, config));
+  for (const [t, d] of associate(aimed, high, config.minIou)) {
+    next.push(applyDetection(aimed[t], high[d], now, config));
     matchedTracks.add(t);
     matchedHigh.add(d);
   }
@@ -99,7 +165,7 @@ export function updateTracks(
   // Stage two: tracks that found nothing get a second chance against the faint detections.
   // This is the whole point of ByteTrack. An item that dims for a frame keeps its identity.
   const leftoverTracks: number[] = [];
-  for (let t = 0; t < predicted.length; t += 1) {
+  for (let t = 0; t < aimed.length; t += 1) {
     if (!matchedTracks.has(t)) leftoverTracks.push(t);
   }
 
@@ -111,20 +177,20 @@ export function updateTracks(
   // is duplicate counting when a buried item resurfaces mid-pan, and letting a lost track recover
   // is exactly what stops a second id being minted for the same physical item. The reference is
   // tuned for pedestrian benchmarks, where that trade runs the other way.
-  const recoverable = leftoverTracks.filter((t) => predicted[t].state !== 'tentative');
+  const recoverable = leftoverTracks.filter((t) => aimed[t].state !== 'tentative');
 
   // Stricter than stage one on purpose, see `recoverMinIou` on ByteTrackConfig: a low-score
   // detection is the least trustworthy input here, so it needs a tighter geometric match before
   // it can reattach a track's identity.
   const recovered = associate(
-    recoverable.map((t) => predicted[t]),
+    recoverable.map((t) => aimed[t]),
     low,
     config.recoverMinIou,
   );
   const recoveredTracks = new Set<number>();
   for (const [i, d] of recovered) {
     const t = recoverable[i];
-    next.push(applyDetection(predicted[t], low[d], now, config));
+    next.push(applyDetection(aimed[t], low[d], now, config));
     recoveredTracks.add(t);
   }
 
@@ -132,7 +198,7 @@ export function updateTracks(
   // items get buried and resurface. A tentative one is more likely a detector artefact.
   for (const t of leftoverTracks) {
     if (recoveredTracks.has(t)) continue;
-    const track = predicted[t];
+    const track = aimed[t];
     if (track.state === 'tentative') continue;
     if (now - track.lastSeenAt > config.maxLostMs) continue;
     next.push({ ...track, state: 'lost' });

@@ -1,7 +1,8 @@
 import { createTrackerState, updateTracks } from './byteTrack';
 import { createKeyframeState, evaluateKeyframe } from './keyframe';
 import type {
-  BarcodeHit, Box, FrameScan, KeyframeConfig, KeyframeReason, PipelineState, Track,
+  BarcodeHit, Box, ByteTrackConfig, FrameScan, KeyframeConfig, KeyframeReason,
+  PipelineState, Track,
 } from './types';
 
 export function createPipelineState(): PipelineState {
@@ -104,8 +105,9 @@ export function processFrame(
   scan: FrameScan,
   now: number,
   keyframeOverrides: Partial<KeyframeConfig> = {},
+  trackerOverrides: Partial<ByteTrackConfig> = {},
 ): { state: PipelineState; tracks: Track[]; keyframe: { fire: boolean; reason: KeyframeReason } } {
-  const tracker = updateTracks(state.tracker, scan.instances, now);
+  const tracker = updateTracks(state.tracker, scan.instances, now, trackerOverrides);
   const tracks = attachBarcodes(tracker.tracks, scan.barcodes);
 
   // The gate counts confirmed tracks, not raw detections. A frame whose only content is
