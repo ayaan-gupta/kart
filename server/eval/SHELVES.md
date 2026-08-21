@@ -162,6 +162,52 @@ Note also that the shortlist ceiling is 85.0% for both. Fine-tuning does not ret
 candidates, it ranks better among the same ones. Anything that moves the ceiling has to change
 retrieval, and nothing measured here does.
 
+## The two halves together, which is the number the goal is written in
+
+Every other measurement here scores one half of the pipeline against a perfect version of the
+other. Detection recall is counted without naming anything. Naming accuracy is measured on the
+annotator's own box, which is not a box the product ever sees. Both can be respectable while the
+product is bad, and neither says by how much.
+
+`score_grocer_endtoend.py` runs them together on the same photographs: detect, de-duplicate,
+match each proposal to a labelled instance, crop the *proposal*, name it. On 120 query-half
+photographs holding 1,668 labelled instances, 1,598 of them products the catalog contains:
+
+| stage | of answerable instances |
+|---|---|
+| found by the detector | 56.1% |
+| found **and** named correctly | **25.5%** |
+
+One item in four. That is the honest state of the pipeline on dense retail shelves, and it is the
+product of two independent factors rather than one bad stage.
+
+### The detector's loose boxes cost almost nothing
+
+Each matched instance is named twice in the same batch, once from the detector's box and once
+from the annotator's:
+
+| | detector box | annotator box |
+|---|---|---|
+| named correctly | 45.5% | 45.3% |
+| declined | 51.5% | 51.4% |
+| named, but wrong | 3.0% | 3.3% |
+
+Two tenths of a point apart. Splitting by how tight the box was says the same thing: naming runs
+38.7% at IoU 0.5 to 0.7, 49.3% at 0.7 to 0.85, and 47.1% above 0.85, so it stops improving well
+before the box is tight and is not monotonic after that.
+
+This is worth more than the headline number, because it rules something out. Box regression,
+mask-tightening, better crop padding, any work aimed at giving the matcher a cleaner cut of the
+same item: all of it is worth at most a fraction of a point here. The loss is in the detector
+finding the item at all, and in the matcher knowing what it is, and those two are separable and
+can be worked on independently.
+
+One caveat on reading the naming column. 45.3% from annotator boxes is well above the 36.5% that
+`score_grocer.py` reports over all annotator crops, and the difference is not a contradiction: the
+detector finds the larger, less occluded instances first, so the subset it hands the matcher is
+about nine points easier than the corpus average. Any end-to-end number carries that selection
+effect, and it moves whenever detection recall moves.
+
 ## Detection is the binding constraint, and the pipeline was deleting its own findings
 
 Naming can only ever name what the detector proposes. On RPC the enumerator finds 86% of
