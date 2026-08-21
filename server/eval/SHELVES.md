@@ -56,10 +56,11 @@ the catalog holds, using one encoder (SigLIP-B/16) and the shipped fusion.
 | plus test-time augmentation | 67.4% | 81.2% | 85.4% |
 
 The top-1 column above counts a declined crop as an error, which is what the product does. The
-confidence floor changed partway through this work, so a later run is not comparable to an
-earlier one on that column alone. Ignoring the floor and asking only whether the winner was
-right, the same runs read 52.5%, 58.9%, 67.6% and 67.4%, and top-5 and the ceiling are
-independent of the floor throughout.
+confidence floor changed partway through this work, so a run made after the change is not
+comparable to one made before it on that column alone. Ignoring the floor and asking only whether
+the winner was right, the three runs whose per-crop outcomes were kept read 58.9%, 67.6% and
+67.4%. The first row predates the harness saving per-crop outcomes, so it has no floor-independent
+figure and none is given for it. Top-5 and the ceiling never depended on the floor.
 
 **Spreading the references is worth 7.1 points and costs nothing.** A shelf presents a dozen
 faces of the same soap, so a per-class cap of 40 was filled by the first two photographs that
