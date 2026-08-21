@@ -154,9 +154,15 @@ measurement.
 The larger finding is not on the floor axis at all. **A single fine-tuned encoder names 52.6% of
 crops at 90.0% precision where the shipped frozen ensemble names 39.7% at 92.0%**: 47.4%
 against 36.5% of all crops named correctly, at comparable precision, using one encoder instead of
-two. Fine-tuning is worth roughly eleven points of the number the goal is written in, and the
-shipped default does not use it. CLAUDE.md already assumes a model fine-tuned per store, so this
-is the configuration the deployment was designed around; it simply was never the default.
+two. Fine-tuning is worth roughly eleven points of the number the goal is written in.
+
+It is off by default, and that default is deliberate rather than an oversight: it costs tens of
+minutes per epoch, and CATALOG.md records the harder condition, which is that nothing inside a
+store's own product photographs can tell it when to stop training. Choosing the epoch count took
+twenty labelled carts on RPC. What this corpus adds is a second and independent corpus agreeing
+on the size of the prize: 5.9 points of R@1 on RPC, eleven points of correctly-named crops here.
+The requirement stands, and the case for meeting it is stronger than when one corpus had measured
+it.
 
 Note also that the shortlist ceiling is 85.0% for both. Fine-tuning does not retrieve more
 candidates, it ranks better among the same ones. Anything that moves the ceiling has to change
