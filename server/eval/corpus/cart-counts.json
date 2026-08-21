@@ -1,6 +1,6 @@
 {
  "note": "Item counts established by looking at each photograph with every proposal numbered on it, and judging each one. Only photographs where a person can actually count are here. On a dense Trader Joe's haul or a filled trolley the true number is not knowable from the image, and guessing at it would produce a metric with no ground under it.",
- "counted_by": "manual review of numbered overlays, one pass",
+ "counted_by": "manual review of numbered overlays, one pass, re-done against the proposals the current detector prompt produces",
  "product": "one purchasable unit. A twin-pack of peanut butter is two jars because they are sold and scanned as two; a six-pack of ale is one carrier because it is sold as one. A napkin holder is not a product.",
  "counted": [
   {
@@ -20,11 +20,66 @@
    "products": 7,
    "correct": 7,
    "note": "Wine, yogurt tub, protein carton, two oranges, a small bottle, a six-pack. Twelve proposals: all seven found, plus three individual bottle necks inside the six-pack and a box around the illustration on the carton."
+  },
+  {
+   "id": "ov-d8f59685-21f",
+   "products": 3,
+   "correct": 2,
+   "note": "Perdue ground turkey tray and one ShopRite deli bag proposed. The second ShopRite bag lying beside it, near-identical and fully visible, drew no proposal at all. Two proposals for three items: the first undercount in this set, and the first case of an item being missed rather than an extra one invented."
+  },
+  {
+   "id": "ov-8d57c04e-af7",
+   "products": 13,
+   "correct": 7,
+   "note": "A produce haul laid out flat on a table with nothing behind anything, which is the easiest counting case in the corpus. Seven proposals, all seven correct: meat pack, grape bag, paper bag, bread bag, cauliflower, clementine bag, apple bag. Six items drew nothing: celery, parsley, a leek bunch, a parsnip, a net bag of onions and a net bag of potatoes. Every one of the six is loose or netted produce, and every one of the seven found is packaged. Not a hard-image problem."
+  },
+  {
+   "id": "ov-5291a291-a8d",
+   "products": 8,
+   "correct": 7,
+   "note": "Eight proposals for eight products, so the total is right, but not item for item. One proposal is the napkin holder, which is not a product; one product, a flour-tortilla packet standing behind the round tortillas, drew nothing. A count that is correct because two errors cancelled is the reason this file records `correct` separately from `products`."
   }
  ],
  "not_countable": [
-  {"id": "ov-04303310-e76", "why": "dense haul, items behind items, true count not knowable from the image"},
-  {"id": "ov-16dca705-1c1", "why": "filled trolley photographed from one side"},
-  {"id": "ov-1fd5fc9a-747", "why": "distant and low resolution, individual products not resolvable"}
+  {
+   "id": "ov-04303310-e76",
+   "why": "dense haul, items behind items, true count not knowable from the image"
+  },
+  {
+   "id": "ov-16dca705-1c1",
+   "why": "filled trolley photographed from one side"
+  },
+  {
+   "id": "ov-1fd5fc9a-747",
+   "why": "distant and low resolution, individual products not resolvable"
+  },
+  {
+   "id": "ov-8497f254-280",
+   "why": "loaded trolley, items under a large paper bag; also the first case of proposals landing outside the cart entirely, on an Apothic Red display standing behind it"
+  },
+  {
+   "id": "ov-b43062a4-5bd",
+   "why": "near-duplicate of ov-8497f254-280, same cart same angle"
+  },
+  {
+   "id": "ov-a1c7f353-1d8",
+   "why": "near-duplicate of ov-8497f254-280, same cart same angle"
+  },
+  {
+   "id": "ov-b26600fb-8bb",
+   "why": "dense produce pile cropped square, items overlapping and cut off at every edge"
+  },
+  {
+   "id": "ov-bd79303c-0a1",
+   "why": "dark, goods still inside opaque carrier bags"
+  },
+  {
+   "id": "ov-1f5f8012-c91",
+   "why": "kitchen counter running out of frame; notable separately for a proposal drawn on a kitchen bin"
+  },
+  {
+   "id": "ov-7936c733-875",
+   "why": "stacked identical chocolate bars and an opaque bag; the tray of plums behind the yogurt drew nothing, which is the same loose-produce miss as ov-8d57c04e-af7"
+  }
  ]
 }

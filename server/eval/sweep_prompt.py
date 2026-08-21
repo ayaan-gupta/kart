@@ -52,6 +52,17 @@ PROMPTS = {
     "grocery-noun": "a grocery product. a packaged food item. a drink container.",
     # The shipped list plus one word for the case the whole design is about: an item that is
     # partly behind another one.
+    # Every miss on the one photograph in the cart corpus where a person can count every item
+    # was loose or netted produce: celery, parsley, a leek bunch, a parsnip, a net bag of onions,
+    # a net bag of potatoes. Seven packaged items on the same table were all found. None of the
+    # three shipped phrases names an unpackaged vegetable, and a cart is full of them.
+    "produce": "a grocery product. a packaged food item. a drink container. a fruit or vegetable.",
+    # The same addition split into two phrases. Grounding DINO scores each phrase separately, so
+    # whether one phrase or two localises better is a measurement and not a style choice.
+    "produce-split": (
+        "a grocery product. a packaged food item. a drink container. a fresh fruit. "
+        "a fresh vegetable."
+    ),
     "shipped-plus-packet": (
         "a product. a box. a bottle. a carton. a can. a jar. fruit. a vegetable. a tub. "
         "a packet. a bag of food."

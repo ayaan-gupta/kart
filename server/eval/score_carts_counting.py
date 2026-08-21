@@ -3,20 +3,31 @@ How far off is the count, and which mechanism is putting it there?
 
 Counting is the second of the four capabilities in CLAUDE.md and it is the one with the least
 evidence behind it. Neither the shelf corpus nor this one carries a per-item count: the shelf
-annotation is partial, and nobody has counted the items in these 24 photographs.
+annotation is partial, and this corpus arrived without counts.
 
 Two things can be done honestly.
 
 First, hand-verified counts on the photographs where a person can actually count. On a dense
 Trader Joe's haul or a filled trolley the answer is not knowable from the image; on a table
 holding seven things it is. Those judgements are in `cart-counts.json`, one line each, with the
-mistakes named rather than summarised.
+mistakes named rather than summarised. Sixteen of the twenty-four have now been judged, six of
+them countable.
 
-Second, and reproducibly across all 24, the mechanism. The over-counts observed by hand were all
-one shape: a proposal sitting inside another proposal. A twin-pack of peanut butter arrives as
-the pack and both jars; a six-pack of ale arrives as the carrier and three bottle necks; a jar
-arrives with a second box around its label. That is measurable without ground truth, because it
-is a statement about the proposals rather than about the world.
+`correct` is recorded separately from `products` because the two can agree by accident. One
+photograph here proposes eight boxes for eight products and is still wrong twice: one box is on
+a napkin holder and one product drew nothing. A harness that only compared totals would score
+that as perfect.
+
+Second, and reproducibly across all 24, the mechanism. Under the shape-word prompt the errors
+were over-counts, and all of one shape: a proposal sitting inside another proposal. A twin-pack
+of peanut butter arrived as the pack and both jars; a six-pack of ale as the carrier and three
+bottle necks. That is measurable without ground truth, because it is a statement about the
+proposals rather than about the world, and it is still reported below.
+
+Since the prompt was chosen by measurement the error has changed sign. Nesting is down to 2.6%
+of proposals and the counts now run short rather than long. The misses are not distributed at
+random: on the one photograph where every item is separately visible, all seven packaged items
+were found and all six loose or netted produce items were missed.
 
     server/.venv/bin/python server/eval/score_carts_counting.py
 """
@@ -87,7 +98,7 @@ def main(argv=None):
     if errors:
         print(f"\n    mean signed error   {sum(errors) / len(errors):+.1f} items")
         print(f"    mean absolute error {sum(abs(e) for e in errors) / len(errors):.1f} items")
-        print(f"    n = {len(errors)}. This is a characterisation, not a metric: three")
+        print(f"    n = {len(errors)}. This is a characterisation, not a metric: a handful of")
         print("    photographs is too few to quote as an accuracy, and it is here because the")
         print("    alternative was to quote nothing at all about counting.")
     return {"nested_share": nested / max(total, 1), "errors": errors}
