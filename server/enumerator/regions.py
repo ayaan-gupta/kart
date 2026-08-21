@@ -186,7 +186,7 @@ def _area(b):
     return max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
 
 
-def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
+def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None, size=None):
     """Collapse the several proposals Grounding DINO makes for one physical item.
 
     The model scores every query phrase against every region independently and never suppresses
@@ -200,6 +200,8 @@ def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
       nesting   of two boxes where one sits inside the other and they are of comparable size,
                 the smaller survives
       degroup   a box with several other boxes inside it is a group, and is dropped
+      deframe   a box that is nearly the whole frame, with anything inside it, is the container
+                and not a thing in it. Needs `size`, and is skipped without it.
 
     The smaller box winning is right in both cases this fires. Two proposals on one bottle: the
     tighter one is the better outline. One box drawn over a row of four cartons alongside boxes
@@ -215,7 +217,11 @@ def dedupe(boxes, scores, nms_iou=None, containment=None, max_ratio=None):
 
     Returns indices into the input, so the caller keeps whatever it had alongside the boxes.
     """
-    return degroup(nested(nms(boxes, scores, nms_iou), boxes, containment, max_ratio), boxes)
+    kept = degroup(nested(nms(boxes, scores, nms_iou), boxes, containment, max_ratio), boxes)
+    # `size` is the frame the boxes were drawn on, and without it the fourth pass cannot run:
+    # whether a box is the whole picture is not a fact about the box. Optional rather than
+    # required so a caller measuring the first three passes in isolation still can.
+    return kept if size is None else deframe(kept, boxes, size)
 
 
 def nms(boxes, scores, nms_iou=None):
@@ -326,6 +332,53 @@ def degroup(kept, boxes, members=None, containment=None):
             if k != i
             and _area(boxes[k]) < _area(boxes[i])
             and _inside_of(boxes[k], boxes[i]) >= containment
+        )
+        if inside < members:
+            survivors.append(i)
+    return survivors
+
+
+FRAME_COVERAGE = 0.9
+# A proposal covering at least this much of the frame, with at least this many other proposals
+# inside it, is the container rather than a thing in it.
+FRAME_MEMBERS = 1
+
+
+def deframe(kept, boxes, size, coverage=None, members=None, containment=None):
+    """Drop a proposal that is the frame itself: the trolley, not the shopping in it.
+
+    `degroup` already removes a box drawn over several items, and on a loaded trolley that is
+    enough. On a nearly empty one it is not, because it needs GROUP_MEMBERS separately-proposed
+    items inside before it fires and an empty trolley does not contain five of anything.
+    Photographed from inside the basket with one cauliflower in it, the detector proposes the
+    cauliflower and the whole frame, and the frame survives to the shopper's bag as a phantom
+    item. Measured on ten photographs of a real trolley being loaded: every one of the four
+    sparse ones carried a box covering 95% to 98% of the frame, and no other photograph in the
+    set carried a box above 16.3%.
+
+    Area alone cannot be the test. A shopper holding one item up to the camera fills the frame
+    with it deliberately, and that has to keep working: 29 of the 84,743 labelled instances in
+    the shelf corpus cover more than 90% of their photograph, and every one of them is a
+    close-up of a real product. What separates the two cases is not the size of the box, it is
+    whether something else was proposed inside it. A trolley contains the shopping. A cauliflower
+    held up to the lens contains nothing.
+
+    One member is enough here, where `degroup` needs five, because the frame-coverage test has
+    already done most of the work of identifying a container.
+    """
+    coverage = FRAME_COVERAGE if coverage is None else coverage
+    members = FRAME_MEMBERS if members is None else members
+    containment = NESTED_CONTAINMENT if containment is None else containment
+    frame = max(float(size[0]) * float(size[1]), 1e-9)
+    survivors = []
+    for i in kept:
+        if _area(boxes[i]) / frame < coverage:
+            survivors.append(i)
+            continue
+        inside = sum(
+            1 for k in kept
+            if k != i and _inside_of(boxes[k], boxes[i]) >= containment
+            and _area(boxes[k]) < _area(boxes[i])
         )
         if inside < members:
             survivors.append(i)

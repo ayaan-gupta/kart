@@ -181,7 +181,7 @@ def main(argv=None):
             # After the first pass has been de-duplicated, not before: the produce boxes are
             # judged against the regions the pipeline actually keeps, which is what they will be
             # judged against in the service.
-            first = regions.dedupe(boxes, scores) if boxes else []
+            first = regions.dedupe(boxes, scores, size=shrunk.size) if boxes else []
             settled = [boxes[i] for i in first]
             produce_boxes, produce_scores = detect(
                 shrunk, regions.PRODUCE_PROMPT,
@@ -212,7 +212,7 @@ def main(argv=None):
                     scores += tile_scores
         raw_proposed += len(boxes)
         if boxes and not args.no_dedupe:
-            keep = regions.dedupe(boxes, scores)
+            keep = regions.dedupe(boxes, scores, size=shrunk.size)
             keep.sort(key=lambda i: -scores[i])
             keep = keep[: regions.MAX_INSTANCES]
             boxes = [boxes[i] for i in keep]

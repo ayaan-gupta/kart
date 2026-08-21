@@ -74,3 +74,4 @@ server/eval/video-frames.json
 server/eval/video-states.json
 server/eval/grocer-detection.json
 server/eval/grocer-endtoend.json
+server/eval/.cache/kart/

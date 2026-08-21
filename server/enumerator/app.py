@@ -168,7 +168,7 @@ class Enumerator:
         # Deduplicate before segmenting, not after: every proposal dropped here is one SAM
         # forward pass and one badge saved, and duplicates are a third of what DINO returns.
         if boxes:
-            keep = dedupe(boxes, scores)
+            keep = dedupe(boxes, scores, size=pil.size)
             keep.sort(key=lambda i: -scores[i])
             keep = keep[:MAX_INSTANCES]
             boxes, scores = [boxes[i] for i in keep], [scores[i] for i in keep]

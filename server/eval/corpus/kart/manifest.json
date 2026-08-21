@@ -1,0 +1,100 @@
+{
+ "note": "The user's own photographs and video of a real shopping trip, provided explicitly as the verification set for this pipeline. Not redistributable: the files stay in .cache/ and are not committed. This manifest records what they are so the measurements below can be read without them.",
+ "source": "photographed by the user, supplied directly for this purpose",
+ "licence": "not redistributable; used with the owner's explicit permission",
+ "capture": "iPhone, HEIC stills at 5712x4284 and one HEVC video at 1080x1920 portrait, 30fps",
+ "why_this_corpus": "Every other corpus here is a substitute. The shelf corpus is Indian retail shelves, the cart corpus is openly-licensed haul photographs mostly taken on tables, and RPC is products on a turntable. This is the actual thing: a phone held over a real trolley in a real shop, with the trolley's own wire mesh between the camera and the goods.",
+ "images": [
+  {
+   "id": "IMG_0244",
+   "digest": "b026ac60258c",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0245",
+   "digest": "be41900c53b9",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0246",
+   "digest": "c3cb5914f50f",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0247",
+   "digest": "22b5a227575b",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0248",
+   "digest": "0afce21ab67b",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0249",
+   "digest": "4faa0cc8c31a",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0250",
+   "digest": "d65906975958",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0251",
+   "digest": "7ecd1a3864d0",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0252",
+   "digest": "6ab7654594a8",
+   "pixels": [
+    5712,
+    4284
+   ]
+  },
+  {
+   "id": "IMG_0254",
+   "digest": "95e17ca011af",
+   "pixels": [
+    5712,
+    4284
+   ]
+  }
+ ],
+ "video": {
+  "id": "IMG_0253",
+  "seconds": 8.73,
+  "frames": 262,
+  "fps": 30,
+  "pixels": [
+   1080,
+   1920
+  ],
+  "content": "a scan session over the loaded trolley of IMG_0252"
+ }
+}

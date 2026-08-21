@@ -405,3 +405,50 @@ def test_the_service_keeps_the_instance_cap_after_the_produce_pass():
     source = (HERE.parents[1] / "enumerator" / "app.py").read_text()
     after = source[source.index("merge_produce("):]
     assert "MAX_INSTANCES" in after[:400]
+
+
+def test_the_frame_itself_is_not_an_item():
+    """A trolley photographed from inside, with one thing in it. The detector proposes the thing
+    and the whole basket, and `degroup` cannot help: it needs GROUP_MEMBERS items inside before
+    it fires and an empty trolley does not contain five of anything."""
+    regions = _regions()
+    frame = [0, 0, 1000, 1000]
+    item = [600, 200, 800, 400]
+    kept = regions.deframe([0, 1], [frame, item], (1000, 1000))
+    assert kept == [1]
+
+
+def test_an_item_held_up_to_the_camera_survives():
+    """The case an area cap would break. 29 of the 84,743 labelled instances in the shelf corpus
+    cover more than 90% of their photograph and every one is a close-up of a real product. What
+    separates it from a trolley is that nothing else was proposed inside it."""
+    regions = _regions()
+    close_up = [10, 10, 990, 990]
+    assert regions.deframe([0], [close_up], (1000, 1000)) == [0]
+
+
+def test_a_frame_sized_box_survives_if_what_is_inside_it_is_not_contained():
+    """Two proposals over the same crowded scene, neither inside the other, is not a container
+    and its member. Only containment counts."""
+    regions = _regions()
+    frame = [0, 0, 1000, 1000]
+    overlapping = [500, 500, 1500, 1500]
+    assert 0 in regions.deframe([0, 1], [frame, overlapping], (1000, 1000))
+
+
+def test_deframe_leaves_ordinary_boxes_alone():
+    regions = _regions()
+    boxes = [[0, 0, 100, 100], [200, 200, 300, 300]]
+    assert regions.deframe([0, 1], boxes, (1000, 1000)) == [0, 1]
+
+
+def test_dedupe_runs_deframe_only_when_it_knows_the_frame():
+    """Whether a box is the whole picture is not a fact about the box, so the pass cannot run
+    without the frame. Optional rather than required, so a caller measuring the first three
+    passes in isolation still can."""
+    regions = _regions()
+    frame = [0, 0, 1000, 1000]
+    item = [600, 200, 800, 400]
+    boxes, scores = [frame, item], [0.9, 0.8]
+    assert sorted(regions.dedupe(boxes, scores)) == [0, 1]
+    assert regions.dedupe(boxes, scores, size=(1000, 1000)) == [1]

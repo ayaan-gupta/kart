@@ -98,7 +98,7 @@ def detect_all(images, threshold, produce_pass=False, log=print):  # noqa: C901
         boxes, scores = run(regions.GROCERY_PROMPT, threshold)
         raw = len(boxes)
         if boxes:
-            keep = regions.dedupe(boxes, scores)
+            keep = regions.dedupe(boxes, scores, size=pil.size)
             keep.sort(key=lambda i: -scores[i])
             keep = keep[: regions.MAX_INSTANCES]
             boxes = [boxes[i] for i in keep]
