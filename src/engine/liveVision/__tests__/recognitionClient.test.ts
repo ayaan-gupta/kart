@@ -107,6 +107,37 @@ describe('requestCensus', () => {
   });
 });
 
+describe('unmarked items keep their store SKU', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('carries catalogSku through, and tolerates a server that does not send one', async () => {
+    mockFetch(jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ok: true,
+        result: {
+          marks: [],
+          unmarkedItems: [
+            { description: 'bag of apples', productKey: '::bag of apples', catalogSku: 'kart_granny_smith_apples', approxLocation: 'left', confidence: 0.7 },
+            { description: 'loose bananas', productKey: '::loose bananas', approxLocation: 'top', confidence: 0.6 },
+          ],
+          inViewCounts: [],
+          occlusion: { itemsLikelyHidden: false, severity: 'none', reason: '' },
+        },
+      }),
+    }));
+    const res = await requestCensus(req);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value.unmarkedItems[0].catalogSku).toBe('kart_granny_smith_apples');
+    // Dropping the field entirely is what an older server does, and fusion falls back to the key.
+    expect(res.value.unmarkedItems[1].catalogSku).toBeNull();
+  });
+});
+
 describe('requestIdentify', () => {
   beforeEach(() => {
     process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';

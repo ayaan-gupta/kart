@@ -44,6 +44,12 @@ export const UnmarkedItem = z.object({
   // key as "::froot loops" and never meet the badge's "kelloggs::froot loops", and the shopper
   // would get two bag lines for one box.
   productKey: z.string(),
+  // The same store SKU a mark carries, when one of the offered catalog entries is what this is.
+  // Without it an unmarked sighting can only key by brand and name, and a badge that carried a
+  // SKU keys as "sku:kart_purple_produce_bag", so the two never meet however the model words the
+  // description. Measured on a nine-second scan: three units of over-count out of ten, every one
+  // of them a product the bag already held under its SKU.
+  catalogSku: z.string().nullable(),
   approxLocation: z.string(),
   confidence: z.number().min(0).max(1),
 });
@@ -144,10 +150,11 @@ export const censusJsonSchema = {
         properties: {
           description: { type: "string" },
           productKey: { type: "string" },
+          catalogSku: { type: ["string", "null"] },
           approxLocation: { type: "string" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
         },
-        required: ["description", "productKey", "approxLocation", "confidence"],
+        required: ["description", "productKey", "catalogSku", "approxLocation", "confidence"],
         additionalProperties: false,
       },
     },

@@ -73,8 +73,12 @@ Rules:
     loaded cart asserts that the badges account for every product in it, which is rarely true.
     productKey is the same
     "brand::name" key described in rule 14, and must be exactly the key you use for this product
-    in inViewCounts, so the two join. approxLocation is a short phrase locating it in the frame
-    in your own words, for example "top of cart, left side" or "under the produce bag".
+    in inViewCounts, so the two join. catalogSku follows rule 15 exactly as it does for a badge:
+    if one of the entries offered under any region's "catalog:" line is this product, copy it
+    character for character, otherwise null. An unmarked product is often one a badge named a
+    moment ago from another angle, and the SKU is what lets the two be recognised as one thing
+    however differently they are worded. approxLocation is a short phrase locating it in the
+    frame in your own words, for example "top of cart, left side" or "under the produce bag".
 13. inViewCounts is how many distinct physical units of each product are in the cart in this
     one image. One bunch of bananas is 1, not the number of bananas in it. Two identical bags
     of chips is 2. Count only what is visible in this image, and do not speculate about the

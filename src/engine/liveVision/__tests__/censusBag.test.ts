@@ -169,6 +169,62 @@ describe('the closer look and the census keying differently', () => {
     expect(lines.reduce((n, l) => n + (l.qty ?? 1), 0)).toBe(1);
   });
 
+  it('merges an unmarked sighting with a badge by SKU, however differently it is worded', () => {
+    // The residual over-count on the nine-second scan. A badge names the Granny Smith bag at one
+    // second and the census at five lists the same bag as "bag of apples", which shares no word
+    // with the badge's name and so keys as its own product. With a SKU on the sighting the two
+    // are one thing, which is the whole reason the field was added to UnmarkedItem.
+    const named = applyCensus(
+      createFusionState(),
+      {
+        marks: [skuMark(0, 'Granny Smith Apples', 'kart_granny_smith_apples')],
+        inViewCounts: [], unmarkedItems: [],
+      },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const later = applyCensus(
+      named,
+      {
+        marks: [],
+        inViewCounts: [],
+        unmarkedItems: [{
+          description: 'bag of apples',
+          productKey: '::bag of apples',
+          catalogSku: 'kart_granny_smith_apples',
+          confidence: 0.7,
+        }],
+      },
+      {}, [], false, {},
+    );
+    expect(bagLines(later)).toHaveLength(1);
+  });
+
+  it('still separates an unmarked sighting the catalog matched to something else', () => {
+    const named = applyCensus(
+      createFusionState(),
+      {
+        marks: [skuMark(0, 'Granny Smith Apples', 'kart_granny_smith_apples')],
+        inViewCounts: [], unmarkedItems: [],
+      },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const later = applyCensus(
+      named,
+      {
+        marks: [],
+        inViewCounts: [],
+        unmarkedItems: [{
+          description: 'bag of apples',
+          productKey: '::bag of apples',
+          catalogSku: 'kart_purple_produce_bag',
+          confidence: 0.7,
+        }],
+      },
+      {}, [], false, {},
+    );
+    expect(bagLines(later)).toHaveLength(2);
+  });
+
   it('does not open a second line when the badge that named it is no longer live', () => {
     // A scan pans. From the nine-second video: a badge names the purple produce bag at three
     // seconds and keys it by SKU, the camera moves on, and the census at five seconds lists the

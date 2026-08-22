@@ -62,7 +62,7 @@ export interface CensusResult {
    * unmarked item has no polygon and so never gets an outline, but it still gets named, still
    * gets counted, and still reaches the bag, which is worth far more than the outline.
    */
-  unmarkedItems?: { description: string; productKey?: string; confidence?: number }[];
+  unmarkedItems?: { description: string; productKey?: string; catalogSku?: string | null; confidence?: number }[];
 }
 
 export interface FusionState {
@@ -98,7 +98,15 @@ const CENSUS_IDENTITY_PREFIX = 'census:';
  * an unmarked sighting of a Kellogg's box joins the badge that finds it on the next keyframe.
  * A description alone carries no brand and would key as "::froot loops", which meets nothing.
  */
-function unmarkedKey(state: FusionState, unmarked: { description: string; productKey?: string }): string {
+function unmarkedKey(
+  state: FusionState,
+  unmarked: { description: string; productKey?: string; catalogSku?: string | null },
+): string {
+  // A store SKU first, exactly as `markKey` takes it, so a sighting of a product a badge already
+  // named keys identically to that badge however differently the two are worded. Without this an
+  // unmarked "bag of apples" and a badge holding kart_granny_smith_apples are two products.
+  const sku = unmarked.catalogSku?.trim();
+  if (sku) return resolveKey(state, `sku:${sku}`);
   const supplied = unmarked.productKey?.trim();
   if (supplied) {
     // Re-normalise rather than trusting the string as sent. productKey folds accents and strips
@@ -591,6 +599,7 @@ export function applyCensus(
     // Skip if either spelling is already carried by a live track.
     const fromDescription = resolveKey(working, productKey(unmarked.description.trim(), null));
     if (spelledByLive.has(key) || spelledByLive.has(fromDescription)) continue;
+    if (keysWithIdentity.has(fromDescription)) continue;
     const count = Math.max(Math.max(0, counted.get(key) ?? 0), listedTimes.get(key) ?? 1);
     if (count === 0) continue;
     maxSimultaneous[key] = Math.max(maxSimultaneous[key] ?? 0, count);

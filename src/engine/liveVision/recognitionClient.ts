@@ -33,6 +33,10 @@ export interface UnmarkedItem {
   description: string;
   /** The model's own product key, so the sighting joins exactly to its count and to any badge. */
   productKey: string;
+  /** The store SKU, when the catalog offered this product. Keys the sighting the way a badge is
+   * keyed, which is the only thing that survives the model wording the description differently
+   * on the next keyframe. */
+  catalogSku: string | null;
   approxLocation: string;
   confidence: number;
 }
@@ -209,6 +213,7 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
         // An older server, or a model that skipped the field, leaves this empty and fusion
         // falls back to keying off the description.
         productKey: typeof raw.productKey === 'string' ? raw.productKey : '',
+        catalogSku: nullableStr(raw.catalogSku),
         approxLocation: str(raw.approxLocation),
         confidence: Math.min(1, Math.max(0, num(raw.confidence))),
       });
