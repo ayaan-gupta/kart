@@ -105,6 +105,34 @@ Put that line in `.env` at the repository root (`.env.example` documents it), th
 value is inlined into the JS bundle at build time, so **changing it requires a rebuild**, not a
 restart.
 
+## The app calling the server, verified
+
+`frame-lab.tsx` has a fourth run mode, `server`, which uses the real `requestCensus` and
+`requestIdentify` instead of the local fixtures the other modes use. It exists because until it
+did, **nothing in the app had ever made a network call**: `devFixtures.ts` states plainly that its
+stand-ins were written "because it is not deployed and there is no key", so a full bag of named
+items on screen proved the pipeline and proved nothing about reaching a service.
+
+Reach it with a Debug build (the Frame Lab native module is Debug only), from the home screen's
+logo on a long press, then "Run against the recognition server".
+
+What a run does, verified end to end on a simulator with both servers above running:
+
+1. the endpoint is in the built JavaScript bundle, where a build without `.env` has none,
+2. the app forms and confirms tracks, encodes a keyframe, and POSTs to the service,
+3. the service takes the app's marks and calls the model,
+4. it fails at `429 credit_balance_exhausted`,
+5. and the app shows "Scanning isn't working right now, so nothing is being added to your cart."
+   with the bag at zero.
+
+Step 5 is the `unavailable` notice being driven by a real failure for the first time. Note that
+the service does not enumerate on these requests: the app sends marks, and `api/census.ts` only
+enumerates for a client that sends none.
+
+**This was a simulator, not a phone.** What it establishes is that the app can reach a recognition
+service. What still needs real hardware is `MIN_KEYFRAME_SHARPNESS`, the live detector, and the
+scan experience.
+
 ## What this was tested with, and where it stopped
 
 A real corpus photograph posted through the full chain reached the model and failed at
