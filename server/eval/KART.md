@@ -3556,3 +3556,40 @@ out of 6 per pass and is now out of 10, since a shelf answered with an empty bag
 Products found is unaffected at 31 per pass, because the shelves contribute no truth items; only
 spurious lines can move. The sixty-seventh's 75 of 93 therefore still stands as the products figure,
 and its 13 of 18 exact does not.
+
+### Seventy-first, continued: where 0.20's extra regions actually land
+
+The objection to lowering the threshold is this file's most-repeated result: more regions measures
+worse once the census sees them. That objection is about *count*, and counting per photograph shows
+the count moves somewhere the isolation table could not reveal.
+
+| image | 0.23 | 0.20 | | |
+|---|---|---|---|---|
+| IMG_0244 | 2 | 3 | +1 | sparse trolley, exact on every pass |
+| IMG_0245 | 1 | 3 | **+2** | sparse trolley, exact on every pass |
+| IMG_0246 | 3 | 3 | 0 | sparse trolley |
+| IMG_0249 | 3 | 3 | 0 | sparse trolley |
+| IMG_0252 | 10 | 8 | **-2** | loaded trolley |
+| IMG_0254 | 11 | 14 | +3 | loaded trolley |
+| four shelves | 102 | 125 | +23 | gated by `subjectIsCart` |
+
+**The risk is not where the benefit is.** Across the two loaded trolleys the change is +1 region
+net, and IMG_0252 actually gets *fewer*, so the isolation gain there comes from better-separated
+boxes rather than more of them. The shelves take +23 and it costs nothing, because the shelf gate
+empties their bag whatever the badges say. What is left is the sparse trolleys, which take +3
+between them and have nothing to gain: they hold one to three products, they are exact on every
+pass today, and IMG_0245 triples its proposals on a trolley containing a single cauliflower.
+
+Two extra badges on a nearly empty trolley is the precise shape of every invented-product failure in
+this file. So the end-to-end test in the previous section needs a sharper pass condition than
+"products found rises and spurious lines do not":
+
+- on IMG_0252 and IMG_0254, products found must rise
+- on IMG_0244, IMG_0245, IMG_0246 and IMG_0249, the bag must stay **exact on every pass**, because
+  those four are the corpus's only clean cases and a threshold that dirties them is not worth the
+  loaded trolleys it helps
+- on the four shelves, the bag must stay empty, which now shows up in the main harness
+
+If 0.20 fails only the second condition, the honest reading is that the threshold wants to depend on
+how much is in the frame, not that 0.20 is wrong. That would be a new rule and this corpus has six
+trolleys to fit it on, which is not enough. Recorded rather than attempted.
