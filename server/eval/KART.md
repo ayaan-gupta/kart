@@ -5220,3 +5220,55 @@ five of which run without a key:
 
 The two that need a model probe for credit with a single blank-image census first and report SKIPPED
 with the reason rather than failing their own way after doing work.
+
+## Ninety-ninth: resolution decides legibility, and a closer look still does not repair the errors
+
+Both models misname the Muenster pack, and the pack reads `MUENSTER deli-sliced cheese` in large
+type. That looked like a legibility limit rather than a recognition one, and it is:
+
+| source long edge | crop | the 7B's answer |
+|---|---|---|
+| 1024 | 116x154 | `Instant Powdered Milk` |
+| **1333** | 152x200 | **`Muenster Cheese`** |
+| 2000 | 227x300 | `Muenster cheese` |
+| 3000 | 341x450 | `Muenster cheese` |
+
+**A printed product name becomes unreadable somewhere below 150 pixels on the short side**, and the
+failure is not a hedge, it is a confident wrong answer about a different product.
+
+### The obvious lever, and why it is not one
+
+If small badges are illegible, trigger the closer look on size. As a trigger it is worse than what
+the eighty-third already found:
+
+| trigger | wrong badges caught | right badges caught |
+|---|---|---|
+| matcher confidence below 0.60 | 3 of 9 | **0 of 66** |
+| box short side below 0.15 | 3 of 9 | 6 of 66 |
+| box short side below 0.20 | 9 of 9 | 27 of 66 |
+
+Same recall for six false flags instead of none. And catching more does not help, because the
+eighty-second measured the second look repairing exactly two badges however it is triggered.
+
+Asking the harder question — does a **full-resolution** second look repair the badges the census
+gets wrong — the answer is no:
+
+| badge | census said | at full resolution |
+|---|---|---|
+| IMG_0252 #8, the Fuji bag | `fresh grown brussels` | `Smoked Turkey Breast`, still wrong |
+| IMG_0254 #4, the shopper's tote | `baguette` | `Jo Malone London`, and no name is right: it is not a product |
+| IMG_0254 #10, asparagus | `asparagus` | `Asparagus Spears`, already correct since the ninetieth's label fix |
+
+**One of the three is unanswerable by naming at all** and the right response is `isProduct: false`.
+Another reads as a different product at every resolution tried. Resolution is not what is wrong with
+them.
+
+### Why the Muenster is not in that table
+
+Its badge is labelled `out_of_catalog`, so alignment scores it `null` and it never appears as a
+wrong badge. **The one case where resolution demonstrably is the cause sits outside the metric that
+would have found it** — which is worth knowing about the metric, not only about the pack.
+
+So the finding stands and is narrow: resolution decides whether printed packaging can be read, the
+threshold is near 150 pixels, and on this corpus it explains one out-of-catalog miss rather than the
+errors the alignment metric counts.
