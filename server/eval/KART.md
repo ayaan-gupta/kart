@@ -5515,3 +5515,53 @@ filter being safe in deployment and unsafe as a conclusion drawn here.
 
 **Numbers hid this and a picture showed it in one look.** That is the case for the visual output
 being part of the work rather than a report on it.
+
+## Hundred-and-fifth: the filter removes only real products, and that reframes it entirely
+
+The hundred-and-fourth drew what `MIN_CATALOG_CONFIDENCE` removes and found four real products among
+them. Scoring it against the hand-labelled boxes instead of by eye — a measurement needing no model
+at all — gives the complete answer:
+
+| dropped proposal | what it covers |
+|---|---|
+| IMG_0252 box 6 | asparagus bag |
+| IMG_0254 box 3 | jar |
+| IMG_0254 box 6 | second egg carton, second Muenster pack |
+| IMG_0254 box 8 | Alaskan sockeye salmon, broccoli |
+| IMG_0254 box 10 | asparagus bag |
+
+**Five proposals dropped. Five cover a labelled product. None covers nothing.**
+
+So the filter does not remove junk. On this corpus it removes *only* real products, and the
+13-to-10 fall in spurious lines has to come from somewhere else.
+
+### Where it comes from, and whether that is a good trade
+
+It comes from the census misnaming those products. A real product that is badged and misnamed costs
+the bag **twice**: the product is missing *and* the wrong name is a spurious line. Remove the
+proposal and the product is still missing, but the spurious line goes with it.
+
+That is why the totals improve, and it is a narrower benefit than "filters junk":
+
+- **spurious lines fall**, because misnames cannot happen for a badge that is never asked about
+- **products found barely move**, because the unmarked sweep still volunteers most of them
+- **and the possibility of ever naming them correctly is foreclosed**
+
+Three of the five are `out_of_catalog`, which the matcher cannot place by construction, and the
+ninety-second measured IMG_0254 at 40% catalogued because the catalog is built from another trolley.
+Against a real store's catalog these five would carry SKUs, score above 0.60, and never be dropped —
+so **the filter would do nothing at all in the deployment `CLAUDE.md` assumes.**
+
+### What this does to the recommendation
+
+It inverts it. This was written up as the one pending change that improves the bag. It is better
+described as **a change that hides a naming failure by removing its subject**, whose measured benefit
+exists only because this corpus's catalog is thin, and which would be inert on a catalog that is not.
+
+`MIN_CATALOG_CONFIDENCE` stays at 0, and `WHEN-CREDIT-RETURNS.md` should stop calling it the first
+thing to validate. The census pass is better spent on requirement 3, which has never been measured
+at all.
+
+**Three passes over the same change — totals, then a picture, then the labels — and each one made it
+look worse.** The first was not wrong, it was incomplete, and the incompleteness all pointed the
+same way.
