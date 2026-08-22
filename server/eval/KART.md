@@ -2168,3 +2168,32 @@ returning to it needs a version that refreshes the identity while still refusing
 corpus.** That is worth saying at the end of forty investigations: the numbers here are noisy
 enough that a marginal result should never be the only evidence, and this project's own regression
 suite was the better instrument.
+
+## Forty-first: the last tunable constant, and it is already at its best
+
+One lever was never tested: how often a session captures. Nine seconds at the shipped
+`minIntervalMs` of 2000 fires four censuses against a session budget of eight, so half the budget
+is never spent, and products found had risen with every extra call up to four. Spending the rest
+looked like free recall.
+
+`scan-loop.ts --interval=<ms>` puts that through the app's real loop. Three runs each:
+
+| pacing | products found, lenient | what goes missing |
+|---|---|---|
+| 1000 ms, eight captures | 7, 7, 7 (**7.0**) | the cauliflower, in all three |
+| **2000 ms, as shipped** | 8, 8, 8, 9 (**8.25**) | the yellow bag |
+| 3000 ms, three captures | 5, 4, 4 (**4.3**) | the Oreo, cauliflower, baguette and Granny Smith bag |
+
+**The shipped value is a peak, not a default nobody checked.** The mechanism is geometric rather
+than statistical: captures spread across a pan see different parts of the trolley, and captures
+crowded together see the same part twice. Halving the interval does not buy more of the cart, it
+buys the same view again while the camera has barely moved, and the products at the far end of the
+pan are never reached. Tripling it spends too few looks to cover the trolley at all.
+
+So the census budget being half unspent is not waste. It is the pacing refusing to spend calls on
+views it already has.
+
+That closes the last constant this corpus can speak to. Every threshold in the recognition path
+has now been either measured to a value or confirmed at the one it already had:
+`PAIRED_PRODUCE_SHARPNESS` twice on two paths, `PRODUCE_INSIDE`, `NMS_IOU` and the group-box rules
+through the IMG_0254 work, `CENSUS_LONG_EDGE`, the census model, and now `minIntervalMs`.

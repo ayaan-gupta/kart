@@ -47,6 +47,16 @@ const DEVICE_REGIONS = deviceArg ? Math.max(1, Number(deviceArg.split('=')[1])) 
 /** `--frames=<name>` reads a different region set from `server/eval/`, so a detection change can
  * be put through the same loop without a second copy of this file. */
 const framesArg = process.argv.find((a) => a.startsWith('--frames='));
+/**
+ * `--interval=<ms>` overrides the keyframe gate's `minIntervalMs`, which ships at 2000.
+ *
+ * Nine seconds of scanning at that pacing fires four censuses against a session budget of eight
+ * (`MAX_CENSUS_CALLS_PER_SESSION`), so half the budget is never spent. Products found rose with
+ * every extra call up to four, which makes "spend the rest" the obvious question.
+ */
+const intervalArg = process.argv.find((a) => a.startsWith('--interval='));
+const MIN_INTERVAL_MS = intervalArg ? Number(intervalArg.split('=')[1]) : undefined;
+
 const video = JSON.parse(readFileSync(
   join(HERE, framesArg ? framesArg.split('=')[1] : 'video-frames-catalog.json'), 'utf8'));
 const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'utf8'));
@@ -126,7 +136,8 @@ for (const frame of video.frames) {
     })),
     barcodes: [], sharpness: frame.sharpness, motion: frame.motion, crops: [],
   };
-  const stepped = processFrame(pipeline, scan as any, frame.t * 1000);
+  const stepped = processFrame(pipeline, scan as any, frame.t * 1000,
+    MIN_INTERVAL_MS === undefined ? {} : { minIntervalMs: MIN_INTERVAL_MS });
   pipeline = stepped.state;
 
   if (!stepped.keyframe.fire) continue;
