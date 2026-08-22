@@ -138,10 +138,30 @@ reason that is right: two are group boxes containing 7 and 8 of the kept members
 seven are NMS duplicates at IoU 0.53 to 0.99 of a box that was kept. The paired produce pass adds
 nothing, because its single proposal sits entirely inside a box the first pass already drew.
 
-So the four products with no bag line have no proposal at all. They are the ones under the
-shopper's tote and behind other items, and nothing in the detector ever sees them. That is the 38%
-enumeration recall this pipeline is built around, and `unmarkedItems` is the designed mitigation
-for exactly it, recovering none to two of the four depending on the run.
+That reading was wrong, and a targeted prompt shows why. The products with no bag line do get
+proposed; they are refused. On IMG_0254, against the eleven boxes the grocery pass keeps:
+
+| prompt | boxes proposed | added by merge_produce |
+|---|---|---|
+| `broccoli.` | 3 | 0 |
+| `asparagus. broccoli.` | 2 | 0 |
+| `cheese.` | 1 | 0 |
+| `a pack of meat.` | 1 | 0 |
+| the shipped 28-noun prompt | 1 | 0 |
+
+Every one is rejected for sitting inside a box the first pass already drew. `PRODUCE_INSIDE` is
+0.7 and it is there for a good reason, written three sections up: one clementine inside a net of
+clementines is a part of a purchasable unit, not a unit, and without the containment test one net
+became seven fruits. On a trolley this dense the eleven kept boxes blanket the basket, so the same
+test that protects the net refuses a whole bag of asparagus.
+
+This is the fifth time today that heavily overlapping detector boxes have been the mechanism:
+rule 12 asking for products with no badge on them, a centre-point spatial join, the same join at
+0.4 overlap, and now this. It is one property of a loaded trolley seen from five directions.
+
+Loosening the containment test is the 0.12 threshold sweep in another form, and that one is
+already measured: it shatters the cart corpus's net bags into 27 proposals. So the products are
+visible, they are proposed, and the rule that refuses them is protecting something real.
 
 Resolution is not it either, and this is the one that settles it. The detector receives a 1333
 thumbnail; the census was raised to 1536 today because it could not read labels, and the detector
@@ -157,9 +177,10 @@ are not small, they are covered. More pixels of a tote bag is still a tote bag.
 
 Which makes the two photographs different problems, and only one of them was ever a bug. IMG_0252
 was a detector miss on a visible object; detection now proposes exactly nine regions for its nine
-products at any resolution, and it is fixed. IMG_0254 is recall on objects not visible to a
-detector at all, and the answer to it is the shopper being asked to move things, which is what
-`occlusion.severity` on that photograph reports every time.
+products at any resolution, and it is fixed. IMG_0254 is a trolley packed densely enough that the
+containment rule protecting one purchasable unit from being split refuses a second unit sitting
+against it. The product's answer to that photograph is asking the shopper to move things, which
+is what `occlusion.severity` on it reports every time.
 
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
