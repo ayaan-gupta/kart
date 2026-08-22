@@ -583,10 +583,26 @@ unmarked bag of apples a `kart_granny_smith_apples` to key on. Measured over eig
 at 10.5. The model does not take the offer often enough to matter, and offering it appears to
 cost a little precision elsewhere.
 
-Five things have now been tried against the last one or two units and each is refused with a
+**And handing the census its own earlier answers is worse still.** That was the one described
+here as needing a change to the architecture rather than a fix inside it, so it was built: each
+call in a scan receives the names already in the bag and is told to reuse one exactly if it sees
+that product again. It is the only idea that addresses the drift at the source instead of
+repairing the wording afterwards, and a photograph is untouched because it makes one call and the
+list is empty.
+
+Eight scans: 6, 7, 7, 7, 9, 9, 9, 13. Zero of eight exact against six of fourteen, mean 8.4
+against 10.36, and the spread got wider rather than narrower. Told that a product is already in
+the shopper's bag, the model stops reporting it, so its `inViewCounts` entry disappears and the
+item falls out. The instruction to reuse a name reads to it as permission to stop looking.
+
+That is worth knowing for its own sake: the architecture is not what stands in the way here. The
+idea is.
+
+Six things have now been tried against the last one or two units and each is refused with a
 number: a lower produce threshold, produce prompts split into groups, produce prompts in pairs,
-corroboration before an unmarked sighting counts, and the frame's catalog offered to the
-unmarked. What is left is not a parameter of this architecture.
+corroboration before an unmarked sighting counts, the frame's catalog offered to the unmarked,
+and the census given its own session's answers. Four of the six made the scan worse, and two of
+those four made it worse by under-counting, which is the error a shopper cannot see.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
