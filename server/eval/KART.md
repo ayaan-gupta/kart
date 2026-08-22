@@ -644,9 +644,24 @@ renaming the ones already found, so the drift is the price of coverage rather th
 also means the over-count and the coverage cannot be separated by pacing: they are the same
 mechanism seen from two sides.
 
-That is eight attempts. Five made the scan worse, one made it worse in the other direction, one
-did nothing, and the two that helped both worked by joining answers rather than by changing them:
-a mark teaching the session that its name is a SKU, and a plural folded out of the key.
+**The ninth was the one this file predicted would work, and it does not.** Handing the census the
+bag's contents fails because a list of what the shopper already has reads as permission to stop
+looking. The narrower version does not have that shape: each badge is told what the tracker says
+that same physical object was called earlier in this scan, with rule 17 saying plainly that it is
+an assertion about which object this is and not a reason to leave anything out.
+
+Eight scans: 10, 11, 12, 12, 12, 12, 12, 13. One of eight exact against six of fourteen, mean
+11.75 against 10.36. It over-counts slightly more than saying nothing.
+
+That prediction is worth leaving in the record next to its refutation. The reasoning behind it
+was that a stable identity per region is the missing join, and the reasoning still looks right;
+what it got wrong is that the drift is not mostly on the badges. A badged region is already
+joined, by the tracker and now by the SKU alias. The descriptions that do not join are the
+unmarked ones, and an unmarked product has no region for a per-region prior to attach to.
+
+That is nine attempts. Six made the scan worse, one made it worse in the other direction, one did
+nothing, and the two that helped both worked by joining answers rather than by changing them: a
+mark teaching the session that its name is a SKU, and a plural folded out of the key.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
