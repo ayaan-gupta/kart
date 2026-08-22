@@ -246,8 +246,16 @@ sprouts, and breaks two things the 2B had right. Four of six either way, on diff
 photographs.
 
 So the failures are different rather than fewer, and going from two billion parameters to three
-is not the axis. The census was designed around a frontier model, and what these two establish is
-that the gap is real rather than a matter of picking a slightly larger open one.
+is not the axis.
+
+Combining them does not help either, and the reason is worth writing down. The 3B's refusals are
+a superset of the 2B's: it refuses everything the 2B refuses and more. So "refuse only if both
+refuse" is the 2B exactly, and "keep only if both keep" is the 3B exactly, and no rule over the
+two beats the better of them. They are nested, not complementary, which is what an ensemble needs.
+
+The census was designed around a frontier model, and what these three attempts establish is that
+the gap is real rather than a matter of picking a slightly larger open model or voting between
+two of them.
 
 An earlier run of this reported 37 units and an over-count of four on the fullest trolley, and
 blamed the model for listing 24 products in a 16-product basket. That was a parsing fault in the
