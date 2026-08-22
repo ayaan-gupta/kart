@@ -34,6 +34,9 @@ CHECKS = [
      "the scan loop over the video, contents-scored",
      ["node", f"--env-file={ROOT}/server/.env.local", TSX,
       str(HERE / "pipeline/scan-loop.ts"), "--path=capture"], True),
+    ("1 every item reaches the bag",
+     "cart or shelf, the subjectIsCart gate over all ten photographs",
+     [PY_BIN, str(HERE / "pipeline/is_cart_local.py")], False),
     ("3 hidden items are flagged",
      "occlusion, local model, discrimination over ten photographs",
      [PY_BIN, str(HERE / "pipeline/occlusion_local.py")], False),
@@ -73,7 +76,7 @@ def main():
             continue
         print(f"\n=== {req}\n--- {name}\n", flush=True)
         env = dict(os.environ)
-        if "occlusion_local" in " ".join(argv):
+        if "occlusion_local" in " ".join(argv) or "is_cart_local" in " ".join(argv):
             env.setdefault("KART_VLM", "mlx-community/Qwen2.5-VL-7B-Instruct-4bit")
         proc = subprocess.run(argv, cwd=str(HERE), capture_output=True, text=True, env=env)
         tail = [l for l in proc.stdout.splitlines() if l.strip()][-6:]

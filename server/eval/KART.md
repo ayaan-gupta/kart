@@ -5201,3 +5201,22 @@ thing standing between a shelf photograph and a bag full of goods nobody is buyi
 would reduce that failure by roughly a third rather than prevent it.
 
 Worth the ten seconds it took: the hypothesis was plausible, cheap to check, and wrong.
+
+### The runner, completed
+
+`verify.py` gained the cart-or-shelf gate, which is the only local coverage of four of the ten
+photographs and had been sitting outside the one entry point it was written to be. Seven checks now,
+five of which run without a key:
+
+| requirement | check | needs a model |
+|---|---|---|
+| 1 every item reaches the bag | detector recall and isolation against hand-labelled boxes | no |
+| 1 | catalog shortlist recall, the closed world's first clause | no |
+| 1 | **cart or shelf, the `subjectIsCart` gate over all ten** | no |
+| 1 | the bag, six trolleys, live census | **yes** |
+| 2 quantities are right | the scan loop over the video, contents-scored | **yes** |
+| 3 hidden items are flagged | occlusion discrimination over all ten | no |
+| 4 unsure items are flagged | census confidence calibration, from the last saved run | no |
+
+The two that need a model probe for credit with a single blank-image census first and report SKIPPED
+with the reason rather than failing their own way after doing work.
