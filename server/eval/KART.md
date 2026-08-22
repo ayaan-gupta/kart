@@ -2122,3 +2122,28 @@ The bag the app builds for this trolley went from roughly seventeen lines to rou
 nine real products. That is the largest single improvement in this file and none of it came from
 tuning the census: it came from checking what the app ran and finding it was not what the corpus
 measured.
+
+## Thirty-eighth: the app's own loop, scored by contents
+
+`scan-loop.ts` now scores contents against the same truth table `video-census-live.ts` uses,
+extracted to `video-truth.ts` so the two harnesses cannot drift. Four runs of the loop exactly as
+it now ships, `onCapture` with mini:
+
+| run | units | lines | products found | missing | lines matching nothing |
+|---|---|---|---|---|---|
+| 1 | 13 | 11 | 8 of 9 | yellow bag | 3 |
+| 2 | 11 | 9 | 8 of 9 | yellow bag | 1 |
+| 3 | 11 | 9 | 8 of 9 | yellow bag | 1 |
+| 4 | **9** | **9** | **9 of 9** | **none** | **0** |
+
+**Run 4 is a correct bag**: nine units on nine lines for nine products, every one found, nothing
+invented. The app's scan can now produce the right answer for this trolley. It does so in one run
+of four.
+
+The residual is the one this file has already exhausted: the yellow produce bag, missing in three
+of four, with every route to it checked in the twenty-sixth and twenty-seventh sections and each
+one costing more than it buys. The spurious lines are the familiar unjoined descriptions,
+`bag of green beans`, `bagged tomatoes`, `apples in plastic bag`.
+
+For comparison, the same loop this morning returned 19, 15 and 15 units on 18, 15 and 15 lines,
+with five separate descriptions of the same greens among them.

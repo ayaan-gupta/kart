@@ -32,6 +32,7 @@ import { createPipelineState, processFrame } from '../../../src/engine/liveVisio
 import { MAX_CANDIDATES } from '../../src/enumerate';
 import { runCensus } from '../../src/recognize';
 import type { Mark } from '../../src/compositor';
+import { VIDEO_TRUTH, scoreContents } from './video-truth';
 
 const HERE = join(import.meta.dirname, '..');
 const pathArg = process.argv.find((a) => a.startsWith('--path='));
@@ -144,3 +145,14 @@ const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
 console.log(`\n  path=${PATHNAME}, ${DEVICE_REGIONS} device region(s) per frame, ${calls} census call(s)`);
 console.log(`  bag holds ${units} units on ${lines.length} lines, against ${cart.products} real products`);
 for (const l of lines) console.log(`      ${String(l.qty).padStart(2)}  ${l.brand ? `${l.brand} ` : ''}${l.name}`);
+
+// Contents, scored against the same truth `video-census-live.ts` uses.
+{
+  const names = lines.map((l: any) => `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase());
+  const { found, strict, lenient, spurious } = scoreContents(names);
+  console.log(`  products found ${strict} of ${VIDEO_TRUTH.length} on an unambiguous word, ` +
+    `${lenient} of ${VIDEO_TRUTH.length} allowing words this trolley shares between two products`);
+  const missing = VIDEO_TRUTH.filter((p) => !found.has(p.id)).map((p) => p.id);
+  if (missing.length) console.log(`  missing: ${missing.join(', ')}`);
+  if (spurious.length) console.log(`  lines matching nothing real: ${spurious.map((i) => names[i]).join(', ')}`);
+}
