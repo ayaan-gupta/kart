@@ -5350,3 +5350,39 @@ refused a detector swap; this refuses a census swap, on the only comparison avai
 credit. `gpt-5.4-mini` is better than the best local model here, and the twenty-second already
 measured the larger `gpt-5.4` doing worse on a scan by sweeping harder. **The shipped census sits
 between two measured alternatives, both worse.**
+
+## Hundred-and-first: a keyless bag for the video, and what it can and cannot measure
+
+Since the account emptied, the still path has had `census_local.py` and the video path has had
+nothing: its regions could be measured but its **bag** could not. `video_census_local.py` closes
+that, asking the same per-crop questions of the frames `video-census-live.ts` censuses and writing
+them in the shape its `--replay` reads.
+
+The replay guard earned its keep immediately. The first attempt generated answers for orders 6, 12,
+18 and 24 — the capture path's frames — and the run refused them:
+
+    replay entry 0 is for t=2s frame 6, but this run reached t=1s frame 3; the replay file does
+    not match this frame set
+
+That is a check written in an earlier section catching a mistake made in this one, which is what
+those checks are for. The old path censuses orders 3, 9, 15 and 21.
+
+### The harness works, and the stand-in is only good for one kind of question
+
+| | products found, lenient | units against 9 | lines matching nothing |
+|---|---|---|---|
+| shipped path, `gpt-5.4-mini` | **8 of 9** | **8.17** | **0.33** |
+| local 7B stand-in | **8 of 9** | 19 | 11 |
+
+**Recall matches and precision does not, by a factor of thirty.** The local model finds the same
+products and buries them in `lime juice`, `rogue ales ipa`, `guettner cheese` and eight more.
+
+The reason is visible in the inputs. On the stills it works from 5712x4284 photographs; the video is
+1080x1920 with motion blur, so a padded crop of one badge is small and smeared, and the model answers
+confidently anyway — the same failure mode the ninety-ninth measured at 116 pixels, arriving through
+blur instead of size.
+
+So the harness measures **recall** changes on the video usefully and **precision** changes not at
+all: its noise floor is eleven spurious lines where the service's is a third of one. That is worth
+stating precisely, because a harness whose limits are unknown is worse than no harness — it invites
+exactly the kind of conclusion this file has had to withdraw four times today.

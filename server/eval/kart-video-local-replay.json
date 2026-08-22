@@ -1,0 +1,433 @@
+[
+ {
+  "t": 1.0,
+  "order": 3,
+  "marks": 7,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Oreo cookies",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Cauliflower",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Brussels sprouts",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "Granny Smith Apples",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "Baguette",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "Fresh Brown Rice",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 7,
+     "name": "Brussels sprouts",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Red apples",
+     "confidence": 0.8,
+     "productKey": "::red apples"
+    },
+    {
+     "description": "Granny Smith apples",
+     "confidence": 0.8,
+     "productKey": "::granny smith apples"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::oreo cookies",
+     "count": 1
+    },
+    {
+     "productKey": "::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 2
+    },
+    {
+     "productKey": "::granny smith apples",
+     "count": 1
+    },
+    {
+     "productKey": "::baguette",
+     "count": 1
+    },
+    {
+     "productKey": "::fresh brown rice",
+     "count": 1
+    },
+    {
+     "productKey": "::red apples",
+     "count": 1
+    },
+    {
+     "productKey": "::granny smith apples",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 3.0,
+  "order": 9,
+  "marks": 4,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Spelt Bread",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Bamboo Cutlery",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Flatbread wraps",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "Lime juice",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Bread",
+     "confidence": 0.8,
+     "productKey": "::bread"
+    },
+    {
+     "description": "Corn",
+     "confidence": 0.8,
+     "productKey": "::corn"
+    },
+    {
+     "description": "Asparagus",
+     "confidence": 0.8,
+     "productKey": "::asparagus"
+    },
+    {
+     "description": "Brussels sprouts",
+     "confidence": 0.8,
+     "productKey": "::brussels sprouts"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::spelt bread",
+     "count": 1
+    },
+    {
+     "productKey": "::bamboo cutlery",
+     "count": 1
+    },
+    {
+     "productKey": "::flatbread wraps",
+     "count": 1
+    },
+    {
+     "productKey": "::lime juice",
+     "count": 1
+    },
+    {
+     "productKey": "::bread",
+     "count": 1
+    },
+    {
+     "productKey": "::corn",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 5.0,
+  "order": 15,
+  "marks": 3,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Seedastic Bread",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Asparagus",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Bread loaf",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Seedtastic Bread",
+     "confidence": 0.8,
+     "productKey": "::seedtastic bread"
+    },
+    {
+     "description": "Celery",
+     "confidence": 0.8,
+     "productKey": "::celery"
+    },
+    {
+     "description": "Apples",
+     "confidence": 0.8,
+     "productKey": "::apples"
+    },
+    {
+     "description": "Bread (unwrapped)",
+     "confidence": 0.8,
+     "productKey": "::bread (unwrapped)"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::seedastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::bread loaf",
+     "count": 1
+    },
+    {
+     "productKey": "::seedtastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "::celery",
+     "count": 1
+    },
+    {
+     "productKey": "::apples",
+     "count": 1
+    },
+    {
+     "productKey": "::bread (unwrapped)",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 7.0,
+  "order": 21,
+  "marks": 3,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Oreo cookies",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Rogue Ales IPA",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Guettner cheese",
+     "confidence": 0.8,
+     "productKey": "::guettner cheese"
+    },
+    {
+     "description": "Green leafy vegetables",
+     "confidence": 0.8,
+     "productKey": "::green leafy vegetables"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::oreo cookies",
+     "count": 1
+    },
+    {
+     "productKey": "::rogue ales ipa",
+     "count": 1
+    },
+    {
+     "productKey": "::guettner cheese",
+     "count": 1
+    },
+    {
+     "productKey": "::green leafy vegetables",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ }
+]
