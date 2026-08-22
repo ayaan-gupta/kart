@@ -66,14 +66,29 @@ the choice is among 562 products.
 | **fine-tuned, single encoder** | **10/13** | **10/10** | **5/5** |
 | fine-tuned, two-encoder ensemble | 10/13 | 10/10 | 5/5 |
 
-The last row is the point of the last two. The ensemble buys nothing once the encoder is
-fine-tuned: identical decisions on all nineteen boxes, the same +0.05 separation, the same ten
-named. Top-1 is 92.3% in every configuration.
+On this corpus the ensemble adds nothing once the encoder is fine-tuned: identical decisions on
+all nineteen boxes, the same +0.05 separation, the same ten named. Top-1 is 92.3% in every
+configuration.
 
-That has a consequence for what to deploy. The shipped default is the frozen two-encoder
-ensemble. The best configuration measured here is a single fine-tuned encoder, which matches
-ensemble-plus-fine-tune exactly while running half the encoders. Whatever the ensemble adds on
-frozen features, fine-tuning already supplies.
+Nineteen boxes is not enough to conclude that, and the shelf corpus does not quite agree. On its
+1,442 answerable crops, each configuration at its own shipped floor:
+
+| configuration | top-1 | named | precision | right of all |
+|---|---|---|---|---|
+| frozen, single encoder | 58.9% | 36.1% | 89.6% | 32.3% |
+| frozen, two-encoder ensemble | 64.3% | 39.7% | 92.0% | 36.5% |
+| fine-tuned, single encoder | 67.6% | 52.6% | 90.0% | 47.4% |
+| fine-tuned, two-encoder ensemble | 68.2% | 53.8% | 90.1% | 48.5% |
+
+There the second encoder is still worth 1.1 points of correctly-named crops after fine-tuning,
+against 5.4 before it. So the honest statement is that fine-tuning absorbs most of what the
+ensemble was providing, not all of it, and dropping the second encoder costs about a point in
+exchange for halving the work per crop. That is a deployment trade with a number on it rather
+than a free saving.
+
+Both corpora agree on the part that matters more: fine-tuning is worth 11 to 12 points of
+correctly-named crops over the shipped frozen ensemble, and the shipped default uses neither
+encoder fine-tuned.
 
 Top-1 is 92.3% in all three. Fine-tuning does not rank better here, it calibrates better, and
 calibration is the half that decides what the shopper sees. Frozen, a box with no answer scored

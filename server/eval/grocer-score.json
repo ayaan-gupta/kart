@@ -182,5 +182,44 @@
    "query_crops_in_shared": 34600,
    "seconds": 31.7
   }
+ },
+ "ensft-notta": {
+  "query_crops": 1500,
+  "answerable": 1442,
+  "coverage": 0.9613333333333334,
+  "top1": 0.48474341192787795,
+  "top5": 0.8169209431345353,
+  "shortlist_ceiling": 0.8550624133148405,
+  "declined": 0.4618585298196949,
+  "silent_error": 0.05339805825242718,
+  "fitted_floor": 0.8969904345456163,
+  "fitted_floor_names": 0.48693259972489683,
+  "fitted_floor_precision": 0.9378531073446328,
+  "tag": "ensft-notta",
+  "encoders": [
+   "siglipb16",
+   "siglip2l16"
+  ],
+  "finetune_epochs": 1,
+  "tta": false,
+  "catalog_products": 292,
+  "seconds": 240.2,
+  "corpus": {
+   "root": "/Users/ayaangupta/projects/misc/scanline/.data-grocer-help",
+   "catalog_share": 0.6,
+   "per_class_cap": 60,
+   "per_scene_cap": 3,
+   "min_side": 32,
+   "photographs": 6289,
+   "catalog_photographs": 3748,
+   "query_photographs": 2541,
+   "catalog_crops": 11752,
+   "query_crops": 34883,
+   "catalog_classes": 555,
+   "query_classes": 521,
+   "shared_classes": 453,
+   "query_crops_in_shared": 34600,
+   "seconds": 31.7
+  }
  }
 }
