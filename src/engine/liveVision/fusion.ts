@@ -416,6 +416,19 @@ export function applyCensus(
       continue;
     }
 
+    // A mark that matched the catalog teaches the session that this brand and name are that SKU.
+    // Without it the same product named identically on two calls opens two bag lines whenever
+    // the catalog matched it once and missed it once: one keys "sku:kart_oreo" and the other
+    // "::oreo", and nothing downstream can tell they are one packet. Observed on a nine-second
+    // scan, where "Oreo" was badged at one second and again at seven and the bag held both.
+    //
+    // Recorded as an alias rather than by rewriting either key, so the SKU stays the survivor
+    // and `addAlias` moves the accumulated quantity across for us.
+    const sku = mark.catalogSku?.trim();
+    if (sku) {
+      working = addAlias(working, productKey(mark.name, mark.brand), `sku:${sku}`);
+    }
+
     working.identities[trackId] = {
       key: resolveKey(working, markKey(mark)),
       name: mark.name,

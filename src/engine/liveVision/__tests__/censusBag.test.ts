@@ -169,6 +169,37 @@ describe('the closer look and the census keying differently', () => {
     expect(lines.reduce((n, l) => n + (l.qty ?? 1), 0)).toBe(1);
   });
 
+  it('merges two badges of one product when the catalog matched it once and missed it once', () => {
+    // From a nine-second scan: "Oreo" badged at one second with catalogSku kart_oreo and again
+    // at seven seconds with none, because the shortlist that call did not carry it. One keys
+    // "sku:kart_oreo" and the other "::oreo", so the bag held two packets of Oreos.
+    const first = applyCensus(
+      createFusionState(),
+      { marks: [skuMark(0, 'Oreo', 'kart_oreo')], inViewCounts: [], unmarkedItems: [] },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const second = applyCensus(
+      first,
+      { marks: [skuMark(0, 'Oreo', null)], inViewCounts: [], unmarkedItems: [] },
+      { 0: 'b' }, ['b'], false, { b: boxes.b },
+    );
+    expect(bagLines(second)).toHaveLength(1);
+  });
+
+  it('does not fuse two products that merely share a name segment', () => {
+    const first = applyCensus(
+      createFusionState(),
+      { marks: [skuMark(0, 'Oreo', 'kart_oreo')], inViewCounts: [], unmarkedItems: [] },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const second = applyCensus(
+      first,
+      { marks: [skuMark(0, 'Digestives', null)], inViewCounts: [], unmarkedItems: [] },
+      { 0: 'b' }, ['b'], false, { b: boxes.b },
+    );
+    expect(bagLines(second)).toHaveLength(2);
+  });
+
   it('merges an unmarked sighting with a badge by SKU, however differently it is worded', () => {
     // The residual over-count on the nine-second scan. A badge names the Granny Smith bag at one
     // second and the census at five lists the same bag as "bag of apples", which shares no word
