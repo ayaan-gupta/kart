@@ -2860,3 +2860,14 @@ was measured wrong twice as often as right because this trolley holds two bags o
 suppression above works because it does not try to *recognise* a duplicate at all; it removes the
 opportunity to create one. That is why the only untested question left is whether it can be done
 without losing an item added mid-scan.
+
+One variant of that was checked and does not work. The appealing idea is to allow a later sweep
+only when the tracker has *gained* tracks, on the reasoning that an item put in the cart shows up
+as a new object: that would degrade to sweep-once on a static trolley and to full sweeping on a
+loading one, which is exactly the safety property needed. The signal does not carry that meaning.
+Track counts going into the four captures of this static trolley are **1, 8, 5, 3** — they rise as
+captures seed tracks and fall as the camera pans away and tracks age out. The count measures what
+is currently *visible*, not what is newly *present*. A shopper adding an item while the camera
+looks elsewhere would not raise it, and panning back over goods already counted would. Whatever
+settles this needs a scan of a cart being loaded, not a cleverer reading of the signals in a scan
+of one that is not.
