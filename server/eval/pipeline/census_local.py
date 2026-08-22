@@ -15,16 +15,14 @@ call per region rather than one per frame, which is why the shipped design does 
 point here is a number for what the pipeline delivers with a real model in the loop and no key.
 """
 import json, os, pathlib, re, sys
-import torch
 from PIL import Image, ImageOps
-from transformers import AutoProcessor, Qwen2VLForConditionalGeneration, Qwen2_5_VLForConditionalGeneration
+
+import vlm
 
 # Overridable so the same three questions can be put to a bigger model without a second
 # copy of this file. The 2B one names asparagus as brussels sprouts and a purple produce bag as
 # a subway sandwich, and those two mistakes are the whole of the remaining count error.
 MODEL = os.environ.get("KART_VLM", "Qwen/Qwen2-VL-2B-Instruct")
-LOADER = (Qwen2_5_VLForConditionalGeneration if "2.5" in MODEL
-          else Qwen2VLForConditionalGeneration)
 CARTS = ["IMG_0244", "IMG_0245", "IMG_0246", "IMG_0249", "IMG_0252", "IMG_0254"]
 NAME_Q = ("What grocery product is this? Answer with the product name only, three words at most. "
           "If it is not a product a shopper is buying, answer NOT A PRODUCT.")
@@ -32,18 +30,8 @@ FRAME_Q = ("List every distinct grocery product you can see in this shopping tro
            "line, name only. Do not list the trolley, the floor, bags, shoes or people.")
 
 frames = {f["id"]: f for f in json.loads(pathlib.Path(".cache/kart/frames.json").read_text())["frames"]}
-device = "mps" if torch.backends.mps.is_available() else "cpu"
-proc = AutoProcessor.from_pretrained(MODEL)
-model = LOADER.from_pretrained(
-    MODEL, dtype=torch.bfloat16 if "3B" in MODEL else torch.float32).to(device).eval()
-
-def ask(image, question, tokens=16):
-    messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": question}]}]
-    text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = proc(text=[text], images=[image], return_tensors="pt").to(device)
-    with torch.no_grad():
-        out = model.generate(**inputs, max_new_tokens=tokens, do_sample=False)
-    return proc.batch_decode(out[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0].strip()
+backend = vlm.load(MODEL)
+ask = backend.ask
 
 print(f"model {MODEL}", flush=True)
 out = {}
@@ -80,5 +68,6 @@ for pid in CARTS:
     named = sum(1 for m in marks if m["isProduct"])
     print(f"  {pid}: {named}/{len(marks)} regions called products, "
           f"{len(out[pid]['listed'])} products listed for the whole frame", flush=True)
-pathlib.Path(".cache/kart/census-local.json").write_text(json.dumps(out, indent=1))
-print("\nwrote .cache/kart/census-local.json")
+dest = pathlib.Path(os.environ.get("KART_CENSUS_OUT", ".cache/kart/census-local.json"))
+dest.write_text(json.dumps(out, indent=1))
+print(f"\nwrote {dest}")
