@@ -134,6 +134,14 @@ for (const frame of video.frames) {
   let image: string;
   try { image = readFileSync(imageFor(frame.order)).toString('base64'); } catch { continue; }
 
+  // Which frames the loop actually captures, and how many tracks it had going in. Worth printing
+  // rather than inferring: the capture path paces differently from the old one (frames 7, 13, 19,
+  // 25 against 4, 10, 16, 22), and that is how the yellow produce bag's absence was ruled out as a
+  // pacing problem. Frame 13 is inside the window where that bag is plainly visible, the census
+  // sees it there, and "yellow" still appears nowhere in any answer. The track counts also show
+  // `onCapture` seeding: one live track going into the first capture, eight into the second.
+  console.log(`  capture at t=${frame.t}s, frame-${String(frame.order + 1).padStart(3, '0')}, ` +
+    `${stepped.tracks.length} live track(s) going in`);
   if (PATHNAME === 'shipped') {
     await session.onKeyframe(image, stepped.tracks, frame.t * 1000);
   } else {
