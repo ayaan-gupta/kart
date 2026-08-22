@@ -774,3 +774,52 @@ describe('worthACensus', () => {
     expect(worthACensus(spent, [confirmed('fresh')])).toBe(false);
   });
 });
+
+describe('the census is told what the session has already counted', () => {
+  // Server-side parsing of `counted` is covered in server/test/api-census.test.ts. Nothing covered
+  // the client actually sending it, and dropping the argument would silently disable the feature:
+  // no test fails, no type breaks, and the bag goes back to holding one product under three names.
+  // Measured on server/eval/pipeline/scan-loop.ts, that is 1.7 lines matching nothing real per bag
+  // instead of 0.33.
+  const censusOk = {
+    ok: true as const,
+    value: {
+      regions: [],
+      enumeration: 'ok' as const,
+      marks: [{ id: 1, name: 'Bananas', brand: null, size: null, category: 'Produce', confidence: 0.95, needsCloserLook: false }],
+      inViewCounts: [{ productKey: productKey('Bananas', null), count: 1 }],
+      unmarkedItems: [],
+      occlusion: { itemsLikelyHidden: false, severity: 'none' as const, reason: '' },
+    },
+  };
+  const deps = (over: Record<string, unknown> = {}) => ({
+    requestCensus: jest.fn().mockResolvedValue(censusOk),
+    requestIdentify: jest.fn().mockResolvedValue({ ok: false, failure: 'server' }),
+    lookupBarcode: jest.fn().mockResolvedValue(null),
+    saveThumbnail: jest.fn().mockResolvedValue(null),
+    ...over,
+  });
+
+  it('sends the field on the very first keyframe, empty because nothing is counted yet', async () => {
+    const d = deps();
+    const s = new RecognitionSession(d);
+    await s.onKeyframe('AAAA', [track('a')], 0);
+    expect((d.requestCensus as jest.Mock).mock.calls[0][0]).toHaveProperty('counted', []);
+  });
+
+  it('sends what the bag holds on the next keyframe', async () => {
+    const d = deps();
+    const s = new RecognitionSession(d);
+    await s.onKeyframe('AAAA', [track('a')], 0);
+    await s.onKeyframe('AAAA', [track('a')], 5000);
+    const second = (d.requestCensus as jest.Mock).mock.calls[1][0];
+    expect(second.counted).toEqual(['Bananas']);
+  });
+
+  it('sends it on the capture path too, which is the one the app uses', async () => {
+    const d = deps();
+    const s = new RecognitionSession(d);
+    await s.onCapture('AAAA', createTrackerState(), 0);
+    expect((d.requestCensus as jest.Mock).mock.calls[0][0]).toHaveProperty('counted');
+  });
+});
