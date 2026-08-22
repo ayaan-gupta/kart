@@ -43,7 +43,15 @@ order 15, the loop censuses orders 6, 12, 18 and 24, and the gate rule that reac
 of the pan.
 
 **Current state, all four requirements, measured.** Everything below is re-measured on the code as
-it stands; `verify.py` runs the local half in one command.
+it stands. One command runs it:
+
+    server/.venv/bin/python server/eval/verify.py            # local checks, no key, no cost
+    server/.venv/bin/python server/eval/verify.py --model    # adds the two that call OpenAI
+
+The `--model` form probes for credit with a single blank-image census first, so an empty account
+costs one call and reports SKIPPED rather than a run of failures that then have to be told apart
+from real zeros. As of the last run the account is empty, so the two model checks have not been
+taken since the sixty-seventh section's figures were measured.
 
 | `CLAUDE.md` requirement | where it stands |
 |---|---|
