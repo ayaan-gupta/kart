@@ -1308,3 +1308,60 @@ the way it can at the door.
 
 The one cost, stated because it is real: IMG_0249 went from 10 of 10 to 9 of 10, one pass in ten
 on a photograph that mini never missed.
+
+## Twenty-third: the scan's last two units, and two fixes refused with numbers
+
+With the model split settled, the scan is the weaker half: 10.2 units against 9 real. Replaying
+the six captured answer sets and reading the bags rather than the totals says the residual is two
+kinds of error in the free-text channel, and neither has a safe fix.
+
+**Paraphrase.** Run 4's bag holds `bread` and `Seedtastic Bread` as separate lines. One loaf, two
+descriptions, no shared key, and the fold shipped in the nineteenth cannot touch it because it
+matches whole names and these differ.
+
+**Invention.** Run 5 has `watermelon`; run 2 has `bunch of bananas`. Neither is in the trolley.
+
+### A confidence filter cannot remove the inventions
+
+All 32 unmarked descriptions across the six runs, sorted by the confidence the model gave them:
+
+| item | confidence | real? |
+|---|---|---|
+| `red produce item` | 0.56 | yes |
+| `packaged apples` | 0.63 | yes |
+| `apple` | 0.68 | yes |
+| **`watermelon`** | **0.77** | **no** |
+| `red apple` | 0.78 | yes |
+| **`bunch of bananas`** | **0.92** | **no** |
+| `loaf of bread`, `green lettuce`, `baguette` | 0.95 | yes |
+
+The two inventions sit in the middle and the high end. Cutting `bunch of bananas` needs a
+threshold of 0.93, which deletes 25 of the 32 items, nearly all of them real. **The filter would
+remove real products before it removed the invented ones**, so confidence is not a usable signal
+here and no threshold was fitted.
+
+### A substring fold would be wrong twice as often as right
+
+The obvious repair for paraphrase is to fold a line whose name ends another line's, which is
+exactly the `bread` into `Seedtastic Bread` case. Counted over the same six bags:
+
+| run | pair | verdict |
+|---|---|---|
+| 2 | `apples` + `Fresh Grown Granny Smith apples` | **wrong** |
+| 4 | `bread` + `Seedtastic Bread` | right |
+| 5 | `apple` + `Granny Smith apples` | **wrong** |
+
+One correct merge, two wrong. And the wrong ones are the dangerous kind: **this trolley holds two
+bags of apples**, a Granny Smith and a Fuji, so folding `apple` into `Granny Smith apples` deletes
+a real product the shopper is buying while moving the count towards the truth. It would score
+better on this corpus and mean less. The `sharedNames` guard does not save it either: `bread` is
+the one name a single call ever put on two badges, so the guard blocks the merge that is right
+and permits the two that are wrong. It is inverted on exactly this case.
+
+### Where that leaves the scan
+
+The remaining error is one to two units of paraphrase plus roughly a third of a unit per run of
+invention, in a free-text channel with no key, no usable confidence signal, and no lexical rule
+that separates "the same loaf twice" from "two different bags of apples" on the evidence
+available. Both refusals are measured on held-still answers, so they are not statements about
+this corpus's noise; they are statements about the fixes.
