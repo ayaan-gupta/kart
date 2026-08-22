@@ -4067,3 +4067,49 @@ The stand-in is the caveat. The shipped `runIdentify` is a different model with 
 the repaired and broken columns are estimates of a mechanism rather than counts of what the service
 would do. What is not an estimate is the shape: three thresholds in a row make it worse, and the
 best column is the one already in `config.ts`.
+
+## Eighty-third: a better amber signal exists, and it changes nothing, which is the answer
+
+The eighty-second found the second look repairs badges when correctly targeted and breaks them when
+not, so the whole question is the selector. The census's `confidence` is a poor one, +0.06 mean gap
+with almost total overlap. There is another already in the request and never tried: **the catalog
+matcher's own score**, computed server-side for every badge and attached beside the candidates.
+
+It separates twice as well:
+
+| | mean, right | mean, wrong | gap |
+|---|---|---|---|
+| census `confidence` | 0.96 | 0.89 | +0.06 |
+| **catalog matcher confidence** | **0.886** | **0.765** | **+0.122** |
+
+And it has an operating point the census number never offers. At 0.60 it catches 3 of 9 wrong
+occurrences and **0 of 66 right ones**: no correct badge on this corpus scores below 0.60, so those
+flags are free.
+
+### Run past the flag, it ties the shipped trigger exactly
+
+| trigger | threshold | right, before → after | repaired | broken | net |
+|---|---|---|---|---|---|
+| census, as shipped | 0.55 | 60 → 62 | 2 | 0 | **+2** |
+| census | 0.96 | 60 → 59 | 3 | 4 | −1 |
+| **matcher** | 0.60 | 60 → 62 | 2 | **0** | **+2** |
+| **matcher** | 0.70 | 60 → 62 | 2 | **0** | **+2** |
+| **matcher** | 0.80 | 60 → 62 | 2 | **0** | **+2** |
+
+The matcher trigger is strictly the safer signal: at 0.80 it flags 15 of 66 correct badges and
+breaks **none**, where the census number at 0.96 flags 19 and breaks 4. But it repairs the same two
+badges, and so does every setting. **Flagging more finds no more repairs.**
+
+### What that settles about requirement 4
+
+The second look repairs exactly two badges however it is triggered, because the errors it can fix
+are the two it already gets. The rest are errors a second look makes too: the Muenster pack whose
+SKU the index lacks, and the produce bag the model calls something different every time it is asked.
+**The amber path is saturated on this corpus** — not starved, as the inert `GREEN_CONFIDENCE`
+suggested three sections ago, but already extracting everything a re-ask can extract.
+
+So there is no change to make, and the reason is worth more than the change would have been. A
+better selector was available and measurably better as a selector, and it did not move the outcome,
+which says the bottleneck was never selection. Recorded with the matcher signal named, because if
+`runIdentify` ever improves, this is the trigger to pair it with: it is free at 0.60 and safe to
+0.80, and the census's own confidence is neither.

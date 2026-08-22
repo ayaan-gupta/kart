@@ -65,8 +65,13 @@ def main():
         return cache[(img, i)]
 
     print(f"identify stand-in: {MODEL}\n")
-    print("  threshold   right before -> after    repaired   broken    net")
-    for T in (0.55, 0.92, 0.95, 0.96, 0.98):
+    # Two triggers. "census" is what ships: the model's own needsCloserLook or its confidence
+    # below the threshold. "matcher" replaces the confidence half with the catalog matcher's own
+    # score, which separates right from wrong twice as well (+0.122 against +0.06) and is already
+    # computed server-side for every badge.
+    print("  trigger   threshold   right before -> after    repaired   broken    net")
+    for trigger, T in (("census", 0.55), ("census", 0.95), ("census", 0.96),
+                       ("matcher", 0.60), ("matcher", 0.70), ("matcher", 0.80)):
         before = after = repaired = broken = 0
         for run in runs:
             img = run["id"]
@@ -80,7 +85,12 @@ def main():
                     continue
                 was = bool(row["ok"])
                 before += was
-                amber = bool(m.get("needsCloserLook")) or (m.get("confidence") or 0) < T
+                if trigger == "census":
+                    amber = bool(m.get("needsCloserLook")) or (m.get("confidence") or 0) < T
+                else:
+                    cat = frames[img].get("catalog") or []
+                    mc = (cat[row["badge"]] or {}).get("confidence") if row["badge"] < len(cat) else None
+                    amber = bool(m.get("needsCloserLook")) or (mc is not None and mc < T)
                 if not amber:
                     after += was
                     continue
@@ -89,7 +99,7 @@ def main():
                 after += now
                 repaired += (now and not was)
                 broken += (was and not now)
-        print(f"    {T:.2f}       {before} -> {after}            "
+        print(f"  {trigger:<9} {T:.2f}       {before} -> {after}            "
               f"{repaired:<11}{broken:<9}{after-before:+d}")
 
 
