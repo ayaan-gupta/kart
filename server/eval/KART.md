@@ -56,6 +56,15 @@ photographs exact, badge alignment 21 of 23 in every pass. Both loaded trolleys 
 exactly one rather than by two and by four, which is a different and smaller problem than the one
 ten experiments were aimed at.
 
+The scan's target moves too, because the trolley it scans is IMG_0252's. Re-scored against nine,
+six runs: 9, 10, 10, 11, 11, 12. One exact, and the rest one or two over.
+
+So the correction cuts both ways, and the two corpora now fail in opposite directions. The
+photographs come in one under on both loaded trolleys, which is a product genuinely in the basket
+that no call ever named. The scan comes in one or two over, which is one product described twice
+across four calls. Reading them as one number hid that; they are different faults and only the
+second is the one ten experiments were aimed at.
+
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
 moves every number in this file.
