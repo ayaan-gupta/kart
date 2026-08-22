@@ -188,6 +188,51 @@ for (const frame of video.frames) {
   calls.push({ t: frame.t, order: frame.order, marks: marks.length, census });
 }
 
+/**
+ * What is really in this trolley, and the words a bag line may use for each.
+ *
+ * A unit count cannot tell a right bag from a lucky one. Run 3 of the six captured answer sets
+ * scores nine units against nine products and is still wrong: it holds the Fuji bag twice, once
+ * as "Kart purple produce bag" and once as "red apple", and misses the yellow bag and the
+ * brussels sprouts. Two errors cancelling is not a correct answer, so the bag is scored by
+ * contents here as well as by size.
+ *
+ * `strong` is a word only this product would use. `weak` is one it shares with another product in
+ * this same trolley, which is why both numbers are reported rather than one: "bread" fits the
+ * baguette and the Seedtastic loaf, "apple" fits the Granny Smith bag and the Fuji bag, and a
+ * scorer that resolves those by itself is inventing the answer it is meant to be checking.
+ * Strong matches are assigned first for the same reason.
+ */
+const VIDEO_TRUTH: { id: string; strong: string[]; weak: string[] }[] = [
+  { id: 'oreo', strong: ['oreo'], weak: [] },
+  { id: 'cauliflower', strong: ['cauliflower', 'lucky'], weak: [] },
+  { id: 'asparagus', strong: ['asparagus'], weak: [] },
+  { id: 'brussels sprouts bag', strong: ['brussels', 'sprout'], weak: ['green leafy', 'lettuce', 'green produce'] },
+  { id: 'seedtastic bread', strong: ['seedtastic'], weak: ['bread', 'loaf'] },
+  { id: 'baguette', strong: ['baguette'], weak: ['bread'] },
+  { id: 'granny smith apple bag', strong: ['granny'], weak: ['green apple', 'apple'] },
+  // The purple bag is printed "WEST GROWN FUJI, Sure to please!" and holds red apples.
+  { id: 'fuji apple bag', strong: ['fuji', 'purple'], weak: ['red apple', 'apple', 'produce bag'] },
+  { id: 'yellow produce bag', strong: ['yellow'], weak: ['produce bag'] },
+];
+
+/** Greedy assignment, strong words first, each line used once and each product filled once. */
+function scoreContents(names: string[]) {
+  const used = new Set<number>();
+  const found = new Map<string, { line: number; tier: 'strong' | 'weak' }>();
+  for (const tier of ['strong', 'weak'] as const) {
+    for (const product of VIDEO_TRUTH) {
+      if (found.has(product.id)) continue;
+      const words = product[tier];
+      const at = names.findIndex((n, i) => !used.has(i) && words.some((w) => n.includes(w)));
+      if (at >= 0) { used.add(at); found.set(product.id, { line: at, tier }); }
+    }
+  }
+  const strict = [...found.values()].filter((v) => v.tier === 'strong').length;
+  const spurious = names.map((_, i) => i).filter((i) => !used.has(i));
+  return { found, strict, lenient: found.size, spurious };
+}
+
 const lines = bagLines(fusion) as any[];
 const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
 console.log(`\n  catalog shortlist ${withCatalog ? 'attached, refreshed against the current index' : 'withheld'}`);
@@ -195,6 +240,17 @@ console.log(`  ${video.frames.length} frames, ${fired} census calls (cap is 8)`)
 console.log(`  bag holds ${units} units on ${lines.length} lines, against ${cart.products} real products`);
 for (const l of lines) {
   console.log(`      ${String(l.qty).padStart(2)}  ${l.brand ? `${l.brand} ` : ''}${l.name}`);
+}
+
+// Contents, not just size.
+{
+  const names = lines.map((l: any) => `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase());
+  const { found, strict, lenient, spurious } = scoreContents(names);
+  console.log(`\n  products found ${strict} of ${VIDEO_TRUTH.length} on an unambiguous word, ` +
+    `${lenient} of ${VIDEO_TRUTH.length} allowing words this trolley shares between two products`);
+  const missing = VIDEO_TRUTH.filter((p) => !found.has(p.id)).map((p) => p.id);
+  if (missing.length) console.log(`  missing: ${missing.join(', ')}`);
+  if (spurious.length) console.log(`  lines matching nothing real: ${spurious.map((i) => names[i]).join(', ')}`);
 }
 for (const line of lines) console.log(`    ${line.qty ?? 1} x ${line.name}`);
 const missing = PRODUCTS.filter((p) => !lines.some((l) => (l.name ?? '').toLowerCase().includes(p.split('_')[0])));

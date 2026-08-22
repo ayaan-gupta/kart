@@ -1421,3 +1421,47 @@ Run 3 scores 9 units against 9 real and is still wrong: its lines are the Fuji b
 `Kart purple produce bag` and once as `red apple`, with the yellow produce bag and the brussels
 sprouts missing. **A correct total is not a correct bag**, and on this corpus the unit count
 flatters the scan. Every scan figure in this file should be read with that in mind.
+
+## Twenty-fifth: scoring the scan by contents, which says something better and something worse
+
+The twenty-fourth ended on the observation that a correct total is not a correct bag. The scan
+harness now scores contents as well as size, assigning each bag line to at most one real product,
+unambiguous words first, and reporting both a strict count and one that allows words this trolley
+shares between two products. Both numbers are reported because resolving "bread" between the
+baguette and the Seedtastic loaf, or "apple" between the Granny Smith bag and the Fuji bag, is
+inventing the answer the scorer exists to check.
+
+On the six replayed answer sets, with the model held still:
+
+| run | units | products found, strict | allowing shared words | missing | lines matching nothing |
+|---|---|---|---|---|---|
+| 1 | 9 | 6 of 9 | 8 of 9 | yellow bag | `packaged apples` |
+| 2 | 10 | 6 of 9 | 8 of 9 | yellow bag | `apples`, `bunch of bananas` |
+| 3 | 9 | 6 of 9 | 8 of 9 | yellow bag | `red apple` |
+| 4 | 11 | 7 of 9 | **9 of 9** | none | `bread`, `red apples` |
+| 5 | 11 | 8 of 9 | 8 of 9 | yellow bag | `apple`, `watermelon`, `red produce item` |
+| 6 | 9 | 6 of 9 | 8 of 9 | yellow bag | `apples in plastic bag` |
+
+**The better news: the scan is not blind.** It finds eight or nine of the nine products on every
+single run. The bag's error is duplication, not absence, and that is a materially different
+problem from the one "10.2 units against 9" describes.
+
+**The worse news: the totals were ranking the runs backwards.** Run 4, the joint worst by units at
+11, is the *best* bag here: it is the only run that finds all nine products, and both its extra
+lines are second descriptions of things it already has. Run 3, which scores a perfect 9 units, is
+one of the weakest: it misses the yellow bag and spends a line on a duplicate `red apple`. Every
+comparison in this file that ranked scan runs by unit count was ranking partly by luck.
+
+### One specific, repeatable miss
+
+The yellow produce bag is absent in **five of the six runs**, and it is the only product that is
+ever missing. Everything else in this trolley is found every time. That is not variance, it is one
+item the scan does not see, and it is the same item that lies under the Fuji bag and the baguette
+in IMG_0252. It is a single, concrete target rather than a diffuse consistency problem.
+
+### What the two numbers mean together
+
+Strict is low, six to eight of nine, because this trolley's products genuinely share words: two
+bags of apples and two breads. Lenient is eight or nine every run. The truth is between them and
+the gap is a property of the trolley, not of the pipeline. Reporting one number would have hidden
+that; the earlier unit counts hid it completely.
