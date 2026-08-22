@@ -139,6 +139,25 @@ export function markKey(mark: { name: string; brand: string | null; catalogSku?:
   return sku ? `sku:${sku}` : productKey(mark.name, mark.brand);
 }
 
+/**
+ * Whether a mark is already the product an existing identity carries.
+ *
+ * Both keys are checked, not just `markKey`'s. `IdentifyResponse` has no `catalogSku` field, so a
+ * closer look can only ever produce a `brand::name` key while a census on the same product now
+ * produces `sku:`. Comparing one key would read those as a disagreement between two calls that
+ * actually agree, and send a correct identification round the two-in-a-row corroboration path
+ * before it could merge, showing one product on two bag lines in the meantime.
+ */
+export function marksSameProduct(
+  state: FusionState,
+  mark: { name: string; brand: string | null; catalogSku?: string | null },
+  existingKey: string,
+): boolean {
+  const resolved = resolveKey(state, existingKey);
+  return resolveKey(state, markKey(mark)) === resolved
+    || resolveKey(state, productKey(mark.name, mark.brand)) === resolved;
+}
+
 export function productKey(name: string, brand: string | null): string {
   const norm = (s: string) =>
     s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
@@ -370,7 +389,7 @@ export function applyCensus(
     if (existing?.source === 'vlm' && existing.verifiedByIdentify && !fromIdentify) {
       const candidateKey = markKey(mark);
       const existingKey = resolveKey(working, existing.key);
-      if (resolveKey(working, candidateKey) === existingKey) continue; // already the same product
+      if (marksSameProduct(working, mark, existing.key)) continue; // already the same product
 
       const pending = working.pendingAlias[trackId];
       if (pending && pending.key === candidateKey) {
