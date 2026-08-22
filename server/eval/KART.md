@@ -659,9 +659,32 @@ what it got wrong is that the drift is not mostly on the badges. A badged region
 joined, by the tracker and now by the SKU alias. The descriptions that do not join are the
 unmarked ones, and an unmarked product has no region for a per-region prior to attach to.
 
-That is nine attempts. Six made the scan worse, one made it worse in the other direction, one did
-nothing, and the two that helped both worked by joining answers rather than by changing them: a
-mark teaching the session that its name is a SKU, and a plural folded out of the key.
+**The tenth followed straight from that.** If an unmarked product has no region to join on, give
+it one: `UnmarkedItem` gains a rectangle, the model is asked to point at the thing, and a sighting
+whose rectangle agrees with a live track is that track's product whatever either of them was
+called. It is the only join in any of these ten that is not lexical, and the diagnosis above says
+lexical is exactly what fails.
+
+The first cut used the sighting's centre landing inside a track's box and over-merged badly, 7 8 8
+8 8 8 10 10 units against 10. The reason was already three sections up in this file: detector
+boxes overlap so heavily on a loaded trolley that almost any point is inside something. Tightened
+to real overlap at 0.4:
+
+| | exact | mean units | stills, units of 33 |
+|---|---|---|---|
+| no spatial join, 14 runs | 6 of 14 | 10.36 | 26 to 32 |
+| overlap at 0.4, 14 runs | **8 of 14** | 10.29 | **24, 28, 26** |
+
+Two more exact runs in fourteen, which is inside the run-to-run spread, against three units a pass
+off the photographs, which is not. The same overlap that blankets the frame for the centre test
+still reaches most unmarked sightings at 0.4, and on a photograph the unmarked channel is the main
+contributor rather than a duplicate source. So it is refused, and the reason it fails is the same
+sentence that made rule 12 fail this morning.
+
+That is ten attempts. Seven made the scan worse or cost the stills more than they gave, one made
+it worse in the other direction, one did nothing, and the two that helped both worked by joining
+answers rather than by changing them: a mark teaching the session that its name is a SKU, and a
+plural folded out of the key.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
