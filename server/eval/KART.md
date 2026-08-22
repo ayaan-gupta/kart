@@ -2775,3 +2775,38 @@ It also puts every per-photograph figure in this file in perspective one last ti
 measure one census call on a good image; the product is four calls on worse images, fused. Neither
 number substitutes for the other, and where they disagree, as here, the scan is the one that
 describes what a shopper gets.
+
+## Fifty-eighth: what fusion absorbs and what it amplifies
+
+Two results in this file look contradictory until they are put side by side.
+
+The shelf gate costs 4.2 points of products found on a single photograph and **nothing at all** on
+the scan. A larger census model, gpt-5.4, *gains* on a single photograph — 49 of 60 passes exact
+against 44, and 282 of 310 products found against 258 — and loses badly on the scan, 11.7 units
+against 9.7 on nine real products.
+
+Same pipeline, opposite directions. The rule that resolves it:
+
+> **Fusion absorbs a missed product and amplifies an extra description.**
+
+A product one census misses, another finds: the bag is built from four looks and the loss is not
+the same loss each time. But a product described in different words each time cannot be joined,
+and every call adds another line. So a change that costs recall is cheap, and a change that
+increases how much the census volunteers is expensive, however good it looks on one image.
+
+That single rule accounts for most of this file:
+
+| result | which side |
+|---|---|
+| the shelf gate, 4.2 points of recall per call, free on the scan | absorbed |
+| gpt-5.4, better per photograph, worse fused | amplified |
+| paired produce prompts, more regions, worse on both paths | amplified |
+| the frame catalog offered to the unmarked channel | amplified |
+| a second pass over the trolley: same products, more lines | amplified |
+| the SKU fold and the `sharedNames` fold, which *undo* amplification | the only wins |
+
+**The practical form, for whoever tunes this next.** Judge a change on `scan-loop.ts`, not on
+`census-live.ts`, because the product is a scan. Treat a drop in per-call recall as probably free.
+Treat any change that makes the census say *more* as expensive, even when a photograph improves.
+And note what the two shipped wins have in common: neither adds anything, both give two existing
+descriptions a way to become one.
