@@ -37,8 +37,35 @@ transport is stubbed, and the enumerator, replaced by this video's cached region
 | **as it ships now** | 8, 8, 10, 9, 9, 8 (**8.67**) | **8.17 of 9** | **0.33** |
 
 The bag went from about seventeen lines to about nine for a nine-product trolley, and almost
-nothing in it is invented any more. The single repeatable miss is the yellow produce bag, closed in
-the sixty-second section after eleven separate attempts.
+nothing in it is invented any more. The single repeatable miss is the yellow produce bag, explained
+in the sixty-fifth section and priced in the sixty-sixth: its only isolating proposal is on frame
+order 15, the loop censuses orders 6, 12, 18 and 24, and the gate rule that reaches it costs a third
+of the pan.
+
+**Current state, all four requirements, measured.** Everything below is re-measured on the code as
+it stands; `verify.py` runs the local half in one command.
+
+| `CLAUDE.md` requirement | where it stands |
+|---|---|
+| 1 every item reaches the bag | photographs **76 of 93** products over three passes, video **8 of 9**; detector reaches 19 of 20 readable products on the two loaded trolleys and isolates 11 |
+| 2 quantities are right | 85 units against 93 real on the photographs; the scan bag holds 8.17 against 9 |
+| 3 hidden items are flagged | first measured in the seventy-fifth, 5 of 6 by a local 7B; the shipped census's own field is still unrun for want of credit |
+| 4 unsure items are flagged | first measured in the eightieth: a wrong answer is 7x likelier to be flagged than a right one, and 7 of 9 errors are still asserted unflagged |
+
+**The residual is attributed rather than open.** On the hardest photograph it splits four ways:
+one product no proposal reaches, one reached only inside another product's box, one whose SKU the
+evaluation catalog lacks, and one whose correct SKU was offered at rank 2 and not taken. The
+detector's share is closed by construction in the seventy-sixth; the catalog's share is 95%
+correct in the seventy-eighth and is not the bottleneck.
+
+**Two constants are inert**, `MIN_KEYFRAME_SHARPNESS` at 12 and `GREEN_CONFIDENCE` at 0.55. Both
+were set against one distribution and deployed against another, both behave exactly as if absent,
+and neither breaks a test. The first needs a reading from a real camera; the second is documented
+as inert in the eighty-first, where raising it measured worse.
+
+**What is still blocked and on whom.** Credit on the OpenAI account, for the shipped census's
+occlusion field and any end-to-end retest. A phone over a real trolley, for the blur gate and for
+the longer-pan prediction the sixty-sixth makes. Neither is a code change.
 
 ### A photograph that is not a cart
 
