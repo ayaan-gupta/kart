@@ -96,5 +96,7 @@
    1920
   ],
   "content": "a scan session over the loaded trolley of IMG_0252"
- }
+ },
+ "verified_complete": "Checked against ~/Downloads/kart-images:video on 2026-08-22: the folder holds exactly ten HEIC stills, IMG_0244 to IMG_0252 and IMG_0254, and one MOV. There is no unused material, so the corpus is not a subset of what was supplied and cannot be grown from what is here.",
+ "conversion_is_lossless": "The cached JPEGs are the full 5712 by 4284 with a luma quantization table starting at 1, and are nearly twice the size of the HEIC originals. The conversion was done at maximum quality, so no measurement in KART.md is reading a degraded copy. Worth recording because the failures that remain are small-text and small-object ones, where a lossy re-encode would have been a plausible cause and is now ruled out."
 }
