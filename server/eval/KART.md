@@ -5790,3 +5790,58 @@ The redaction discipline held under a live test rather than a unit test: the wir
 fixed string `{"error":"Recognition failed"}` and the log contained no fragment of the key.
 
 `docs/running-on-a-phone.md` is the runbook.
+
+---
+
+## The hundred-and-tenth: the app had never once called the server
+
+The hundred-and-ninth said the phone path was blocked on configuration rather than recognition,
+and closed the first gap by writing a `.env`. That claim was checkable and it was not checked. It
+is now, and checking it found something the section above had wrong by omission.
+
+**Frame Lab never made a network call.** `devFixtures.ts` says so in its own header: the harness
+that exercises the whole pipeline uses local, deterministic stand-ins for `requestCensus` and
+`requestIdentify`, "because it is not deployed and there is no key". So every run of the app ever
+made in this project, including the ones that produced a full bag of named items on screen,
+resolved those names from a fixed five-name list and never touched HTTP. The file even names the
+remedy: "swapping in the real recognitionClient.ts functions, once a server exists, is a one-line
+change in the dev screen."
+
+A server exists now, so `frame-lab.tsx` gained a fourth run mode, `server`, which uses the real
+client. It is a separate mode rather than a replacement because the other three have to keep
+working with no endpoint and no key.
+
+### What the run proved
+
+A Release build carrying `EXPO_PUBLIC_KART_API_URL` was checked first: the endpoint is in the
+JavaScript bundle (`http://192.168.86.75:4310`), where the build made before the `.env` existed
+had none. Then the app, running on a simulator, in `server` mode:
+
+1. formed tracks from captured detector output and confirmed them,
+2. encoded a keyframe and called `session.onKeyframe`,
+3. issued a real HTTP POST to the recognition service over the network,
+4. the service parsed it, took the app's marks and called the model,
+5. and failed at `429 credit_balance_exhausted`.
+
+The server never enumerated on this request, which is correct rather than a fault: the app sent
+marks, and `api/census.ts` only enumerates for a client that sends none.
+
+### The notice was verified for the first time
+
+The eighty-fifth added `censusFailures` and the `unavailable` coach notice, and the
+hundred-and-ninth listed them as done. Neither had ever been seen driven by a real failure. The
+app now shows **"Scanning isn't working right now, so nothing is being added to your cart."** with
+the bag at zero, produced by a genuine 429 from a genuine server rather than by a stub.
+
+That is the whole point of the eighty-fifth's change working as designed: the failure is loud.
+
+### And what it still does not prove
+
+This ran on a simulator. **The app has still never run on a physical phone.** What is now
+established is that the app can reach a recognition service, which is the part that was
+unexamined; what is not established is anything that needs real camera hardware, which is
+`MIN_KEYFRAME_SHARPNESS`, the live detector, and the scan experience itself.
+
+The lesson is the same one the seventy-ninth recorded about the eval harness and the ninetieth
+recorded about the labels: **a component measured through a stand-in has not been measured.** The
+bag filled with five confident names every time, which is exactly what made it look verified.

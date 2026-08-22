@@ -15,6 +15,7 @@ import { color, radius, space } from '../../design/tokens';
 import { Caption, Headline, Sub } from '../../design/type';
 import { createCoverageState, type CoverageState } from '../../engine/liveVision/coverage';
 import { devRequestCensus, devRequestIdentify } from '../../engine/liveVision/devFixtures';
+import { requestCensus, requestIdentify } from '../../engine/liveVision/recognitionClient';
 import { buildScanCartArgs, isScanCartPluginAvailable, toFrameScan } from '../../engine/liveVision/frameProcessor';
 import {
   isFrameLabNativeAvailable,
@@ -66,8 +67,21 @@ const RUN_ITERATIONS = 6;
 const ITERATION_DELAY_MS = 300;
 
 type RunStatus = 'idle' | 'loading-asset' | 'running' | 'done' | 'error';
-/** `offline` fails every census, so the unavailable notice can be seen without a broken server. */
-type RunMode = 'live' | 'replay' | 'offline';
+/**
+ * `offline` fails every census, so the unavailable notice can be seen without a broken server.
+ *
+ * `server` is the one mode that leaves this device. It calls the real `requestCensus` and
+ * `requestIdentify` against `EXPO_PUBLIC_KART_API_URL`, which is the change devFixtures.ts
+ * anticipated ("swapping in the real recognitionClient.ts functions, once a server exists, is a
+ * one-line change in the dev screen"). It is a separate mode rather than a replacement because
+ * the other three must keep working with no endpoint configured and no key.
+ *
+ * What it is for: every other mode exercises the pipeline down to a local stand-in, so none of
+ * them can tell you whether the app can actually reach a recognition service. That question is
+ * the difference between a build that names things on a phone and one that does not, and until
+ * this mode existed nothing in the app answered it.
+ */
+type RunMode = 'live' | 'replay' | 'offline' | 'server';
 
 function StatusLine({ label, value, good }: { label: string; value: string; good: boolean | null }) {
   const dot = good === null ? color.sub : good ? color.teal : color.record;
@@ -146,8 +160,10 @@ export default function FrameLabScreen() {
       // the real session state, not a rendering of a hard-coded kind.
       requestCensus: runMode === 'offline'
         ? (async () => ({ ok: false, failure: 'server' })) as typeof devRequestCensus
-        : devRequestCensus,
-      requestIdentify: devRequestIdentify,
+        : runMode === 'server'
+          ? requestCensus
+          : devRequestCensus,
+      requestIdentify: runMode === 'server' ? requestIdentify : devRequestIdentify,
       lookupBarcode: async () => null,
       saveThumbnail,
     });
@@ -180,7 +196,7 @@ export default function FrameLabScreen() {
         // `offline` needs instances too: without tracks nothing is ever confirmed, no keyframe
         // fires, and no census is attempted, so the failure it exists to show could never happen.
         const scan: FrameScan =
-          runMode === 'replay' || runMode === 'offline'
+          runMode === 'replay' || runMode === 'offline' || runMode === 'server'
             ? { ...toFrameScan(raw), instances: CAPTURED_FRAME_LAB_INSTANCES }
             : toFrameScan(raw);
         setLastScan(scan);
@@ -345,6 +361,14 @@ export default function FrameLabScreen() {
                   silent empty bag; this is how the notice that replaced it gets looked at without
                   a camera or a broken server. */}
               <Button label="Run with recognition offline" onPress={() => void run('offline')} />
+            </View>
+            <View style={styles.buttonRow}>
+              {/* The only mode that leaves the device. Everything else here answers "does the
+                  pipeline work"; this one answers "can this build reach a recognition service",
+                  which is the question that decides whether a phone names anything. It needs
+                  EXPO_PUBLIC_KART_API_URL set at build time and a server on the other end; see
+                  docs/running-on-a-phone.md. */}
+              <Button label="Run against the recognition server" onPress={() => void run('server')} />
             </View>
 
             <View style={styles.divider} />
