@@ -5306,3 +5306,35 @@ full resolution in the ninety-ninth and read as `Smoked Turkey Breast` there too
 
 Raising `CENSUS_LONG_EDGE` would move four badges, two of which are not products, one of which is
 wrong at any resolution, and one of which is a jar the index has no SKU for. That is not a lever.
+
+## Hundredth: the shipped model is the better of the two, and two anecdotes said otherwise
+
+Two cases in this file had the local 7B naming a crop the shipped census got wrong: the Muenster
+pack in the ninety-ninth, and the asparagus in the seventy-seventh. Two is an impression, not a
+measurement. Put to all the scorable badges on the six trolleys, same crops, same question:
+
+| | named its badge correctly |
+|---|---|
+| **gpt-5.4-mini, as shipped** | **20 of 22** |
+| local Qwen2.5-VL 7B, 4-bit | 18 of 22 |
+
+They disagree on four, and the shipped model wins three of them:
+
+| badge | shipped | local |
+|---|---|---|
+| IMG_0249 #2 asparagus | `asparagus` | `brussels sprouts` |
+| IMG_0252 #6 asparagus | `asparagus` | `green leafy vegetables` |
+| IMG_0254 #7 baguette | `baguette` | `reduced fat milk` |
+| IMG_0252 #8 the Fuji close-up | `truffle` | `apple cheddar cheese` |
+
+**So the "a smaller local model reads this better" thread is closed, and it was wrong.** The two
+cases that suggested it are both out-of-catalog badges, which the alignment metric does not score,
+so they were exactly the population least likely to represent the whole. Sampling from the
+unscorable set and generalising to the scorable one is the error, and it is an easy one to make when
+the unscorable cases are the interesting ones.
+
+This also settles a question the ninety-sixth left open from the other direction. That section
+refused a detector swap; this refuses a census swap, on the only comparison available without
+credit. `gpt-5.4-mini` is better than the best local model here, and the twenty-second already
+measured the larger `gpt-5.4` doing worse on a scan by sweeping harder. **The shipped census sits
+between two measured alternatives, both worse.**
