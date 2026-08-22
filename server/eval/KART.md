@@ -2304,3 +2304,35 @@ here measures that path, in either direction.
 
 It also confirms the stub is faithful rather than convenient: wiring a real barcode decoder into
 `scan-loop.ts` would return nothing on all 26 frames and change no figure in this file.
+
+## Forty-fifth: a shipped blur gate calibrated against the wrong measurement
+
+`MIN_KEYFRAME_SHARPNESS` is 12, and its docstring calls it load-bearing: with the motion ceiling
+relaxed it is "the only blur test left". It decides which frames are worth one of the session's
+eight censuses.
+
+It is on the wrong scale, and on a phone it rejects nothing.
+
+The docstring's own justification gives it away: "it rejects 1 frame of 26, where the frames it
+keeps have a median sharpness of 90". Ninety is `score_video.py`'s number, the variance of the
+Laplacian over the **whole frame**. `FrameMetrics.sharpness` does not compute that. It takes a
+3 by 3 grid of 128-pixel tiles and returns the **largest** tile's variance, which is a different
+measure of a different thing. Compiled and run over the same 26 corpus frames:
+
+| | min | median | max |
+|---|---|---|---|
+| whole frame, what the 12 was set against | 10 | 90 | 392 |
+| **max tile, what the device actually sends** | **25** | **295** | **854** |
+
+Every frame's device reading is above the floor, including the one the eval rejects. The gate is
+inert on the shipped path.
+
+**Not corrected here, deliberately.** Those figures come from JPEG frames decoded to grey, while
+the device measures the camera's own YUV luma plane, and raising the floor on an approximation
+risks starving a session of its eight censuses, which is worse than passing a blurry frame. It
+needs one reading from a real phone. Recorded at the constant and spawned as a task.
+
+It is worth noting what did **not** go wrong. `PAIRED_PRODUCE_SHARPNESS`, the produce-pass rule
+this file fitted at 700, is computed server-side by `regions.sharpness` on the received image with
+the same whole-frame measure it was fitted on, so it is consistent and unaffected. Two sharpness
+scales exist in this system and only one of the two thresholds is on the right one.

@@ -66,6 +66,22 @@ export const GREEN_CONFIDENCE = 0.55;
  * handheld scan and behaves: it rejects 1 frame of 26, where the frames it keeps have a median
  * sharpness of 90. With MAX_KEYFRAME_MOTION relaxed to 0.15 this is the only blur test left, so
  * it is now load-bearing where before it was shadowed by the motion ceiling rejecting everything.
+ *
+ * **This number is on the wrong scale, and on a phone it rejects nothing.** Found 2026-08-22.
+ * The "median sharpness of 90" above is `score_video.py`'s figure, the variance of the Laplacian
+ * over the *whole* frame. `FrameMetrics.sharpness` does not compute that: it takes a 3 by 3 grid
+ * of 128-pixel tiles and returns the **largest** tile's variance, which is a different measure and
+ * runs 2 to 6 times higher. Both were computed over the same 26 corpus frames:
+ *
+ *     whole frame (what this 12 was set against)   min 10, median  90, max 392
+ *     max tile    (what the device actually sends) min 25, median 295, max 854
+ *
+ * So the value that rejects the blurriest frame of 26 in the eval is below every frame's device
+ * reading, and the only blur test left is inert on the shipped path. Deliberately not corrected
+ * here: the figures above come from JPEG frames decoded to grey, while the device measures the
+ * camera's own YUV luma plane, and raising the floor on that approximation risks starving a
+ * session of its eight censuses, which is worse than passing a blurry frame. It wants one reading
+ * from a real phone, and there is a spawned task for it.
  */
 export const MIN_KEYFRAME_SHARPNESS = 12;
 
