@@ -144,20 +144,41 @@ export function resolveLabelPositions(
  * Compositing happens here rather than on the device so there is exactly one implementation,
  * shared by the live app and the eval harness. That way the harness measures the real path.
  */
+/**
+ * The image's dimensions once EXIF orientation has been applied.
+ *
+ * `sharp(image).rotate()` turns the pixels, but `metadata()` goes on reporting the stored width
+ * and height, so for orientations 5 to 8, which are all a quarter turn, the pair comes back the
+ * wrong way round. Every photograph taken holding a phone upright is orientation 6. Resizing to
+ * the unswapped pair with `fit: "fill"` squashed a 4284 by 5712 trolley into 1536 by 1152 and
+ * lost a third of its width, and that distorted frame was the one the census read brands off.
+ * Normalized boxes are scale free, so the badges still landed on the right products and nothing
+ * downstream complained.
+ */
+export function orientedSize(meta: {
+  width?: number;
+  height?: number;
+  orientation?: number;
+}): { width: number; height: number } {
+  if (!meta.width || !meta.height) throw new Error("Could not read image dimensions");
+  const quarterTurn =
+    typeof meta.orientation === "number" && meta.orientation >= 5 && meta.orientation <= 8;
+  return quarterTurn
+    ? { width: meta.height, height: meta.width }
+    : { width: meta.width, height: meta.height };
+}
+
 export async function compositeMarks(
   image: Buffer,
   marks: Mark[],
   maxLongEdge = 1024,
 ): Promise<Buffer> {
   const base = sharp(image).rotate(); // honour EXIF orientation
-  const meta = await base.metadata();
-  if (!meta.width || !meta.height) {
-    throw new Error("Could not read image dimensions");
-  }
+  const { width: imgW, height: imgH } = orientedSize(await base.metadata());
 
-  const scale = Math.min(1, maxLongEdge / Math.max(meta.width, meta.height));
-  const w = Math.round(meta.width * scale);
-  const h = Math.round(meta.height * scale);
+  const scale = Math.min(1, maxLongEdge / Math.max(imgW, imgH));
+  const w = Math.round(imgW * scale);
+  const h = Math.round(imgH * scale);
 
   const resized = await base.resize(w, h, { fit: "fill" }).jpeg({ quality: 88 }).toBuffer();
   if (marks.length === 0) return resized;

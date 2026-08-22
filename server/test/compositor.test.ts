@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import {
   compositeMarks,
+  orientedSize,
   placeLabel,
   resolveLabelPositions,
   BADGE_DIAMETER_PX,
@@ -60,6 +61,46 @@ describe("compositeMarks", () => {
   it("handles zero marks without throwing", async () => {
     const src = await blankImage(800, 600);
     await expect(compositeMarks(src, [], 800)).resolves.toBeInstanceOf(Buffer);
+  });
+
+  it("keeps the aspect ratio of a photograph that EXIF turns a quarter", async () => {
+    // A phone held upright writes 5712 by 4284 pixels with orientation 6, and is 4284 by 5712
+    // once turned. sharp rotates the pixels but keeps reporting the stored pair, so sizing from
+    // metadata and resizing with fit "fill" squashed a portrait trolley into a landscape frame
+    // and lost a third of its width. Normalized boxes are scale free, so the badges still landed
+    // on the right products and nothing downstream noticed.
+    const src = await sharp({
+      create: { width: 1200, height: 900, channels: 3, background: { r: 200, g: 200, b: 200 } },
+    })
+      .withMetadata({ orientation: 6 })
+      .jpeg()
+      .toBuffer();
+    const out = await compositeMarks(src, [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }], 1024);
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBe(768);
+    expect(meta.height).toBe(1024);
+  });
+});
+
+describe("orientedSize", () => {
+  it("leaves an upright photograph alone", () => {
+    expect(orientedSize({ width: 1600, height: 1200, orientation: 1 })).toEqual({ width: 1600, height: 1200 });
+  });
+
+  it("swaps the pair for every quarter-turn orientation", () => {
+    for (const orientation of [5, 6, 7, 8]) {
+      expect(orientedSize({ width: 1600, height: 1200, orientation })).toEqual({ width: 1200, height: 1600 });
+    }
+  });
+
+  it("leaves the pair alone for the mirrored orientations that are not a quarter turn", () => {
+    for (const orientation of [2, 3, 4]) {
+      expect(orientedSize({ width: 1600, height: 1200, orientation })).toEqual({ width: 1600, height: 1200 });
+    }
+  });
+
+  it("treats a missing orientation tag as upright", () => {
+    expect(orientedSize({ width: 800, height: 600 })).toEqual({ width: 800, height: 600 });
   });
 });
 
