@@ -62,7 +62,11 @@ const SAME: Record<string, string[]> = {
   cauliflower: ['cauliflower'], brussels_sprouts: ['brussels', 'sprout'],
   asparagus: ['asparagus'], oreo: ['oreo'], seedtastic_bread: ['bread', 'seedtastic'],
   granny_smith_apples: ['apple', 'granny'], baguette: ['baguette', 'bread'],
-  purple_produce_bag: ['grape', 'plum', 'purple'],
+  // The bag holds Fuji apples: the label reads MIDWEST GROWN / FUJI and the bottom of the bag
+  // reads 3 lb, 2-1/2 inch, Extra Fancy. "grape" and "plum" were here from the same wrong reading
+  // that put "tomatoes on the vine" in counts.json, and they scored a correct "produce bag" as a
+  // miss twice. The SKU is still kart_purple_produce_bag because the index is built on it.
+  purple_produce_bag: ['apple', 'fuji', 'produce bag', 'purple'],
 };
 
 const results: any[] = [];

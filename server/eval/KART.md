@@ -879,6 +879,40 @@ store's catalog would be and this bounds the shipped path from above rather than
 The stills are where the shortlist is honest: references from the video, queries from photographs
 it never saw.
 
+## The other two capabilities
+
+`CLAUDE.md` says success is four things and this file has been almost entirely about the first
+two. The other two are measurable on the same runs and had not been read.
+
+**Items hidden under others are flagged.** On every pass, the four sparse trolleys report
+`occlusion.severity` "none" with `itemsLikelyHidden` false, and the two loaded ones report "some"
+or "many" with it true. Eighteen of eighteen by the reading that matters, which is whether the
+trolley is actually hiding anything, and the loaded ones are. A first attempt scored this against
+"did the bag come up short" and read 14 of 18; that proxy is wrong, because a trolley can be both
+occluded and over-counted, which is exactly what the fullest one does.
+
+**Items the census is unsure about are flagged.** This one is not working. Across 69 scored
+regions the census got 9 wrong, and only 4 of the 9 carried `needsCloserLook` or a confidence
+below 0.6. Five wrong answers were asserted flat out, which `IDENTIFY_SYSTEM_PROMPT` calls worse
+than an honest uncertain one, and which stops `runIdentify` from ever being asked to look closer.
+
+Rule 15 already covers part of this: a region shown a "catalog:" line that matches nothing must set
+`needsCloserLook`. That is server-checkable and the obvious enforcement, and it does not help.
+Measured on the same runs, 5 of 83 product regions violate it and **none of those five is one of
+the wrong answers**. Enforcing it would flag five correct calls and catch nothing.
+
+The five that matter look like this, and the pattern is that confidence is highest where the
+answer is worst:
+
+    IMG_0254 #11  truth Fuji apple bag   said "asparagus"            confidence 0.90 to 0.92
+    IMG_0254 #5   truth the tote bag     said "baguette"             confidence 0.86
+    IMG_0254 #5   truth the tote bag     said "purple produce bag"   confidence 0.72
+
+Three of the five are the same two regions across passes, so this is two objects the model is
+reliably and confidently wrong about rather than noise. Both are the shopper's woven tote and the
+bag beside it, which is the hardest thing in the corpus: a bag that is not a product, sitting on
+top of bags that are.
+
 ## What this corpus still cannot answer
 
 **The shipped census has never run.** It needs an OpenAI key, and the one supplied was already
