@@ -108,6 +108,28 @@ The trolley that had never reached its count under any shipped configuration rea
 is untouched, because every one of its frames falls below the threshold and gets exactly the pass
 it had before.
 
+### The same rule does not carry to the census model
+
+`PAIRED_PRODUCE_SHARPNESS` works because the produce pass either adds a region or does not, and on
+a sharp image the census can throw away what it should not have. The larger census model was the
+obvious next thing to condition the same way, since it split the two corpora identically, and it
+is refused. Six passes with gpt-5.4 above the threshold and mini below it, against three of mini
+everywhere:
+
+| | units of 31 | photographs exact | alignment of 23 |
+|---|---|---|---|
+| mini everywhere | 27, 28, 28 | **5, 4, 4** | **21, 21, 21** |
+| larger, conditioned | 30, 30, 29, 33, 32, 32 | 4, 2, 4, 3, 3, 5 | 20, 21, 22, 20, 20, 20 |
+
+The corpus total lands closer, 31.0 against 27.7 of 31, and that is the wrong thing to read. It
+gets there by overshooting as often as it undershoots: the fullest trolley goes 15, 14, 14, 17, 16
+where fifteen is the truth, and the ten-product one goes 7, 7, 8. Per photograph the count is right
+less often, 3.5 of six against 4.33, and alignment costs half a badge.
+
+A shopper sees one photograph's bag, not the corpus total. So the rule that picks a detector pass
+does not pick a model, and the difference is that a wrong region can be discarded downstream while
+a wrong count cannot.
+
 ### The fullest trolley is not a defect, it is the recall number
 
 IMG_0254 still reads 11 to 13 of 15, and `why_missing.py` says detection is behaving correctly.
