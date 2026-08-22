@@ -1610,3 +1610,59 @@ the word the truth claims, the lenient tier accepts any bagged green the photogr
 and the count of 15 is unaffected either way since something is certainly in that bag. It is
 recorded rather than rewritten, because unlike the Fuji bag and the IMG_0252 count, this one cannot
 be settled by looking harder.
+
+## Twenty-ninth: the Fuji double-count, and the third and last fold refused
+
+The twenty-eighth named the Fuji bag counted twice as the highest-value target left, appearing on
+both the scan and the photographs. Tracing it through the saved answers shows it is two different
+faults wearing one face.
+
+**On IMG_0254 it is an unmarked item.** `red apples` arrives with no box and no SKU, beside a
+badge already holding the bag. Nothing spatial can reach it: an unmarked item has no geometry, only
+an `approxLocation` phrase.
+
+**On IMG_0252 it is three badges on one bag.** Rendering them settles what the numbers alone could
+not:
+
+| badge | box | what it is on | named | sku |
+|---|---|---|---|---|
+| 8 | x .157 w .323 | the purple half of the Fuji bag | `purple produce bag` | `kart_purple_produce_bag` |
+| 9 | x .476 w .073 | the red apples, seen through the clear half | `red apples` / `Roma tomatoes` | **none** |
+| 10 | x .379 w .180 | the same red apples, wider | same as 9 | **none** |
+
+Badge 9 is 100% inside badge 10, so the existing containment fold already merges those two. Badge 8
+against badge 10 is the pair that double-counts, at **IoU 0.204, containment 0.461**.
+
+### Why no threshold separates it
+
+Every labelled badge pair in this corpus that holds two genuinely different products:
+
+| pair | IoU | containment |
+|---|---|---|
+| **IMG_0249 badges 2, 3** | **0.215** | 0.524 |
+| IMG_0249 badges 1, 2 | 0.147 | 0.267 |
+| IMG_0254 badges 6, 8 | 0.145 | 0.338 |
+| IMG_0246 badges 1, 2 | 0.109 | 0.200 |
+
+The most-overlapping pair of genuinely different products sits at 0.215. The Fuji pair that must be
+merged sits at **0.204, below it**. A threshold low enough to fold the Fuji bag folds two real
+products in IMG_0249, which is one of the four photographs currently perfect on every pass. The
+classes are not separable by overlap, and this is not a close call to be settled with more data:
+the wrong pair is already ranked above the right one.
+
+The automated pairing found no same-product pairs at all, because `still-labels.json` carries 8
+labels for IMG_0252's 10 boxes and badges 9 and 10 are unlabelled. The pair above was established
+by rendering the boxes and reading the photograph, which is why it is quoted rather than counted.
+
+### Where that leaves it
+
+Three folds have now been tried against this one product, each refused with a number:
+
+| fold | verdict |
+|---|---|
+| by name | `purple produce bag` and `red apples` share no word |
+| by SKU | badge 8 has one, badges 9 and 10 have none; 53% of unmarked items carry none either |
+| **by overlap** | **0.204 for the pair to merge, 0.215 for a pair that must not** |
+
+The bag is one product wearing two appearances, a purple plastic half and a clear half full of red
+apples, and the three channels that could join them are respectively silent, empty, and inverted.
