@@ -765,7 +765,23 @@ export function applyBarcode(
   return { ...working, identities };
 }
 
-export interface BagLine { key: string; name: string; brand: string | null; size: string | null; category: string; qty: number }
+export interface BagLine {
+  key: string;
+  name: string;
+  brand: string | null;
+  size: string | null;
+  category: string;
+  qty: number;
+  /**
+   * Keys that were folded into this line, if any.
+   *
+   * The name fold below keeps one line's key and drops the other's, but a thumbnail is saved
+   * under the resolved key of whichever track earned it (see `tracksNeedingThumbnail`), which may
+   * be the key that was dropped. Without these the bag would show no picture for a product that
+   * has one. Consumers should try `key` first and then these, in order.
+   */
+  mergedKeys?: string[];
+}
 
 /** The bag. One line per product, quantity from the high-water mark, first-identified order. */
 export function bagLines(state: FusionState): BagLine[] {
@@ -794,8 +810,8 @@ export function bagLines(state: FusionState): BagLine[] {
       display.set(key, { identity, id });
     }
   }
-  const lines = order
-    .map((key) => {
+  const lines: BagLine[] = order
+    .map((key): BagLine => {
       const { identity } = display.get(key)!;
       return { key, name: identity.name, brand: identity.brand, size: identity.size, category: identity.category, qty: state.maxSimultaneous[key] ?? 0 };
     })
@@ -822,7 +838,7 @@ export function bagLines(state: FusionState): BagLine[] {
   // costs one line's display and no state.
   const shared = new Set(state.sharedNames);
   const byName = new Map<string, number>();
-  const folded: typeof lines = [];
+  const folded: BagLine[] = [];
   for (const line of lines) {
     const name = foldedName(line.name);
     const at = name.length > 0 && !shared.has(name) ? byName.get(name) : undefined;
@@ -840,6 +856,9 @@ export function bagLines(state: FusionState): BagLine[] {
       brand: kept.brand ?? line.brand,
       size: kept.size ?? line.size,
       qty: Math.max(kept.qty, line.qty),
+      // The absorbed key is carried, not discarded: a thumbnail is stored under the resolved key
+      // of the track that earned it, and that can be either of the two being folded here.
+      mergedKeys: [...(kept.mergedKeys ?? []), line.key, ...(line.mergedKeys ?? [])],
     };
   }
   return folded;

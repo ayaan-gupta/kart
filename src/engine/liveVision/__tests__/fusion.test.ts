@@ -875,3 +875,46 @@ describe('one packet reached under two catalog SKUs', () => {
     expect(foldedName('Oreo')).toBe(foldedName('OREO'));
   });
 });
+
+describe('a folded line keeps the key its picture is filed under', () => {
+  // The fold keeps one line's key and drops the other's. A thumbnail is saved under the resolved
+  // key of whichever track earned it (`tracksNeedingThumbnail`), which can be the dropped one, so
+  // the bag would show no picture for a product that has one. Nothing else catches this: the
+  // outlines key on track id, the eval harnesses never request a thumbnail, and a simulator has no
+  // camera to make one with.
+  const sku = (id: number, name: string, brand: string | null, catalogSku: string) =>
+    ({ ...mark(id, name, brand), catalogSku });
+
+  it('carries the absorbed key so a thumbnail filed under it is still reachable', () => {
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([sku(1, 'Oreo', 'Oreo', 'Oreo')], [[productKey('Oreo', 'Oreo'), 1]]),
+      { 1: 'track_1' },
+      ['track_1'],
+    );
+    state = applyCensus(
+      state,
+      census([sku(1, 'Oreo', 'Cadbury', 'kart_oreo')], [[productKey('Oreo', 'Cadbury'), 1]]),
+      { 1: 'track_12' },
+      ['track_12'],
+    );
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    const reachable = [lines[0].key, ...(lines[0].mergedKeys ?? [])];
+    // Both keys the two sightings counted under are still reachable from the surviving line.
+    expect(reachable).toContain('sku:kart_oreo');
+    expect(reachable.length).toBeGreaterThan(1);
+  });
+
+  it('leaves an unfolded line without the field, rather than an empty array', () => {
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'Bananas')], [[productKey('Bananas', null), 1]]),
+      { 1: 't1' },
+      ['t1'],
+    );
+    expect(bagLines(state)[0].mergedKeys).toBeUndefined();
+  });
+});

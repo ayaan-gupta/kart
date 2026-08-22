@@ -150,7 +150,12 @@ export const useScanline = create<ScanlineState>()(
             size: line.size,
             category: line.category,
             qty: line.qty,
-            thumbnailUri: thumbnails[line.key] ?? null,
+            // `line.key` first, then any key folded into this line: the picture is stored under
+            // the resolved key of whichever track earned it, which may be the one the fold dropped.
+            thumbnailUri:
+              thumbnails[line.key] ??
+              (line.mergedKeys ?? []).map((k) => thumbnails[k]).find(Boolean) ??
+              null,
           }));
           return { scan: { ...s.scan, items } };
         });
