@@ -60,6 +60,18 @@ taken since the sixty-seventh section's figures were measured.
 | 3 hidden items are flagged | first measured in the seventy-fifth, 5 of 6 by a local 7B; the shipped census's own field is still unrun for want of credit |
 | 4 unsure items are flagged | first measured in the eightieth: a wrong answer is 7x likelier to be flagged than a right one, and 7 of 9 errors are still asserted unflagged |
 
+**One change is ready and switched off.** `MIN_CATALOG_CONFIDENCE` in `server/src/enumerate.ts`
+drops a proposal the catalog cannot place before it becomes a badge. Measured through a local census
+it cuts invented lines from 13 to 10 and lifts exact photographs from 4 of 6 to 5, replicates on a
+second census model, and is near-inert on the video, so the scan path carries little risk either way
+(ninety-eighth). It stays at 0 until `gpt-5.4-mini` has been asked, which needs credit.
+
+**Three alternatives were researched and refused with numbers**, so nobody spends the day again: a
+better detector (MM Grounding DINO wins on boxes, loses on the bag), the best benchmark score
+(LLMDet, worst here), and a different census (the shipped model beats the best local one 20 to 18,
+and the larger `gpt-5.4` was already worse on a scan). **The shipped configuration sits between
+measured alternatives on every axis tried.**
+
 **The residual is explained, and it is two things rather than a diffuse gap.** Eight of the ten
 photographs are already perfect and repeatable (eighty-seventh); the whole of it is IMG_0252,
 IMG_0254 and the video.
