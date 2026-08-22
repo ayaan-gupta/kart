@@ -167,15 +167,17 @@ def main(argv=None):
             scores = [scores[i] for i in keep]
         # The same second pass the service runs. Without it this harness measures a detector the
         # product does not have, and a trolley is mostly produce.
-        produce = proc(images=pil, text=regions.PRODUCE_PROMPT, return_tensors="pt").to(device)
-        with torch.no_grad():
-            produce_out = dino(**produce)
-        produce_found = proc.post_process_grounded_object_detection(
-            produce_out, produce.input_ids, threshold=regions.PRODUCE_THRESHOLD,
-            text_threshold=regions.PRODUCE_THRESHOLD, target_sizes=[pil.size[::-1]],
-        )[0]
-        produce_boxes = [[float(v) for v in r] for r in produce_found["boxes"].cpu().numpy()]
-        produce_scores = [float(s) for s in produce_found["scores"].cpu()]
+        produce_boxes, produce_scores = [], []
+        for prompt in regions.PRODUCE_PROMPTS:
+            produce = proc(images=pil, text=prompt, return_tensors="pt").to(device)
+            with torch.no_grad():
+                produce_out = dino(**produce)
+            produce_found = proc.post_process_grounded_object_detection(
+                produce_out, produce.input_ids, threshold=regions.PRODUCE_THRESHOLD,
+                text_threshold=regions.PRODUCE_THRESHOLD, target_sizes=[pil.size[::-1]],
+            )[0]
+            produce_boxes += [[float(v) for v in r] for r in produce_found["boxes"].cpu().numpy()]
+            produce_scores += [float(s) for s in produce_found["scores"].cpu()]
         for i in regions.merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= regions.MAX_INSTANCES:
                 break

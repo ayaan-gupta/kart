@@ -8,10 +8,10 @@
     {
      "id": 1,
      "name": "baguette",
-     "brand": null,
-     "size": null,
+     "brand": "Signature SELECT",
+     "size": "bigger than standard",
      "category": "bakery",
-     "confidence": 0.97,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
@@ -20,9 +20,9 @@
      "id": 2,
      "name": "Granny Smith apples",
      "brand": "Fresh Grown",
-     "size": null,
+     "size": "bagged",
      "category": "produce",
-     "confidence": 0.89,
+     "confidence": 0.91,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
@@ -36,7 +36,7 @@
      "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "Oreo"
+     "catalogSku": "kart_oreo"
     },
     {
      "id": 4,
@@ -44,7 +44,7 @@
      "brand": "Lucky",
      "size": "1 cauliflower",
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
@@ -53,9 +53,9 @@
      "id": 5,
      "name": "brussels sprouts",
      "brand": null,
-     "size": null,
+     "size": "bagged",
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.94,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -65,29 +65,17 @@
      "name": "purple produce bag",
      "brand": null,
      "size": null,
-     "category": "other",
-     "confidence": 0.98,
+     "category": "produce",
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_purple_produce_bag"
     }
    ],
-   "unmarkedItems": [
-    {
-     "description": "asparagus",
-     "productKey": "::asparagus",
-     "catalogSku": "kart_asparagus",
-     "approxLocation": "left side, lower cart",
-     "confidence": 0.91
-    }
-   ],
+   "unmarkedItems": [],
    "inViewCounts": [
     {
-     "productKey": "::asparagus",
-     "count": 1
-    },
-    {
-     "productKey": "::baguette",
+     "productKey": "signature select::baguette",
      "count": 1
     },
     {
@@ -114,7 +102,7 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several produce bags overlap and partially cover items beneath them, especially in the middle and lower cart."
+    "reason": "Several produce bags overlap and partially cover each other, especially in the lower half of the cart."
    }
   }
  },
@@ -126,44 +114,44 @@
    "marks": [
     {
      "id": 1,
-     "name": "Seedtastic bread",
-     "brand": "Kara",
-     "size": "12 eat",
+     "name": "Bread",
+     "brand": "Kart",
+     "size": "12 grain",
      "category": "bread",
-     "confidence": 0.88,
+     "confidence": 0.9,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
     },
     {
      "id": 2,
-     "name": "purple produce bag",
-     "brand": null,
+     "name": "Bread",
+     "brand": "Kart",
      "size": null,
-     "category": "other",
-     "confidence": 0.95,
+     "category": "bread",
+     "confidence": 0.86,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "kart_purple_produce_bag"
+     "catalogSku": "kart_baguette"
     },
     {
      "id": 3,
-     "name": "brussels sprouts",
-     "brand": null,
+     "name": "Brussels sprouts",
+     "brand": "Kart",
      "size": null,
      "category": "produce",
-     "confidence": 0.97,
+     "confidence": 0.89,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
     },
     {
      "id": 4,
-     "name": "asparagus",
-     "brand": null,
+     "name": "Asparagus",
+     "brand": "Kart",
      "size": null,
      "category": "produce",
-     "confidence": 0.93,
+     "confidence": 0.84,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -172,26 +160,22 @@
    "unmarkedItems": [],
    "inViewCounts": [
     {
-     "productKey": "kara::seedtastic bread",
+     "productKey": "kart::bread",
+     "count": 2
+    },
+    {
+     "productKey": "kart::brussels sprouts",
      "count": 1
     },
     {
-     "productKey": "::purple produce bag",
-     "count": 1
-    },
-    {
-     "productKey": "::brussels sprouts",
-     "count": 1
-    },
-    {
-     "productKey": "::asparagus",
+     "productKey": "kart::asparagus",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several items overlap and are partly covered by the hand and other bags, so some contents are hidden."
+    "reason": "Several items overlap and a hand covers part of the cart, so a few products are partly obscured."
    }
   }
  },
@@ -203,22 +187,22 @@
    "marks": [
     {
      "id": 1,
-     "name": "Seedtastic Bread",
+     "name": "Bread",
      "brand": null,
      "size": null,
-     "category": "bread",
-     "confidence": 0.96,
+     "category": "bakery",
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "kart_seedtastic_bread"
+     "catalogSku": "Bread"
     },
     {
      "id": 2,
      "name": "asparagus",
-     "brand": null,
+     "brand": "kart",
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.84,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -227,30 +211,41 @@
    "unmarkedItems": [
     {
      "description": "purple produce bag",
-     "productKey": "::purple produce bag",
+     "productKey": "kart::purple produce bag",
      "catalogSku": "kart_purple_produce_bag",
      "approxLocation": "upper right of cart",
-     "confidence": 0.89
+     "confidence": 0.95
+    },
+    {
+     "description": "bag of apples",
+     "productKey": "::apples",
+     "catalogSku": null,
+     "approxLocation": "right side, below the purple bag",
+     "confidence": 0.78
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "::purple produce bag",
+     "productKey": "::bread",
      "count": 1
     },
     {
-     "productKey": "::seedtastic bread",
+     "productKey": "kart::asparagus",
      "count": 1
     },
     {
-     "productKey": "::asparagus",
+     "productKey": "kart::purple produce bag",
+     "count": 1
+    },
+    {
+     "productKey": "::apples",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Items are overlapping in bags; the bread and produce bags partly cover the asparagus and each other."
+    "reason": "Several items are stacked and partly covered by bags, including produce under the purple bag and the bread bag overlapping other items."
    }
   }
  },
@@ -264,9 +259,9 @@
      "id": 1,
      "name": "Oreo",
      "brand": "Cadbury",
-     "size": null,
+     "size": "family pack",
      "category": "snacks",
-     "confidence": 0.98,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_oreo"
@@ -277,7 +272,7 @@
      "brand": null,
      "size": null,
      "category": "bakery",
-     "confidence": 0.8,
+     "confidence": 0.93,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
@@ -285,18 +280,18 @@
    ],
    "unmarkedItems": [
     {
-     "description": "red apples in a plastic bag",
-     "productKey": "::apples",
+     "description": "red apples in a clear bag",
+     "productKey": "::red apples",
      "catalogSku": null,
      "approxLocation": "bottom left of cart",
-     "confidence": 0.76
+     "confidence": 0.72
     },
     {
-     "description": "green produce in a plastic bag",
+     "description": "green leafy produce in a clear bag",
      "productKey": "::leafy greens",
      "catalogSku": null,
      "approxLocation": "bottom right of cart",
-     "confidence": 0.71
+     "confidence": 0.77
     }
    ],
    "inViewCounts": [
@@ -309,7 +304,7 @@
      "count": 1
     },
     {
-     "productKey": "::apples",
+     "productKey": "::red apples",
      "count": 1
     },
     {
@@ -320,7 +315,7 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "items overlap in the cart and the lower produce bags are partly covered by the baguette and frame"
+    "reason": "The baguette and produce bags overlap, and parts of the cart contents are covered by packaging."
    }
   }
  }
