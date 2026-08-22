@@ -1465,3 +1465,52 @@ Strict is low, six to eight of nine, because this trolley's products genuinely s
 bags of apples and two breads. Lenient is eight or nine every run. The truth is between them and
 the gap is a property of the trolley, not of the pipeline. Reporting one number would have hidden
 that; the earlier unit counts hid it completely.
+
+## Twenty-sixth: why the scan misses the yellow bag, and it is none of the things assumed
+
+The twenty-fifth isolated one repeatable miss: the yellow produce bag, absent in five of six runs
+and the only product ever missing. Four things were checked, and the first three rule out the
+usual explanations.
+
+**It is not occluded.** Zooming into frame 016 at native resolution shows the purple bag printed
+`NORTHWEST GROWN FUJI` holding red apples, and immediately to its left a **separate yellow produce
+bag with its own gathered top**, unobstructed and distinctly coloured. It is a real, plainly
+visible product.
+
+**It is not a naming problem, and the model is not incapable of seeing it.** The word `yellow`
+appears **0 times in 366 census entries across eighteen scan runs**. Not once, in any mark or any
+unmarked description. The same model on the same trolley says `yellow produce bag` explicitly on
+the photograph, in IMG_0254 pass 4. So it can name it; on the scan it never gets the chance.
+
+**No badge ever lands on it.** At order 15, the frame where the trolley's middle fills the view,
+the census is handed **three** regions: the Seedtastic loaf, the greens and the baguette. The
+purple bag and the yellow bag both sit in the centre of the frame with no box on either. The
+purple one still reaches the bag, because the census volunteers it unmarked, which its large white
+FUJI label makes easy. The yellow one, smaller and plainer, is volunteered by nothing.
+
+### The structural finding
+
+The scan's census sees far less of the trolley than the capture path's does:
+
+| | regions the census is given |
+|---|---|
+| scan, the four frames it fires on | 7, 4, 3, 3 — **17 in the whole session** |
+| capture, IMG_0252, same trolley | **10 in one frame** |
+| capture, IMG_0254 | 11 in one frame |
+| scan, all 27 frames | median 5, max 8 |
+
+A scan frame's marks come from the on-device tracker's confirmed tracks, not from a detector pass
+on that frame, and confirmation takes several frames. A small item beside a larger one never
+becomes its own track, so it is never badged, so the census only reaches it through the
+discretionary unmarked channel, which the twenty-first measured as the sole source of variance and
+the twenty-fourth found carries no joining SKU half the time.
+
+That chain explains the scan's whole residual without any appeal to noise: **too few regions,
+which forces the work onto the one channel that is both inconsistent and unjoinable.** It is also
+why the larger model helped the photographs and hurt the scan: it pushes harder on exactly that
+channel.
+
+The obvious remedy is to give a scan keyframe the regions the capture path gets, by enumerating
+server-side rather than trusting the tracker's marks. That is an architectural change with a real
+latency cost per census call, and this corpus can measure its accuracy but not its cost, so it is
+recorded here as the next measurable step rather than made.
