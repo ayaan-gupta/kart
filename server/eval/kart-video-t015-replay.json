@@ -1,0 +1,639 @@
+[
+ {
+  "t": 1.0,
+  "order": 3,
+  "marks": 11,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Oreo cookies",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Cauliflower",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Brussels sprouts",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "Granny Smith Apples",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "Baguette",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "Fresh Brown Rice",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 7,
+     "name": "Brussels sprouts",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 8,
+     "name": "Green Apples",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 9,
+     "name": "Green apples",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 10,
+     "name": "Speedy Pasta",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 11,
+     "name": "Green Leaf Lettuce",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Red apples",
+     "confidence": 0.8,
+     "productKey": "::red apples"
+    },
+    {
+     "description": "Granny Smith apples",
+     "confidence": 0.8,
+     "productKey": "::granny smith apples"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::oreo cookies",
+     "count": 1
+    },
+    {
+     "productKey": "::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 2
+    },
+    {
+     "productKey": "::granny smith apples",
+     "count": 1
+    },
+    {
+     "productKey": "::baguette",
+     "count": 1
+    },
+    {
+     "productKey": "::fresh brown rice",
+     "count": 1
+    },
+    {
+     "productKey": "::green apples",
+     "count": 1
+    },
+    {
+     "productKey": "::green apples",
+     "count": 1
+    },
+    {
+     "productKey": "::speedy pasta",
+     "count": 1
+    },
+    {
+     "productKey": "::green leaf lettuce",
+     "count": 1
+    },
+    {
+     "productKey": "::red apples",
+     "count": 1
+    },
+    {
+     "productKey": "::granny smith apples",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 3.0,
+  "order": 9,
+  "marks": 6,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Spelt Bread",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Bamboo Cutlery",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Asparagus",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "Frozen bread sticks",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "Lime juice",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Bread",
+     "confidence": 0.8,
+     "productKey": "::bread"
+    },
+    {
+     "description": "Corn",
+     "confidence": 0.8,
+     "productKey": "::corn"
+    },
+    {
+     "description": "Brussels sprouts",
+     "confidence": 0.8,
+     "productKey": "::brussels sprouts"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::spelt bread",
+     "count": 1
+    },
+    {
+     "productKey": "::bamboo cutlery",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::frozen bread sticks",
+     "count": 1
+    },
+    {
+     "productKey": "::lime juice",
+     "count": 1
+    },
+    {
+     "productKey": "::bread",
+     "count": 1
+    },
+    {
+     "productKey": "::corn",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 5.0,
+  "order": 15,
+  "marks": 6,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Seedastic Bread",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "Asparagus",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "Bread loaf",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "Apple Slices",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "Green Tea Bags",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Seedtastic Bread",
+     "confidence": 0.8,
+     "productKey": "::seedtastic bread"
+    },
+    {
+     "description": "Celery",
+     "confidence": 0.8,
+     "productKey": "::celery"
+    },
+    {
+     "description": "Apples",
+     "confidence": 0.8,
+     "productKey": "::apples"
+    },
+    {
+     "description": "Bread (unwrapped)",
+     "confidence": 0.8,
+     "productKey": "::bread (unwrapped)"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::seedastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::bread loaf",
+     "count": 1
+    },
+    {
+     "productKey": "::apple slices",
+     "count": 1
+    },
+    {
+     "productKey": "::green tea bags",
+     "count": 1
+    },
+    {
+     "productKey": "::seedtastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "::celery",
+     "count": 1
+    },
+    {
+     "productKey": "::apples",
+     "count": 1
+    },
+    {
+     "productKey": "::bread (unwrapped)",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ },
+ {
+  "t": 6.0,
+  "order": 18,
+  "marks": 9,
+  "census": {
+   "subjectIsCart": true,
+   "marks": [
+    {
+     "id": 1,
+     "name": "Green Giant Corn",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "Green Beans",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "Lettuce in bag.",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 7,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 8,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    },
+    {
+     "id": 9,
+     "name": "not a product",
+     "brand": null,
+     "size": null,
+     "category": "grocery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "Bread",
+     "confidence": 0.8,
+     "productKey": "::bread"
+    },
+    {
+     "description": "Potatoes",
+     "confidence": 0.8,
+     "productKey": "::potatoes"
+    },
+    {
+     "description": "Asparagus",
+     "confidence": 0.8,
+     "productKey": "::asparagus"
+    },
+    {
+     "description": "Chocolate bars",
+     "confidence": 0.8,
+     "productKey": "::chocolate bars"
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "::green giant corn",
+     "count": 1
+    },
+    {
+     "productKey": "::green beans",
+     "count": 1
+    },
+    {
+     "productKey": "::lettuce in bag.",
+     "count": 1
+    },
+    {
+     "productKey": "::bread",
+     "count": 1
+    },
+    {
+     "productKey": "::potatoes",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::chocolate bars",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "local stand-in, not modelled"
+   }
+  }
+ }
+]

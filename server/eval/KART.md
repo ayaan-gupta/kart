@@ -5414,3 +5414,36 @@ sets through a scan.
 And the shape of the loss is the familiar one. On order 18 MM Grounding DINO offers nine regions
 where the shipped detector offers two, and the census calls three of the nine products. Six extra
 questions, one extra product found, three extra units. Every proposal is a badge.
+
+## Hundred-and-third: the strongest local test of the yellow bag, and it fails
+
+Everything the sixty-fifth through sixty-sixth established pointed at one configuration that ought
+to find the yellow produce bag on the video: threshold **0.15**, which is the only setting whose
+proposals isolate it, on frame order **15**, the only frame it is isolated in — and
+`video-census-live.ts` censuses order 15. The capture path never does, which is why this was never
+testable there.
+
+With the video's bag now measurable without credit, it is testable here. Run:
+
+| video regions | products found, lenient | strict | units against 9 |
+|---|---|---|---|
+| **shipped, 0.23** | **8 of 9** | **6** | **19** |
+| 0.15, order 15 among the four censused | 7 of 9 | 5 | 22 |
+
+**One fewer product, three more units, and the yellow produce bag still not named.** It appears in
+the not-found list of the very run designed to find it.
+
+That is the third detector configuration refused on the video in this session, alongside MM Grounding
+DINO and the shipped baseline's own alternatives, and it is the one that mattered: every earlier
+refusal left "but the isolating proposal is never censused" as an unexamined excuse. It has now been
+censused, and the answer did not change.
+
+The caveat is the harness's own, stated in the hundred-and-first: this is a local 7B whose precision
+on video frames is thirty times worse than the service's, so the unit counts here carry little and
+only the recall column is worth reading. **On recall — the thing this test exists to measure — 0.15
+loses a product and does not gain the one it was for.**
+
+What that leaves is narrow and, at last, complete: the yellow produce bag has been pursued through
+prompts, five detector thresholds, tiling, two proposal models, pacing, the keyframe gate rule, four
+fusion variants, a catalog entry built from dense frames, and now the single frame-and-threshold
+combination the whole investigation pointed at. It is not found by any of them.
