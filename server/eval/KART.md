@@ -2214,3 +2214,34 @@ That closes the last constant this corpus can speak to. Every threshold in the r
 has now been either measured to a value or confirmed at the one it already had:
 `PAIRED_PRODUCE_SHARPNESS` twice on two paths, `PRODUCE_INSIDE`, `NMS_IOU` and the group-box rules
 through the IMG_0254 work, `CENSUS_LONG_EDGE`, the census model, and now `minIntervalMs`.
+
+## Forty-second: what the device detector is still for, now that the census does not use it
+
+Routing the census through `onCapture` changed what `AppleInstanceMaskDetector` is *for*. It no
+longer badges anything: the service enumerates the regions the census sees. Its only remaining
+jobs are triggering the keyframe gate, which counts confirmed tracks, and carrying tracks between
+captures. That raises a question this file never had to ask before — whether its single blob
+around the whole pile is now merely useless, or actively polluting the tracker.
+
+`scan-loop.ts --device-regions=N` answers it. Two runs each through the app's real loop:
+
+| device regions per frame | products found, lenient | strict |
+|---|---|---|
+| **1, which is what the device gives** | 8, 8 of 9 | 7, 7 |
+| 3 | 8, 8 of 9 | 7, 8 |
+| 5 | 8, 7 of 9 | **5, 5** |
+
+Neutral at best, and strict identification degrades at five. The blob is not polluting anything,
+and a better on-device detector would buy nothing.
+
+**That is worth more than it looks.** `docs/detector-decision.md` spent a long investigation on
+what could replace this detector: SAM2.1-tiny at 6x to 30x the frame budget, EdgeSAM behind a
+non-commercial licence, FastSAM relicensed to AGPL, EdgeTAM cleared on licence and then measured
+at 23x cost for 24 objects with a Core ML export that cannot track at all. Its closing section
+names RF-DETR-Seg and single-class objectness fine-tuning on SKU-110K as "the long-term path, if
+training is ever on the table".
+
+Once the census is badged from the service, that path is no longer on the critical route to
+recognition quality. The device needs to know only that something is in the cart, well enough to
+fire a keyframe and hold a track for two seconds, and one blob does that. Whatever is spent next
+on this product, it should not be an on-device segmenter.
