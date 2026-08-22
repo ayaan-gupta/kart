@@ -2005,3 +2005,36 @@ screen can reach it. It is correct, tested, and routed to nothing.
 trusting the device detector and lets the server enumerate its keyframes. Both change what the
 shopper does with the camera, so both are product decisions and neither is mine to make. It is
 reported here with the numbers instead.
+
+## Thirty-fifth: the app built and ran, and what that does and does not settle
+
+Rather than ask for a device, the app was built and launched here: `xcodebuild` Release against
+`ios/Kart.xcworkspace`, 265 seconds, **build succeeded**, installed and launched on an iOS 26.3
+simulator.
+
+**What it settles.** The app compiles and runs with today's changes in it, the home screen renders,
+and `/scan` opens, starts its session timer and shows the bag tray at zero items. Nothing in the
+fusion work, the model split or the harness changes broke the build or the launch. That is real
+verification that was missing all session, and the build loop now exists for the next change.
+
+**What it does not settle.** The scan screen stops at "Requesting camera access…" because a
+simulator has no camera. The frame loop never runs, so no frame reaches `scanCart`, no instance
+reaches the tracker, and no keyframe reaches the census. The one path that matters for the
+thirty-fourth section's finding is exactly the path a simulator cannot exercise.
+
+### Why the rewiring is still not made
+
+Switching `scan.tsx` from `onKeyframe` to `onCapture` means the frame loop must stop feeding the
+tracker, because `processFrame` would otherwise overwrite each capture's server regions with the
+next frame's single blob. Coverage, amber, thumbnails and the keyframe gate all read
+`result.tracks`. Every one of those interactions lives in the frame loop, and the frame loop is
+the part a simulator cannot run.
+
+The recognition half of the question is already answered and does not need a device: badging the
+census from the server's regions gives 9.8 units and 8 or 9 of 9 products, against 15 to 18 units
+and 7 or 8 today. What is unverifiable here is whether the restructured loop behaves, and writing
+both that code and its tests from one mental model is not verification of it.
+
+So the position is unchanged but the reason is now precise: **the change is one I can write and
+cannot test, on the screen the product depends on, while the current behaviour is poor but
+working.** A device, or an instruction to proceed on tests and reasoning alone, resolves it.
