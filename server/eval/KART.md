@@ -2750,3 +2750,28 @@ it was checked.
 The tightened version stays anyway: the ordering is coherent, badge alignment is a shade better
 across three rounds rather than worse, and a rule labelled 0 sitting between 7 and 8 was a thing
 for a future reader to trip over.
+
+## Fifty-seventh: the shelf gate is free on the path the app takes
+
+The cart question costs 4.2 points of products found on single photographs, measured at six rounds
+each. That number was worth correcting upward and is worth putting in its place: **the app is not a
+photograph.** It is a scan that fuses four censuses, and a product one call misses another finds.
+
+Same corpus, same harness, the only difference being the field:
+
+| | products found, lenient | units against 9 |
+|---|---|---|
+| with the cart question | 8, 8, 9 (**8.33 of 9**) | 8, 12, 10 (10.0) |
+| without it | 9, 8, 8 (**8.33 of 9**) | 11, 9, 10 (10.0) |
+
+Identical on both measures. **Fusion absorbs the whole per-call loss.**
+
+That is the reading to keep. Four points off a single census is real and was measured properly, and
+it does not reach the bag, because the bag is built from four looks and the loss is not the same
+four points each time. So the shelf gate prevents up to 41 invented items and costs the shopper
+nothing.
+
+It also puts every per-photograph figure in this file in perspective one last time. The photographs
+measure one census call on a good image; the product is four calls on worse images, fused. Neither
+number substitutes for the other, and where they disagree, as here, the scan is the one that
+describes what a shopper gets.
