@@ -35,7 +35,27 @@ export function apiBaseUrl(): string {
   return (process.env.EXPO_PUBLIC_KART_API_URL ?? '').replace(/\/+$/, '');
 }
 
-/** How long any single recognition request may take before it is abandoned. */
+/**
+ * How long any single recognition request may take before it is abandoned.
+ *
+ * 20 seconds is the product value and the default, chosen against the shipped model, which
+ * answers a whole frame in one call. It stays the default because a shopper holding a phone over
+ * a trolley will not wait longer than that for the bag to move.
+ *
+ * It is overridable only because the local fallback exists. `server/localvlm/serve.py` asks the
+ * model one question per region, which measured 58 to 73 seconds for nine regions on an M-series
+ * Mac, so against that server every request aborts at 20s and the shopper gets the unavailable
+ * notice while the census is still running. That is the right product behaviour and the wrong
+ * development behaviour, so the budget can be raised for a development build and nowhere else.
+ *
+ * Read at call time rather than frozen at module load, for the reason `apiBaseUrl` documents.
+ */
+export function requestTimeoutMs(): number {
+  const raw = Number((process.env.EXPO_PUBLIC_KART_REQUEST_TIMEOUT_MS ?? '').trim());
+  return Number.isFinite(raw) && raw > 0 ? raw : 20_000;
+}
+
+/** The product default, kept as a named constant so tests and callers can refer to it. */
 export const REQUEST_TIMEOUT_MS = 20_000;
 
 /**

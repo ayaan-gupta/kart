@@ -1,4 +1,4 @@
-import { apiBaseUrl, REQUEST_TIMEOUT_MS } from './config';
+import { apiBaseUrl, requestTimeoutMs } from './config';
 import type { CensusMark, CensusResult } from './fusion';
 import type { Box } from './types';
 
@@ -128,7 +128,7 @@ async function post<T>(
   // is not available in the Hermes runtime, so the timeout drives a controller that the
   // caller's signal also fires.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs());
   const onCallerAbort = () => controller.abort();
   signal?.addEventListener('abort', onCallerAbort);
 

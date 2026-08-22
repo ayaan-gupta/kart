@@ -5845,3 +5845,65 @@ unexamined; what is not established is anything that needs real camera hardware,
 The lesson is the same one the seventy-ninth recorded about the eval harness and the ninetieth
 recorded about the labels: **a component measured through a stand-in has not been measured.** The
 bag filled with five confident names every time, which is exactly what made it look verified.
+
+---
+
+## The hundred-and-eleventh: a bag that fills with no credit, and what it does not show
+
+Every section above stops at `429 credit_balance_exhausted`. The standing instruction is "use
+openai or some other model, not claude", and **some other model** was always the unexamined half
+of it. Three vision models are already cached on this machine, and the ninety-sixth already
+measured one of them at 18 of 22 against the shipped 20 of 22.
+
+So the census now has a second implementation. `server/localvlm/serve.py` answers the same
+contract from local weights, using the per-crop method `census_local.py` established (a small
+model cannot read numbered badges: on IMG_0249 it attached all three answers to the wrong one).
+`runCensus` takes it when `LOCAL_CENSUS_URL` is set and is byte-for-byte unchanged when it is not.
+
+**IMG_0252 through the whole stack with no OpenAI account, HTTP 200 in 113s:**
+
+| badge | local model | truth |
+|---|---|---|
+| 1 | OREO | Oreo party size |
+| 2 | CAULIFLOWER | Mr Lucky cauliflower |
+| 3 | GRANNY SMITH APPLES | Granny Smith apple bag |
+| 4 | BROCOLLI SPROUTS | brussels sprouts bag |
+| 5 | BREAD | Seedtastic bread |
+| 6 | BAGUETTE | baguette |
+| 7 | BUTTER | wrong |
+| 8 | BUTTER | wrong |
+| 9 | Bread | duplicate |
+
+Six of nine reasonable, two plainly wrong, one duplicated. **That is worse than the shipped model
+and this file should not be read as recommending it.** It is the difference between a machine with
+no credit recognizing nothing and recognizing most of a trolley.
+
+### Two gates had to move, and both are recorded rather than quietly raised
+
+`REQUEST_TIMEOUT_MS` on the server is 25s because Vercel kills the function at 30s, and the app's
+is 20s because a shopper will not wait longer. The local census takes 22 to 73 seconds. Both are
+now overridable by an environment variable, both default to exactly what they were, and both carry
+a comment saying the default is the product value and the override is for the local fallback.
+
+### The confidence number is not a measurement, and the first attempt proved why that matters
+
+`LOCAL_CONFIDENCE` was first set to 0.5, just under `GREEN_CONFIDENCE`, reasoning that a 2B model
+should not be trusted green. The result was **an empty bag on every run**: below the threshold each
+item waits for the closer-look pass, that pass calls `identify`, and `identify` needs the very
+credit this path exists to do without. Amber-by-default is the right instinct and, with no credit,
+is indistinguishable from recognizing nothing. It is 0.6 now, and the file says plainly that the
+number is a flag meaning "a local model answered this" rather than a calibrated confidence.
+
+### The app, filling a bag, on a device
+
+Frame Lab in `server` mode against the local stack: the app POSTs, the local model answers, and
+the bag shows **9 items** with the coach notice correctly on "bring your camera closer to items
+highlighted yellow" and yellow outlines drawn. No OpenAI account is involved anywhere.
+
+**What that does not show.** The bundled test asset is a synthetic picture of coloured shapes, not
+a trolley, which is why four of the nine bag lines are "Orange square", "Blue oval", "Green square"
+and "Yellow rectangle", and why the other five are grocery-flavoured guesses at coloured blobs.
+**This proves the plumbing and says nothing about recognition quality.** The quality numbers are
+the corpus ones above, and the honest summary of this section is that the path from a phone to a
+named bag now works end to end without credit, on hardware that is not a phone, against an image
+that is not a trolley.

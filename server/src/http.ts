@@ -185,7 +185,23 @@ export async function assertReasonablePixelDimensions(buf: Buffer): Promise<void
  */
 export const REQUEST_TIMEOUT_MS = 25_000;
 
-export async function withTimeout<T>(promise: Promise<T>, ms = REQUEST_TIMEOUT_MS): Promise<T> {
+/**
+ * The 25s ceiling above is a property of the deployment, not of recognition: it exists because
+ * Vercel hard-kills the function at 30s. A local host has no such platform ceiling, and the
+ * local census (see `localCensus.ts`) asks one question per region on CPU or MPS, which takes
+ * minutes rather than seconds on a loaded trolley.
+ *
+ * So the budget is overridable, and only upward in practice. Unset it behaves exactly as
+ * before. It must never be raised on a Vercel deployment: a budget above the platform's own
+ * ceiling turns the clean JSON error this race exists to produce back into the bare connection
+ * failure it was written to prevent.
+ */
+function configuredTimeoutMs(): number {
+  const raw = Number((process.env.RECOGNITION_TIMEOUT_MS ?? "").trim());
+  return Number.isFinite(raw) && raw > 0 ? raw : REQUEST_TIMEOUT_MS;
+}
+
+export async function withTimeout<T>(promise: Promise<T>, ms = configuredTimeoutMs()): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("recognition timed out")), ms);

@@ -10,6 +10,7 @@ import {
   productKey,
 } from "./schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
+import { localCensusUrl, runCensusLocally } from "./localCensus.js";
 
 /**
  * The badged frame is sent at this long edge. 1024 was chosen before there was a photograph to
@@ -478,6 +479,14 @@ export async function runCensus(
   /** Product names the session has already counted, so this call can reuse them verbatim. */
   alreadyCounted: string[] = [],
 ): Promise<CensusResponse> {
+  // The local fallback, for an account with no credit. Unset is the normal state: when
+  // LOCAL_CENSUS_URL is empty this branch never runs and everything below is unchanged. See
+  // localCensus.ts for what it costs in accuracy, which is real and measured.
+  const localUrl = localCensusUrl();
+  if (localUrl.length > 0) {
+    return await runCensusLocally(image, marks, alreadyCounted, localUrl);
+  }
+
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
 
   const outputText = await requestOutputText("runCensus", {
