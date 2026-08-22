@@ -5386,3 +5386,31 @@ So the harness measures **recall** changes on the video usefully and **precision
 all: its noise floor is eleven spurious lines where the service's is a third of one. That is worth
 stating precisely, because a harness whose limits are unknown is worse than no harness — it invites
 exactly the kind of conclusion this file has had to withdraw four times today.
+
+## Hundred-and-second: the detector swap refused on the video too, completing the corpus
+
+The ninety-sixth refused MM Grounding DINO on the stills: better boxes, worse bag. The video is the
+other half of the verification set and that half was untestable until the hundred-and-first built a
+keyless bag for it. Testing it now, and only on the quantity that harness supports — **recall**,
+where it matches the service, rather than precision, where its noise floor is thirty times higher:
+
+| detector on the video | products found, lenient | strict | units |
+|---|---|---|---|
+| **Grounding DINO, as shipped** | **8 of 9** | **6** | 19 |
+| MM Grounding DINO, 0.15 | 7 of 9 | 5 | 22 |
+
+**One fewer product on the video, one fewer on the stills.** The swap is now refused on both halves
+of the corpus, by two different harnesses, on the metric each can actually support.
+
+Two details from the run are worth keeping.
+
+The replay guard fired a second time, and again correctly. Changing the regions changes the tracks,
+which changes which frames the keyframe gate fires on: the fourth capture moved from order 21 to
+order 18. The run refused a replay file built for the old pacing rather than scoring a frame against
+another frame's answers. **A different detector does not just change what is proposed, it changes
+where the loop looks**, which is a thing worth knowing before reading any comparison of two region
+sets through a scan.
+
+And the shape of the loss is the familiar one. On order 18 MM Grounding DINO offers nine regions
+where the shipped detector offers two, and the census calls three of the nine products. Six extra
+questions, one extra product found, three extra units. Every proposal is a badge.
