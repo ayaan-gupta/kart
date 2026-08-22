@@ -3009,3 +3009,29 @@ The converse needs no separate test. `scan-loop.ts` sends counted names on every
 first and still builds bags of eight or nine products, so a trolley keeps registering as a trolley
 with the list present. Both directions covered, and the interaction between the day's two shipped
 features is measured rather than assumed.
+
+## Sixty-fourth: what happens if the enumerator is down
+
+Pointing `scan.tsx` at the capture path made the app depend on a service it did not depend on
+before. With `ENUMERATOR_URL` unset, `enumerateRegions` returns no regions and
+`degraded: "no enumerator configured"`, so the census is handed **no badges at all** and the bag
+comes entirely through `unmarkedItems`. Before the move, the device still supplied its one blob.
+That is a risk introduced by the change and it should not be left to reasoning.
+
+Three runs each, the same corpus and loop:
+
+| | units against 9 | products found |
+|---|---|---|
+| **as it ships, enumerator reachable** | **8.67** | **8.17 of 9** |
+| as it ships, enumerator down | 11.0 | 6.67 of 9 |
+| the path it replaced, device badges | 16.3 | 6.67 of 9 |
+
+**Degraded, it matches the path it replaced on products found and produces five fewer lines.** So
+the dependency is not a regression: an outage costs a session the improvement, not the baseline. A
+deployment that never configures an enumerator is no worse off than it was this morning, and one
+that does is better by a product and a half and seven lines.
+
+That is the answer the earlier note in `docs/detector-decision.md` anticipated when it called
+enumeration-less operation "a supported degraded mode, reported as `enumeration: degraded`, not a
+failure", measured at 72% of hand-labelled units. It is supported here too, and now with a number
+against the alternative rather than only against nothing.

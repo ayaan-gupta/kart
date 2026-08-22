@@ -94,6 +94,15 @@ const CORROBORATE = process.argv.includes('--corroborate-unmarked');
  * so the harness does too. `--no-reuse-names` turns it off for comparison.
  */
 const REUSE_NAMES = !process.argv.includes('--no-reuse-names');
+
+/**
+ * `--no-enumerator` is the supported degraded mode, and it matters more since `scan.tsx` moved to
+ * the capture path. With `ENUMERATOR_URL` unset, `enumerateRegions` returns no regions and
+ * `degraded: "no enumerator configured"`, so the census is handed no badges at all and the bag
+ * comes entirely through `unmarkedItems`. Before the move the device still supplied its one blob.
+ * This measures what a deployment with no enumerator actually produces.
+ */
+const NO_ENUMERATOR = process.argv.includes('--no-enumerator');
 const seenUnmarked = new Set<string>();
 const foldName = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
   .filter(Boolean).map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w))
@@ -169,9 +178,9 @@ const deps: SessionDeps = {
     const image = await keyframeFor(currentFrame.order);
     const enumerated = req.marks === undefined || req.marks.length === 0;
     const marks: Mark[] = enumerated
-      ? serverMarks(currentFrame)
+      ? (NO_ENUMERATOR ? [] : serverMarks(currentFrame))
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
-    if (marks.length === 0) return { ok: false, failure: 'server' } as any;
+    if (marks.length === 0 && !NO_ENUMERATOR) return { ok: false, failure: 'server' } as any;
     const counted = REUSE_NAMES
       ? (bagLines(session.state.fusion) as any[])
           .map((l) => `${l.brand ? `${l.brand} ` : ''}${l.name}`)
