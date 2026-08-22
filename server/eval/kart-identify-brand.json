@@ -1,0 +1,56 @@
+[
+ {
+  "id": "IMG_0244",
+  "badge": 1,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.98,
+  "stillUnclear": false,
+  "ok": true
+ },
+ {
+  "id": "IMG_0245",
+  "badge": 1,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.99,
+  "stillUnclear": false,
+  "ok": true
+ },
+ {
+  "id": "IMG_0246",
+  "badge": 1,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.98,
+  "stillUnclear": false,
+  "ok": true
+ },
+ {
+  "id": "IMG_0249",
+  "badge": 1,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.99,
+  "stillUnclear": false,
+  "ok": true
+ },
+ {
+  "id": "IMG_0252",
+  "badge": 2,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.97,
+  "stillUnclear": false,
+  "ok": true
+ },
+ {
+  "id": "IMG_0254",
+  "badge": 2,
+  "brand": "Mr. Lucky",
+  "name": "Cauliflower",
+  "confidence": 0.99,
+  "stillUnclear": false,
+  "ok": true
+ }
+]

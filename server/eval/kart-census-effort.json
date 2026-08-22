@@ -1,0 +1,83 @@
+[
+ {
+  "id": "IMG_0249",
+  "effort": "none",
+  "badges": 3,
+  "products": 2,
+  "unmarked": 0,
+  "inView": 2,
+  "real": 3
+ },
+ {
+  "id": "IMG_0249",
+  "effort": "low",
+  "badges": 3,
+  "products": 3,
+  "unmarked": 0,
+  "inView": 3,
+  "real": 3
+ },
+ {
+  "id": "IMG_0249",
+  "effort": "medium",
+  "badges": 3,
+  "products": 3,
+  "unmarked": 0,
+  "inView": 3,
+  "real": 3
+ },
+ {
+  "id": "IMG_0252",
+  "effort": "none",
+  "badges": 8,
+  "products": 8,
+  "unmarked": 0,
+  "inView": 8,
+  "real": 10
+ },
+ {
+  "id": "IMG_0252",
+  "effort": "low",
+  "badges": 8,
+  "products": 8,
+  "unmarked": 0,
+  "inView": 8,
+  "real": 10
+ },
+ {
+  "id": "IMG_0252",
+  "effort": "medium",
+  "badges": 8,
+  "products": 8,
+  "unmarked": 0,
+  "inView": 8,
+  "real": 10
+ },
+ {
+  "id": "IMG_0254",
+  "effort": "none",
+  "badges": 11,
+  "products": 11,
+  "unmarked": 0,
+  "inView": 11,
+  "real": 16
+ },
+ {
+  "id": "IMG_0254",
+  "effort": "low",
+  "badges": 11,
+  "products": 11,
+  "unmarked": 1,
+  "inView": 11,
+  "real": 16
+ },
+ {
+  "id": "IMG_0254",
+  "effort": "medium",
+  "badges": 11,
+  "products": 11,
+  "unmarked": 1,
+  "inView": 12,
+  "real": 16
+ }
+]
