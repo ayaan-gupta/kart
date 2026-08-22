@@ -8,10 +8,10 @@
     {
      "id": 1,
      "name": "Oreo",
-     "brand": null,
+     "brand": "Cadbury",
      "size": null,
      "category": "snacks",
-     "confidence": 0.99,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_oreo"
@@ -19,58 +19,58 @@
    ],
    "unmarkedItems": [
     {
-     "description": "banana",
-     "productKey": "::banana",
+     "description": "bunch of bananas",
+     "productKey": "::bananas",
      "catalogSku": null,
-     "approxLocation": "across the middle of the cart",
+     "approxLocation": "middle of cart, lying across the produce",
+     "confidence": 0.97
+    },
+    {
+     "description": "bag of red apples",
+     "productKey": "::apples",
+     "catalogSku": null,
+     "approxLocation": "center-right of cart under the banana bunch",
+     "confidence": 0.85
+    },
+    {
+     "description": "bag of green apples",
+     "productKey": "::apples",
+     "catalogSku": null,
+     "approxLocation": "right side of cart",
      "confidence": 0.78
     },
     {
-     "description": "bag of apples",
-     "productKey": "::apples",
+     "description": "bag of red grapes",
+     "productKey": "::grapes",
      "catalogSku": null,
-     "approxLocation": "center-right behind the banana",
-     "confidence": 0.86
+     "approxLocation": "lower left of center",
+     "confidence": 0.8
     },
     {
-     "description": "green bell pepper",
-     "productKey": "::green bell pepper",
+     "description": "bag of green onions",
+     "productKey": "::green onions",
      "catalogSku": null,
-     "approxLocation": "lower center, in a clear bag",
-     "confidence": 0.73
-    },
-    {
-     "description": "cauliflower",
-     "productKey": "::cauliflower",
-     "catalogSku": null,
-     "approxLocation": "bottom right",
-     "confidence": 0.95
-    },
-    {
-     "description": "bag of leafy greens",
-     "productKey": "::leafy greens",
-     "catalogSku": null,
-     "approxLocation": "right side",
-     "confidence": 0.88
-    },
-    {
-     "description": "pack of asparagus",
-     "productKey": "::asparagus",
-     "catalogSku": null,
-     "approxLocation": "bottom left",
+     "approxLocation": "lower middle left",
      "confidence": 0.9
     },
     {
-     "description": "bag of lettuce",
-     "productKey": "::lettuce",
+     "description": "bag of brussels sprouts",
+     "productKey": "::brussels sprouts",
      "catalogSku": null,
-     "approxLocation": "upper right edge",
-     "confidence": 0.81
+     "approxLocation": "lower middle",
+     "confidence": 0.96
+    },
+    {
+     "description": "bag of cauliflower",
+     "productKey": "::cauliflower",
+     "catalogSku": null,
+     "approxLocation": "lower right",
+     "confidence": 0.95
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "oreo::oreo",
+     "productKey": "cadbury::oreo",
      "count": 1
     },
     {
@@ -79,33 +79,29 @@
     },
     {
      "productKey": "::apple",
+     "count": 2
+    },
+    {
+     "productKey": "::grape",
      "count": 1
     },
     {
-     "productKey": "::green bell pepper",
+     "productKey": "::green onion",
+     "count": 1
+    },
+    {
+     "productKey": "::brussel sprout",
      "count": 1
     },
     {
      "productKey": "::cauliflower",
-     "count": 1
-    },
-    {
-     "productKey": "::leafy green",
-     "count": 1
-    },
-    {
-     "productKey": "::asparagu",
-     "count": 1
-    },
-    {
-     "productKey": "::lettuce",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several produce bags overlap in the cart, with some items partly covered by the banana and neighboring bags."
+    "reason": "Several produce bags overlap and partly cover items beneath the banana bunch and in the center of the cart."
    }
   }
  },
@@ -118,10 +114,10 @@
     {
      "id": 1,
      "name": "Seedtastic Bread",
-     "brand": null,
+     "brand": "Kart",
      "size": null,
      "category": "bread",
-     "confidence": 0.98,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
@@ -129,56 +125,37 @@
    ],
    "unmarkedItems": [
     {
-     "description": "bag of apples",
+     "description": "bagged asparagus",
+     "productKey": "::asparagus",
+     "catalogSku": "kart_asparagus",
+     "approxLocation": "bottom right of cart, under the hand",
+     "confidence": 0.87
+    },
+    {
+     "description": "purple bag of onions",
+     "productKey": "::onions",
+     "catalogSku": null,
+     "approxLocation": "middle right of cart",
+     "confidence": 0.73
+    },
+    {
+     "description": "bagged apples",
      "productKey": "::apples",
      "catalogSku": null,
      "approxLocation": "upper right of cart",
-     "confidence": 0.86
+     "confidence": 0.84
     },
     {
-     "description": "bag of green vegetables",
-     "productKey": "::green vegetables",
+     "description": "long pale loaf or baguette in clear wrap",
+     "productKey": "::bread",
      "catalogSku": null,
-     "approxLocation": "lower right of cart",
-     "confidence": 0.62
-    },
-    {
-     "description": "bag of pale cut vegetables",
-     "productKey": "::vegetables",
-     "catalogSku": null,
-     "approxLocation": "lower center of cart",
-     "confidence": 0.58
-    },
-    {
-     "description": "bag of purple produce",
-     "productKey": "::produce bag",
-     "catalogSku": null,
-     "approxLocation": "center of cart",
-     "confidence": 0.6
-    },
-    {
-     "description": "long pale vegetable bundle",
-     "productKey": "::asparagus",
-     "catalogSku": "kart_asparagus",
      "approxLocation": "top of cart",
-     "confidence": 0.88
+     "confidence": 0.55
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "::apple",
-     "count": 1
-    },
-    {
-     "productKey": "::green vegetable",
-     "count": 1
-    },
-    {
-     "productKey": "::vegetable",
-     "count": 1
-    },
-    {
-     "productKey": "::produce bag",
+     "productKey": "kart::seedtastic bread",
      "count": 1
     },
     {
@@ -186,14 +163,22 @@
      "count": 1
     },
     {
-     "productKey": "::seedtastic bread",
+     "productKey": "::onion",
+     "count": 1
+    },
+    {
+     "productKey": "::apple",
+     "count": 1
+    },
+    {
+     "productKey": "::bread",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several bags overlap and partly cover other produce in the cart."
+    "reason": "Several bags overlap and partially cover each other, with items stacked in the cart."
    }
   }
  },
@@ -205,12 +190,12 @@
    "marks": [
     {
      "id": 1,
-     "name": "seedtastic bread",
-     "brand": "Kart",
+     "name": "bread",
+     "brand": null,
      "size": null,
-     "category": "bread",
-     "confidence": 0.9,
-     "needsCloserLook": false,
+     "category": "bakery",
+     "confidence": 0.72,
+     "needsCloserLook": true,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
     }
@@ -220,34 +205,27 @@
      "description": "purple produce bag",
      "productKey": "::purple produce bag",
      "catalogSku": "kart_purple_produce_bag",
-     "approxLocation": "center-right of cart",
-     "confidence": 0.96
+     "approxLocation": "upper center of cart",
+     "confidence": 0.88
     },
     {
-     "description": "bag of green beans",
-     "productKey": "::green beans",
+     "description": "bag of green onions",
+     "productKey": "::green onions",
      "catalogSku": null,
      "approxLocation": "lower center-right of cart",
-     "confidence": 0.77
+     "confidence": 0.74
     },
     {
-     "description": "bag of green produce",
-     "productKey": "::green produce",
+     "description": "bag of green vegetables",
+     "productKey": "::green vegetables",
      "catalogSku": null,
      "approxLocation": "lower right of cart",
-     "confidence": 0.68
-    },
-    {
-     "description": "red apples",
-     "productKey": "::apples",
-     "catalogSku": null,
-     "approxLocation": "upper right of cart",
-     "confidence": 0.66
+     "confidence": 0.63
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "kart::seedtastic bread",
+     "productKey": "::bread",
      "count": 1
     },
     {
@@ -255,22 +233,18 @@
      "count": 1
     },
     {
-     "productKey": "::green bean",
+     "productKey": "::green onion",
      "count": 1
     },
     {
-     "productKey": "::green produce",
-     "count": 1
-    },
-    {
-     "productKey": "::apple",
+     "productKey": "::green vegetable",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "produce bag and other items overlap heavily, so some contents are partly covered"
+    "reason": "Several items overlap inside the cart and the large purple bag covers part of the contents."
    }
   }
  },
@@ -283,10 +257,10 @@
     {
      "id": 1,
      "name": "Granny Smith apples",
-     "brand": "Kroger",
+     "brand": "KART",
      "size": null,
      "category": "produce",
-     "confidence": 0.92,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
@@ -298,33 +272,19 @@
      "productKey": "::cauliflower",
      "catalogSku": "kart_cauliflower",
      "approxLocation": "lower right in cart",
-     "confidence": 0.95
+     "confidence": 0.92
     },
     {
      "description": "brussels sprouts",
      "productKey": "::brussels sprouts",
      "catalogSku": "kart_brussels_sprouts",
      "approxLocation": "lower left in cart",
-     "confidence": 0.84
-    },
-    {
-     "description": "asparagus",
-     "productKey": "::asparagus",
-     "catalogSku": "kart_asparagus",
-     "approxLocation": "upper left edge of cart",
-     "confidence": 0.61
-    },
-    {
-     "description": "baguette",
-     "productKey": "::baguette",
-     "catalogSku": "kart_baguette",
-     "approxLocation": "top of cart, near center",
-     "confidence": 0.56
+     "confidence": 0.88
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "kroger::granny smith apple",
+     "productKey": "kart::granny smith apple",
      "count": 1
     },
     {
@@ -334,20 +294,12 @@
     {
      "productKey": "::brussel sprout",
      "count": 1
-    },
-    {
-     "productKey": "::asparagu",
-     "count": 1
-    },
-    {
-     "productKey": "::baguette",
-     "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "several produce bags overlap and partially cover each other"
+    "reason": "Several produce bags overlap and cover parts of items in the cart."
    }
   }
  }

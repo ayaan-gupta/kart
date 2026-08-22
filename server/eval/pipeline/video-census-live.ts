@@ -85,6 +85,30 @@ const MAX_CALLS = capArg ? Number(capArg.split('=')[1]) : Infinity;
  * so a replay file from a different frame set or a changed keyframe gate fails loudly instead of
  * quietly scoring the wrong pairing.
  */
+/**
+ * `--regions=N` keeps only the N highest-scoring regions per frame.
+ *
+ * This harness feeds the census Grounding DINO's regions, a median of 5.1 per frame, because that
+ * is what the server's enumerator produces. **The shipped app does not use them.** `scan.tsx`
+ * calls `RecognitionSession.onKeyframe`, which badges the census from the on-device tracker, and
+ * those tracks come from `AppleInstanceMaskDetector`. Run over these exact frames with
+ * `npm run bench:detector`, that detector returns 1 to 2 instances per frame, mean 1.1, on all 30
+ * images, which `docs/detector-decision.md` had already measured as dead for enumeration.
+ *
+ * `--regions=1` approximates the supply the app really has, so a number here can be read against
+ * the path a shopper is on rather than only against the one the server could offer. Measured that
+ * way the bag roughly doubles, 15 to 18 units for nine real products against 9.8 with the full
+ * set, while finding about the same 7 or 8 of 9: with one badge nearly everything arrives through
+ * `unmarkedItems`, which carries no joining SKU half the time, so one product becomes several
+ * lines.
+ *
+ * It is an optimistic approximation twice over and should be read as a bound. It keeps the
+ * best-scoring grounded box rather than whatever blob Apple's segmenter returns, and it still
+ * lets the tracker see every region for continuity.
+ */
+const regionsArg = process.argv.find((a) => a.startsWith('--regions='));
+const REGIONS_PER_FRAME = regionsArg ? Math.max(1, Number(regionsArg.split('=')[1])) : Infinity;
+
 /** `--trace` prints which track each badge resolved to, for diagnosing a split bag line. */
 const TRACE = process.argv.includes('--trace');
 const replayArg = process.argv.find((a) => a.startsWith('--replay='));
@@ -99,6 +123,15 @@ let fired = 0;
 const calls: any[] = [];
 
 for (const frame of video.frames) {
+  if (Number.isFinite(REGIONS_PER_FRAME) && frame.boxes.length > REGIONS_PER_FRAME) {
+    const keep = frame.boxes
+      .map((_: unknown, i: number) => i)
+      .sort((a: number, b: number) => frame.scores[b] - frame.scores[a])
+      .slice(0, REGIONS_PER_FRAME);
+    frame.boxes = keep.map((i: number) => frame.boxes[i]);
+    frame.scores = keep.map((i: number) => frame.scores[i]);
+    if (frame.catalog) frame.catalog = keep.map((i: number) => frame.catalog[i]);
+  }
   const scan = {
     instances: frame.boxes.map((box: any, i: number) => ({
       box,
