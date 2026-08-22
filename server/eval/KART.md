@@ -5607,3 +5607,37 @@ ask only whether an item is covered, which does not depend on the other labels b
 **A hand-made truth set is a measuring instrument and it was never calibrated.** It took a
 disagreement between a number and a picture to notice, which is the fourth time today that looking at
 something beat computing it.
+
+### Correcting the hundred-and-sixth: it overstated the damage
+
+That section said "every isolated figure in this file that involves the yellow produce bag or the
+Fuji apple bag on IMG_0254 is optimistic, and that includes the seventieth's headline (11 of 20)".
+Checking which items the headline actually counts says otherwise:
+
+| | items | marked `judged`, excluded from the readable figures |
+|---|---|---|
+| IMG_0252 | 9 | `yellow produce bag` |
+| IMG_0254 | 15 | `Fuji apple bag`, `yellow produce bag`, `broccoli` |
+
+**Every box I found mislabelled is already excluded from the readable figures**, because all three
+were marked `judged` when they were written — for the same reason they turned out to be hard to box.
+So 19 of 20 reached and 11 of 20 isolated stand.
+
+What remains true, and is a different fault: IMG_0254's truth has no purple produce bag though one is
+plainly in the photograph, so a box containing purple is not penalised for it. That flatters the
+isolation verdict of **other** items near the trolley's middle, and it is why the yellow bag's box
+read "clean". `known_faults` in the label file says so.
+
+### And an audit of the other label set
+
+Rendering all nine IMG_0252 boxes as crops: eight are right, including `Fuji apple bag`, which is
+correctly on the purple bag carrying the FUJI label — the same object that is *not* what the IMG_0254
+Fuji box points at. The ninth is `yellow produce bag` again, dominated by purple and baguette with a
+sliver of yellow.
+
+**One item is bad in both label sets and it is the same item**, which is not a coincidence: it is
+small, partly behind a larger bag of the same kind, and hard to box for exactly the reasons the
+detector cannot isolate it. It is `judged` in both, so it costs the headline nothing.
+
+Two corrections in two sections, one of a claim that was too generous and one of a claim that was too
+harsh. **Neither direction is the safe one to guess in.**
