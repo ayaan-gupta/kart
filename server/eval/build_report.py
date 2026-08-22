@@ -193,6 +193,16 @@ details li {{ margin:3px 0; }}
   padding:20px 22px; margin-bottom:22px; }}
 .pending h3 {{ margin:0 0 8px; font-family:"IBM Plex Sans",sans-serif; font-size:1rem; }}
 .pending p {{ margin:0 0 16px; color:var(--ink-2); font-size:.88rem; max-width:66ch; }}
+.gaps {{ width:100%; border-collapse:collapse; margin:0 0 14px; font-size:.86rem; }}
+.gaps th {{ text-align:left; font-weight:600; font-size:.68rem; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-2); padding:0 12px 8px 0;
+  border-bottom:1px solid var(--rule); }}
+.gaps td {{ padding:10px 12px 10px 0; border-bottom:1px solid var(--rule);
+  vertical-align:top; color:var(--ink-2); }}
+.gaps td:first-child {{ color:var(--ink); font-family:"IBM Plex Mono",monospace;
+  font-size:.78rem; white-space:nowrap; }}
+.gaps .yes {{ color:var(--ink); font-weight:600; }}
+.scroll {{ overflow-x:auto; }}
 .shots {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }}
 figure.wide {{ margin:0; }}
 figure.wide img {{ width:100%; height:auto; border-radius:8px; display:block; }}
@@ -245,6 +255,28 @@ capture sees part of the cart; the bag is fused from all four.</p>
 against the shipped model. Both are drawn here because looking at them changed what they were worth:
 a total can say a change is free while the picture shows it removing four real products.</p>
 {pending}
+
+<h2>On a phone</h2>
+<p class="section-note">A build installed on a phone today names nothing, and only the third reason
+below is the model. The app compiles for real iPhone hardware: Release, arm64, iOS 17. Installing it
+needs a cable or a paid membership, so it has never run on a physical device.</p>
+<div class="scroll"><table class="gaps">
+<tr><th>missing</th><th>what the app does</th><th>how it was checked</th></tr>
+<tr><td>EXPO_PUBLIC_KART_API_URL</td><td>Every request returns <code>unconfigured</code>. The camera,
+the tracker and the outlines still work, and so does the barcode path, which calls Open Food Facts
+straight from the phone.</td><td class="yes">The shipped JavaScript bundle holds no recognition
+endpoint at all.</td></tr>
+<tr><td>ENUMERATOR_URL</td><td>Degraded mode: no outlines, no catalog shortlist, 72% of units. Not
+the pipeline any figure on this page was measured on.</td><td class="yes">The server logged
+<code>enumeration degraded: no enumerator configured</code>.</td></tr>
+<tr><td>OpenAI credit</td><td>Nothing is recognized.</td><td class="yes">429
+<code>credit_balance_exhausted</code>.</td></tr>
+</table></div>
+<p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
+reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
+IMG_0254, and 21 of 21 matching at IoU 0.7 or better. A scan keyframe takes 3.9s on MPS. A real
+photograph pushed through both servers reached the model and stopped only at the credit wall.
+<code>docs/running-on-a-phone.md</code> is the runbook.</p>
 
 <footer>Drawn from saved runs, not re-measured for this page. Boxes come from the shipped detector
 pass, answers from the census responses those runs recorded, and verdicts are re-derived against the
