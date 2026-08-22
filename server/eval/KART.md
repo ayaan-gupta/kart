@@ -4536,3 +4536,58 @@ produce bag in a world the product does not ship into.
 
 That does not make the corpus figure wrong, and the figure is not being adjusted: the truth stands,
 the catalog stands, and 8 of 9 on IMG_0252 stands. What changes is what the residual means.
+
+## Ninety-first: the yellow bag, one root cause at five layers
+
+The ninetieth showed that adding a `yellow produce bag` entry to the shortlist makes the model name
+the item correctly, and that the index has no yellow anything. The obvious next move is to add the
+SKU. It cannot be added, and the reason completes the story.
+
+`build_kart_catalog.py` builds references **from the video** and queries **the stills**, deliberately:
+"references from one capture and queries from another, or the number measures memorisation". So a
+`kart_yellow_produce_bag` entry needs video crops of it. Searching every frame of every detection
+pass for boxes that are substantially yellow, and looking at all fourteen candidates:
+
+| | |
+|---|---|
+| clear views of the yellow bag | **5** (orders 13, 15 twice, 16, 17) |
+| partial | 1 (order 19) |
+| not the bag at all | 8 — the Seedtastic loaf's yellow labels, green produce |
+| **`MIN_REFERENCES` in `catalog/head.py`** | **10** |
+
+`Index.build` skips any folder with fewer than ten images, and says so as it goes. **The video does
+not contain ten usable views of this object**, so the SKU cannot be built by the pipeline that built
+the other eight. Confirmed directly: a nine-folder catalog with four yellow references indexes six
+products, dropping `yellow_produce_bag` along with `granny_smith_apples` and `oreo`, which have nine
+references each.
+
+### The whole chain, from one cause
+
+The yellow produce bag is small, plain, and sits against a larger bag of the same kind. That single
+fact produces a failure at every layer of this system, and each layer's failure has been
+investigated separately over the course of this file as though it were its own problem:
+
+1. **Detection.** Rarely proposed, and never isolated at the shipped threshold (sixty-fifth).
+2. **Tracking.** Never confirmed as its own track, because confirmation needs repeated proposals
+   (twenty-sixth).
+3. **Catalog.** No track and few clean crops means fewer than `MIN_REFERENCES` references, so no
+   SKU exists (here).
+4. **Shortlist.** With no SKU, the nearest entry offered is `purple_produce_bag` — the larger bag
+   beside it (ninetieth).
+5. **Naming.** Given a good crop the model says `Organic yellow onion` unprompted and
+   `Purple produce bag` once the shortlist is attached, so the shortlist actively converts a
+   half-right answer into a confidently wrong one (ninetieth).
+
+Five sections of this file each found one of these and each reasonably treated it as the thing to
+fix. **It was one thing all along.**
+
+### What that means for the corpus figure, and what it does not
+
+It is not fixable here. There is no tenth reference to find, the truth is not being adjusted, and
+IMG_0252 stands at 8 of 9. In a deployment the store's catalog carries a product photograph of every
+item it sells, which is exactly the assumption `CLAUDE.md` states and exactly what this corpus
+cannot supply for this one product.
+
+So the honest final statement about the yellow produce bag is narrow and complete: **on this corpus
+it is unreachable at five layers for one reason, and in the world the product ships into, the layer
+that matters most — the catalog — would not fail.**
