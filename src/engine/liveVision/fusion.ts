@@ -508,6 +508,23 @@ export function applyCensus(
     //
     // Recorded as an alias rather than by rewriting either key, so the SKU stays the survivor
     // and `addAlias` moves the accumulated quantity across for us.
+    //
+    // Two things about this are deliberate and neither is obvious.
+    //
+    // It welds on a single sighting, where the barcode and identify branches above both demand a
+    // guess repeat before they act on it. That asymmetry is a real risk: a wrong-but-uncontradicted
+    // SKU merges two products, which is the direction that *deletes* one. It is accepted because a
+    // scan makes four calls, so requiring a repeat would disable this for most of a session, and
+    // because `addAlias`'s conflict path already strands both keys if the same name is later pulled
+    // toward a different SKU. What is left uncovered is the single wrong alias nothing contradicts.
+    //
+    // And the obvious hardening, refusing a SKU that was not on this badge's own shortlist, must
+    // not be added. Measured over the six captured scan runs, 15 of 78 SKUs (19%) come from another
+    // badge's shortlist, and they are the model repairing the matcher rather than drifting: a badge
+    // named "baguette" taking `kart_baguette`, one named "Oreo" taking `kart_oreo`, one named
+    // "purple produce bag" taking `kart_purple_produce_bag`, in each case because the matcher had
+    // not offered it there. Rule 15 permits exactly this. Validating per badge would discard those,
+    // `kart_oreo` among them, which is the very SKU the fold in `bagLines` depends on.
     const sku = mark.catalogSku?.trim();
     if (sku) {
       working = addAlias(working, productKey(mark.name, mark.brand), `sku:${sku}`);
