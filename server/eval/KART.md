@@ -1132,3 +1132,61 @@ Two identical products that no single census ever badges together would fold int
 the bag would undercount by one. Nothing in this corpus does that, so the risk is reasoned rather
 than measured. It is the direction this corpus's error does not currently run, and a second
 capture set with genuine duplicates is the thing that would test it.
+
+## Twentieth: the largest remaining gap is not the fault this file named
+
+IMG_0254 is the fullest trolley and carries the whole residual: 11 regions against 15 products,
+error −4, while the other five photographs are within one. This file has carried a diagnosis for
+that gap, one detector box blanketing two adjacent products with `PRODUCE_INSIDE` refusing the
+proposals inside it. Measured directly, that diagnosis is **wrong**.
+
+### What merge_produce actually refuses here
+
+23 produce proposals, none accepted. The reason is not what was assumed:
+
+| refused by | count | what they are |
+|---|---|---|
+| overlap with a base box | 16 | the same item the grocery prompt already drew, at IoU 0.49 to 0.97 |
+| containment, inside base box 5 | 6 | individual apples inside the Granny Smith bag, IoU 0.07 to 0.12 |
+| containment, inside base box 4 | 1 | one proposal inside the tote |
+
+Base box 5 is the apple bag. Those six refusals are the clementine-in-a-net case the containment
+test was written for, and accepting them would badge six apples as six products. **The rule is
+doing its job on this photograph, not blocking it.** Loosening `PRODUCE_INSIDE` would make this
+image worse, not better, which also retires the "live trade-off" this file once offered.
+
+### What dedupe removes
+
+Nine of the twenty grocery proposals are dropped, and every one is a correct drop: four are
+near-duplicates of a survivor at IoU 0.79 to 0.99, three more at 0.53 to 0.72, and two are
+whole-trolley GROUP boxes holding 14 and 12 members. Nothing removed is a missing product.
+
+### What it really is
+
+Neither pass is losing the four products, because **no pass ever proposes them.** Three settings,
+one ceiling:
+
+| setting | IMG_0254 proposed | **correct** | error | corpus mean abs error |
+|---|---|---|---|---|
+| shipped | 11 | **10** | −4 | 1.2 |
+| `--tiles 2` | 25 | **10** | +10 | 14.7 |
+| `--threshold 0.20` | 14 | **10** | −1 | 1.2 |
+
+Correct never moves. Tiling adds fourteen regions and not one product, and wrecks the sparse
+photographs, proposing seventeen regions for a trolley holding one item, because half-overlapping
+tiles turn the trolley's own wire mesh into goods. The lower threshold flatters the error to −1
+purely by adding three regions that are not products, trading an undercount for an overcount
+while the corpus mean absolute error stays at 1.2. That also answers the question `propose`'s
+docstring left open, which was whether tiling harmful on RPC might still help a loaded trolley:
+measured here, it does not.
+
+**Ten of fifteen is this detector's ceiling on this photograph.** Looking at the image says why:
+the missing items are a second cheese pack, a purple produce bag and a yellow item lying under
+the shopper's tote and the baguette, and greens behind the salmon tray. They are not
+under-proposed, they are barely visible. This is the one photograph in the corpus whose count is
+marked `moderate` rather than `certain` precisely because a person has to judge rather than read
+it, and on the five certain photographs detection is 15 of 16.
+
+Recovering them needs a different detector or a second viewpoint, which is what a scan is for and
+what the capability-3 occlusion flag is for: this trolley reports "some" hidden, every pass. It
+is not reachable by tuning the three constants measured above.
