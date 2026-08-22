@@ -75,6 +75,23 @@ larger model on a fused scan, a fuller non-product rule, a larger image. Six att
 What helped was the opposite: fixing an orientation bug, giving two descriptions a key to join on,
 and pointing the app at regions it was already paying a service to compute.
 
+### One correction to the figures below
+
+Every "lines matching nothing real" count in this file was produced by a scorer that counted
+**lines rather than units**, and that ignored a line's quantity when matching it against the truth.
+A bag line carries a quantity, so `2 x long loaf of bread in clear plastic wrap` is two units on
+one line, and the scorer credited it as one.
+
+Fixed on 2026-08-22, after the same bug was found and fixed in the photograph scorer and the video
+copy turned out to have been extracted before that fix. What it changes:
+
+- **The replayed scan figures are unaffected.** Those bags are all quantity 1, so line counts and
+  unit counts agree, and every replay number quoted below stands as written.
+- **The shipped-path loop figures understated the spurious count**, because that path does produce
+  quantity-2 lines. Re-run, it reports the leftover correctly, for example `partially visible x2`.
+- Products found is unaffected on this trolley, which holds nine distinct products and no
+  duplicates, so no truth entry ever needed a second unit from one line.
+
 ### What is not verified
 
 Nothing since the rewiring has run against a live camera. The loop is verified in Node and the app
