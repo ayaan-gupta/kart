@@ -336,6 +336,35 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
     expect(result.inViewCounts[0].productKey).toBe("::jalapeno chip");
   });
 
+  it("does NOT bind a brandless key that keeps its separator, and warns instead", async () => {
+    // Pinning a refusal, not an endorsement. A productKey is brandless two ways: "muenster cheese"
+    // with no separator, which the repair below does bind, and "::muenster cheese" with an empty
+    // brand, which it does not. The inconsistency looks like a plain bug and costs a real count on
+    // IMG_0254, where two Muenster packs are reported as `count: 2` under "::muenster cheese"
+    // against a mark keyed "lucerne::muenster cheese".
+    //
+    // Widening the repair to cover both was written, tested and measured, and it made the corpus
+    // worse: 68.5 of 93 products over six passes against 75 over six without it. `inViewCounts` is
+    // not a plain quantity here, it is also the clamp-release signal a few lines into `applyCensus`,
+    // so binding a count to a mark changes which merged tracks are released to re-count. That is
+    // the likely mechanism and it is not established. The sixty-eighth section of KART.md carries
+    // the numbers. Do not "fix" this without re-measuring.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mark = { ...wellFormedMark, name: "Muenster Cheese", brand: "Lucerne" };
+    mockOutput({
+      marks: [mark],
+      unmarkedItems: [],
+      inViewCounts: [{ productKey: "::Muenster Cheese", count: 2 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    expect(result.inViewCounts[0].productKey).toBe(productKey("Muenster Cheese", null));
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("keeps and warns on a key that matches no mark, instead of dropping the entry", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockOutput({

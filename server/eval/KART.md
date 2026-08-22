@@ -3262,3 +3262,56 @@ trolley in the corpus, so it pays the most and gains the least.
 result `--loops` gave on the video, same products on more lines, reached from the opposite
 direction: there the second look was a second pan, here it is a second call on one frame, and both
 lose to the single look. One census per view stands.
+
+## Sixty-eighth: a plain-looking bug in the count keys, and fixing it measured worse
+
+IMG_0254 holds two Muenster packs and the second is missing on nearly every pass. The cause looked
+mechanical rather than perceptual. `runCensus` warns:
+
+    inViewCounts productKey "::muenster cheese" does not match any mark or unmarked item
+
+while the mark it obviously means is keyed `lucerne::muenster cheese`. `normalizeCensusResponse`
+already repairs this, binding a brandless count to the single mark carrying that name, but the
+repair is gated on `!entry.productKey.includes("::")`. A key is brandless two ways: `muenster
+cheese` with no separator, and `::muenster cheese` with an empty brand. Only the first was covered,
+so a count the model deliberately left unbranded was orphaned and its quantity never reached the
+bag.
+
+### It is a real inconsistency and the fix is a real regression
+
+Widening the gate to "the brand segment is empty, however it is spelled" is four lines and passes a
+unit test that demonstrates the exact IMG_0254 shape. Measured live on the corpus, six passes each,
+with the change stashed and the revert verified in the file rather than assumed:
+
+| | products found, lenient | lines matching nothing | badge alignment |
+|---|---|---|---|
+| **as it ships** | 76, 74 (**75 of 93**) | 8, 8 | 88.0%, 88.0% |
+| brandless repair widened | 66, 71 (**68.5 of 93**) | 11, 13 | 86.7%, 85.3% |
+
+Six and a half products worse, and more spurious lines rather than fewer, which is the opposite of
+what binding an orphan should do.
+
+### Why the obvious explanation is wrong, and the real one is not established
+
+The first guess was that the orphaned entry used to become its own line and sometimes matched a
+`(second)` truth entry by luck. It cannot: `applyCensus` states plainly that "only items the model
+explicitly listed as unmarked count here. An inViewCounts entry alone" does not create a line.
+
+The likelier mechanism is that `inViewCounts` is not a quantity field alone. A few lines into
+`applyCensus` it is also the **clamp-release** signal: an explicit count for a key releases that
+key's previously-merged tracks so they can re-count, deliberately, so a bad earlier clamp can be
+revised upward. Binding a count to a mark therefore does not just set a number, it changes which
+merged tracks are let go, and this corpus is full of nested boxes that the clamp exists to hold
+down. That would explain more lines and worse alignment together.
+
+**It is a hypothesis, and it is not measured.** Separating it needs several more six-pass rounds
+than the one product at stake justifies today.
+
+### What is shipped
+
+Nothing. The revert stands, and `recognize.test.ts` now pins the current behaviour with a test
+named for what it is, a refusal rather than an endorsement, carrying these numbers and a note not
+to "fix" it without re-measuring. This is the third time in this file a change that was obviously
+correct on inspection lost to the corpus, and the second where the tidy explanation for the loss
+turned out to be impossible on reading the code. **A four-line fix with a passing unit test and a
+clear rationale is still a guess until the corpus has seen it.**
