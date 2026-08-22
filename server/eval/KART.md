@@ -4195,3 +4195,27 @@ something that finds nothing are indistinguishable unless the distinction is bui
 The shelf photographs were skipped for having no count. Two constants are inert and behave as though
 absent. A harness printed zero and exited zero. And the app, where it costs a shopper their trust
 rather than an afternoon, did the same and said nothing.
+
+### The sweep, completed
+
+Having found the shape twice, the rest of the harnesses were checked rather than assumed, by running
+each against the empty account and reading the exit code:
+
+| | on a census that cannot be answered | |
+|---|---|---|
+| `census-live.ts` | throws, exits 1 | already correct |
+| `video-census-live.ts` | throws, **exits 1** | already correct |
+| `shelf-census.ts` | throws, **exits 1** | already correct |
+| `scan-loop.ts` | printed `0 of 9`, exited 0 | **fixed, eighty-fourth** |
+| `RecognitionSession` | empty bag, no trace | **fixed, eighty-fifth** |
+| `verify.py` | reported the above as "ran" | **fixed, eighty-fourth** |
+
+The three that were already right are right by accident rather than by design: they call `runCensus`
+directly, so an exception propagates and Node exits non-zero. The two that were wrong both sit
+behind something that catches for good reasons — `RecognitionSession` treats a failed census as a
+census that found nothing, which is correct for one bad call in a scan and wrong as the description
+of a whole run, and `scan-loop.ts` inherits that because it runs the real session.
+
+**That is where this bug lives in general: not in code that forgets to handle an error, but in code
+that handles it correctly at one scale and inherits the handling at another.** The fix in both cases
+was not to stop catching, it was to count.
