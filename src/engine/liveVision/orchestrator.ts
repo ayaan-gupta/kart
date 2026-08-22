@@ -266,6 +266,20 @@ export class RecognitionSession {
    * because the second capture of a cart has to associate against the first one's tracks or the
    * high-water mark counts the same items twice.
    *
+   * Written for a deliberate capture the shopper asks for, and now called automatically. Since
+   * 2026-08-22 `scan.tsx` routes every keyframe here, paced by `minIntervalMs`, roughly one every
+   * two seconds, because the device detector it used to badge from returns a single outline around
+   * the whole pile (mean 1.1 instances per frame, `npm run bench:detector`). Two consequences of
+   * that, neither harmful but both worth knowing:
+   *
+   * Unlike `onKeyframe` this does not re-check `worthACensus` before spending a call. The scan
+   * screen gates the *request* through `wantsKeyframe`, and the native side only produces a
+   * keyframe when asked, so the gate is applied one frame earlier rather than not at all.
+   *
+   * And the `minHits: 1` below was justified by a capture being deliberate. It still holds for the
+   * better reason: the regions come from the service's enumerator rather than from a frame of
+   * device noise, so there is nothing for a second and third sighting to corroborate.
+   *
    * Returns null when nothing was done, so a caller can tell "budget spent" from "the cart is
    * empty" without inspecting private state.
    */
@@ -297,8 +311,8 @@ export class RecognitionSession {
         score: region.score,
       }));
 
-      // minHits 1, unlike the live path's 3. A capture is one deliberate, authoritative look at
-      // the cart, not a frame that might be detector noise gone by the next one, so there is
+      // minHits 1, unlike the live path's 3. These regions come from the service's enumerator, not
+      // from a frame of device detection that might be noise gone by the next one, so there is
       // nothing for a second and third sighting to corroborate and holding every item tentative
       // would leave the whole cart drawn as "still forming".
       const advanced = updateTracks(tracker, instances, now, { minHits: 1 });
