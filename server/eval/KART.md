@@ -65,6 +65,24 @@ that no call ever named. The scan comes in one or two over, which is one product
 across four calls. Reading them as one number hid that; they are different faults and only the
 second is the one ten experiments were aimed at.
 
+One verdict changes materially. Every saved census run re-scored against the corrected counts:
+
+| | photographs exact, per pass | IMG_0252, of 9 | IMG_0254, of 15 |
+|---|---|---|---|
+| shipped, one produce prompt | 4, 4, 4 of 6 | 8, 8, 8 | 14, 9, 12 |
+| paired produce prompts | **5, 5, 5 of 6** | **9, 9, 10** | 11, 13, **15** |
+
+The trolley that had never once reached its count is exact in two passes of three with pairs, and
+one pass puts the fullest trolley exactly on fifteen. Pairs were refused because they take the
+scan from around ten to 13, 16 and 18, and that still decides it, since the product is a scan.
+But the photograph side of that trade was larger than the numbers it was refused on.
+
+What IMG_0252 misses under the shipped prompt is one object and always the same one: the yellow
+produce bag. Eight of nine, three passes of three, and never a word about it in unmarkedItems at
+any effort or resolution. The paired prompt is what puts a box on it, badge 8, which the catalog
+then misnames "tata agni truffle". So the miss is detection, the fix is known, and the fix costs
+the scan more than the miss costs a photograph.
+
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
 moves every number in this file.
