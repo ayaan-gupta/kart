@@ -119,6 +119,21 @@ interface ScanlineState {
   setHasHydrated(value: boolean): void;
 }
 
+/** Every thumbnail file a bag line owns: its own key first, then any key folded into it. */
+function ownedThumbnails(
+  line: { key: string; mergedKeys?: string[] },
+  thumbnails: Record<string, string>,
+): string[] {
+  const keys = [line.key, ...(line.mergedKeys ?? [])];
+  const seen = new Set<string>();
+  const uris: string[] = [];
+  for (const key of keys) {
+    const uri = thumbnails[key];
+    if (uri && !seen.has(uri)) { seen.add(uri); uris.push(uri); }
+  }
+  return uris;
+}
+
 const idleScan: ScanSession = { status: 'idle', startedAt: null, items: [], hint: null };
 
 function haulName(date: Date): string {
@@ -153,15 +168,12 @@ export const useScanline = create<ScanlineState>()(
             // `line.key` first, then any key folded into this line: the picture is stored under
             // the resolved key of whichever track earned it, which may be the one the fold dropped.
             //
-            // Known, small, and deliberate: if *both* folded keys earned a picture, only the one
-            // chosen here reaches the item, and `deleteHaul` reclaims files by `thumbnailUri`, so
-            // the other is orphaned on disk when the haul is deleted. It is a few KB, it needs a
-            // second field on the persisted `HaulItem` to fix, and that type already carries a
-            // version-2 migration. Left as it is rather than paid for with schema risk.
-            thumbnailUri:
-              thumbnails[line.key] ??
-              (line.mergedKeys ?? []).map((k) => thumbnails[k]).find(Boolean) ??
-              null,
+            // Every key this line owns can have a file, because the fold merges two lines that
+            // turned out to be one product and a thumbnail is saved under whichever key earned it.
+            // One is shown; the rest are carried so `deleteHaul` can reclaim them rather than
+            // leaving them on disk forever.
+            thumbnailUri: ownedThumbnails(line, thumbnails)[0] ?? null,
+            extraThumbnailUris: ownedThumbnails(line, thumbnails).slice(1),
           }));
           return { scan: { ...s.scan, items } };
         });
@@ -195,7 +207,10 @@ export const useScanline = create<ScanlineState>()(
       async deleteHaul(id) {
         const haul = get().hauls.find((h) => h.id === id);
         set((s) => ({ hauls: s.hauls.filter((h) => h.id !== id) }));
-        if (haul) await deleteHaulThumbnails(haul.items.map((it) => it.thumbnailUri));
+        if (haul) {
+          await deleteHaulThumbnails(haul.items.flatMap(
+            (it) => [it.thumbnailUri, ...(it.extraThumbnailUris ?? [])]));
+        }
       },
 
       setHasHydrated(value) {

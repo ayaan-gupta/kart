@@ -116,3 +116,68 @@ describe('deleteHaul thumbnail ownership', () => {
     expect(new File(survivor.items[0].thumbnailUri).exists).toBe(true);
   });
 });
+
+describe('a folded bag line owns more than one thumbnail file', () => {
+  // `bagLines` folds two lines that turn out to be one product, and a thumbnail is saved under the
+  // resolved key of whichever track earned it, so both folded keys can have a file. Only one can be
+  // shown. Before `extraThumbnailUris` the other was never reclaimed and sat on disk forever after
+  // the haul was deleted.
+  const folded = {
+    key: 'oreo::oreo',
+    name: 'Oreo',
+    brand: 'Oreo',
+    size: null,
+    category: 'snacks',
+    qty: 1,
+    mergedKeys: ['sku:kart_oreo'],
+  };
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  it('shows one picture and carries the rest', () => {
+    const { useScanline } = require('../store');
+    useScanline.getState().startScan();
+    useScanline.getState().setBag([folded], {
+      'oreo::oreo': 'file:///a.jpg',
+      'sku:kart_oreo': 'file:///b.jpg',
+    });
+    const [item] = useScanline.getState().scan.items;
+    expect(item.thumbnailUri).toBe('file:///a.jpg');
+    expect(item.extraThumbnailUris).toEqual(['file:///b.jpg']);
+  });
+
+  it('falls back to a folded key when the surviving key has no picture', () => {
+    // The case the fold created: the file is filed under the key the fold dropped.
+    const { useScanline } = require('../store');
+    useScanline.getState().startScan();
+    useScanline.getState().setBag([folded], { 'sku:kart_oreo': 'file:///b.jpg' });
+    const [item] = useScanline.getState().scan.items;
+    expect(item.thumbnailUri).toBe('file:///b.jpg');
+    expect(item.extraThumbnailUris).toEqual([]);
+  });
+
+  it('does not list the same file twice when both keys resolved to it', () => {
+    const { useScanline } = require('../store');
+    useScanline.getState().startScan();
+    useScanline.getState().setBag([folded], {
+      'oreo::oreo': 'file:///a.jpg',
+      'sku:kart_oreo': 'file:///a.jpg',
+    });
+    const [item] = useScanline.getState().scan.items;
+    expect(item.thumbnailUri).toBe('file:///a.jpg');
+    expect(item.extraThumbnailUris).toEqual([]);
+  });
+
+  it('leaves an unfolded line with no extras', () => {
+    const { useScanline } = require('../store');
+    useScanline.getState().startScan();
+    useScanline.getState().setBag(
+      [{ key: '::bananas', name: 'Bananas', brand: null, size: null, category: 'Produce', qty: 1 }],
+      { '::bananas': 'file:///c.jpg' },
+    );
+    const [item] = useScanline.getState().scan.items;
+    expect(item.extraThumbnailUris).toEqual([]);
+  });
+});
