@@ -1,0 +1,69 @@
+"""A census assembled from a local model, so the bag can be measured without a key.
+
+The shipped census asks one question about a composite with numbered badges. A small model
+cannot do that: measured on IMG_0249 it attached all three answers to the wrong badge. It can do
+the same job asked differently, one crop at a time, where there is no badge to confuse and
+alignment is exact by construction.
+
+So this asks three questions instead of one:
+
+  per crop   what is this, and is it a product a shopper is buying
+  per frame  which products are in this trolley that no crop covered
+
+and assembles the answers into the CensusResult shape `applyCensus` consumes. The cost is one
+call per region rather than one per frame, which is why the shipped design does not do it. The
+point here is a number for what the pipeline delivers with a real model in the loop and no key.
+"""
+import json, pathlib, re, sys
+import torch
+from PIL import Image, ImageOps
+from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+
+MODEL = "Qwen/Qwen2-VL-2B-Instruct"
+CARTS = ["IMG_0244", "IMG_0245", "IMG_0246", "IMG_0249", "IMG_0252", "IMG_0254"]
+NAME_Q = ("What grocery product is this? Answer with the product name only, three words at most. "
+          "If it is not a product a shopper is buying, answer NOT A PRODUCT.")
+FRAME_Q = ("List every distinct grocery product you can see in this shopping trolley, one per "
+           "line, name only. Do not list the trolley, the floor, bags, shoes or people.")
+
+frames = {f["id"]: f for f in json.loads(pathlib.Path(".cache/kart/frames.json").read_text())["frames"]}
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+proc = AutoProcessor.from_pretrained(MODEL)
+model = Qwen2VLForConditionalGeneration.from_pretrained(
+    MODEL, dtype=torch.float32).to(device).eval()
+
+def ask(image, question, tokens=16):
+    messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": question}]}]
+    text = proc.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = proc(text=[text], images=[image], return_tensors="pt").to(device)
+    with torch.no_grad():
+        out = model.generate(**inputs, max_new_tokens=tokens, do_sample=False)
+    return proc.batch_decode(out[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0].strip()
+
+out = {}
+for pid in CARTS:
+    frame = frames[pid]
+    pil = ImageOps.exif_transpose(Image.open(f".cache/kart/images/{pid}.jpg")).convert("RGB")
+    pil.thumbnail((1333, 1333))
+    W, H = pil.size
+    marks = []
+    for i, b in enumerate(frame["boxes"]):
+        pad = 0.08
+        crop = pil.crop((max(0, int((b["x"]-pad*b["w"])*W)), max(0, int((b["y"]-pad*b["h"])*H)),
+                         min(W, int((b["x"]+b["w"]*(1+pad))*W)),
+                         min(H, int((b["y"]+b["h"]*(1+pad))*H))))
+        if crop.width < 16 or crop.height < 16:
+            marks.append({"id": i, "name": "unreadable", "isProduct": False})
+            continue
+        said = ask(crop, NAME_Q)
+        product = "not a product" not in said.lower()
+        marks.append({"id": i, "name": said.lower().strip(". "), "isProduct": product})
+    whole = pil.copy(); whole.thumbnail((1024, 1024))
+    listed = [re.sub(r"^[-*\d.\s]+", "", ln).strip().lower()
+              for ln in ask(whole, FRAME_Q, tokens=160).splitlines() if ln.strip()]
+    out[pid] = {"marks": marks, "listed": [x for x in listed if x][:24]}
+    named = sum(1 for m in marks if m["isProduct"])
+    print(f"  {pid}: {named}/{len(marks)} regions called products, "
+          f"{len(out[pid]['listed'])} products listed for the whole frame", flush=True)
+pathlib.Path(".cache/kart/census-local.json").write_text(json.dumps(out, indent=1))
+print("\nwrote .cache/kart/census-local.json")
