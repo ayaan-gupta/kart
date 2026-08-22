@@ -125,6 +125,19 @@ function foldPlural(word: string): string {
   return word;
 }
 
+/**
+ * Stable key for one product across calls.
+ *
+ * Duplicated from `src/engine/liveVision/fusion.ts`, because the client cannot import from this
+ * package and both sides compute this key. If the two ever disagree the in-view clamp stops
+ * matching and duplicate items come back into the bag, silently: nothing throws, the numbers just
+ * get worse.
+ *
+ * What must match is the behaviour, not the text. The two packages format differently, double
+ * quotes here and single there, so a character diff always reports a difference; the contract is
+ * pinned by the `productKey` cases in `src/engine/liveVision/__tests__/fusion.test.ts`. **Change
+ * this and you must change the copy there, and those tests are what catch you if you do not.**
+ */
 export function productKey(name: string, brand: string | null): string {
   const norm = (s: string) =>
     s

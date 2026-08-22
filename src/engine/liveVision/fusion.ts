@@ -136,9 +136,14 @@ export function createFusionState(): FusionState {
 }
 
 /**
- * Stable key for one product across calls. Must stay character-for-character identical to
- * `productKey` in `server/src/schemas.ts`; the client and the server both compute it and the
- * in-view clamp silently stops matching if they ever diverge.
+ * Stable key for one product across calls.
+ *
+ * Duplicated in `server/src/schemas.ts` on purpose: the client cannot import from the server
+ * package, and both sides compute this key, so the in-view clamp silently stops matching if they
+ * ever disagree. What must match is the *behaviour*, not the text. The two packages format
+ * differently, single quotes here and double there, so a character diff of the two always reports
+ * a difference and always has; checking for one is misleading. The contract is pinned by the
+ * `productKey` cases in `__tests__/fusion.test.ts`, which is what fails if either side drifts.
  */
 /**
  * The key a mark counts under.
