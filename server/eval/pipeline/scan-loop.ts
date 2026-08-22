@@ -89,6 +89,11 @@ const SWEEP_ONCE = process.argv.includes('--sweep-once');
  * mid-scan is still found, one census later than it would have been.
  */
 const CORROBORATE = process.argv.includes('--corroborate-unmarked');
+/**
+ * The app sends the names it has already counted on every census (see `SessionDeps.requestCensus`),
+ * so the harness does too. `--no-reuse-names` turns it off for comparison.
+ */
+const REUSE_NAMES = !process.argv.includes('--no-reuse-names');
 const seenUnmarked = new Set<string>();
 const foldName = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
   .filter(Boolean).map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w))
@@ -167,7 +172,11 @@ const deps: SessionDeps = {
       ? serverMarks(currentFrame)
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
     if (marks.length === 0) return { ok: false, failure: 'server' } as any;
-    const census: any = await runCensus(image, marks);
+    const counted = REUSE_NAMES
+      ? (bagLines(session.state.fusion) as any[])
+          .map((l) => `${l.brand ? `${l.brand} ` : ''}${l.name}`)
+      : [];
+    const census: any = await runCensus(image, marks, undefined, counted);
     let unmarked = SWEEP_ONCE && calls > 1 ? [] : (census.unmarkedItems ?? []);
     if (CORROBORATE) {
       const kept: any[] = [];

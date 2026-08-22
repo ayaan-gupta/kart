@@ -475,6 +475,8 @@ export async function runCensus(
   image: Buffer,
   marks: Mark[],
   diagnostics?: CensusDiagnostics,
+  /** Product names the session has already counted, so this call can reuse them verbatim. */
+  alreadyCounted: string[] = [],
 ): Promise<CensusResponse> {
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
 
@@ -487,7 +489,7 @@ export async function runCensus(
       {
         role: "user",
         content: [
-          { type: "input_text", text: censusUserText(marks) },
+          { type: "input_text", text: censusUserText(marks, alreadyCounted) },
           { type: "input_image", image_url: dataUrl(composited), detail: "auto" },
         ],
       },

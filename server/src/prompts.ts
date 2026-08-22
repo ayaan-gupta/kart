@@ -141,9 +141,18 @@ Answer only with the structured object.
  * badges gives the model a second, independent way to bind a number to a region, which is
  * the documented weak point of set-of-mark prompting.
  */
-export function censusUserText(marks: Mark[]): string {
+export function censusUserText(marks: Mark[], alreadyCounted: string[] = []): string {
+  // Products the session has already counted, so this call can name them the same way rather than
+  // inventing a third phrasing. The trolley is static and every call re-describes it; a product
+  // that arrives as "packaged apples", then "red apples", then "bag of apples" opens three lines
+  // nothing can join. This does not ask for fewer products, it asks for the same words.
+  const known = alreadyCounted.length > 0
+    ? `\n\nAlready counted in this scan: ${alreadyCounted.join("; ")}.\nIf you see one of those `
+      + `again, use exactly that name. Report every other product as usual; this list is not a `
+      + `limit on what to report.`
+    : "";
   if (marks.length === 0) {
-    return "No regions were detected. List every grocery product you can see in unmarkedItems.";
+    return "No regions were detected. List every grocery product you can see in unmarkedItems." + known;
   }
   const rows = marks
     .map((m) => {
@@ -159,5 +168,5 @@ export function censusUserText(marks: Mark[]): string {
       return `${row}\n     catalog: ${names}`;
     })
     .join("\n");
-  return `There are ${marks.length} numbered regions. Their normalized positions, where (0,0) is top-left and (1,1) is bottom-right:\n${rows}\n\nIdentify the product in each.`;
+  return `There are ${marks.length} numbered regions. Their normalized positions, where (0,0) is top-left and (1,1) is bottom-right:\n${rows}\n\nIdentify the product in each.${known}`;
 }

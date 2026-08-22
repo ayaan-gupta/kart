@@ -188,7 +188,7 @@ describe("POST /api/census: marks validation", () => {
     });
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, []);
   });
 
   it("rejects marks that is not an array", async () => {
@@ -294,7 +294,7 @@ describe("POST /api/census: marks validation", () => {
     ];
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, []);
   });
 });
 
@@ -441,7 +441,7 @@ describe("POST /api/census: the capture path, where the server finds the regions
 
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), []);
+    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, []);
     const body = await res.json();
     expect(body.enumeration).toBe("degraded");
     expect(body.regions).toEqual([]);
@@ -504,5 +504,48 @@ describe("the catalog shortlist reaches the prompt", () => {
       { sku: "Froot Loops", confidence: 0.87 },
       { sku: "Apple Jacks", confidence: 0 },
     ]);
+  });
+});
+
+describe("POST /api/census: the names the session has already counted", () => {
+  // A scan asks four times about a static trolley and the model picks fresh words each time, so
+  // one bag arrives as "packaged apples", then "red apples", then "bag of apples" and opens three
+  // lines nothing joins. The client sends back what it already has so the census can reuse a
+  // phrasing. This text reaches a model prompt, so it is bounded and sanitised rather than trusted.
+  const answer = {
+    marks: [], unmarkedItems: [], inViewCounts: [],
+    occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+  };
+
+  it("passes the names through", async () => {
+    runCensusMock.mockResolvedValueOnce(answer);
+    await handler(post({ image: validImage, counted: ["Oreo", "Granny Smith apples"] }));
+    expect(runCensusMock.mock.calls[0][3]).toEqual(["Oreo", "Granny Smith apples"]);
+  });
+
+  it("treats an absent list as empty, so an older client still works", async () => {
+    runCensusMock.mockResolvedValueOnce(answer);
+    await handler(post({ image: validImage }));
+    expect(runCensusMock.mock.calls[0][3]).toEqual([]);
+  });
+
+  it("drops entries that are not strings rather than stringifying them", async () => {
+    runCensusMock.mockResolvedValueOnce(answer);
+    await handler(post({ image: validImage, counted: ["Oreo", 42, null, { a: 1 }, "  "] }));
+    expect(runCensusMock.mock.calls[0][3]).toEqual(["Oreo"]);
+  });
+
+  it("rejects a counted value that is not an array", async () => {
+    const res = await handler(post({ image: validImage, counted: "Oreo" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("bounds how much of it reaches the prompt", async () => {
+    runCensusMock.mockResolvedValueOnce(answer);
+    const many = Array.from({ length: 200 }, (_, i) => `product ${i}`.padEnd(400, "x"));
+    await handler(post({ image: validImage, counted: many }));
+    const sent = runCensusMock.mock.calls[0][3] as string[];
+    expect(sent.length).toBeLessThanOrEqual(64);
+    expect(Math.max(...sent.map((n) => n.length))).toBeLessThanOrEqual(120);
   });
 });

@@ -2899,3 +2899,37 @@ corroboration. Six approaches, one cause.
 Which is why the only thing that worked does not look at the descriptions at all. `--sweep-once`
 never asks whether two descriptions mean one product; it stops the second one being produced.
 That is a different kind of answer, and its cost is the risk it carries rather than a wrong merge.
+
+## Sixty-first: telling the census what the session already counted
+
+Six lexical approaches failed because a real product's description varies as much as an invented
+one's. The only thing that worked, `--sweep-once`, works by never letting the second description be
+produced, and carries a risk this corpus cannot test. That points at a third option: let every call
+sweep, but tell it the words the session has already used.
+
+This file lists "the census given its own session's answers" among seven things tried and refused.
+That was before the `sharedNames` fold and before `scan.tsx` used the capture path, and it handed
+the model its prior *answers*. This hands it the bag's *names*, with the prompt saying in as many
+words that the list is not a limit on what to report.
+
+Six runs each through the app's real loop:
+
+| | units against 9 | products found | lines matching nothing real |
+|---|---|---|---|
+| without | 8, 12, 10, 11, 9, 10 (**10.0**) | 8.33 of 9 | about **1.7** |
+| **with** | 8, 8, 10, 9, 9, 8 (**8.67**) | 8.17 of 9 | **0.33** |
+
+Spurious lines fall five-fold, recall is unchanged inside its own spread, and the unit count moves
+from one over to a third under. It is the best result on the scan in this file and the first that
+does not trade recall for it.
+
+**Why it works when the fusion rule predicts it should not.** Giving the census more to weigh has
+cost accuracy eight times here, and this gives it more to read. But it does not add candidates or
+ask for more work: it removes a degree of freedom. The model was choosing a phrasing freely on
+every call, and free choice on a static trolley is exactly what produces three names for one bag.
+Constraining the phrasing is not the same kind of "more" as another prompt, another pass or another
+region, and the measurement is what separates them rather than the reasoning.
+
+Shipped: `CensusRequest.counted`, sent by both of the orchestrator's census call sites from
+`bagLines`, parsed server-side with the entries bounded and sanitised because the text reaches a
+model prompt. An absent list behaves exactly as before, so an older client is unaffected.

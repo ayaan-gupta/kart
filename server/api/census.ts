@@ -24,6 +24,36 @@ const MAX_MARKS = 40;
 
 /** Exported so tests can exercise malformed box coordinates (e.g. NaN) directly as JS
  * values, bypassing JSON.stringify, which cannot produce a literal NaN over the wire. */
+/**
+ * Product names the session has already counted, so this census can name them the same way.
+ *
+ * A scan asks four times about a static trolley and the model chooses fresh words each time, so
+ * one bag arrives as "packaged apples", then "red apples", then "bag of apples" and opens three
+ * lines nothing joins. Sending back what has already been counted is not a limit on what to
+ * report, and the prompt says so; it is a request to reuse a phrasing rather than invent a third.
+ *
+ * Bounded and sanitised here rather than trusted: this text goes into a model prompt, so its
+ * length is capped and each entry trimmed, and anything that is not a non-empty string is dropped
+ * rather than stringified.
+ */
+/** A scan counts at most a cartful; this is generous and bounds the prompt text. */
+const MAX_COUNTED = 64;
+/** One product name, generously. Longer is a malformed client, not a longer product. */
+const MAX_COUNTED_NAME = 120;
+
+export function parseCounted(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error("counted must be an array");
+  const out: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") continue;
+    const trimmed = entry.trim().slice(0, MAX_COUNTED_NAME);
+    if (trimmed.length > 0) out.push(trimmed);
+    if (out.length >= MAX_COUNTED) break;
+  }
+  return out;
+}
+
 export function parseMarks(value: unknown): Mark[] {
   if (!Array.isArray(value)) throw new Error("marks must be an array");
   if (value.length > MAX_MARKS) throw new Error("too many marks");
@@ -64,6 +94,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   let image: Buffer;
   let marks: Mark[];
+  let counted: string[];
   try {
     assertReasonableContentLength(req);
     assertJsonContentType(req);
@@ -72,6 +103,7 @@ export default async function handler(req: Request): Promise<Response> {
     image = decodeBase64Image(body.image, "image");
     await assertReasonablePixelDimensions(image);
     marks = parseMarks(body.marks ?? []);
+    counted = parseCounted(body.counted);
   } catch (err) {
     return fail(err, 400);
   }
@@ -97,7 +129,7 @@ export default async function handler(req: Request): Promise<Response> {
       marks = marksFromRegions(regions);
     }
 
-    const result = await withTimeout(runCensus(image, marks));
+    const result = await withTimeout(runCensus(image, marks, undefined, counted));
 
     // The geometry goes back with the identifications. The device no longer has it: it never ran
     // a detector, so without this there is nothing to draw an outline around and nothing for the

@@ -2,6 +2,7 @@ import {
   addAlias,
   applyBarcode,
   applyCensus,
+  bagLines,
   createFusionState,
   isBarcodeKey,
   productKey,
@@ -175,7 +176,9 @@ export interface SessionDeps {
   requestCensus: (
     // Marks are optional: omitting them asks the server to enumerate the frame itself, which is
     // what `onCapture` does. `onKeyframe` still sends the on-device path's own marks.
-    req: { imageBase64: string; marks?: { id: number; box: Box }[] },
+    // `counted` carries the names the bag already holds, so the census reuses a phrasing rather
+    // than inventing a third for the same product. Not a limit on what it may report.
+    req: { imageBase64: string; marks?: { id: number; box: Box }[]; counted?: string[] },
     signal?: AbortSignal,
   ) => Promise<ClientResult<CensusPayload>>;
   requestIdentify: (
@@ -211,6 +214,11 @@ export class RecognitionSession {
   constructor(private readonly deps: SessionDeps) {}
 
   /** Cancels in-flight work. Called when the scan screen unmounts. */
+  /** What the bag already holds, for the census to reuse rather than rename. */
+  private countedNames(): string[] {
+    return bagLines(this.state.fusion).map((l) => (l.brand ? `${l.brand} ${l.name}` : l.name));
+  }
+
   dispose(): void {
     this.disposed = true;
     this.controller.abort();
@@ -297,7 +305,8 @@ export class RecognitionSession {
 
     try {
       // No marks: the server is being asked to find them.
-      const result = await this.deps.requestCensus({ imageBase64 }, this.controller.signal);
+      const result = await this.deps.requestCensus(
+        { imageBase64, counted: this.countedNames() }, this.controller.signal);
       if (this.disposed) return null;
       if (!result.ok) {
         if (result.failure === 'unconfigured') this.permanentlyUnavailable = true;
@@ -383,7 +392,8 @@ export class RecognitionSession {
     this.state = { ...this.state, censusCalls: this.state.censusCalls + 1 };
 
     try {
-      const result = await this.deps.requestCensus({ imageBase64, marks }, this.controller.signal);
+      const result = await this.deps.requestCensus(
+        { imageBase64, marks, counted: this.countedNames() }, this.controller.signal);
       if (this.disposed) return;
 
       if (!result.ok) {
