@@ -67,9 +67,18 @@ node --env-file=server/.env.local server/node_modules/.bin/tsx \
   server/eval/pipeline/census-live.ts --frames=frames-augment15.json --repeat=3
 ```
 
-Both outcomes are worth having. Named as anything matching "yellow" or "produce bag", the corpus's
-most stubborn item is solved on the stills. Named `purple cabbage` — which is what the local 7B says
-— it is closed on the strongest evidence available: a clean crop, the shipped model, still wrong.
+**Set expectations from the picture, not the description.** Rendering what the augmentation adds
+shows both new boxes are multi-product: one covers the Muenster pack *and* an egg carton, and the
+one on the yellow bag also holds the purple bag and part of the baguette. An earlier draft of this
+file called it "a clean crop". It is not, and the ninetieth already recorded that correction — the
+box reaches the yellow bag, it does not isolate it.
+
+So the likely outcome is the local 7B's: `purple cabbage`, because a crop containing a prominent
+purple bag reasonably reads as one. If that is what the shipped model says, the item is closed on
+the best evidence available. If it says anything matching "yellow" or "produce bag" despite the
+purple, that is a real result and the corpus's most stubborn item is solved on the stills.
+
+Either way it costs one census pass, which is why it is third rather than first.
 
 ## 4. Re-baseline
 
