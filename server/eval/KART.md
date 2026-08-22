@@ -5907,3 +5907,67 @@ and "Yellow rectangle", and why the other five are grocery-flavoured guesses at 
 the corpus ones above, and the honest summary of this section is that the path from a phone to a
 named bag now works end to end without credit, on hardware that is not a phone, against an image
 that is not a trolley.
+
+---
+
+## The hundred-and-twelfth: the whole verification set, with no OpenAI account
+
+The hundred-and-eleventh measured one photograph through the local stack and called the path
+proven. One photograph is not the set. This is all ten photographs and the nine-second video,
+posted over HTTP to a running recognition service exactly as a phone would, with no OpenAI
+account involved anywhere.
+
+`run_local_stack.py` is the harness. Unlike every other harness here it does not call the
+recognition functions, it calls the server, so what it measures is enumeration, mark composition,
+the census and the JSON that comes back.
+
+| | products | strict | lenient |
+|---|---|---|---|
+| IMG_0244 | 1 | **1** | 1 |
+| IMG_0245 | 1 | **1** | 1 |
+| IMG_0246 | 2 | **2** | 2 |
+| IMG_0249 | 3 | **3** | 3 |
+| IMG_0252 | 9 | **8** | 8 |
+| IMG_0254 | 15 | **8** | 8 |
+| **six trolleys** | **31** | **23** | **23** |
+| the video, four frames fused | 10 | **7** | **8** |
+
+The four shelf photographs hold no trolley and score 0 of 0 by construction.
+
+Strict asks for the truth item's head noun, lenient for any non-generic shared word. They agree
+almost everywhere, which is the useful signal: this model either names the product or says
+something unrelated, and rarely lands in between.
+
+### What the numbers mean next to the shipped ones
+
+The shipped model reaches **76 of 93 products over three passes** and the video **8 of 9**. This is
+one pass of a 2B model with no catalog shortlist and box-shaped outlines instead of silhouettes,
+and it reaches 23 of 31 and 8 of 10. **It is worse, and the four sparse trolleys are where it is
+not**: 1, 1, 2 and 3 out of 1, 1, 2 and 3, every item, every time.
+
+IMG_0252 at 8 of 9 misses exactly one item, and it is the yellow produce bag, which is the item
+eleven sections of this file are about. IMG_0254 at 8 of 15 is where the gap really lives: it
+misses both Muenster packs, the beef, the Fuji bag, the broccoli and the second egg carton, and
+volunteers "MILK" and a duplicated egg carton in their place.
+
+The video finding **tomatoes** is worth recording, because `counts.json` says the tomatoes are
+never isolated in any of the 27 frames. They are not isolated here either. They arrive through the
+unmarked sweep, which needs no box, and that is the mechanism the eighty-second section credited
+for the same thing.
+
+### Two faults in this path, stated rather than buried
+
+**`subjectIsCart` is hardcoded true** in `localvlm/serve.py`. The four shelf photographs are not
+trolleys and the local census says they are, which the shipped prompt gets right. It costs nothing
+in the table above because those rows have no products to find, and it would matter immediately to
+a shopper who pointed the camera at a shelf.
+
+**The shelf photographs draw 27, 21, 42 and 14 answers.** A shelf is full of products, so naming
+them is not wrong; reporting a cart's contents from one would be. That is the same fault as above
+seen from the other side.
+
+### Cost
+
+Between 55 and 290 seconds per photograph on an M-series Mac, against roughly four seconds for the
+shipped model. The whole set took about half an hour. This is a fallback for a machine with no
+credit, and the timings are the reason it is not a product.
