@@ -4246,3 +4246,48 @@ one: five items found and nothing said, against nothing found and nothing said.
 One harness-only change came with it. `CoachNotice` now renders after the diagnostics sheet in the
 Frame Lab, because that sheet is pinned to the same top offset the notice uses and covered it
 exactly. `scan.tsx` has nothing above the notice, so its order is untouched.
+
+## Eighty-sixth: what the pipeline delivers with no API at all
+
+The local census path exists so the bag can be measured without a key, and it had only ever been
+run on the 2B. With the account empty and a 7B already loaded for three other measurements, the
+obvious question is what the whole pipeline delivers with no OpenAI call in it — which is also the
+question "could this ship without the API".
+
+Per photograph, units in the bag against real items:
+
+| photograph | real | local 2B | **local 7B** | shipped gpt-5.4-mini |
+|---|---|---|---|---|
+| IMG_0244 | 1 | 1 | **1** | |
+| IMG_0245 | 1 | 1 | **1** | |
+| IMG_0246 | 2 | 2 | **2** | |
+| IMG_0249 | 3 | 4 | **3** | |
+| IMG_0252 | 9 | 10 | 11 | |
+| IMG_0254 | 15 | 16 | 19 | |
+| **units, all six** | **31** | 34 | 37 | **28.3** per pass |
+| **exact** | | 3 of 6 | **4 of 6** | 4.3 of 6 |
+
+**The 7B is the better local model and still the wrong answer.** It is exact on all four sparse
+trolleys where the 2B was not, and it makes the `isProduct` judgement the 2B fails: on IMG_0244 it
+calls 1 of 2 regions a product, correctly rejecting the plastic disc moulded into the trolley's
+child seat. Then it inflates both loaded trolleys, +2 and +4, and ends further from the truth in
+total than the smaller model.
+
+The mechanism is one this file already has a name for. The 7B lists **11** products for IMG_0254's
+whole frame where the 2B lists 9: a more capable model sweeps the unmarked channel harder, and on a
+dense trolley that produces descriptions that will not join rather than products that were missed.
+It is the same result as gpt-5.4 against gpt-5.4-mini in the twenty-second, arriving from two model
+generations lower down.
+
+### What it answers
+
+Shipping without the API is not currently a trade between cost and a little accuracy. On the four
+sparse trolleys a local 7B is exact and the shipped model is not always; on the two loaded ones,
+which are the real use case, it is 6 units worse against a truth of 31. **The value of the shipped
+model is concentrated exactly where the product's value is.**
+
+The comparison is not model-for-model, and should not be read as one: the local path asks one crop
+at a time and the shipped path asks one composite with numbered badges, so this compares two
+pipelines. That is the honest framing, and it is also the useful one, because the per-crop pipeline
+is the only one a local model can run at all — the twenty-first measured a 2B putting all three
+answers on the wrong badge under set-of-mark.
