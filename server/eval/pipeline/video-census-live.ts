@@ -34,8 +34,11 @@ import type { Mark } from '../../src/compositor';
 
 const HERE = join(import.meta.dirname, '..');
 const withCatalog = !process.argv.includes('--no-catalog');
-const video = JSON.parse(readFileSync(
-  join(HERE, withCatalog ? 'video-frames-catalog.json' : 'video-frames.json'), 'utf8'));
+/** `--frames=<name>` reads a different file from `server/eval/`, so a detection change can be
+ * put through the same scan without a second copy of this file. */
+const framesArg = process.argv.find((a) => a.startsWith('--frames='));
+const video = JSON.parse(readFileSync(join(HERE, framesArg ? framesArg.split('=')[1]
+  : (withCatalog ? 'video-frames-catalog.json' : 'video-frames.json')), 'utf8'));
 
 /** Overlap of two normalized boxes, for putting a smoothed track box back on its detection. */
 function iou(a: any, b: any): number {

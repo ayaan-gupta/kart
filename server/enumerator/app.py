@@ -54,7 +54,7 @@ from regions import (  # noqa: E402
     NESTED_CONTAINMENT,
     NESTED_MAX_RATIO,
     NMS_IOU,
-    PRODUCE_PROMPTS,
+    PRODUCE_PROMPT,
     PRODUCE_THRESHOLD,
     SIMPLIFY_EPSILON,
     dedupe,
@@ -188,30 +188,29 @@ class Enumerator:
         #
         # The cost is a second DINO forward pass per keyframe. SAM still runs once, over the
         # merged set.
-        # Two nouns to a prompt, not all twenty-eight in one, because the paragraph above stops
-        # being true at the boundary: PRODUCE_PROMPT is itself 28 phrases carrying a threshold
-        # chosen for a short one. eval/dilution.py measures what that gives away, on regions
-        # whose contents are known. A cauliflower scores 0.66 with the noun alone and 0.23 with
-        # 27 companions; the tomatoes on the ten-product trolley score 0.32 and 0.15. At one or
-        # two phrases five of six subjects clear 0.30, at 28 two do, and on that trolley the
-        # single prompt proposes nothing at all.
+        # One prompt of 28 phrases, and `PRODUCE_PROMPTS` next door is the same nouns two to a
+        # prompt, measured and refused. The reasoning for pairs is sound and the measurement is
+        # in eval/dilution.py: Grounding DINO gives a phrase away to its companions, so a
+        # cauliflower scoring 0.66 with the noun alone scores 0.23 with 27 of them, the tomatoes
+        # on the ten-product trolley score 0.32 and 0.15, and on that trolley this pass proposes
+        # nothing at all.
         #
-        # Measured both ways on both counting corpora. The ten trolley photographs: mean absolute
-        # count error 1.5 items to 1.2, and 0.8 to 0.4 on the five where the count is certain,
-        # with the trolley that had never exceeded nine of ten reaching ten. The 24 cart
-        # photographs, which is where the 0.12 threshold sweep was rejected for shattering net
-        # bags: 38 of 43 counted correctly either way, mean absolute error 0.5 either way, so the
-        # thing that sweep broke is untouched. Holding PRODUCE_THRESHOLD at 0.30 is why.
+        # On photographs pairs are better. The ten trolley photographs: mean absolute count error
+        # 1.5 items to 1.2, 0.8 to 0.4 on the five where the count is certain, and the trolley
+        # that had never exceeded nine of ten reaches ten. The 24 cart photographs are unmoved,
+        # 38 of 43 either way.
         #
-        # It is not free. Proposals sitting inside another proposal go from 8 of 289 to 27 of
-        # 303 on the cart corpus, which is the same shattering in miniature, and the pass costs
-        # fourteen forward passes where it cost one. Set this back to `(PRODUCE_PROMPT,)` to undo
-        # both, at the cost of the tomatoes.
-        produce_boxes, produce_scores = [], []
-        for prompt in PRODUCE_PROMPTS:
-            found, found_scores = ground(prompt, PRODUCE_THRESHOLD)
-            produce_boxes += found
-            produce_scores += found_scores
+        # On the scan they are much worse, and the scan is what the product is. Re-detected with
+        # pairs, the nine-second video's bag goes from 10, 10, 10 units against 10 real products
+        # to 16, 13, 18. Detection goes from 137 boxes to 205, and the extra ones land on produce
+        # fragments in motion-blurred 1080p frames, where the census cannot sort them out the way
+        # it can on a 24 megapixel photograph. Proposals sitting inside another proposal go from
+        # 8 of 289 to 27 of 303 on the cart corpus, which is the same thing measured statically.
+        #
+        # So the trade is one unit on one photograph against three to eight on every scan, and
+        # fourteen forward passes for it. `PRODUCE_PROMPTS` stays, with the flags in
+        # score_kart.py and score_carts.py, because a sharper camera would change this answer.
+        produce_boxes, produce_scores = ground(PRODUCE_PROMPT, PRODUCE_THRESHOLD)
         for i in merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= MAX_INSTANCES:
                 break

@@ -114,6 +114,11 @@ def main(argv=None):
     parser.add_argument("--segments", default="205:30,245:30,320:30,425:30",
                         help="comma separated start:length in seconds")
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
+    parser.add_argument("--produce-pairs", action="store_true",
+                        help="run the produce nouns two to a prompt. On this nine-second scan it "
+                             "takes detection from 137 boxes to 205 and the bag from 10 units "
+                             "against 10 real products to 16, 13 and 18, which is why app.py "
+                             "does not")
     parser.add_argument("--index", default=str(CACHE / "index-b16-ft1.npz"))
     parser.add_argument("--out", default=str(HERE / "video-frames.json"))
     args = parser.parse_args(argv)
@@ -167,8 +172,11 @@ def main(argv=None):
             scores = [scores[i] for i in keep]
         # The same second pass the service runs. Without it this harness measures a detector the
         # product does not have, and a trolley is mostly produce.
+        # One prompt or pairs, the same choice app.py documents. --produce-pairs is how the
+        # 16, 13, 18 units against 10 real products in that comment were measured.
+        prompts = regions.PRODUCE_PROMPTS if args.produce_pairs else (regions.PRODUCE_PROMPT,)
         produce_boxes, produce_scores = [], []
-        for prompt in regions.PRODUCE_PROMPTS:
+        for prompt in prompts:
             produce = proc(images=pil, text=prompt, return_tensors="pt").to(device)
             with torch.no_grad():
                 produce_out = dino(**produce)
