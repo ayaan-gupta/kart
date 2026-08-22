@@ -4908,3 +4908,32 @@ LLMDet — whose LVIS numbers are higher again — has not been tried.
 The caveat is the standing one: this is scored through a local 7B census, not gpt-5.4-mini, and a
 larger model may convert extra badges differently. It is the seventh measurement pointing one way,
 which is why it is believed and why it still deserves a credit-backed re-run.
+
+### LLMDet, the strongest benchmark number, is the weakest here
+
+The ninety-sixth closed by naming LLMDet as untried and its LVIS numbers as higher again — 47.8
+Val1.0 AP against MM Grounding DINO tiny's 31.9. Tried, at three thresholds:
+
+| detector | threshold | proposals | reached, readable | isolated, readable |
+|---|---|---|---|---|
+| Grounding DINO, **as shipped** | 0.23 | 19 | 19 of 20 | 11 of 20 |
+| MM Grounding DINO base_all | 0.15 | 24 | **20 of 20** | **13 of 20** |
+| LLMDet base | 0.23 | 15 | 14 of 20 | 9 of 20 |
+| LLMDet base | 0.15 | 21 | 17 of 20 | 11 of 20 |
+| LLMDet base | 0.10 | 25 | 16 of 20 | 9 of 20 |
+
+**The model with the best published LVIS score is the worst on this corpus at every threshold
+tried**, and it is worse per proposal as well as in total: at 0.15 it spends 21 proposals to reach
+17 of 20 where the shipped detector spends 19 to reach 19.
+
+A plausible reason, offered as a hypothesis rather than a measurement: LLMDet's advantage comes from
+training on grounding captions, which sharpens referring expressions — "the bag behind the bread" —
+while this pipeline asks one generic phrase, `a grocery product. a packaged food item. a drink
+container.`, of every frame. A model tuned to resolve descriptions may be a poor fit for a prompt
+that describes nothing in particular.
+
+**The transferable point is about benchmarks, not about LLMDet.** Three detectors, three orderings:
+MM Grounding DINO wins on boxes and loses on the bag; LLMDet wins on LVIS and loses on boxes; the
+shipped model wins where it counts. A leaderboard rank is a hypothesis about your task, and on this
+corpus it was wrong twice in a row. What makes that cheap to discover is `compare_detectors.py`
+against the hand-labelled boxes: a new candidate is one command and about four minutes.
