@@ -234,13 +234,16 @@ for (const l of lines) {
 
 // Contents, not just size.
 {
-  const names = lines.map((l: any) => `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase());
-  const { found, strict, lenient, spurious } = scoreContents(names);
+  const named = lines.map((l: any) => ({
+    name: `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase(),
+    qty: l.qty ?? 1,
+  }));
+  const { found, strict, lenient, spurious } = scoreContents(named);
   console.log(`\n  products found ${strict} of ${VIDEO_TRUTH.length} on an unambiguous word, ` +
     `${lenient} of ${VIDEO_TRUTH.length} allowing words this trolley shares between two products`);
   const missing = VIDEO_TRUTH.filter((p) => !found.has(p.id)).map((p) => p.id);
   if (missing.length) console.log(`  missing: ${missing.join(', ')}`);
-  if (spurious.length) console.log(`  lines matching nothing real: ${spurious.map((i) => names[i]).join(', ')}`);
+  if (spurious.length) console.log(`  lines matching nothing real: ${spurious.join(', ')}`);
 }
 for (const line of lines) console.log(`    ${line.qty ?? 1} x ${line.name}`);
 const missing = PRODUCTS.filter((p) => !lines.some((l) => (l.name ?? '').toLowerCase().includes(p.split('_')[0])));

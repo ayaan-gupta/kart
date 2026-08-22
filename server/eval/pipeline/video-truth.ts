@@ -35,18 +35,29 @@ export const VIDEO_TRUTH: { id: string; strong: string[]; weak: string[] }[] = [
 ];
 
 /** Greedy assignment, strong words first, each line used once and each product filled once. */
-export function scoreContents(names: string[]) {
-  const used = new Set<number>();
+/**
+ * Greedy assignment, unambiguous words first.
+ *
+ * A line satisfies as many truth entries as its quantity says, and leftover units count as
+ * spurious. That matters because a bag line carries a quantity: the shipped path returns
+ * "2 x long loaf of bread in clear plastic wrap", which is two units on one line. Counting lines
+ * would credit that as one product and, worse, count one spurious unit where there are two. The
+ * photograph scorer in `census-live.ts` was fixed the same way after it understated both models;
+ * this copy was extracted before that fix and had drifted from it.
+ */
+export function scoreContents(lines: { name: string; qty: number }[]) {
+  const left = lines.map((l) => Math.max(1, l.qty));
   const found = new Map<string, { line: number; tier: 'strong' | 'weak' }>();
   for (const tier of ['strong', 'weak'] as const) {
     for (const product of VIDEO_TRUTH) {
       if (found.has(product.id)) continue;
       const words = product[tier];
-      const at = names.findIndex((n, i) => !used.has(i) && words.some((w) => n.includes(w)));
-      if (at >= 0) { used.add(at); found.set(product.id, { line: at, tier }); }
+      const at = lines.findIndex((l, i) => left[i] > 0 && words.some((w) => l.name.includes(w)));
+      if (at >= 0) { left[at] -= 1; found.set(product.id, { line: at, tier }); }
     }
   }
   const strict = [...found.values()].filter((v) => v.tier === 'strong').length;
-  const spurious = names.map((_, i) => i).filter((i) => !used.has(i));
+  // Units left over once every real product is satisfied, so a qty-2 invention counts twice.
+  const spurious = lines.flatMap((l, i) => (left[i] > 0 ? [`${l.name}${left[i] > 1 ? ` x${left[i]}` : ''}`] : []));
   return { found, strict, lenient: found.size, spurious };
 }
