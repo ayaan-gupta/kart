@@ -121,10 +121,23 @@ shopper's tote and behind other items, and nothing in the detector ever sees the
 enumeration recall this pipeline is built around, and `unmarkedItems` is the designed mitigation
 for exactly it, recovering none to two of the four depending on the run.
 
+Resolution is not it either, and this is the one that settles it. The detector receives a 1333
+thumbnail; the census was raised to 1536 today because it could not read labels, and the detector
+was never re-checked. Run at 1333, 2000 and 2666:
+
+| | 1333 | 2000 | 2666 |
+|---|---|---|---|
+| IMG_0252, regions of 9 real | **9** | **9** | **9** |
+| IMG_0254, regions of 15 real | 11 | 11 | 11 |
+
+Identical at every scale, down to the same 20 raw proposals collapsing to the same 11. The four
+are not small, they are covered. More pixels of a tote bag is still a tote bag.
+
 Which makes the two photographs different problems, and only one of them was ever a bug. IMG_0252
-was a detector miss on a visible object and is fixed. IMG_0254 is recall on objects that are not
-visible to a detector at all, and the answer to it is the shopper being asked to move things,
-which is what `occlusion.severity` "many" on that photograph is for and what it reports.
+was a detector miss on a visible object; detection now proposes exactly nine regions for its nine
+products at any resolution, and it is fixed. IMG_0254 is recall on objects not visible to a
+detector at all, and the answer to it is the shopper being asked to move things, which is what
+`occlusion.severity` on that photograph reports every time.
 
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
