@@ -2840,7 +2840,23 @@ So the honest state is: measured better here, on the one trolley that never chan
 named risk on the trolleys that do. What would settle it is a scan of a cart being loaded, which is
 a capture, not a code change. Recorded and spawned rather than taken.
 
-The narrower version worth trying first is not "sweep once" but "sweep what is not already there":
-allow `unmarkedItems` on every call but drop entries that duplicate a line already in the bag. That
-is the paraphrase problem this file refused twice on lexical grounds, and it may be tractable now
-that `sharedNames` gives a safe test for when two names are one product.
+A narrower version suggested itself and does not work, which is worth writing down so nobody
+spends a day on it. "Sweep what is not already there" — allow `unmarkedItems` on every call but
+drop entries duplicating a line already in the bag — **cannot catch anything**, by construction
+rather than by measurement. `bagLines` already folds two lines sharing a folded name unless that
+name is in `sharedNames`. So every pair of lines that survives into a bag either has different
+folded names, in which case an exact-name test does not match them, or has a shared name, in which
+case they are two real objects and dropping one would be wrong.
+
+Inspection agrees. A representative bag: `Cadbury Oreo`, `granny smith apples`, `Dave's Killer
+Bread Seedtastic Bread`, `brussels sprouts`, `purple produce bag`, `asparagus`, `baguette`,
+`Kart Cauliflower`, and one spurious `bag of green vegetables`. The spurious line is a paraphrase
+of the greens, not a repeat of any name present. Every duplicate an exact test could find has
+already been folded before the bag is built.
+
+So the remaining duplicates are paraphrases, which is where this file has been three times: the
+name fold, the SKU fold and the overlap fold were each refused on measurement, and a substring fold
+was measured wrong twice as often as right because this trolley holds two bags of apples. The
+suppression above works because it does not try to *recognise* a duplicate at all; it removes the
+opportunity to create one. That is why the only untested question left is whether it can be done
+without losing an item added mid-scan.
