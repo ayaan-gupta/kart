@@ -248,6 +248,29 @@ export default function ScanScreen() {
         };
 
         if (scan.keyframe !== null) {
+          // KNOWN GAP, measured 2026-08-22, written here because this is the line it lives on.
+          //
+          // `result.tracks` comes from `AppleInstanceMaskDetector` by way of `processFrame`, and
+          // that detector does not enumerate a cart. Run over the 30 frames of the corpus scan
+          // with `npm run bench:detector`, it returns 1 to 2 instances per frame, mean 1.1, and
+          // its single instance is one outline around the whole pile of goods rather than one per
+          // item. `docs/detector-decision.md` measured the same Vision request as dead a week
+          // earlier and landed on the remedy: `RecognitionSession.onCapture`, which sends the
+          // frame with no marks so the service enumerates it. `onCapture` is implemented, tested
+          // and called from nothing but its own tests.
+          //
+          // What it costs, measured on the corpus scan with
+          // `video-census-live.ts --regions=1` against the full region set: 15 to 18 units in the
+          // bag for nine real products, against 9.8. Roughly the same products found, roughly
+          // double the lines, because with one badge nearly every product arrives through
+          // `unmarkedItems`, which carries no joining SKU on half its entries.
+          //
+          // Switching this call to `onCapture` is not a one-line change: `processFrame` feeds the
+          // tracker from device instances on every frame, so a capture's server regions would be
+          // overwritten by the next frame's blob, and the frame loop would have to stop driving
+          // the tracker. Coverage, amber, thumbnails and the keyframe gate all read
+          // `result.tracks`, so that restructure needs the app running on a device to verify.
+          // See "Thirty-fourth" in server/eval/KART.md for the full measurement.
           void session.onKeyframe(scan.keyframe, result.tracks, now).then(publish);
         }
         if (scan.crops.length > 0) {
