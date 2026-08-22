@@ -5133,3 +5133,36 @@ construction, which the ninety-second showed is a corpus artifact rather than a 
 
 That is two of three. `gpt-5.4-mini` is a third model and the one that ships, and
 `MIN_CATALOG_CONFIDENCE` stays at zero until it has been asked.
+
+### The filter on the video, where it barely fires
+
+The filter has been measured on the stills. The video is the other half of the corpus and the path
+the app actually runs, so its behaviour there decides the shipping risk. The video's region column
+already carries catalog confidence, so this needs no re-matching:
+
+| | proposals | kept at 0.60 | dropped |
+|---|---|---|---|
+| order 6, censused | 8 | 8 | 0 |
+| order 12, censused | 5 | 5 | 0 |
+| order 18, censused | 2 | 2 | 0 |
+| order 24, censused | 4 | 3 | **1** |
+| **all 27 frames** | 137 | 125 | 12 |
+
+**One proposal across four censuses.** The video's catalog confidence runs 0.52 to 1.00 with a
+median of **0.94**, because the video films IMG_0252's trolley and the catalog is built from that
+same video: nearly everything in frame has a SKU.
+
+Two things follow, and they point in opposite directions.
+
+**The shipping risk is low.** On the scan path — the one the product actually runs — this change is
+close to a no-op. It cannot degrade a scan much because it hardly fires in one.
+
+**The benefit is low there too.** The filter earns its numbers on IMG_0254, the photograph the
+ninety-second measured at 40% catalogued. Its value is concentrated exactly where the catalog is
+thin, and `CLAUDE.md` assumes a deployment where it is not.
+
+So the honest description is narrower than "a change that improves the bag": **it is a guard against
+proposals the catalog cannot account for, worth most on frames full of goods the index does not
+know, and almost silent everywhere else.** That is still worth having — an unrecognised proposal is
+a question with no good answer — but it is not the recognition improvement the corpus figure makes
+it look like.
