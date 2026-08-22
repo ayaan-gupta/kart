@@ -628,6 +628,26 @@ photograph and hurts a scan, because a photograph asks once and a scan asks four
 way to join the answers. That is the shape of what is left, and it is one mechanism rather than
 seven separate problems.
 
+**The eighth was the opposite direction, and it settles what the four calls are worth.** If each
+call re-describes a static trolley in fresh words and nothing joins them, the cheapest fix is to
+ask fewer times. `--max-calls` on the scan harness, four runs each:
+
+| censuses allowed | units against 10 real |
+|---|---|
+| 1 | 6, 6, 7, 7 |
+| 2 | 7, 7, 8, 8 |
+| 3 | 6, 7, 6, 7 |
+| 4, as shipped | 8, 9, 10, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12 |
+
+Every cap under-counts and none comes close. The fourth call is finding products, not just
+renaming the ones already found, so the drift is the price of coverage rather than waste. Which
+also means the over-count and the coverage cannot be separated by pacing: they are the same
+mechanism seen from two sides.
+
+That is eight attempts. Five made the scan worse, one made it worse in the other direction, one
+did nothing, and the two that helped both worked by joining answers rather than by changing them:
+a mark teaching the session that its name is a SKU, and a plural folded out of the key.
+
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
 across four calls four seconds apart those words are not the same words. "Bag of apples" is a

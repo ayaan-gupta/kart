@@ -58,6 +58,17 @@ const PRODUCTS: string[] = cart.items;
 const imageFor = (order: number) =>
   join(HERE, `.cache/kart/video/frame-${String(order + 1).padStart(3, '0')}.jpg`);
 
+/**
+ * `--max-calls=N` stops after N censuses.
+ *
+ * Every attempt so far has given the census more to see or say and made the scan worse. The
+ * untried direction is less: the trolley is static, each call re-describes it in fresh words, and
+ * nothing joins the descriptions but the words themselves. If the fourth look costs more than it
+ * finds, the cap is the fix and it is free.
+ */
+const capArg = process.argv.find((a) => a.startsWith('--max-calls='));
+const MAX_CALLS = capArg ? Number(capArg.split('=')[1]) : Infinity;
+
 let pipeline = createPipelineState();
 let fusion: FusionState = createFusionState();
 let censusCalls = 0;
@@ -80,6 +91,7 @@ for (const frame of video.frames) {
   pipeline = stepped.state;
   const live = stepped.tracks.filter((t) => t.state !== 'lost');
 
+  if (censusCalls >= MAX_CALLS) continue;
   const session = { ...createSessionState(), censusCalls, fusion };
   if (!stepped.keyframe.fire || !worthACensus(session, live)) continue;
 
