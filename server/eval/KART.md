@@ -2457,9 +2457,16 @@ bandwidth. Three passes each:
 | 95 | 77 of 93 | 14 of 18 | 9 |
 | 100 | 76 of 93 | 12 of 18 | 8 |
 
-A spread of three, and not monotonic. The same quality-85 setting gave 72 in the previous
-section's run and 74 here, so run-to-run variation on this measure is about the size of the whole
-effect. **Compression is not what costs the recall.**
+A spread of three, and not monotonic. That was three passes, which is the sample size that
+produced a false positive earlier in this file, so it was taken to nine before being believed:
+
+| | products found, lenient, three rounds of three | photographs exact |
+|---|---|---|
+| **quality 85, as shipped** | 74, 79, 72 (**mean 75.0**) | 37 of 54 |
+| quality 95 | 77, 72, 75 (**mean 74.7**) | 38 of 54 |
+
+Indistinguishable. The apparent advantage at three passes was noise, and quality 85 stays.
+**Compression is not what costs the recall.**
 
 Which leaves the downscale. The photographs are 5712 across and the keyframe is 1536, a 3.7-times
 linear reduction, and that is where the small print goes. The forty-eighth section's figure should
