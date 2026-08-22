@@ -4855,6 +4855,29 @@ Worth noting for anyone else who picks this up: the team id is a personal one, c
 this is a single-developer repository. It should come out, into an `.xcconfig` or CI secret, before
 the project is shared.
 
+### The native layer, reviewed for device-only risk
+
+Compiling for arm64 says the code builds, not that it works on a camera. The frame processor plugin
+is the piece that cannot be exercised in a simulator — the Frame Lab reports `apple-instance-mask`
+errors there — so it was read for the faults that only appear on a device. There are none:
+
+| risk | state |
+|---|---|
+| `VNGenerateForegroundInstanceMaskRequest` needs iOS 17 | deployment target **is** 17.0; consistent, no guard needed |
+| camera pixel format | handles both 420YpCbCr8BiPlanar ranges, both Planar ranges, and OneComponent8, which covers what VisionCamera delivers |
+| an unhandled format | returns an explicit error rather than zeroes, and that error now reaches the shopper |
+| **frame orientation** | converted properly, and the code says why it must be |
+
+The last is the one worth naming. `Frame.orientation` is a `UIImage.Orientation` and Vision wants a
+`CGImagePropertyOrientation`, and the plugin carries a comment that the two enums are "NOT raw-value
+compatible (their cases are ...)" with an explicit conversion, plus a `swapsDimensions` check that
+transposes width and height when the rotation demands it.
+
+**That is exactly the fault that broke this file's own renders today** — boxes drawn a quarter turn
+from their objects because EXIF orientation was not applied — caught in the native code long before,
+by someone who wrote down why. A sideways frame would have made the detector useless on a phone
+while looking fine in every simulator test.
+
 ### "Download it to my phone" is narrower than it sounds
 
 The Mac holds **one Apple Development certificate and no distribution certificate**. That decides
