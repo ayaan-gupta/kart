@@ -519,6 +519,20 @@ export function applyCensus(
     else byKey.set(key, [id]);
   }
 
+  // Every spelling the live tracks answer to, which is not the same set as their keys. A mark
+  // that carried a catalogSku keys as "sku:kart_brussels_sprouts"; an unmarked sighting of the
+  // same product has no SKU to offer and can only key as "::brussels sprouts". The two never
+  // meet, so the guard on unmarked items below has to know both. Measured on a real response:
+  // two badges named "Brussels sprouts" with that SKU, one unmarked "Brussels sprouts bag", and
+  // a bag holding five items where the trolley held three.
+  const spelledByLive = new Set<string>();
+  for (const id of live) {
+    const identity = working.identities[id];
+    if (!identity) continue;
+    spelledByLive.add(resolveKey(working, identity.key));
+    spelledByLive.add(resolveKey(working, productKey(identity.name, identity.brand)));
+  }
+
   const maxSimultaneous = { ...working.maxSimultaneous };
   for (const [key, trackIds] of byKey) {
     const modelCount = counted.get(key);
@@ -569,7 +583,7 @@ export function applyCensus(
     // unmarked sighting under "::carrots", and the bag showed four carrots where there were two.
     // Skip if either spelling is already carried by a live track.
     const fromDescription = resolveKey(working, productKey(unmarked.description.trim(), null));
-    if (byKey.has(key) || byKey.has(fromDescription)) continue;
+    if (spelledByLive.has(key) || spelledByLive.has(fromDescription)) continue;
     const count = Math.max(Math.max(0, counted.get(key) ?? 0), listedTimes.get(key) ?? 1);
     if (count === 0) continue;
     maxSimultaneous[key] = Math.max(maxSimultaneous[key] ?? 0, count);

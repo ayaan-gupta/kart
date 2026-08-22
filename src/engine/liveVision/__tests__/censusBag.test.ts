@@ -147,4 +147,25 @@ describe('the closer look and the census keying differently', () => {
     expect(after.pendingAlias.a).toBeUndefined();
     expect(bagLines(after)).toHaveLength(1);
   });
+
+  it('does not open a second line for an unmarked sighting of a badged product', () => {
+    // From a real census of the three-item trolley: two badges named "Brussels sprouts" carrying
+    // catalogSku kart_brussels_sprouts, and an unmarked "Brussels sprouts bag" whose productKey
+    // could only be "::brussels sprouts", because UnmarkedItem has no catalogSku to offer. The
+    // badge keys as sku: and the sighting keys as brand::name, so the guard that skips an
+    // unmarked item already carried by a track never fired, and a trolley holding three items
+    // produced a bag of five.
+    const state = applyCensus(
+      createFusionState(),
+      {
+        marks: [skuMark(0, 'Brussels sprouts', 'kart_brussels_sprouts')],
+        inViewCounts: [{ productKey: '::brussels sprouts', count: 1 }],
+        unmarkedItems: [{ description: 'Brussels sprouts bag', productKey: '::brussels sprouts', confidence: 0.8 }],
+      },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines.reduce((n, l) => n + (l.qty ?? 1), 0)).toBe(1);
+  });
 });
