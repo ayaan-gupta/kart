@@ -3,9 +3,9 @@
   "id": "IMG_0249",
   "effort": "none",
   "badges": 3,
-  "products": 2,
+  "products": 3,
   "unmarked": 0,
-  "inView": 2,
+  "inView": 3,
   "real": 3
  },
  {
@@ -58,7 +58,7 @@
   "effort": "none",
   "badges": 11,
   "products": 11,
-  "unmarked": 0,
+  "unmarked": 1,
   "inView": 11,
   "real": 16
  },
@@ -67,7 +67,7 @@
   "effort": "low",
   "badges": 11,
   "products": 11,
-  "unmarked": 1,
+  "unmarked": 0,
   "inView": 11,
   "real": 16
  },
@@ -76,8 +76,8 @@
   "effort": "medium",
   "badges": 11,
   "products": 11,
-  "unmarked": 1,
-  "inView": 12,
+  "unmarked": 2,
+  "inView": 13,
   "real": 16
  }
 ]

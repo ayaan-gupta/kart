@@ -389,19 +389,34 @@ on the video.
 
 ## The census, run
 
-Five passes over the six photographs, so the spread is visible rather than a single sample:
+Passes rather than single samples, because the model is not deterministic and these counts move
+by two or three units between identical runs:
 
-| | before | after |
-|---|---|---|
-| badge alignment | 16 of 23 | **21 of 23, in all five passes** |
-| units in the bag | 25 of 33 | **28, 27, 30, 28, 29** |
-| photographs exact | 3 of 6 | **4 of 6, in all five passes** |
+| | before | five defects fixed | and a SKU on unmarked items |
+|---|---|---|---|
+| badge alignment | 16 of 23 | 21 of 23, all five passes | 21, 20, 21 |
+| units in the bag | 25 of 33 | 28, 27, 30, 28, 29 | **29, 31, 27** |
+| photographs exact | 3 of 6 | 4 of 6, all five passes | **4, 5, 4** |
 
-The four sparse trolleys are exact in every pass. What remains is the two loaded ones: eight or
-nine of ten, and twelve to fourteen of sixteen. The two products missing from the ten are the
-yellow produce bag and the tomatoes on the vine, and both are honestly marginal in that
-photograph: the yellow bag shows one corner from under the bread and the tomatoes show as red
-through the purple bag's plastic. The scan is what a shopper would use to recover them.
+The four sparse trolleys are exact in every pass of every configuration. What remains is the two
+loaded ones, and they fail for different reasons.
+
+The sixteen-product trolley reached sixteen exactly, once. It moves between eleven and sixteen,
+which is the unmarked sweep being more or less complete on a given call rather than anything
+structural.
+
+The ten-product trolley does not move: eight or nine, never ten, and `unmarkedItems` is empty on
+it in every single run at every effort and every resolution. Reasoning effort was re-tested once
+the rule and the frame were both fixed, because "does effort help" is a different question when
+the question put to the model is a different question, and the answer did not change: none, low
+and medium give 0, 0, 0 on this trolley and 1, 0, 2 on the fullest one. `effort: "none"` is not
+what limits the sweep, either before the fixes or after them. The two it misses are the yellow
+produce bag and the tomatoes on the vine. Looking at the photograph at full size, the yellow bag
+shows one corner from under the baguette and the tomatoes show as red through the purple bag's
+plastic, so this is close to what the frame contains rather than a defect in reading it. The
+census does report `occlusion.severity` "some" with a reason naming the overlapping bags, every
+time, which is the designed answer to a trolley that is hiding something. The scan is the other
+one.
 
 ## The scan, run
 
@@ -417,14 +432,17 @@ of 130 boxes carry one.
 |---|---|---|---|
 | stale catalog column, drifting names | 19 | 18 | 10 |
 | refreshed column | 13 | 12 | 10 |
-| and the bag able to see both spellings | **10, 11, 13** | 10, 11, 12 | 10 |
+| the bag able to see both spellings | 10, 11, 13 | 10, 11, 12 | 10 |
+| a SKU on unmarked items too | **10, 10, 10** | 10, 10, 10 | 10 |
 
-Four census calls of a cap of eight. The count lands on ten or one or three over it, and the
-honest reading of the exact run is that it is exact by cancellation rather than by a clean sweep:
-"bag of apples" is a second sighting of the Granny Smiths under a description that merges with
-nothing, and the brussels sprouts arrive as "green leafy produce bag". The residual is unmarked
-descriptions drifting between calls, which is the one place a SKU cannot reach, because unmarked
-items are not offered one.
+Four census calls of a cap of eight, and exactly ten every time.
+
+The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
+product listed as unmarked on a later keyframe could only key by the words the model chose, and
+across four calls four seconds apart those words are not the same words. "Bag of apples" is a
+second sighting of the Granny Smiths and shares nothing with the badge's name. So `UnmarkedItem`
+gained a `catalogSku` and rule 12 points at rule 15 for how to fill it, and in the run that
+follows the purple produce bag is listed as unmarked in two separate calls and merges both times.
 
 Those references were cut from this same video, so the refreshed shortlist is better than a
 store's catalog would be and this bounds the shipped path from above rather than estimating it.

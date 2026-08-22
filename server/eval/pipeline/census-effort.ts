@@ -31,7 +31,7 @@ const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'ut
 const counted = new Map<string, any>(truth.counted.map((c: any) => [c.id, c]));
 
 // The same long edge runCensus composites at.
-const LONG_EDGE = 1024;
+const LONG_EDGE = 1536;
 const EFFORTS = ['none', 'low', 'medium'] as const;
 const SUBJECTS = ['IMG_0249', 'IMG_0252', 'IMG_0254'];
 
