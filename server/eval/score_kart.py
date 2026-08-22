@@ -61,7 +61,7 @@ def detector(device=None):
     return ground, device
 
 
-def propose(pil, ground, produce_pass=True, threshold=None, tiles=1):
+def propose(pil, ground, produce_pass=True, threshold=None, tiles=1, produce_threshold=None):
     """The regions the service would return for one frame, in normalized coordinates.
 
     `tiles` also runs the detector over an NxN grid of half-overlapping tiles, merged with the
@@ -94,7 +94,8 @@ def propose(pil, ground, produce_pass=True, threshold=None, tiles=1):
     added = 0
     if produce_pass:
         produce_boxes, produce_scores = ground(
-            pil, regions.PRODUCE_PROMPT, regions.PRODUCE_THRESHOLD)
+            pil, regions.PRODUCE_PROMPT,
+            regions.PRODUCE_THRESHOLD if produce_threshold is None else produce_threshold)
         raw += len(produce_boxes)
         for i in regions.merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= regions.MAX_INSTANCES:
@@ -191,6 +192,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-produce-pass", action="store_true")
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
+    parser.add_argument("--produce-threshold", type=float, default=None,
+                        help="the produce pass runs at PRODUCE_THRESHOLD by default. It is worth "
+                             "sweeping because that number was chosen for a short prompt and the "
+                             "prompt is now 28 phrases: see dilution.py, where a cauliflower "
+                             "scoring 0.66 alone scores 0.23 with 27 companions")
     parser.add_argument("--tiles", type=int, default=1,
                         help="also run over an NxN grid of half-overlapping tiles and merge")
     parser.add_argument("--render", default=None, help="directory for numbered overlays")
@@ -226,7 +232,8 @@ def main(argv=None):
             pil = ImageOps.exif_transpose(handle).convert("RGB")
         pil.thumbnail((MAX_SIDE, MAX_SIDE))
         result = propose(pil, ground, produce_pass=not args.no_produce_pass,
-                         threshold=args.threshold, tiles=args.tiles)
+                         threshold=args.threshold, tiles=args.tiles,
+                         produce_threshold=args.produce_threshold)
         result["id"] = path.stem
         result["pixels"] = list(pil.size)
         frames.append(result)

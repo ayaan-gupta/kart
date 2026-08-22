@@ -410,7 +410,58 @@ it in every single run at every effort and every resolution. Reasoning effort wa
 the rule and the frame were both fixed, because "does effort help" is a different question when
 the question put to the model is a different question, and the answer did not change: none, low
 and medium give 0, 0, 0 on this trolley and 1, 0, 2 on the fullest one. `effort: "none"` is not
-what limits the sweep, either before the fixes or after them. The two it misses are the yellow
+what limits the sweep, either before the fixes or after them.
+
+### Why the tenth item is out of reach from that frame
+
+The two it misses are the yellow produce bag and the tomatoes on the vine, and the census is not
+the only thing that never sees them: the detector proposes no box for either. `why_missing.py`
+walks the frame through both passes and prints what each one dropped, and the first thing it says
+is that the produce pass proposes **nothing at all** on a trolley holding cauliflower, apples,
+sprouts, asparagus, a baguette and tomatoes.
+
+`"tomatoes."` on its own finds them, at 0.32, above the shipped threshold of 0.30. The box lands
+on them exactly. So the object is detectable and the prompt is what loses it.
+
+`dilution.py` measures what a phrase gives up by sharing a prompt. The score a subject keeps,
+against how many phrases are in the prompt with it:
+
+| subject | 1 | 2 | 4 | 8 | 16 | 28 |
+|---|---|---|---|---|---|---|
+| tomatoes, IMG_0252 | **0.32** | 0.32 | 0.28 | 0.18 | 0.15 | 0.15 |
+| cauliflower, IMG_0252 | 0.66 | 0.56 | 0.39 | 0.16 | 0.21 | 0.23 |
+| brussels sprouts, IMG_0252 | 0.34 | 0.32 | 0.31 | 0.31 | 0.27 | 0.27 |
+| apples, IMG_0252 | 0.30 | 0.30 | 0.21 | 0.23 | 0.17 | 0.27 |
+| cauliflower, IMG_0249 | 0.60 | 0.53 | 0.31 | 0.28 | 0.30 | 0.48 |
+| asparagus, IMG_0254 | 0.23 | 0.27 | 0.35 | 0.17 | 0.25 | 0.30 |
+
+At one or two phrases, five of six clear 0.30. At 28, two do. `app.py` already records this effect
+for the grocery prompt, that "extra phrases dilute the working ones rather than adding to them",
+and `PRODUCE_PROMPT` is itself 28 phrases carrying a threshold chosen for a short one.
+
+Two ways out, and both are refused with a number.
+
+**Lower the threshold.** It adds regions and finds nothing:
+
+| produce threshold | regions over the ten photographs | items counted correctly | boxes on IMG_0252 |
+|---|---|---|---|
+| 0.30, shipped | 127 | 25 of 33 | 8, none from the produce pass |
+| 0.22 | 130 | 25 of 33 | 8, none from the produce pass |
+| 0.15 | 142 | 25 of 33 | 8, none from the produce pass |
+
+Fifteen more regions for no change in counting at all, and never the tomatoes. At 28 phrases the
+detector proposes no box at that location at any threshold, so this is not a threshold that is
+set too high; the phrase is simply gone.
+
+**Split the prompt.** Running the 28 nouns as five passes of six, or seven of four, adds exactly
+zero regions on all six photographs. Four companions already cost the tomatoes their 0.32. Pairs
+would recover it, at fourteen forward passes per keyframe against the two the service runs now,
+which is not a trade worth making for one object on one photograph.
+
+So the honest statement is that the tenth and ninth items of that trolley are not reachable from
+that single frame by this detector, and the pipeline's answer to a trolley that is hiding things
+is the one it already gives: `occlusion.severity` "some", with a reason naming the overlapping
+bags, on every run. The scan of that same trolley counts it exactly. The two it misses are the yellow
 produce bag and the tomatoes on the vine. Looking at the photograph at full size, the yellow bag
 shows one corner from under the baguette and the tomatoes show as red through the purple bag's
 plastic, so this is close to what the frame contains rather than a defect in reading it. The
