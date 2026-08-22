@@ -84,6 +84,90 @@ const SAME: Record<string, string[]> = {
   purple_produce_bag: ['apple', 'fuji', 'produce bag', 'purple'],
 };
 
+/**
+ * The words a bag line may use for each real product, per photograph.
+ *
+ * Unit counts cannot tell a right bag from a lucky one: the scan harness found a run scoring a
+ * perfect nine that held one product twice and missed two others. The photographs were only ever
+ * scored by size in this file, so the same check is applied here.
+ *
+ * `strong` is a word only this product would use; `weak` is one it shares with another product in
+ * the same trolley. Both counts are reported because resolving "apple" between the Granny Smith
+ * bag and the Fuji bag, or "bread" between the baguette and the Seedtastic loaf, is the scorer
+ * inventing the answer it exists to check. Repeated entries are repeated products: IMG_0254 holds
+ * two egg cartons and two packs of Muenster, and a bag naming one of each is missing one.
+ */
+type Truth = { id: string; strong: string[]; weak: string[] };
+const CAULIFLOWER: Truth = { id: 'Mr Lucky cauliflower', strong: ['cauliflower'], weak: ['lucky'] };
+const SPROUTS: Truth = { id: 'brussels sprouts bag', strong: ['brussels', 'sprout'], weak: ['green leafy', 'lettuce'] };
+const ASPARAGUS: Truth = { id: 'asparagus bag', strong: ['asparagus'], weak: ['green bean', 'stalk'] };
+// The purple bag is printed "WEST GROWN FUJI, Sure to please!" and holds red apples.
+const FUJI: Truth = { id: 'Fuji apple bag', strong: ['fuji', 'purple'], weak: ['red apple', 'apple', 'produce bag'] };
+const GRANNY: Truth = { id: 'Granny Smith apple bag', strong: ['granny'], weak: ['green apple', 'apple'] };
+const SEEDTASTIC: Truth = { id: 'Seedtastic bread', strong: ['seedtastic'], weak: ['bread', 'loaf'] };
+const BAGUETTE: Truth = { id: 'baguette', strong: ['baguette'], weak: ['bread'] };
+const YELLOW: Truth = { id: 'yellow produce bag', strong: ['yellow'], weak: ['produce bag'] };
+
+const TRUTH: Record<string, Truth[]> = {
+  IMG_0244: [CAULIFLOWER],
+  IMG_0245: [CAULIFLOWER],
+  IMG_0246: [CAULIFLOWER, SPROUTS],
+  IMG_0249: [CAULIFLOWER, SPROUTS, ASPARAGUS],
+  IMG_0252: [
+    { id: 'Oreo party size', strong: ['oreo'], weak: [] },
+    BAGUETTE, FUJI, YELLOW, GRANNY, SEEDTASTIC, ASPARAGUS, SPROUTS, CAULIFLOWER,
+  ],
+  IMG_0254: [
+    { id: 'egg carton', strong: ['egg'], weak: [] },
+    { id: 'egg carton (second)', strong: ['egg'], weak: [] },
+    { id: 'Muenster cheese', strong: ['muenster'], weak: ['cheese'] },
+    { id: 'Muenster cheese (second)', strong: ['muenster'], weak: ['cheese'] },
+    { id: 'beef pack', strong: ['beef', 'steak'], weak: ['meat'] },
+    BAGUETTE,
+    { id: 'jar', strong: ['jar'], weak: ['peanut butter', 'sauce', 'spread'] },
+    GRANNY, SEEDTASTIC, ASPARAGUS,
+    { id: 'Alaskan sockeye salmon', strong: ['salmon', 'sockeye'], weak: ['fish', 'seafood'] },
+    CAULIFLOWER, FUJI, YELLOW,
+    // counts.json calls this broccoli. Zoomed to native resolution the bag shows green contents
+    // behind leaf-print graphics and a 1 LB weight, and no legible product name, so what it holds
+    // cannot be read off the photograph. Both models miss "broccoli" on nearly every pass and
+    // gpt-5.4 twice answered "brussels sprouts" for it, which the strict tier would score as an
+    // invention. The weak tier exists for exactly this: strict still demands the word the truth
+    // claims, and the lenient number accepts any bagged green the photograph could support.
+    { id: 'broccoli (a bagged green, label not legible)', strong: ['broccoli'],
+      weak: ['brussels', 'sprout', 'green bean', 'spring mix', 'romaine', 'lettuce', 'salad', 'greens'] },
+  ],
+};
+
+/**
+ * Greedy assignment, unambiguous words first.
+ *
+ * A line satisfies as many truth entries as its quantity says, because that is what the bag
+ * actually claims: IMG_0254 holds two egg cartons, and one line reading "eggs" with qty 2 is a
+ * correct answer, not half of one. Scoring by line name alone marked the second carton missing on
+ * every pass and understated both models.
+ */
+function scoreContents(lines: { name: string; qty: number }[], truth: Truth[]) {
+  const left = lines.map((l) => Math.max(1, l.qty));
+  const found = new Map<number, 'strong' | 'weak'>();
+  for (const tier of ['strong', 'weak'] as const) {
+    truth.forEach((product, t) => {
+      if (found.has(t)) return;
+      const at = lines.findIndex((l, i) => left[i] > 0 && product[tier].some((w) => l.name.includes(w)));
+      if (at >= 0) { left[at] -= 1; found.set(t, tier); }
+    });
+  }
+  const strict = [...found.values()].filter((v) => v === 'strong').length;
+  return {
+    strict,
+    lenient: found.size,
+    missing: truth.filter((_, t) => !found.has(t)).map((p) => p.id),
+    // Units left over after every real product has been satisfied: things in the bag that are not
+    // in the trolley, counted in units rather than lines so a qty-2 invention counts twice.
+    spurious: lines.flatMap((l, i) => (left[i] > 0 ? [`${l.name}${left[i] > 1 ? ` x${left[i]}` : ''}`] : [])),
+  };
+}
+
 const results: any[] = [];
 const passes: { aligned: number; scorable: number; units: number; real: number; exact: number }[] = [];
 let alignedRight = 0;
@@ -91,6 +175,10 @@ let alignedScorable = 0;
 let bagUnits = 0;
 let realUnits = 0;
 let exact = 0;
+let foundStrict = 0;
+let foundLenient = 0;
+let truthTotal = 0;
+let spuriousTotal = 0;
 
 for (let pass = 0; pass < REPEATS; pass += 1) {
 if (REPEATS > 1) console.log(`\n=== pass ${pass + 1} of ${REPEATS} ===\n`);
@@ -153,8 +241,25 @@ for (const frame of frames.frames) {
   const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
   bagUnits += units; realUnits += entry.products;
   if (units === entry.products) exact += 1;
-  console.log(`  ${frame.id}: bag ${units} against ${entry.products} real\n`);
-  results.push({ id: frame.id, pass, rows, units, real: entry.products, lines, census });
+  // Contents as well as size. A right total can still be a wrong bag.
+  const truth = TRUTH[frame.id];
+  let contents: ReturnType<typeof scoreContents> | null = null;
+  if (truth) {
+    const named = lines.map((l: any) => ({
+      name: `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase(),
+      qty: l.qty ?? 1,
+    }));
+    contents = scoreContents(named, truth);
+    foundStrict += contents.strict;
+    foundLenient += contents.lenient;
+    truthTotal += truth.length;
+    spuriousTotal += contents.spurious.length;
+  }
+  console.log(`  ${frame.id}: bag ${units} against ${entry.products} real` +
+    (contents ? `, products found ${contents.strict}/${contents.lenient} of ${truth.length}` +
+      (contents.missing.length ? `, missing ${contents.missing.join(', ')}` : '') +
+      (contents.spurious.length ? `, extra: ${contents.spurious.join(', ')}` : '') : '') + `\n`);
+  results.push({ id: frame.id, pass, rows, units, real: entry.products, lines, census, contents });
 }
 passes.push({
   aligned: alignedRight - before.aligned,
@@ -177,6 +282,9 @@ console.log(`  badge alignment  ${alignedRight}/${alignedScorable}` +
   ` (${(alignedRight / Math.max(alignedScorable, 1) * 100).toFixed(1)}%)`);
 console.log(`  units in the bag ${bagUnits} against ${realUnits} real items`);
 console.log(`  photographs exact ${exact}/${results.length}`);
+console.log(`  products found ${foundStrict}/${truthTotal} on an unambiguous word, ` +
+  `${foundLenient}/${truthTotal} allowing words a trolley shares between two products`);
+console.log(`  lines matching nothing real ${spuriousTotal}`);
 const stem = FRAMES === 'frames-named.json' ? '' : `-${FRAMES.replace(/\.json$/, '')}`;
 // A replay run answered from this file, so writing it back would at best be a no-op.
 if (!REPLAY) {

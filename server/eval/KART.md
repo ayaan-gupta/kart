@@ -1560,3 +1560,53 @@ grocery prompt draws one box over it and the purple bag together, targeted colou
 same, server-side enumeration on the keyframe raises its coverage from 12% to 78% and still only
 inside a box that wholly contains the purple bag, and the tracker never confirms it as its own
 track. That is the whole search space for this item on this corpus, and it is exhausted.
+
+## Twenty-eighth: the photographs, scored by contents at last
+
+The scan got a contents scorer in the twenty-fifth and it immediately showed the unit counts were
+ranking runs backwards. The photographs had never had one, so every photograph figure in this file
+is a unit count. Applying the same check, on the four saved answer sets so no model was called:
+
+| | products found, strict | allowing shared words | lines matching nothing | exact by units |
+|---|---|---|---|---|
+| gpt-5.4-mini, two rounds | 238 of 310 | 257 of 310 | 29 | 44 of 60 |
+| **gpt-5.4**, two rounds | **260 of 310** | **282 of 310** | 36 | 49 of 60 |
+
+Twenty-five more real products found for seven more spurious lines. The model split shipped in the
+twenty-second holds on contents as well as on totals, which is worth stating because the first
+version of this scorer said the opposite.
+
+### The scorer was wrong first, and the fix changed the verdict
+
+Scoring by line name alone, gpt-5.4 looked like +14 products for +18 spurious lines, a bad trade
+that would have argued for reverting the model split. That scorer was broken: a bag line carries a
+quantity, and IMG_0254 holds two egg cartons and two packs of Muenster, so one line reading
+"eggs" with qty 2 is a correct answer rather than half of one. Counting by name marked the second
+of every duplicated product missing on every pass and understated both models. Consuming quantity
+turned a bad trade into a clearly good one. **A measurement that disagrees with a shipped decision
+is a reason to check the measurement first.**
+
+### What the photographs actually get wrong
+
+The four sparse photographs find every product on every pass with no spurious lines at all. All the
+error is the two loaded trolleys, and it is three specific things rather than a diffuse gap:
+
+- **The Fuji bag is counted twice.** Nearly every gpt-5.4 pass on IMG_0252 and IMG_0254 carries a
+  second line reading `red apples`, `tomatoes on the vine`, `roma tomatoes` or `beefsteak
+  tomatoes` beside the line that already has the bag. The same double-count the scan has.
+- **The yellow produce bag is missed**, on IMG_0252 in nearly every pass of both models. The same
+  item the scan misses in five runs of six, now confirmed to fail on the still photograph too, so
+  it is not a scan-specific problem.
+- **The shopper's tote is sometimes a product**, arriving as `woven serving tray or placemat` or
+  `woven placemat`. A known naming failure, now counted.
+
+### One truth entry is not readable from the photograph
+
+`counts.json` calls the fifteenth item in IMG_0254 broccoli. At native resolution that bag shows
+green contents behind leaf-print graphics and a 1 LB weight, with no legible product name. Both
+models miss "broccoli" on nearly every pass and gpt-5.4 twice answered "brussels sprouts", which
+the strict tier scores as an invention. The entry now carries its uncertainty: strict still demands
+the word the truth claims, the lenient tier accepts any bagged green the photograph could support,
+and the count of 15 is unaffected either way since something is certainly in that bag. It is
+recorded rather than rewritten, because unlike the Fuji bag and the IMG_0252 count, this one cannot
+be settled by looking harder.
