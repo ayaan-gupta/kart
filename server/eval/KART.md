@@ -4337,3 +4337,32 @@ pipeline that is broadly 80% right. The aggregate figure averages four solved ph
 correctly-refused shelves together with two open ones, which is exactly the criticism the
 thirty-first section made of every "photographs" figure before it, and which this file then went on
 to repeat for fifty sections.
+
+### One of the two remaining photographs fails on a crop a 7B reads correctly
+
+Cross-reading two measurements already in this file settles what kind of failure IMG_0254's
+asparagus is, without a new run.
+
+The seventy-ninth asked a local 4-bit Qwen2.5-VL-7B to name every labelled badge three ways. On
+badge 10, the asparagus bag, it answered:
+
+| | |
+|---|---|
+| no shortlist | `asparagus spears` |
+| shortlist as SKUs, the shipped format | `asparagus` |
+| shortlist as readable names | `asparagus` |
+
+Correct in all three arms, including the one with no catalog help at all. The shipped
+gpt-5.4-mini, on the same crop with the same shortlist, answered `vegetables`, `bagged produce` and
+`vegetable tray` across three passes.
+
+**So this miss is not the prompt, not the format, and not the catalog.** The seventy-eighth already
+showed `kart_asparagus` sat at rank 2 of the offered candidates, and the seventy-ninth showed the
+format carries most of the benefit it can. A smaller, quantised, locally-run model reads this
+particular crop correctly and the shipped one does not.
+
+That is the narrowest true statement about one of the two products separating IMG_0254 from a
+perfect answer, and it is not actionable here: changing the census model is a measurement that
+needs credit, and this file has already recorded that the larger gpt-5.4 does *worse* on the scan
+by sweeping harder. What it does close is a direction — nobody should spend another afternoon on
+`censusUserText` for this item.
