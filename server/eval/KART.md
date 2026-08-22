@@ -2038,3 +2038,47 @@ both that code and its tests from one mental model is not verification of it.
 So the position is unchanged but the reason is now precise: **the change is one I can write and
 cannot test, on the screen the product depends on, while the current behaviour is poor but
 working.** A device, or an instruction to proceed on tests and reasoning alone, resolves it.
+
+## Thirty-sixth: the frame loop, measured in Node, and the rewiring made
+
+The thirty-fifth said the restructure was unverifiable because a simulator has no camera. That was
+half right. The camera and the rendering need a device; **the loop's logic does not.**
+`processFrame`, the tracker and `RecognitionSession` are plain TypeScript, so the loop can be run
+in Node against the real corpus. `scan-loop.ts` does that, with the real orchestrator, the real
+tracker, and the shipped `runCensus`. Only the transport is stubbed, and the enumerator, which is
+replaced by this video's cached region column.
+
+Three runs each, nine real products:
+
+| | units in the bag |
+|---|---|
+| `onKeyframe`, as shipped | 19, 15, 15 (**mean 16.3**) |
+| `onCapture`, the decided path | 11, 11, 12 (**mean 11.3**) |
+
+The error against nine falls from +7.3 to +2.3. The lines say why better than the totals do. The
+shipped path returns eighteen of them, including `bag of leafy greens`, `bag of lettuce greens`,
+`bag of shredded lettuce`, `leafy greens bag` and `green bag of salad greens` — five descriptions
+of the same greens, because with one badge almost everything arrives through `unmarkedItems`,
+which carries no joining SKU on half its entries. The capture path returns eleven, and they are
+`Oreo`, `Brussels sprouts`, `Seedtastic bread`, `asparagus`, `Granny Smith apples`, `baguette`,
+`red apples`, `Cauliflower`.
+
+### The interaction I said could not be checked, checked
+
+The stated blocker was that `processFrame` feeds the tracker every frame, so a capture's server
+regions would be overwritten by the next frame's blob. `scan-loop.ts` runs exactly that: the
+device's one region through `processFrame` on all 27 frames, with the capture's tracker taken back
+between them. It holds. That was the risk, and it is measured rather than argued.
+
+### So `scan.tsx` now calls `onCapture`
+
+The change is the call and the tracker handover, written to mirror the harness line for line.
+Verified: 386 app tests, 273 server tests, both typechecks, and the app rebuilt for the simulator
+and relaunched, home screen and scan screen both rendering with no crash.
+
+**What is still unverified, and it is not nothing.** A simulator has no camera device, so
+`useCameraDevice` returns null, the `Camera` never mounts and the frame processor never runs. The
+loop is verified in Node and the app is verified to build, launch and render; what no test here
+covers is the live camera driving it, the outlines redrawing from a capture's tracks, and whether
+coverage, amber and thumbnails read sensibly when tracks refresh on captures rather than on every
+frame. Those want ten seconds with a real phone and a real trolley.

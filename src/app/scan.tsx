@@ -248,30 +248,36 @@ export default function ScanScreen() {
         };
 
         if (scan.keyframe !== null) {
-          // KNOWN GAP, measured 2026-08-22, written here because this is the line it lives on.
+          // The capture path from `docs/detector-decision.md`: send the frame with no marks and
+          // let the service enumerate it.
           //
           // `result.tracks` comes from `AppleInstanceMaskDetector` by way of `processFrame`, and
-          // that detector does not enumerate a cart. Run over the 30 frames of the corpus scan
-          // with `npm run bench:detector`, it returns 1 to 2 instances per frame, mean 1.1, and
-          // its single instance is one outline around the whole pile of goods rather than one per
-          // item. `docs/detector-decision.md` measured the same Vision request as dead a week
-          // earlier and landed on the remedy: `RecognitionSession.onCapture`, which sends the
-          // frame with no marks so the service enumerates it. `onCapture` is implemented, tested
-          // and called from nothing but its own tests.
+          // that detector does not enumerate a cart. Run over the corpus scan's 30 frames with
+          // `npm run bench:detector` it returns 1 to 2 instances per frame, mean 1.1, and its
+          // single instance outlines the whole pile of goods rather than one item. Badging the
+          // census from those marks was measured on the real loop by
+          // `server/eval/pipeline/scan-loop.ts`, which runs this same sequence in Node: 19, 15
+          // and 15 units for a nine-product trolley, the bag filling with eighteen variations of
+          // "bag of leafy greens" because with one badge almost everything arrives through
+          // `unmarkedItems`, which carries no joining SKU on half its entries. The same harness
+          // through `onCapture` gives 11, 11 and 12 units of recognisable products.
           //
-          // What it costs, measured on the corpus scan with
-          // `video-census-live.ts --regions=1` against the full region set: 15 to 18 units in the
-          // bag for nine real products, against 9.8. Roughly the same products found, roughly
-          // double the lines, because with one badge nearly every product arrives through
-          // `unmarkedItems`, which carries no joining SKU on half its entries.
-          //
-          // Switching this call to `onCapture` is not a one-line change: `processFrame` feeds the
-          // tracker from device instances on every frame, so a capture's server regions would be
-          // overwritten by the next frame's blob, and the frame loop would have to stop driving
-          // the tracker. Coverage, amber, thumbnails and the keyframe gate all read
-          // `result.tracks`, so that restructure needs the app running on a device to verify.
-          // See "Thirty-fourth" in server/eval/KART.md for the full measurement.
-          void session.onKeyframe(scan.keyframe, result.tracks, now).then(publish);
+          // The tracker is handed over and taken back so the next frame tracks against the
+          // regions the service found rather than against the device's blob. `scan-loop.ts`
+          // exercises exactly that, `processFrame` on every frame with the capture's tracker
+          // written back between them, which is the interaction this change turns on.
+          void session
+            .onCapture(scan.keyframe, pipelineStateRef.current.tracker, now)
+            .then((captured) => {
+              if (captured !== null) {
+                pipelineStateRef.current = {
+                  ...pipelineStateRef.current,
+                  tracker: captured.tracker,
+                };
+                setTracks(captured.tracks);
+              }
+              publish();
+            });
         }
         if (scan.crops.length > 0) {
           void session.onCrops(scan.crops).then(publish);
