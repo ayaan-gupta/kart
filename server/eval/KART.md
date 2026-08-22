@@ -4786,3 +4786,19 @@ trade this file has ever seen pay, and it is the same arithmetic the eighty-eigh
 What has changed is that every one of those layers is now understood and none of them is a mystery.
 The item is reachable in principle at ten times the detection budget, and that is a product decision
 about cost, not an open question about recognition.
+
+### A note on `OPENAI_BASE_URL`, which does not reach a local model
+
+The override added earlier this session was documented as covering "a locally served model". It does
+not, and the comment is corrected in `server/src/openai.ts` and `.env.example`.
+
+Everything on the recognition path goes through `openai.responses.create` — the **Responses API** —
+with `json_schema` and `strict: true`. The local servers anyone would reach for, llama.cpp, vLLM,
+Ollama and mlx-vlm, implement `/v1/chat/completions`. Pointing a base URL at one produces a 404 on
+the first request rather than a working pipeline.
+
+So the override is worth having, and its reach is narrower than claimed: another OpenAI organisation
+or key, a gateway or proxy, or Azure OpenAI where the deployment exposes the Responses API. **Running
+the shipped pipeline end to end against a local model is not available**, which is why
+`census_local.py` asks one crop at a time instead: it is a different pipeline precisely because the
+shipped one cannot be pointed at a local model.

@@ -10,8 +10,15 @@ if (!apiKey) {
  *
  * Unset, nothing changes: the SDK's own default applies and this is the client it has always
  * built. Set, it covers the case that stopped every model-tier measurement in `server/eval` -- an
- * account with no credit -- without waiting on that one account, since Azure OpenAI, a second
- * organisation, a gateway or a locally served model all speak the same protocol.
+ * account with no credit -- without waiting on that one account.
+ *
+ * **It will not reach a locally served model, and an earlier version of this comment wrongly said
+ * it would.** Everything here goes through `openai.responses.create`, the Responses API, and the
+ * local servers people reach for -- llama.cpp, vLLM, Ollama, mlx-vlm -- implement
+ * `/v1/chat/completions` instead. A base URL only helps against an endpoint that implements
+ * `/v1/responses` with `json_schema` strict mode: another OpenAI organisation or key, an OpenAI
+ * gateway or proxy, or Azure OpenAI where the deployment exposes it. Pointing this at a local
+ * server produces a 404 on the first request, not a working pipeline.
  *
  * Validated rather than passed through. A typo here does not fail loudly at construction; it fails
  * on the first request, several layers down, as a connection error that reads like the network
