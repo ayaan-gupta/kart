@@ -3208,3 +3208,57 @@ with the sixty-fifth, the item is no longer a mystery or an exhaustion:
 at its best rather than merely unexamined.** What would change the arithmetic is not a better rule
 but more frames: a longer pan gives a gate that already works more chances to see the corner of the
 trolley that this one shows for a single second.
+
+## Sixty-seventh: the photographs re-measured on today's code, and a second census refused
+
+Every photograph figure quoted in this file predates the shelf gate, the counted names and the
+thumbnail fold. Re-running the whole corpus live, three passes, on the code as it stands:
+
+| | |
+|---|---|
+| badge alignment | 66 of 75 (**88.0%**) |
+| units in the bag | 85 against 93 |
+| photographs exact | 13 of 18 passes |
+| products found | 65 of 93 strict, **76 of 93** allowing shared words |
+| lines matching nothing real | 8 |
+
+Nothing regressed, and the shape is the one the thirty-first section described: the four sparse
+photographs are exact on every pass and the two loaded trolleys carry the entire error.
+
+### One call per photograph is not what the product does
+
+This harness has always scored a single census. A session fires up to
+`MAX_CENSUS_CALLS_PER_SESSION` and fuses them, so the photograph figures measure an answer the
+product never actually gives. The thirty-first section makes the gap look like the whole residual:
+badges are perfectly stable on both loaded trolleys, and *everything* that moves is `unmarkedItems`,
+3, 0, 9, 4, 4 across five passes of one fixed photograph. On the draw that came up 9, IMG_0254
+reached 15 of 15. A second draw from that channel, folded by the same fusion that absorbs a missed
+product and told the names already counted, should be close to free.
+
+`census-live.ts --rounds=N` does exactly that. Three passes of each:
+
+| | products found, lenient | lines matching nothing | units |
+|---|---|---|---|
+| **one census, as measured** | **76 of 93** | **8** | 85 |
+| three censuses, fused | 73 of 93 | **16** | 89 |
+
+Worse on products and twice the spurious lines. The units column moves the right way and is the
+column this file already knows to distrust: a right total is not a right bag.
+
+### The split by trolley is the mechanism
+
+| | one census | three censuses |
+|---|---|---|
+| IMG_0252, 9 products | 8, 8, 9 (**8.33**) | 8, 9, 9 (**8.67**) |
+| IMG_0254, 15 products | 10, 11, 9 (**10.0**) | 9, 10, 7 (**8.67**) |
+
+Extra rounds *help* the sparser trolley slightly and cost the fuller one 1.33 products. That is the
+fusion rule with a dependence made visible: each round re-describes whatever no badge covers, in
+fresh words that will not join, so the amount of unjoinable text a round produces scales with how
+much of the frame is unbadged. IMG_0254 has 11 badges over 15 products and the most unbadged
+trolley in the corpus, so it pays the most and gains the least.
+
+**A second look is not free, and it gets more expensive the fuller the cart.** That is the same
+result `--loops` gave on the video, same products on more lines, reached from the opposite
+direction: there the second look was a second pan, here it is a second call on one frame, and both
+lose to the single look. One census per view stands.

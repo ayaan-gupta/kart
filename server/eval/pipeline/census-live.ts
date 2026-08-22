@@ -200,6 +200,24 @@ async function sendable(file: Buffer): Promise<Buffer> {
 }
 
 const results: any[] = [];
+/**
+ * `--rounds=N` fuses N censuses of the same photograph into one bag instead of scoring a single
+ * answer.
+ *
+ * One call per photograph is what this harness has always measured, and it is not what the product
+ * does: a session fires up to `MAX_CENSUS_CALLS_PER_SESSION` and fuses them. The thirty-first
+ * section showed why that gap matters here. Badges are perfectly stable on both loaded trolleys,
+ * 10 marks on IMG_0252 and 11 on IMG_0254 on every pass, and *everything* that moves is
+ * `unmarkedItems`: 3, 0, 9, 4, 4 across five passes of the same fixed photograph. One call is one
+ * draw from that channel, and on the draw that came up 9 the bag reached 15 of 15.
+ *
+ * Extra rounds are draws from the same channel, folded by the same fusion that absorbs a missed
+ * product, and each one is told the names already counted so the duplicate lines the video work
+ * measured are suppressed.
+ */
+const roundsArg = process.argv.find((a) => a.startsWith('--rounds='));
+const ROUNDS = roundsArg ? Math.max(1, Number(roundsArg.split('=')[1])) : 1;
+
 const passes: { aligned: number; scorable: number; units: number; real: number; exact: number }[] = [];
 let alignedRight = 0;
 let alignedScorable = 0;
@@ -237,13 +255,31 @@ for (const frame of frames.frames) {
   // handing it the result drew every badge twice, once at 1333 and again at 1024 over the top
   // of the first, which is not an image the service ever sends.
   const image = readFileSync(join(HERE, `.cache/kart/images/${frame.id}.jpg`));
-  let census: Awaited<ReturnType<typeof runCensus>>;
+  // The bag's fusion state is built before the census so extra rounds can fold into it; see
+  // `--rounds`. `trackIds`/`markToTrack` are the same identity map the single-round path used.
+  const trackIds0 = frame.boxes.map((_: unknown, i: number) => `t${i}`);
+  const markToTrack0: Record<number, string> = {};
+  const liveBoxes0: Record<string, any> = {};
+  trackIds0.forEach((tid: string, i: number) => { markToTrack0[i + 1] = tid; liveBoxes0[tid] = frame.boxes[i]; });
+  let bag = createFusionState();
+
+  let census!: Awaited<ReturnType<typeof runCensus>>;
   if (REPLAY) {
     const saved = REPLAY.get(`${frame.id}#${pass}`);
     if (!saved) throw new Error(`replay file has no entry for ${frame.id} pass ${pass}`);
     census = saved;
+    bag = applyCensus(bag, census, markToTrack0, trackIds0, false, liveBoxes0);
   } else {
-    census = await runCensus(await sendable(image), marks);
+    for (let round = 0; round < ROUNDS; round += 1) {
+      // Every round after the first is told what the bag already holds, exactly as a session's
+      // second census is (`SessionDeps.requestCensus`, `counted`).
+      const already = round === 0 ? [] : (bagLines(bag) as any[])
+        .map((l) => `${l.brand ? `${l.brand} ` : ''}${l.name}`);
+      const answer = await runCensus(await sendable(image), marks, undefined, already);
+      bag = applyCensus(bag, answer, markToTrack0, trackIds0, false, liveBoxes0);
+      // Alignment is a property of one answer, so it is scored on the first round either way.
+      if (round === 0) census = answer;
+    }
   }
 
   // Alignment: did the answer for badge i land on badge i?
@@ -262,13 +298,8 @@ for (const frame of frames.frames) {
       `${said.slice(0, 34).padEnd(36)} ${ok === null ? '-' : ok ? 'ok' : 'X'}`);
   }
 
-  // The bag, through the shipped fusion.
-  const trackIds = frame.boxes.map((_: unknown, i: number) => `t${i}`);
-  const markToTrack: Record<number, string> = {};
-  const liveBoxes: Record<string, any> = {};
-  trackIds.forEach((tid: string, i: number) => { markToTrack[i + 1] = tid; liveBoxes[tid] = frame.boxes[i]; });
-  const state = applyCensus(createFusionState(), census, markToTrack, trackIds, false, liveBoxes);
-  const lines = bagLines(state) as any[];
+  // The bag, through the shipped fusion, with every round already folded in.
+  const lines = bagLines(bag) as any[];
   const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
   bagUnits += units; realUnits += entry.products;
   if (units === entry.products) exact += 1;
