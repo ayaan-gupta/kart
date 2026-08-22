@@ -553,6 +553,27 @@ normalisation reaches them. An unmarked sighting keys by SKU only when the model
 on a motion-blurred frame it often cannot. Every remaining reading over ten is that, and every
 reading under ten is a product no call ever named.
 
+Corroboration was the obvious answer and it is measured and refused. The codebase already holds
+one sighting to be noise and two in a row to be evidence, for a fresh guess landing on a barcoded
+track, and applying the same standard to a SKU-less unmarked sighting from the second census
+onward is a two-line change. It is provably free on the photographs, where each is its own
+session of one call and the first call's sightings land immediately.
+
+On the scan it trades the error for a worse one:
+
+| | exact | mean units | readings |
+|---|---|---|---|
+| as shipped, 14 runs | 6 of 14 | 10.36 | 8 to 12 |
+| a SKU-less sighting waiting for a second census, 8 runs | **0 of 8** | **8.5** | 8, 8, 8, 8, 9, 9, 9, 9 |
+
+Every reading under ten. A scan pans, so a product that is genuinely in the trolley and genuinely
+visible on one keyframe of four never gets its second census and never reaches the bag. The rule
+does not separate a re-description from a single sighting, it separates things seen twice from
+things seen once, and on a pan those are not the same distinction.
+
+A shopper misses a duplicate on the screen. They do not miss a product that is not there, and
+they are charged for it either way, so an over-count is the error to keep.
+
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
 across four calls four seconds apart those words are not the same words. "Bag of apples" is a
