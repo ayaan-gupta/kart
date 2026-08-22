@@ -2506,3 +2506,33 @@ That is the sixth constant confirmed at the value it already had, and the eighth
 this file to find that giving the pipeline more to do costs accuracy. The under-firing is real, and
 the fix for it is not "fire more"; it is confidence that means something, which is capability 4 and
 still does not work.
+
+## Fifty-first: a correction to the pattern this file keeps claiming
+
+Eight measurements here end the same way, and the summary of them has been drifting toward "more
+is worse, full stop". That generalisation is too broad, and the cheapest way to test it was to go
+the other way on the one dimension where "less" had never been re-measured.
+
+`CENSUS_LONG_EDGE` was swept at 1024, 1536 and 2048 long ago, but against the old rule 12, when
+`unmarkedItems` came back empty at every resolution and the sweep could only report zeroes. 2048
+was re-tested on the current pipeline and lost. 1024 never was. Two rounds of three:
+
+| long edge | badge alignment | products found, lenient |
+|---|---|---|
+| 1024 | 64, 63 of 75 | 71, 66 (**68.5**) |
+| **1536, as shipped** | 67, 66 of 75 | 80, 77 (**78.5**) |
+| 2048 | 210 of 250 across two rounds | worse on four measures of five |
+
+Ten points worse at 1024, and badge alignment falls too, which is the tell: at 1024 the drawn
+numerals themselves start to suffer.
+
+**So the pattern is not "less is better".** 1536 is a genuine optimum with both neighbours worse.
+What the eight results actually share is narrower and worth stating precisely: **giving the census
+more to weigh or say costs accuracy on what it was already doing.** More regions, more prompts, a
+larger model on a fused scan, a fuller non-product rule, more captures, more closer looks. Every
+one of those adds work or candidates. Resolution does not: it changes how well the census can see
+one fixed thing, and there it has a peak rather than a slope.
+
+The distinction matters for anyone tuning this next. Reaching for a bigger prompt or an extra pass
+is reaching in the direction that has failed eight times. Reaching for a sharper image is not the
+same move, and is already at its best value.
