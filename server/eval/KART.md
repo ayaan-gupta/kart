@@ -5085,3 +5085,23 @@ that rescued the real product would readmit the junk with it.
 because a corpus with a fuller catalog might separate differently. The refusal cost one distribution
 print rather than two census runs and a bag comparison, which is the whole reason to look at the
 signal before building on it.
+
+### The filter, implemented in the service and left off
+
+A measurement in the eval harness is not a change to the product. `MIN_CATALOG_CONFIDENCE` now
+exists in `server/src/enumerate.ts` and `usable()` applies it, so the ninety-eighth's result is one
+constant away from shipping rather than a rewrite.
+
+**It is set to 0, which is off**, and the reason is the same standard this file has applied to
+everything else: every number behind it comes from a local Qwen2.5-VL standing in for the census,
+not from `gpt-5.4-mini`, and this project does not ship a change on evidence from a different model.
+A test asserts the constant is zero and that an unrecognised region survives, so raising it without
+measuring fails the suite first.
+
+Two details worth having in the code rather than only here. A region with **no** catalog information
+is kept whatever the threshold, because a degraded or unconfigured matcher saying nothing is not the
+catalog saying no. And the docstring carries the three-row comparison and the note that 0.6 was
+derived from badge naming and then held on bag contents, so the next reader does not have to trust
+that it was not fitted to its own metric.
+
+To validate: set it to 0.6 and run `server/eval/verify.py --model`.

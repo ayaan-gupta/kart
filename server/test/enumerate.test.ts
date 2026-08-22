@@ -5,6 +5,7 @@ import {
   marksFromRegions,
   MAX_CANDIDATES,
   MAX_REGIONS,
+  MIN_CATALOG_CONFIDENCE,
 } from "../src/enumerate.js";
 
 const jpeg = Buffer.from("not really a jpeg, this module never decodes it");
@@ -172,6 +173,19 @@ describe("catalog matches arriving with the regions", () => {
       confidence: 0.87,
       alternatives: alternatives.map((s, i) => ({ sku: s, score: 2 - i })),
     },
+  });
+
+  it("keeps every region while MIN_CATALOG_CONFIDENCE is zero, which is what ships", async () => {
+    // The filter is implemented and off. It is measured only through a local model standing in for
+    // the census (KART.md, ninety-eighth), and this project does not ship a change on evidence from
+    // a different model. This test is what fails first if the constant is raised without measuring.
+    expect(MIN_CATALOG_CONFIDENCE).toBe(0);
+    const unrecognised = { ...square(0.1, 0.1), catalog: { sku: null, confidence: 0.2, alternatives: [] } };
+    const { regions } = await enumerateRegions(jpeg, {
+      endpoint: "https://example.invalid/enumerate",
+      fetchImpl: stubFetch({ body: { instances: [unrecognised] } }).impl,
+    });
+    expect(regions).toHaveLength(1);
   });
 
   it("still parses a response with no catalog field, which is what ships today", async () => {

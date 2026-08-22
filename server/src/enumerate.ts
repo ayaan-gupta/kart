@@ -137,7 +137,38 @@ export function enumeratorConfigured(options: EnumerateOptions = {}): boolean {
  * the compositor. A box with no area produces a badge on nothing; a polygon with two points
  * produces an outline that renders as a line across the item.
  */
+/**
+ * Drop a region the catalog does not recognise at all, before it becomes a badge.
+ *
+ * **Zero, which is off, and deliberately so.** Every proposal is a badge, every badge is a question
+ * to the census, and every question can produce a line in the shopper's bag; seven times in
+ * `server/eval/KART.md` a detector that proposed better boxes produced a worse bag by exactly that
+ * route. The ninety-eighth section measured the fix: score each proposal against the catalog and
+ * only ask about the ones it recognises.
+ *
+ *     shipped regions              37 units against 31 real, 4 of 6 exact, 24 found, 13 spurious
+ *     shipped regions, this at 0.6 33 units,                 5 of 6,       23 found, 10 spurious
+ *     MM Grounding DINO, at 0.6    34 units,                 4 of 6,       24 found, 10 spurious
+ *
+ * 0.6 rather than a fitted value: the eighty-third derived it from whether a badge is *named*
+ * correctly, where it catches 3 of 9 wrong badges and 0 of 66 right ones, and it then held on the
+ * different question of what reaches the bag. A constant fitted on the metric it is judged by
+ * proves nothing.
+ *
+ * It stays off because every one of those numbers comes from a local Qwen2.5-VL standing in for the
+ * census, not from `gpt-5.4-mini`. Whether the shipped model converts the surviving badges the same
+ * way is unmeasured, and this project does not ship a change on evidence from a different model.
+ * Set it to 0.6 and re-run `server/eval/verify.py --model` to find out.
+ */
+export const MIN_CATALOG_CONFIDENCE = 0;
+
 function usable(region: EnumeratedRegion): boolean {
+  // A region with no catalog information at all is kept regardless: the matcher may be degraded or
+  // unconfigured, and "the catalog said nothing" is not "the catalog said no".
+  if (MIN_CATALOG_CONFIDENCE > 0 && region.catalog != null
+      && region.catalog.confidence < MIN_CATALOG_CONFIDENCE) {
+    return false;
+  }
   if (region.box.w <= 0 || region.box.h <= 0) return false;
   if (region.polygon.length < MIN_POLYGON_POINTS * 2) return false;
   if (region.polygon.length % 2 !== 0) return false;
