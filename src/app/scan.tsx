@@ -146,6 +146,17 @@ export default function ScanScreen() {
   const [amberPersists, setAmberPersists] = useState(false);
   /** Every census so far has failed, so the scan is broken rather than the cart empty. */
   const [unavailable, setUnavailable] = useState(false);
+  /**
+   * Consecutive frames the native detector reported an error on.
+   *
+   * `FrameScan.error` exists because a plugin that failed to register and a detector that ran
+   * cleanly over an empty cart both produce zero instances, and `frameProcessor.ts` says outright
+   * that this "is the one case scanCart must never let fall through to a silent, error-less empty
+   * scan". Nothing read it. On a phone a failed native registration would have shown a camera that
+   * detects nothing and explains nothing, which is the same fault the census side had (KART.md,
+   * eighty-fifth).
+   */
+  const detectorErrorsRef = useRef(0);
   const [permissionAsked, setPermissionAsked] = useState(false);
   // Whether the last-published occlusion verdict was true, read (not set) outside render so
   // `publish` can detect the false-to-true edge that starts a new episode. A ref, not state:
@@ -224,6 +235,15 @@ export default function ScanScreen() {
               `max ${sorted[sorted.length - 1].toFixed(0)} (MIN_KEYFRAME_SHARPNESS is ${MIN_KEYFRAME_SHARPNESS})`,
             );
           }
+        }
+
+        // Half a second of consecutive failures, not one frame: a single bad frame is noise, and a
+        // plugin that did not load fails every frame forever.
+        if (scan.error) {
+          detectorErrorsRef.current += 1;
+          if (detectorErrorsRef.current >= 15) setUnavailable(true);
+        } else if (detectorErrorsRef.current > 0) {
+          detectorErrorsRef.current = 0;
         }
 
         const result = processFrame(pipelineStateRef.current, scan, now);

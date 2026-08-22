@@ -14,12 +14,17 @@ export type CoachKind = 'none' | 'closer' | 'occluded' | 'unavailable';
  * `unavailable` is NOT product-owner copy. It was written here because the alternative was a
  * shopper scanning a full trolley, finding nothing, and being told nothing (KART.md, eighty-fifth).
  * It is deliberately plain and it needs their wording before it is final.
+ *
+ * It says nothing about the cause on purpose. Two different faults reach it -- the recognition
+ * service not answering, and the native detector failing to load on the device -- and the advice
+ * that fits one misdirects on the other. What a shopper needs from either is the same: the bag is
+ * not being filled, so do not trust it being empty.
  */
 export const COACH_COPY: Record<Exclude<CoachKind, 'none'>, string> = {
   closer: 'Please bring your camera closer to items highlighted yellow',
   occluded:
     "We're pretty sure you're missing stuff in your cart. Move items that are covering it and scan those items.",
-  unavailable: "Scanning isn't working right now. Check your connection and try again.",
+  unavailable: "Scanning isn't working right now, so nothing is being added to your cart.",
 };
 
 const SYMBOL: Record<Exclude<CoachKind, 'none'>, SymbolViewProps['name']> = {

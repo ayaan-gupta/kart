@@ -59,6 +59,13 @@ describe('coachKind', () => {
     expect(coachKind({ amberPersists: false, occluded: false })).toBe('none');
   });
 
+  it('says nothing about the cause of the outage', () => {
+    // Two faults reach this notice, a service that will not answer and a native detector that did
+    // not load, and advice fitting one misdirects on the other. See CoachNotice.tsx.
+    expect(COACH_COPY.unavailable).not.toMatch(/connection|network|offline|wifi/i);
+    expect(COACH_COPY.unavailable).toMatch(/cart/i);
+  });
+
   it('has copy for every kind it can return', () => {
     // A kind with no entry renders undefined text and announces undefined to a screen reader.
     for (const kind of ['closer', 'occluded', 'unavailable'] as const) {
