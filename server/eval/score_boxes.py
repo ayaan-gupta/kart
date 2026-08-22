@@ -31,17 +31,32 @@ def frac_inside(inner, outer):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--frames", default="frames-named.json")
-    ap.add_argument("--labels", default=str(HERE / "corpus/kart/boxes-IMG_0254.json"))
+    ap.add_argument("--labels", default=None,
+                    help="one label file; default scores every corpus/kart/boxes-*.json")
     args = ap.parse_args(argv)
 
-    labels = json.loads(pathlib.Path(args.labels).read_text())
+    files = ([pathlib.Path(args.labels)] if args.labels
+             else sorted((HERE / "corpus/kart").glob("boxes-*.json")))
+    totals = {"reached": 0, "isolated": 0, "items": 0,
+              "reached_read": 0, "isolated_read": 0, "read": 0}
+    for path in files:
+        one(path, args.frames, totals)
+    print(f"\n  ALL {len(files)} photograph(s), {args.frames}")
+    print(f"  reached   {totals['reached']}/{totals['items']}   "
+          f"({totals['reached_read']}/{totals['read']} excluding judged)")
+    print(f"  isolated  {totals['isolated']}/{totals['items']}   "
+          f"({totals['isolated_read']}/{totals['read']} excluding judged)")
+
+
+def one(path, frames_name, totals):
+    labels = json.loads(path.read_text())
     items = labels["items"]
-    data = json.loads((HERE / ".cache/kart" / args.frames).read_text())
+    data = json.loads((HERE / ".cache/kart" / frames_name).read_text())
     frames = data["frames"] if isinstance(data, dict) else data
     frame = next(f for f in frames if labels["image"] in str(f.get("id", "")))
     proposals = frame["boxes"]
     print(f"{labels['image']}: {len(proposals)} proposals against {len(items)} labelled items "
-          f"({args.frames})\n")
+          f"({frames_name})\n")
 
     reached = isolated = 0
     reached_read = isolated_read = read_total = 0
@@ -68,6 +83,9 @@ def main(argv=None):
 
     print(f"\n  reached   {reached}/{len(items)}   ({reached_read}/{read_total} excluding judged)")
     print(f"  isolated  {isolated}/{len(items)}   ({isolated_read}/{read_total} excluding judged)")
+    totals["reached"] += reached; totals["isolated"] += isolated; totals["items"] += len(items)
+    totals["reached_read"] += reached_read; totals["isolated_read"] += isolated_read
+    totals["read"] += read_total
 
 
 if __name__ == "__main__":

@@ -1,0 +1,98 @@
+{
+ "image": "IMG_0252",
+ "space": "Normalised against the EXIF-CORRECTED image, 4284x5712 portrait. Every photograph in this corpus is stored 5712x4284 landscape with EXIF orientation 6, and every box in `.cache/kart/frames-named.json` is in the corrected portrait space. A reader that opens the JPEG without applying EXIF gets boxes a quarter turn from their objects.",
+ "provenance": "Hand-labelled by eye against a normalised grid over the corrected image, then verified by rendering the boxes back. For detector RECALL, not localisation: boxes are generous, several overlap, and the baguette's is loose because the loaf lies diagonally.",
+ "judged_note": "The yellow produce bag carries judged=true. counts.json records for this photograph that 'the tomatoes and the yellow bag drew nothing; both sit behind and under the purple bag'. The purple bag here IS the Fuji apple bag, labelled FUJI, and is plainly visible.",
+ "items": [
+  {
+   "name": "Oreo party size",
+   "box": {
+    "x": 0.398,
+    "y": 0.058,
+    "w": 0.322,
+    "h": 0.245
+   },
+   "judged": false
+  },
+  {
+   "name": "baguette",
+   "box": {
+    "x": 0.128,
+    "y": 0.338,
+    "w": 0.695,
+    "h": 0.282
+   },
+   "judged": false
+  },
+  {
+   "name": "Fuji apple bag",
+   "box": {
+    "x": 0.198,
+    "y": 0.468,
+    "w": 0.285,
+    "h": 0.202
+   },
+   "judged": false
+  },
+  {
+   "name": "yellow produce bag",
+   "box": {
+    "x": 0.198,
+    "y": 0.482,
+    "w": 0.105,
+    "h": 0.09
+   },
+   "judged": true
+  },
+  {
+   "name": "Granny Smith apple bag",
+   "box": {
+    "x": 0.518,
+    "y": 0.438,
+    "w": 0.305,
+    "h": 0.242
+   },
+   "judged": false
+  },
+  {
+   "name": "Seedtastic bread",
+   "box": {
+    "x": 0.048,
+    "y": 0.608,
+    "w": 0.235,
+    "h": 0.262
+   },
+   "judged": false
+  },
+  {
+   "name": "asparagus bag",
+   "box": {
+    "x": 0.218,
+    "y": 0.678,
+    "w": 0.185,
+    "h": 0.192
+   },
+   "judged": false
+  },
+  {
+   "name": "brussels sprouts bag",
+   "box": {
+    "x": 0.398,
+    "y": 0.638,
+    "w": 0.205,
+    "h": 0.232
+   },
+   "judged": false
+  },
+  {
+   "name": "Mr Lucky cauliflower",
+   "box": {
+    "x": 0.578,
+    "y": 0.678,
+    "w": 0.222,
+    "h": 0.192
+   },
+   "judged": false
+  }
+ ]
+}

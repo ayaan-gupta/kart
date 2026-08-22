@@ -3412,3 +3412,55 @@ the next reader does not have to rediscover this.
 
 The video work is unaffected: its frames are 1080x1920 with no EXIF tag, stored exactly as the
 frame records claim, so the sixty-fifth and sixty-sixth sections stand as measured.
+
+## Seventy-first: the detector threshold, swept on trolley boxes for the first time
+
+The seventieth found IMG_0254's residual is not blindness but **grouping**: the detector reaches
+almost every product and isolates less than half of them, and a badge on a box holding two products
+asks the census about the pair. Grouping is what a detection threshold controls, and this corpus has
+never had the box-level truth to sweep one. It has two now, IMG_0252 and IMG_0254, twenty-four
+labelled items of which twenty are readable.
+
+Every setting below was already cached from earlier work and needed no model, no GPU pass and no
+API credit to score, which is the whole reason this was reachable with the OpenAI account empty.
+
+| setting | proposals | reached, readable | isolated, readable |
+|---|---|---|---|
+| threshold 0.28 | 18 | 18 of 20 | 10 of 20 |
+| **0.23, as shipped** | 21 | 19 of 20 | 11 of 20 |
+| **0.20** | 22 | **20 of 20** | **12 of 20** |
+| 0.18 | 24 | 20 of 20 | 12 of 20 |
+| 0.15 | 29 | 19 of 20 | 12 of 20 |
+| tiles x2 | 45 | 16 of 20 | 9 of 20 |
+
+**0.20 dominates the shipped value on both measures for one extra proposal**, and it is the
+efficient point: 0.18 buys nothing more for three more proposals, and by 0.15 recall has started
+back down while the count climbs. Tiling is much the worst of the six, which is worth stating
+plainly since it doubles the proposal count: tiles cut through objects, and a product split across
+two tiles is reached by neither.
+
+### Why this is a candidate and not a change
+
+`BOX_THRESHOLD = 0.23` was not guessed. Its comment records an F1 sweep over **465 instances** of
+the grocer corpus, and then says why it stayed: "The threshold stays at 0.23 rather than being
+re-tuned, because the corpus that would be doing the tuning is the one that cannot show the failure
+being fixed." Trolleys are that other corpus, and this is the first time the trolley side has had
+boxes to answer with. Twenty readable products do not overturn 465 instances, but they do say that
+on the surface the product actually ships against, 0.20 is free.
+
+**The end-to-end effect is unmeasured and may well be negative.** The one lesson this file has
+repeated more than any other is that more regions measures worse once the census sees them: the
+paired produce prompts lost three times, `--tiles 2` lost, server-side enumeration on the keyframe
+lost. Isolation is a better argument than raw count, because it is precisely the quantity those
+experiments were failing on, but an argument is not a measurement and the account has no credit to
+take one.
+
+**What to run when it does:**
+
+    # detection at the candidate threshold, then the bag it produces
+    server/.venv/bin/python server/eval/score_kart.py --threshold 0.20
+    node --env-file=server/.env.local server/node_modules/.bin/tsx \
+      server/eval/pipeline/census-live.ts --repeat=3 --frames=frames-t0.20.json
+
+against the 75 of 93 products and 8 spurious lines the sixty-seventh section measured on three
+passes of the shipped set. Ship it only if products found rises **and** spurious lines do not.
