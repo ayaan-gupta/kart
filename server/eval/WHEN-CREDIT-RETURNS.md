@@ -31,6 +31,13 @@ either way.
 the four sparse trolleys stop being exact — they are the corpus's only clean cases, and a change
 that dirties them is not worth the loaded trolleys it helps.
 
+**And look at what it drops, not only at the totals.** `render_filter.py` draws it: on IMG_0254 the
+four proposals removed are the second egg carton, the jar, the salmon and the asparagus — all real
+products. The totals only improve because the unmarked sweep volunteers most of them back, and that
+sweep is the least reliable channel in this pipeline. Three of the four are `out_of_catalog`, which
+would not be true against a real store's catalog, so this is an argument for the filter being safer
+in deployment than it looks here — not for trusting the corpus figure.
+
 A test in `server/test/enumerate.test.ts` asserts the constant is zero. Raising it fails that test
 first, on purpose: update the test in the same commit as the measurement, never before it.
 
