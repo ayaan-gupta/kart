@@ -121,7 +121,7 @@ describe('keying on the catalog SKU', () => {
 });
 
 describe('the closer look and the census keying differently', () => {
-  const boxes = { a: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } };
+  const boxes = { a: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, b: { x: 0.5, y: 0.1, w: 0.2, h: 0.2 } };
   const skuMark = (id: number, name: string, catalogSku: string | null): CensusMark => ({
     id, name, brand: null, size: null, category: 'other',
     confidence: 0.9, needsCloserLook: false, isProduct: true, catalogSku,

@@ -41,7 +41,7 @@ describe("census schema", () => {
         },
       ],
       unmarkedItems: [],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
       occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
     };
     expect(() => CensusResponse.parse(ok)).not.toThrow();
@@ -75,11 +75,11 @@ describe("productKey", () => {
   });
 
   it("separates brand from name", () => {
-    expect(productKey("Froot Loops", "Kellogg's")).toBe("kelloggs::froot loops");
+    expect(productKey("Froot Loops", "Kellogg's")).toBe("kelloggs::froot loop");
   });
 
   it("handles a null brand", () => {
-    expect(productKey("Bananas", null)).toBe("::bananas");
+    expect(productKey("Bananas", null)).toBe("::banana");
   });
 
   it("distinguishes different products", () => {
@@ -97,8 +97,8 @@ describe("productKey accent folding", () => {
   });
 
   it("still applies every other normalisation rule unchanged: case, apostrophes, whitespace", () => {
-    expect(productKey("  Froot  Loops  ", "  Kellogg's  ")).toBe("kelloggs::froot loops");
-    expect(productKey("FROOT LOOPS", "KELLOGG'S")).toBe("kelloggs::froot loops");
+    expect(productKey("  Froot  Loops  ", "  Kellogg's  ")).toBe("kelloggs::froot loop");
+    expect(productKey("FROOT LOOPS", "KELLOGG'S")).toBe("kelloggs::froot loop");
   });
 });
 

@@ -171,7 +171,7 @@ describe("runEval: mixed success and failure", () => {
         }
         return census({
           marks: [bananaMark],
-          inViewCounts: [{ productKey: "::bananas", count: 1 }],
+          inViewCounts: [{ productKey: "::banana", count: 1 }],
         });
       });
     recognize.mockRejectedValueOnce(new Error("runCensus: OpenAI connection failed (ECONNRESET)"));
@@ -193,7 +193,7 @@ describe("runEval: mixed success and failure", () => {
 describe("runEval: full success", () => {
   it("exits 0 when every evaluable image scores without error", async () => {
     const recognize = vi.fn<Recognizer>().mockResolvedValue(
-      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::bananas", count: 1 }] }),
+      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::banana", count: 1 }] }),
     );
     const outcome = await runWithCollectors(["cart1.jpg"], { "cart1.jpg": bananaTruth }, stubLoadImage, recognize);
 
@@ -230,7 +230,7 @@ describe("runEval: full success", () => {
 describe("runEval: count-accuracy section", () => {
   it("appears in both stdout and the written report, separate from precision and recall", async () => {
     const recognize = vi.fn<Recognizer>().mockResolvedValue(
-      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::bananas", count: 1 }] }),
+      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::banana", count: 1 }] }),
     );
     const outcome = await runWithCollectors(["cart1.jpg"], { "cart1.jpg": bananaTruth }, stubLoadImage, recognize);
 
@@ -241,7 +241,7 @@ describe("runEval: count-accuracy section", () => {
 
   it("reflects an over-count (the shipped bug's shape) in the summary and the per-image section", async () => {
     const recognize = vi.fn<Recognizer>().mockResolvedValue(
-      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::bananas", count: 4 }] }),
+      census({ marks: [bananaMark], inViewCounts: [{ productKey: "::banana", count: 4 }] }),
     );
     const truth = { "cart1.jpg": [{ name: "Bananas", brand: null, qty: 1, occluded: false }] };
     const outcome = await runWithCollectors(["cart1.jpg"], truth, stubLoadImage, recognize);
@@ -249,10 +249,10 @@ describe("runEval: count-accuracy section", () => {
     expect(outcome.results[0]).toMatchObject({ ok: true });
     const result = outcome.results[0];
     if (result.ok) {
-      expect(result.countScore.overCounted).toEqual(["::bananas"]);
+      expect(result.countScore.overCounted).toEqual(["::banana"]);
       expect(result.countScore.meanSignedError).toBe(3);
     }
-    expect(outcome.reportMarkdown).toContain("over-counted: ::bananas");
+    expect(outcome.reportMarkdown).toContain("over-counted: ::banana");
     expect(outcome.stdout.join("\n")).toContain("mean signed error 3.000");
   });
 
@@ -263,10 +263,10 @@ describe("runEval: count-accuracy section", () => {
     const result = outcome.results[0];
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.countScore.missingFromPredicted).toEqual(["::bananas"]);
+      expect(result.countScore.missingFromPredicted).toEqual(["::banana"]);
       expect(result.countScore.totalCompared).toBe(0);
     }
-    expect(outcome.reportMarkdown).toContain("missing from predicted (in ground truth, no inViewCounts entry): ::bananas");
+    expect(outcome.reportMarkdown).toContain("missing from predicted (in ground truth, no inViewCounts entry): ::banana");
   });
 });
 
@@ -441,7 +441,7 @@ describe("runEval: streaming output", () => {
     };
     const recognize = vi.fn<Recognizer>().mockImplementation(async () => {
       sequence.push("recognize:resolve");
-      return census({ marks: [bananaMark], inViewCounts: [{ productKey: "::bananas", count: 1 }] });
+      return census({ marks: [bananaMark], inViewCounts: [{ productKey: "::banana", count: 1 }] });
     });
     const emit = (line: string, stream: "stdout" | "stderr") => {
       sequence.push(`emit:${stream}`);

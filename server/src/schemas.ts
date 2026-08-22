@@ -105,6 +105,26 @@ export type IdentifyResponse = z.infer<typeof IdentifyResponse>;
  * a vision model alternating accented and unaccented spellings of the same product across
  * calls would silently produce two different keys.
  */
+/**
+ * Folds an English plural, so "red apple" and "red apples" are one product.
+ *
+ * A scan asks the model the same question about the same trolley four times and gets the number
+ * chosen freshly each time: on the nine-second video "red apples" arrived at five seconds and
+ * "red apple" at seven, and the bag held both. That is not a model quirk to tune around, it is
+ * what free text does.
+ *
+ * The key is opaque and only ever compared with another key, so a fold that mangles a word costs
+ * nothing as long as it is deterministic. "asparagus" becomes "asparagu" on both sides and still
+ * meets itself. What it must not do is bring two different products together, which is why the
+ * only thing it does is remove a plural.
+ */
+function foldPlural(word: string): string {
+  if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+  if (word.length > 4 && /(?:ss|sh|ch|x)es$/.test(word)) return word.slice(0, -2);
+  if (word.length > 2 && word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+  return word;
+}
+
 export function productKey(name: string, brand: string | null): string {
   const norm = (s: string) =>
     s
@@ -114,7 +134,10 @@ export function productKey(name: string, brand: string | null): string {
       .replace(/[^a-z0-9 ]/g, "")
       .replace(/\s+/g, " ")
       .trim();
-  return `${brand ? norm(brand) : ""}::${norm(name)}`;
+  // The name only. A brand is a proper noun and does not arrive singular one call and plural the
+  // next, so folding it would mangle "Kellogg's" to "kellogg" for nothing.
+  const foldName = (s: string) => norm(s).split(" ").map(foldPlural).join(" ");
+  return `${brand ? norm(brand) : ""}::${foldName(name)}`;
 }
 
 // Hand-written JSON Schema rather than generated, because strict mode's requirements

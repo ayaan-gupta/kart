@@ -52,20 +52,51 @@ describe('productKey', () => {
   it('matches the server implementation exactly', () => {
     // Copied verbatim from server/src/schemas.ts. Do not refactor into a shared helper; the
     // duplication is the test.
+    const serverFold = (word: string) => {
+      if (word.length > 4 && word.endsWith('ies')) return `${word.slice(0, -3)}y`;
+      if (word.length > 4 && /(?:ss|sh|ch|x)es$/.test(word)) return word.slice(0, -2);
+      if (word.length > 2 && word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+      return word;
+    };
     const serverKey = (name: string, brand: string | null) => {
       const norm = (s: string) =>
         s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
           .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-      return `${brand ? norm(brand) : ''}::${norm(name)}`;
+      const foldName = (s: string) => norm(s).split(' ').map(serverFold).join(' ');
+      return `${brand ? norm(brand) : ''}::${foldName(name)}`;
     };
     const cases: [string, string | null][] = [
       ['Bananas', null], ['Café Bustelo', 'Café'], ['Häagen-Dazs', null],
       ['2% Milk, 1 gal', 'Great Value'], ['jalapeño peppers', null], ['', ''],
       ['100% Juice', null], ['naïve crème brûlée', "Trader Joe's"],
+      // The fold's own edges, so a change to one copy and not the other is caught here.
+      ['red apple', null], ['red apples', null], ['berries', null], ['pies', null],
+      ['boxes', null], ['glass', null], ['asparagus', null], ['peaches', null],
+      ['bus', null], ['ss', null], ['a', null],
     ];
     for (const [name, brand] of cases) {
       expect(productKey(name, brand)).toBe(serverKey(name, brand));
     }
+  });
+
+  it('brings a singular and its plural to one key, and leaves different products apart', () => {
+    // A scan asks the same question four times and the model picks the number freshly each time:
+    // "red apples" at five seconds, "red apple" at seven, two bag lines for one bag of apples.
+    expect(productKey('red apple', null)).toBe(productKey('red apples', null));
+    expect(productKey('Granny Smith Apples', null)).toBe(productKey('granny smith apple', null));
+    expect(productKey('boxes of pasta', null)).toBe(productKey('box of pasta', null));
+    expect(productKey('berries', null)).toBe(productKey('berry', null));
+    // And it must not fuse two things that are not one thing.
+    expect(productKey('apple', null)).not.toBe(productKey('apple juice', null));
+    expect(productKey('oreo', null)).not.toBe(productKey('oreo cookies', null));
+  });
+
+  it('mangles a word that only looks plural, and does so identically every time', () => {
+    // "asparagus" becomes "asparagu". The key is opaque and only ever compared with another key,
+    // so this costs nothing as long as it is deterministic, which is what is pinned here.
+    expect(productKey('asparagus', null)).toBe(productKey('asparagus', null));
+    expect(productKey('asparagus', null)).toBe('::asparagu');
+    expect(productKey('glass', null)).toBe('::glass');
   });
 });
 

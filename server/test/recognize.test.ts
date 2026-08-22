@@ -55,7 +55,7 @@ describe("runCensus request shape", () => {
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
       occlusion: wellFormedOcclusion,
     });
 
@@ -211,9 +211,9 @@ describe("valid responses parse", () => {
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [
-        { description: "loose bananas", productKey: "::loose bananas", catalogSku: null, approxLocation: "top of cart", confidence: 0.7 },
+        { description: "loose bananas", productKey: "::loose banana", catalogSku: null, approxLocation: "top of cart", confidence: 0.7 },
       ],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
       occlusion: wellFormedOcclusion,
     });
 
@@ -299,7 +299,7 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 2 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 2 }],
       occlusion: wellFormedOcclusion,
     });
     const result = await runCensus(await blankJpeg(), [
@@ -318,7 +318,7 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
     const result = await runCensus(await blankJpeg(), [
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
-    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loop");
   });
 
   it("repairs an accent-folding drift to match the mark's own fields", async () => {
@@ -333,7 +333,7 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
     expect(result.inViewCounts[0].productKey).toBe(productKey("Jalapeño Chips", null));
-    expect(result.inViewCounts[0].productKey).toBe("::jalapeno chips");
+    expect(result.inViewCounts[0].productKey).toBe("::jalapeno chip");
   });
 
   it("keeps and warns on a key that matches no mark, instead of dropping the entry", async () => {
@@ -342,7 +342,7 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
       marks: [wellFormedMark],
       unmarkedItems: [],
       inViewCounts: [
-        { productKey: "kelloggs::froot loops", count: 1 },
+        { productKey: "kelloggs::froot loop", count: 1 },
         { productKey: "SodaStream::Flavor Pack", count: 3 },
       ],
       occlusion: wellFormedOcclusion,
@@ -372,14 +372,14 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
     expect(result.marks[0].brand).toBeNull();
-    expect(result.inViewCounts[0].productKey).toBe("::bananas");
+    expect(result.inViewCounts[0].productKey).toBe("::banana");
   });
 });
 
 describe("malformed raw productKey shapes are repaired, not naively re-derived", () => {
   it("a key with no separator is matched to the mark by name, not defaulted to no-brand", async () => {
     // Before this fix: naive re-derivation of "Froot Loops" (no "::") assumed no brand and
-    // produced "::froot loops", silently discarding the real brand "Kellogg's".
+    // produced "::froot loop", silently discarding the real brand "Kellogg's".
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
@@ -390,12 +390,12 @@ describe("malformed raw productKey shapes are repaired, not naively re-derived",
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
     // After: matched to the one mark whose name matches, brand included.
-    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loop");
   });
 
   it("a key with more than one separator preserves the word boundary instead of concatenating", async () => {
     // Before this fix: naive re-derivation stripped every "::" with no boundary, turning
-    // "Kellogg's::Froot::Loops" into "kelloggs::frootloops", which never matches the mark.
+    // "Kellogg's::Froot::Loops" into "kelloggs::frootloop", which never matches the mark.
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
@@ -406,7 +406,7 @@ describe("malformed raw productKey shapes are repaired, not naively re-derived",
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
     // After: the stray "::" becomes a space, matching the mark's real canonical key.
-    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loop");
   });
 
   it("a no-separator key with no unambiguous name match falls back to a no-brand guess, not a false match", async () => {
@@ -447,7 +447,7 @@ describe("CensusDiagnostics: distinguishing a legitimate case from a real failur
       diagnostics,
     );
     expect(diagnostics.repaired).toEqual([
-      { raw: "Kellogg's::Froot  Loops", canonical: "kelloggs::froot loops" },
+      { raw: "Kellogg's::Froot  Loops", canonical: "kelloggs::froot loop" },
     ]);
     expect(diagnostics.plausiblyUnmarked).toEqual([]);
     expect(diagnostics.unrepaired).toEqual([]);
@@ -519,14 +519,14 @@ describe("CensusDiagnostics: distinguishing a legitimate case from a real failur
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
       occlusion: wellFormedOcclusion,
     });
     // Two-argument call, exactly as every prior test in this file uses it.
     const result = await runCensus(await blankJpeg(), [
       { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
     ]);
-    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loops");
+    expect(result.inViewCounts[0].productKey).toBe("kelloggs::froot loop");
   });
 });
 
@@ -537,7 +537,7 @@ describe("duplicate inViewCounts entries that re-derive to the same key are merg
       unmarkedItems: [],
       inViewCounts: [
         { productKey: "Kellogg's::Froot Loops", count: 2 },
-        { productKey: "kelloggs::froot   loops", count: 1 },
+        { productKey: "kelloggs::froot   loop", count: 1 },
       ],
       occlusion: wellFormedOcclusion,
     });
@@ -554,11 +554,11 @@ describe("duplicate inViewCounts entries that re-derive to the same key are merg
     );
 
     expect(result.inViewCounts).toHaveLength(1);
-    expect(result.inViewCounts[0]).toEqual({ productKey: "kelloggs::froot loops", count: 3 });
+    expect(result.inViewCounts[0]).toEqual({ productKey: "kelloggs::froot loop", count: 3 });
     expect(diagnostics.merged).toEqual([
       {
-        canonical: "kelloggs::froot loops",
-        rawKeys: ["Kellogg's::Froot Loops", "kelloggs::froot   loops"],
+        canonical: "kelloggs::froot loop",
+        rawKeys: ["Kellogg's::Froot Loops", "kelloggs::froot   loop"],
         count: 3,
       },
     ]);
@@ -568,7 +568,7 @@ describe("duplicate inViewCounts entries that re-derive to the same key are merg
     mockOutput({
       marks: [wellFormedMark],
       unmarkedItems: [],
-      inViewCounts: [{ productKey: "kelloggs::froot loops", count: 1 }],
+      inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
       occlusion: wellFormedOcclusion,
     });
     const diagnostics: CensusDiagnostics = {
