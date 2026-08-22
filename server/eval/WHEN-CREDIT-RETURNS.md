@@ -15,7 +15,7 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 
 ---
 
-## 1. Validate the proposal filter — the only pending change that improves the bag
+## 3. The proposal filter — demoted, and probably not worth a census pass
 
 `MIN_CATALOG_CONFIDENCE` in `server/src/enumerate.ts` is **0**, which is off. Set it to **0.6** and:
 
@@ -23,9 +23,15 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 server/.venv/bin/python server/eval/verify.py --model
 ```
 
-Measured through two local census models, it cut invented lines from 13 to 10 and lifted exact
-photographs from 4 of 6 to 5. It is near-inert on the video, so the scan path carries little risk
-either way.
+**Read the hundred-and-fifth section of `KART.md` before spending a call on this.** It cut invented
+lines from 13 to 10 across two local census models, and then scoring what it drops against the
+hand-labelled boxes showed **five proposals dropped, five covering a real product, none covering
+nothing**. It does not remove junk; it removes real products the census tends to misname, and the
+spurious lines fall because a badge never asked about cannot be misnamed.
+
+Three of the five are `out_of_catalog`, so against a real store's catalog they would score above 0.60
+and never be dropped — the change would be inert in the deployment this project assumes. That is why
+it moved from first in this list to last.
 
 **Ship it if** products found does not fall and lines-matching-nothing does. **Do not ship it if**
 the four sparse trolleys stop being exact — they are the corpus's only clean cases, and a change
@@ -41,7 +47,7 @@ in deployment than it looks here — not for trusting the corpus figure.
 A test in `server/test/enumerate.test.ts` asserts the constant is zero. Raising it fails that test
 first, on purpose: update the test in the same commit as the measurement, never before it.
 
-## 2. Take requirement 3 for the first time
+## 1. Take requirement 3 for the first time — never measured at all
 
 `census-live.ts` now prints each photograph's `occlusion` verdict and a per-photograph flagged count.
 No shipped-model figure exists for it — the local 7B managed 5 of 6.
@@ -55,7 +61,7 @@ Read the `occlusion flagged N/3` lines. **What would matter:** IMG_0254 flagged 
 the four sparse photographs on none. If IMG_0254 is *not* flagged, part of what `KART.md` counts as
 recognition failure is a reporting failure, and the fix is in the prompt rather than the detector.
 
-## 3. Ask the shipped model the one question whose input did not exist before
+## 2. Ask the shipped model the one question whose input did not exist before
 
 Every other refusal in `KART.md` re-ran a question the corpus had already answered. This one has not
 been asked: the augmented region set puts a box on IMG_0254's yellow produce bag, and the shipped
