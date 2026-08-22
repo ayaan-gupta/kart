@@ -55,6 +55,10 @@ const framesArg = process.argv.find((a) => a.startsWith('--frames='));
  * (`MAX_CENSUS_CALLS_PER_SESSION`), so half the budget is never spent. Products found rose with
  * every extra call up to four, which makes "spend the rest" the obvious question.
  */
+/** `--max-motion=<v>` overrides the keyframe gate's motion ceiling, which ships at 0.15. */
+const motionArg = process.argv.find((a) => a.startsWith('--max-motion='));
+const MAX_MOTION = motionArg ? Number(motionArg.split('=')[1]) : undefined;
+
 const intervalArg = process.argv.find((a) => a.startsWith('--interval='));
 const MIN_INTERVAL_MS = intervalArg ? Number(intervalArg.split('=')[1]) : undefined;
 
@@ -176,8 +180,10 @@ for (const frame of video.frames) {
     })),
     barcodes: [], sharpness: frame.sharpness, motion: frame.motion, crops: [],
   };
-  const stepped = processFrame(pipeline, scan as any, frame.t * 1000,
-    MIN_INTERVAL_MS === undefined ? {} : { minIntervalMs: MIN_INTERVAL_MS });
+  const stepped = processFrame(pipeline, scan as any, frame.t * 1000, {
+    ...(MIN_INTERVAL_MS === undefined ? {} : { minIntervalMs: MIN_INTERVAL_MS }),
+    ...(MAX_MOTION === undefined ? {} : { maxMotion: MAX_MOTION }),
+  });
   pipeline = stepped.state;
 
   if (!stepped.keyframe.fire) continue;

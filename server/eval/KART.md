@@ -2536,3 +2536,45 @@ one fixed thing, and there it has a peak rather than a slope.
 The distinction matters for anyone tuning this next. Reaching for a bigger prompt or an extra pass
 is reaching in the direction that has failed eight times. Reaching for a sharper image is not the
 same move, and is already at its best value.
+
+## Fifty-second: the motion ceiling, the last constant
+
+`MAX_KEYFRAME_MOTION` is 0.15. The forty-fifth section confirmed the device and the eval compute
+motion on the same scale, but not that 0.15 is the right number on it. Two runs each:
+
+| ceiling | censuses fired, of a budget of 8 | products found, lenient |
+|---|---|---|
+| 0.10 | **2** | 5, 5 of 9 |
+| **0.15, as shipped** | 4 | 8, 8 of 9 |
+| 0.30 | 4 | 8, 9 of 9 |
+
+Tightening to 0.10 blocks half the session's captures and costs three products. Loosening to 0.30
+changes nothing at all, because `minIntervalMs` binds first: at two seconds apart only four
+keyframes fit in nine seconds however still the camera is.
+
+So 0.15 sits just past the edge of where it matters, with headroom above it that the pacing makes
+unusable. That is a comfortable place for a threshold to be. It also confirms what its docstring
+claims after being relaxed from a stricter value: motion is no longer the binding blur test, which
+is precisely why `MIN_KEYFRAME_SHARPNESS` became load-bearing, and why that one being on the wrong
+scale (forty-fifth section) matters.
+
+### The sweep is complete
+
+Every constant on the recognition path has now been measured on the current pipeline or confirmed
+at the value it had:
+
+| constant | outcome |
+|---|---|
+| `PAIRED_PRODUCE_SHARPNESS` | confirmed twice, on two different paths |
+| `CENSUS_LONG_EDGE` | peak at 1536; 1024 and 2048 both worse |
+| `MODELS.census` | mini; the split by path removed when it became degenerate |
+| `minIntervalMs` | peak at 2000; 1000 and 3000 both worse |
+| `MAX_KEYFRAME_MOTION` | confirmed at 0.15 |
+| `GREEN_CONFIDENCE` | confirmed at 0.55; raising it makes the bag worse |
+| `MAX_IDENTIFY_CALLS_PER_SESSION` | non-binding, identify fires 1 to 3 times of 6 |
+| device regions per frame | 1 is as good as 3 or 5 |
+| keyframe JPEG quality | no effect, settled at nine passes |
+| `MIN_KEYFRAME_SHARPNESS` | **on the wrong scale**, inert on device, spawned as a task |
+
+One of ten is wrong, and it is the one this corpus cannot fix, because setting it needs a reading
+from a real camera rather than from JPEG frames decoded to grey.
