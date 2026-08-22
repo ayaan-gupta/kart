@@ -4591,3 +4591,48 @@ cannot supply for this one product.
 So the honest final statement about the yellow produce bag is narrow and complete: **on this corpus
 it is unreachable at five layers for one reason, and in the world the product ships into, the layer
 that matters most — the catalog — would not fail.**
+
+## Ninety-second: the corpus's two hard photographs differ mostly in catalog coverage
+
+The ninety-first found the yellow produce bag has no SKU because the video cannot supply ten
+references for it. Asking the same question of every product says the gap is not one item.
+
+The catalog is built from the video, and the video films **IMG_0252's trolley**. IMG_0254 is a
+different, fuller trolley from a different capture:
+
+| | products | with a catalog SKU | without |
+|---|---|---|---|
+| IMG_0252 | 9 | 8 | **1** — the yellow bag |
+| IMG_0254 | 15 | 6 | **9** — both egg cartons, both Muenster packs, the beef, the jar, the salmon, the yellow bag, the broccoli |
+
+**Sixty per cent of IMG_0254's products cannot have a catalog entry**, because the items are not in
+the video the catalog is built from. Those badges are labelled `out_of_catalog` in
+`still-labels.json`, which records the fact without drawing the conclusion: the photograph carrying
+almost all of this corpus's residual is also the photograph the closed-world assumption least
+applies to.
+
+`CLAUDE.md` is explicit that this matters: "Open-world numbers understate what the shipped product
+will do and send tuning in the wrong direction."
+
+### The effect is real and partial, and the numbers say which
+
+It would be easy to over-read this. Lacking a SKU is not fatal, and the measurements say so:
+
+- of IMG_0254's **9 uncatalogued** products, the census still finds **6** — both egg cartons, the
+  beef, the jar, the salmon and one of the two Muenster packs
+- of the **4 it misses** on a representative pass, **3 are uncatalogued** (the second Muenster, the
+  yellow bag, the broccoli) and one, the asparagus, is catalogued and was offered its own SKU at
+  rank 2
+
+So the shortlist is an assist rather than a requirement, and its absence explains part of the gap
+rather than all of it. What it does explain is why the two loaded trolleys behave so differently
+despite both being loaded: **IMG_0252 is 89% catalogued and scores 8 or 9 of 9; IMG_0254 is 40%
+catalogued and scores 10 or 11 of 15.**
+
+### What this does not license
+
+The corpus figure is not being restated as a better one. The truth stands, the catalog stands, and
+75 of 93 is what this pipeline scores against this corpus. The correct reading is narrower: **this
+corpus measures one trolley in nearly-closed-world conditions and the other in nearly-open-world
+ones**, and the difference between their scores should not be read as the pipeline handling density
+badly, which is what the seventieth through eighty-eighth spent their effort assuming.
