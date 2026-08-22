@@ -107,7 +107,8 @@ def detect_all(images, threshold, produce_pass=False, produce_threshold=None, pr
         if produce_pass:
             cut = produce_threshold or regions.PRODUCE_THRESHOLD
             produce_boxes, produce_scores = [], []
-            for prompt in (regions.PRODUCE_PROMPTS if produce_pairs else (regions.PRODUCE_PROMPT,)):
+            paired = produce_pairs or regions.sharpness(pil) >= regions.PAIRED_PRODUCE_SHARPNESS
+            for prompt in (regions.PRODUCE_PROMPTS if paired else (regions.PRODUCE_PROMPT,)):
                 pb, ps = run(prompt, cut)
                 produce_boxes += pb
                 produce_scores += ps

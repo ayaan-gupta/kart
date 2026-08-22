@@ -174,7 +174,8 @@ def main(argv=None):
         # product does not have, and a trolley is mostly produce.
         # One prompt or pairs, the same choice app.py documents. --produce-pairs is how the
         # 16, 13, 18 units against 10 real products in that comment were measured.
-        prompts = regions.PRODUCE_PROMPTS if args.produce_pairs else (regions.PRODUCE_PROMPT,)
+        paired = args.produce_pairs or regions.sharpness(pil) >= regions.PAIRED_PRODUCE_SHARPNESS
+        prompts = regions.PRODUCE_PROMPTS if paired else (regions.PRODUCE_PROMPT,)
         produce_boxes, produce_scores = [], []
         for prompt in prompts:
             produce = proc(images=pil, text=prompt, return_tensors="pt").to(device)

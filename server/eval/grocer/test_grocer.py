@@ -358,6 +358,27 @@ def test_the_paired_produce_prompts_carry_every_noun_exactly_once():
     assert all(p.endswith(".") for p in regions.PRODUCE_PROMPTS)
 
 
+def test_the_paired_threshold_sits_between_the_two_populations_that_arrive():
+    """Sharpness, not size, and the numbers are the measured ones. The ten photographs run 1060
+    to 2293 as the detector receives them, the 26 scan frames 9.7 to 351. The threshold has to sit
+    in that gap rather than against either edge of it, or it is fitted to this corpus."""
+    regions = _regions()
+    assert 351 < regions.PAIRED_PRODUCE_SHARPNESS < 1060
+
+
+def test_sharpness_separates_a_blurred_frame_from_a_sharp_one():
+    """A flat image has no edges and so no Laplacian variance; noise has plenty."""
+    from PIL import Image
+    import numpy as np
+
+    regions = _regions()
+    flat = Image.fromarray(np.full((64, 64, 3), 128, dtype=np.uint8))
+    speckled = Image.fromarray(
+        np.random.default_rng(0).integers(0, 255, (64, 64, 3), dtype=np.uint8))
+    assert regions.sharpness(flat) < regions.sharpness(speckled)
+    assert regions.sharpness(flat) == 0.0
+
+
 def test_an_odd_noun_count_leaves_a_prompt_of_one():
     regions = _regions()
     assert regions._in_pairs("a. b. c.") == ("a. b.", "c.")

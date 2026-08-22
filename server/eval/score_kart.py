@@ -95,7 +95,11 @@ def propose(pil, ground, produce_pass=True, threshold=None, tiles=1, produce_thr
     added = 0
     if produce_pass:
         cut = regions.PRODUCE_THRESHOLD if produce_threshold is None else produce_threshold
-        prompts = regions.PRODUCE_PROMPTS if produce_pairs else (regions.PRODUCE_PROMPT,)
+        # The shipped rule: pairs where the image is sharp enough for the census to adjudicate
+        # the extra regions, one prompt where it is not. --produce-pairs forces pairs regardless,
+        # which is how the comparison in app.py was measured.
+        paired = produce_pairs or regions.sharpness(pil) >= regions.PAIRED_PRODUCE_SHARPNESS
+        prompts = regions.PRODUCE_PROMPTS if paired else (regions.PRODUCE_PROMPT,)
         produce_boxes, produce_scores = [], []
         for prompt in prompts:
             pb, ps = ground(pil, prompt, cut)

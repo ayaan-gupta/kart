@@ -54,11 +54,14 @@ from regions import (  # noqa: E402
     NESTED_CONTAINMENT,
     NESTED_MAX_RATIO,
     NMS_IOU,
+    PAIRED_PRODUCE_SHARPNESS,
     PRODUCE_PROMPT,
+    PRODUCE_PROMPTS,
     PRODUCE_THRESHOLD,
     SIMPLIFY_EPSILON,
     dedupe,
     merge_produce,
+    sharpness,
 )
 
 
@@ -207,10 +210,18 @@ class Enumerator:
         # it can on a 24 megapixel photograph. Proposals sitting inside another proposal go from
         # 8 of 289 to 27 of 303 on the cart corpus, which is the same thing measured statically.
         #
-        # So the trade is one unit on one photograph against three to eight on every scan, and
-        # fourteen forward passes for it. `PRODUCE_PROMPTS` stays, with the flags in
-        # score_kart.py and score_carts.py, because a sharper camera would change this answer.
-        produce_boxes, produce_scores = ground(PRODUCE_PROMPT, PRODUCE_THRESHOLD)
+        # So it is not one answer for both. The split is the rule: see PAIRED_PRODUCE_LONG_EDGE,
+        # and the two lines below that apply it.
+        # Pairs on a photograph, one prompt on a scan frame. See PAIRED_PRODUCE_SHARPNESS: the
+        # same change helps the image the census can adjudicate and hurts the one it cannot, and
+        # what tells those apart is whether the object is resolved in the pixels at all.
+        prompts = (PRODUCE_PROMPTS if sharpness(pil) >= PAIRED_PRODUCE_SHARPNESS
+                   else (PRODUCE_PROMPT,))
+        produce_boxes, produce_scores = [], []
+        for prompt in prompts:
+            found, found_scores = ground(prompt, PRODUCE_THRESHOLD)
+            produce_boxes += found
+            produce_scores += found_scores
         for i in merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= MAX_INSTANCES:
                 break

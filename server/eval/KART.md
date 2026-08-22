@@ -79,9 +79,34 @@ But the photograph side of that trade was larger than the numbers it was refused
 
 What IMG_0252 misses under the shipped prompt is one object and always the same one: the yellow
 produce bag. Eight of nine, three passes of three, and never a word about it in unmarkedItems at
-any effort or resolution. The paired prompt is what puts a box on it, badge 8, which the catalog
-then misnames "tata agni truffle". So the miss is detection, the fix is known, and the fix costs
-the scan more than the miss costs a photograph.
+any effort or resolution. The paired prompt is what puts a box on it. So the miss is detection and
+its fix is known.
+
+**And the split itself is the rule.** Three changes were refused today for helping the photographs
+and hurting the scan, which is three measurements of one thing: more regions or more names help an
+image the census can adjudicate and hurt one it cannot. What separates those is not size, which is
+backwards here, because the detector receives photographs thumbnailed to 1333 and scan frames at
+1080 by 1920. It is whether the object is resolved in the pixels at all. Variance of the Laplacian
+on exactly what the detector receives:
+
+    ten photographs   1060 1551 1676 1762 1888 2032 2152 2229 2264 2293
+    26 scan frames    9.7 low, 116 median, 351 high
+
+Three times between the highest frame and the lowest photograph, no overlap, and those are the
+only two populations this pipeline receives. `PAIRED_PRODUCE_SHARPNESS` is 700, in the gap rather
+than against either edge, so it is not fitted. Above it the produce nouns run in pairs; below it
+they run as one prompt.
+
+Shipped and measured, three passes:
+
+| | photographs exact | IMG_0252, of 9 |
+|---|---|---|
+| one prompt everywhere | 4, 4, 4 of 6 | 8, 8, 8 |
+| conditioned on sharpness | **5, 4, 4 of 6** | **9, 10, 8** |
+
+The trolley that had never reached its count under any shipped configuration reaches it. The scan
+is untouched, because every one of its frames falls below the threshold and gets exactly the pass
+it had before.
 
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag

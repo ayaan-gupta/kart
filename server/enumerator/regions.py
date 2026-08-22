@@ -122,6 +122,43 @@ def _in_pairs(prompt):
 
 
 PRODUCE_PROMPTS = _in_pairs(PRODUCE_PROMPT)
+# Sharpness above which the paired prompts are worth their passes.
+#
+# Three separate changes were measured on both corpora today and all three split the same way:
+# paired produce prompts, the frame's whole catalog offered to the census, and a larger census
+# model. Each helped the photographs and hurt the scan, and each was refused on the scan. The
+# split is not a coincidence to route around, it is the finding. Anything that puts more regions
+# or more names in front of the census helps an image the census can adjudicate and hurts one it
+# cannot, and what separates those two is how much of the object is actually in the pixels.
+#
+# Size is the wrong handle and is backwards: the detector receives photographs thumbnailed to
+# 1333 and scan frames at their native 1080 by 1920, so the photographs are the smaller input.
+# What differs is whether the object is resolved in the pixels at all, which is the same thing
+# that decides whether the census can adjudicate an extra region. Variance of the Laplacian,
+# measured on exactly what the detector receives:
+#
+#   ten photographs   1060, 1551, 1676, 1762, 1888, 2032, 2152, 2229, 2264, 2293
+#   26 scan frames    9.7 low, 116 median, 351 high
+#
+# Three times between the highest frame and the lowest photograph, no overlap, and those are the
+# only two populations this pipeline receives. 700 sits in that gap rather than against either
+# edge of it, so it is not fitted to a corpus.
+#
+# Measured. Photographs, three passes each: five of six exact with pairs against four of six
+# without, and the trolley that had never reached its count exact in two passes of three. Scan,
+# with pairs at every frame: 13, 16 and 18 units against nine real products, where the single
+# prompt reads nine to twelve. Conditioned on this, each gets the pass that measured better on it.
+PAIRED_PRODUCE_SHARPNESS = 700
+
+
+def sharpness(image):
+    """Variance of the Laplacian, the same measure FrameMetrics uses on device."""
+    import cv2
+    import numpy as np
+
+    grey = cv2.cvtColor(np.asarray(image.convert("RGB")), cv2.COLOR_RGB2GRAY)
+    return float(cv2.Laplacian(grey, cv2.CV_64F).var())
+
 # A second-pass box overlapping a first-pass box by this much is the same item seen twice, and
 # the first pass wins. Everything the second pass contributes therefore lands where the first
 # found nothing, which is why it cannot cost a packaged item: across the three cart photographs
