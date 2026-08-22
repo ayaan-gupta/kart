@@ -4802,3 +4802,34 @@ or key, a gateway or proxy, or Azure OpenAI where the deployment exposes the Res
 the shipped pipeline end to end against a local model is not available**, which is why
 `census_local.py` asks one crop at a time instead: it is a different pipeline precisely because the
 shipped one cannot be pointed at a local model.
+
+## Ninety-fifth: it builds for a real phone, and what is missing is not code
+
+"Works on the phone" had been an open worry all along and was never checked. It builds:
+
+    xcodebuild -workspace ios/Kart.xcworkspace -scheme Kart -configuration Debug \
+      -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+succeeds with no errors, and the product is a genuine device binary — `Debug-iphoneos`, `arm64`,
+SDK `iphoneos26.2`, `MinimumOSVersion` 17.0. **Nothing in this app is simulator-only**, which was
+the risk worth testing: the Vision frame processor plugin, VisionCamera and the worklets all compile
+for arm64 against the device SDK.
+
+What is missing is not code:
+
+| | |
+|---|---|
+| `DEVELOPMENT_TEAM` | absent from `project.pbxproj`, so Xcode cannot sign for a device |
+| a connected iPhone | none attached; only the Mac appears under devices |
+| `NSCameraUsageDescription` | **present** |
+| `NSMotionUsageDescription` | **present** |
+
+So getting it onto a phone is a two-step setup rather than an engineering task: open
+`ios/Kart.xcworkspace`, Signing & Capabilities, automatically manage signing, choose a team, attach
+the phone, Run. The permission prompts are already correct on first launch.
+
+**The one thing to do while it is running there** is read the `[kart] device sharpness` line the
+scan prints every thirty frames in a Debug build. `MIN_KEYFRAME_SHARPNESS` is 12, set against
+`score_video.py`'s whole-frame variance, while `FrameMetrics.sharpness` reports the largest of a 3x3
+grid of tiles and runs several times higher, so on a phone the blur gate rejects nothing. That
+readout is the single measurement the constant needs and the only one this corpus cannot produce.
