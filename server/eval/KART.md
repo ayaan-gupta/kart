@@ -2704,3 +2704,28 @@ the gate rather than the model.
 
 Measured end to end afterwards: all four shelves now yield a bag of **0 units on 0 lines**, and the
 scan is unchanged.
+
+## Fifty-sixth: the cart question costs what it costs
+
+The shelf gate cost about three points of products found, and the first version of it was five
+lines dropped in as "0." between rules 7 and 8, so the numbered list ran 1 to 7, then 0, then 8.
+Two plausible reasons for the cost had nothing to do with the question itself: the disordered
+numbering, and the length. Both were worth removing before accepting the price.
+
+Moved to the top, where its own "judge the photograph, not the badges" instruction actually comes
+first, and cut from five lines to four:
+
+| | products found, lenient | mean | badge alignment |
+|---|---|---|---|
+| no field at all | 79, 80, 77 | **78.7** | 67, 66 of 75 |
+| five lines, between rules 7 and 8 | 74, 75, 76, 77 | 75.5 | 67, 65 of 75 |
+| four lines, at the top | 72, 75, 79 | **75.3** | 67, 67, 68 of 75 |
+
+Identical, and discrimination stayed at ten of ten. **The three points are the cost of asking the
+question, not of how it is asked**, which is the same finding as every other prompt change in this
+file and this time it was worth confirming rather than assuming, because a cheaper version of a
+fix worth keeping would have been worth having.
+
+The tightened version stays anyway: the ordering is coherent, badge alignment is a shade better
+across three rounds rather than worse, and a rule labelled 0 sitting between 7 and 8 was a thing
+for a future reader to trip over.
