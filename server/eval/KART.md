@@ -185,33 +185,44 @@ None of this shows the shipped census failing: a 2B model is not its model, and 
 do set-of-mark far better. What it gives is a first diagnostic and a fallback with a number
 behind it.
 
-## What a census that over-lists costs, measured
+## A census answered by a local model, with no key
 
 `applyCensus` trusts `unmarkedItems`. Every entry not already carried by a live track becomes a
 bag line, with no cap and no cross-check against the catalog. That is deliberate and the code
 argues for it: enumeration recall is 38%, so a tracker used as a ceiling on quantity is wrong far
 more often than it is right, and the model looking at the whole frame is the better witness.
 
-The cost of that trust had never been measured, because no model had ever answered. Running a
-2B model as the census puts a number on it. On the fullest trolley it listed 24 products for a
-16-product basket, and the bag came out at 20:
+Whether that trust is safe had never been tested, because no model had ever answered. A 2B open
+model can, asked three separate questions rather than one, each in the form that measured best:
 
-| photograph | real | bag with a local census | error |
+| question | form | result |
+|---|---|---|
+| `isProduct` | yes or no, one crop, exclusions spelled out | 24 of 28, rejects both plastic discs |
+| the name | one crop at a time | 17 of 23, alignment exact by construction |
+| `unmarkedItems` | one question about the whole frame | 9 to 14 products per trolley |
+
+Asking one question to do two jobs does both worse: "name it, or say NOT A PRODUCT" calls the
+trolley's plastic disc a product, where the dedicated yes-or-no question refuses it.
+
+| photograph | real | bag | error |
 |---|---|---|---|
-| the three sparse trolleys | 1, 1, 2 | 1, 1, 2 | **0, 0, 0** |
-| three items | 3 | 4 | +1 |
+| one cauliflower | 1 | 1 | **0** |
+| one cauliflower | 1 | 1 | **0** |
+| + sprouts | 2 | 2 | **0** |
+| + asparagus | 3 | 4 | +1 |
 | loaded | 10 | 9 | -1 |
-| full | 16 | 20 | +4 |
+| full | 16 | 16 | **0** |
 
-Three of six exact, against two of six for detection alone and six of six for a census that
-answers correctly. All three sparse trolleys become exact, which is the plastic disc finally
-leaving the bag and is exactly what `isProduct` is for.
+**33 units against 33 real items, four of six photographs exact**, against two of six for
+detection alone and six of six for a census that answers correctly. Every sparse trolley is
+exact, which is the plastic disc finally leaving the bag and is exactly what `isProduct` is for.
+The two that miss cancel: one over by one, one under by one.
 
-The failure is one-for-one: a product listed that is not there is a unit in the bag that is not
-there. There is no bound on it in the code, deliberately, and the guard that does exist protects
-only against a count arriving with no listing to back it. Whether that trade is right depends on
-a model good enough to be trusted, which is the assumption the design already makes and which
-this corpus cannot test without one.
+An earlier run of this reported 37 units and an over-count of four on the fullest trolley, and
+blamed the model for listing 24 products in a 16-product basket. That was a parsing fault in the
+harness: a reply numbered "1.\nOreo\n2.\nBread" had its bare numbers counted as products. The
+model named fourteen. Corrected, and the trust `applyCensus` places in `unmarkedItems` survives
+its first contact with a real answer rather than failing it.
 
 ## What this corpus still cannot answer
 

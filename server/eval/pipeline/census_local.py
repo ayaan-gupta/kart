@@ -59,9 +59,18 @@ for pid in CARTS:
         product = "not a product" not in said.lower()
         marks.append({"id": i, "name": said.lower().strip(". "), "isProduct": product})
     whole = pil.copy(); whole.thumbnail((1024, 1024))
-    listed = [re.sub(r"^[-*\d.\s]+", "", ln).strip().lower()
-              for ln in ask(whole, FRAME_Q, tokens=160).splitlines() if ln.strip()]
-    out[pid] = {"marks": marks, "listed": [x for x in listed if x][:24]}
+    # Strip list markers, then drop what is left of a bare numbering line. Without the second
+    # filter a reply of "1.\nOreo\n2.\nBread" counts the numbers as products, which is how an
+    # earlier run of this file read 24 products off a reply that named 14.
+    listed = [re.sub(r"^[-*\d.)\s]+", "", ln).strip().lower()
+              for ln in ask(whole, FRAME_Q, tokens=220).splitlines() if ln.strip()]
+    listed = [x for x in listed if x and not x.isdigit() and len(x) > 2]
+    seen_names, unique = set(), []
+    for name in listed:
+        if name not in seen_names:
+            seen_names.add(name)
+            unique.append(name)
+    out[pid] = {"marks": marks, "listed": unique}
     named = sum(1 for m in marks if m["isProduct"])
     print(f"  {pid}: {named}/{len(marks)} regions called products, "
           f"{len(out[pid]['listed'])} products listed for the whole frame", flush=True)
