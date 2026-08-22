@@ -3464,3 +3464,52 @@ take one.
 
 against the 75 of 93 products and 8 spurious lines the sixty-seventh section measured on three
 passes of the shipped set. Ship it only if products found rises **and** spurious lines do not.
+
+## Seventy-second: the threshold that helps the photographs does nothing for the video
+
+The seventy-first found threshold 0.20 dominates the shipped 0.23 on trolley photographs. The
+obvious next question is whether it reaches the video's one repeatable miss, and it is answerable
+locally: detection is a GPU pass over 27 cached frames, and the yellow bag's presence in a box can
+be measured by hue without any hand label or any model call.
+
+Detection re-run over the whole video at 0.20 and at 0.15, and the best yellow box on each frame
+measured the way the sixty-fifth section measured it:
+
+| frame | shipped 0.23 | 0.20 | 0.15 | paired prompts |
+|---|---|---|---|---|
+| order 6, censused | 14% (8 boxes) | 14% (8) | 14% (9) | 14% (10) |
+| order 12, censused | 14% (5) | 14% (5) | 14% (8) | 14% (10) |
+| order 18, censused | 21% (2) | 21% (4) | 21% (9) | 21% (8) |
+| order 24, censused | 4% (4) | 7% (7) | 7% (7) | 4% (4) |
+| **order 15, never censused** | 15% (3) | 15% (4) | **37% (6)** | **40% (6)** |
+
+**On every frame the loop actually censuses, the best yellow box is identical at every threshold.**
+Order 18 goes from two proposals to nine and its most-yellow box does not move off 21%, which is the
+Seedtastic loaf's labels. The extra boxes a lower threshold buys are more of the same objects, not
+the object that is missing.
+
+The only frame that improves is order 15, which improves a lot, from 15% to 37%, and order 15 is
+the frame the sixty-fifth section showed the loop never censuses and the sixty-sixth showed costs a
+third of the pan to reach.
+
+### What this closes
+
+The yellow produce bag has now been refused at every layer that could be varied without a phone:
+
+| layer | tried | result |
+|---|---|---|
+| prompts | grocery, produce single, produce paired, targeted colour | only paired isolates it, only on order 15 |
+| detector threshold | 0.28, 0.23, 0.20, 0.18, 0.15 | no change on any censused frame |
+| tiling | tiles x2 | worse everywhere |
+| census pacing | 1000, 2000, 2500, 3000 ms | 2000 is a peak; nothing reaches order 15 with four captures |
+| gate rule | first-eligible vs best-in-window, two criteria | reaches order 15, costs a third of the pan |
+| fusion | sweep-once, corroborate, counted names, pairs-first | none of them can add what no census saw |
+
+It is one object that is proposable on one frame in twenty-seven, and that frame is unreachable
+without giving up more than the object is worth. **This is the same conclusion the sixty-fifth
+reached from the census side, now confirmed from the detector side across four thresholds and two
+prompt sets, which is as close to settled as this corpus can make it.**
+
+One thing this does *not* settle: whether 0.20 helps the video's other eight products end to end.
+More regions is exactly the change this file has measured as harmful five times, and the account has
+no credit to find out. The seventy-first section's shipping rule applies unchanged.
