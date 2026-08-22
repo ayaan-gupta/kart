@@ -3863,3 +3863,45 @@ wrong name for another. The honest statement is narrower and still useful: **on 
 information needed was present in the request and did not reach the answer.** Whether that
 generalises needs the second clause measured over a full pass, which needs credit. `score_shortlist.py`
 is committed so the first clause can be re-run after any change to the index or the matcher.
+
+## Seventy-ninth: does the shortlist help, and would readable names help more
+
+The seventy-eighth left the second clause of the closed-world instruction open: the correct SKU is
+in the shortlist 95% of the time, and on at least one badge the census was offered it and answered
+with a category anyway. Whether the offer helps at all is an A/B, and it runs on a local model.
+
+`shortlist_ab.py` asks the same crop three ways, on the same 7B, over the 22 labelled badges of the
+six trolleys:
+
+| | named correctly |
+|---|---|
+| no shortlist | 17 of 22 |
+| **shortlist as raw SKUs, which is what ships** | **19 of 22** |
+| shortlist as readable names | 20 of 22 |
+
+**The shortlist earns its place.** Offering it recovers two badges of five that free naming gets
+wrong, with nothing lost, and the recoveries are not marginal: one crop goes from "reduced fat
+mayonnaise" to baguette and another from "cherry tomatoes" to the purple produce bag.
+
+### The change I expected to matter mostly does not
+
+`censusUserText` prints candidates as bare SKUs, `kart_asparagus`, `CheeseSlices`, `Tata_Agni`, and
+that looked like the reason a model might disregard them. Measured, showing readable names instead
+is worth **one badge in twenty-two**. That is not a change to make on this evidence, and the
+hypothesis that the shipped format was the problem is wrong: the format captures most of the
+available benefit already.
+
+Two caveats keep this honest. The SKU arm is scored leniently, because an answer of
+`kart_baguette` contains "baguette" and counts as correct, where the shipped pipeline would put the
+SKU in `catalogSku` and a product name in `name`. And 22 badges cannot separate a one-badge
+difference from noise.
+
+### What it leaves
+
+Even with the shortlist offered, two of twenty-two stay wrong on the local model, and the shipped
+census misses badges whose correct SKU was on offer. So the second clause is not simply "the census
+ignores the catalog": the catalog is consulted, it helps, and a residual survives it. That residual
+is the census reading a crop, and nothing measured here so far moves it.
+
+The prompt is not the lever it looked like one section ago. Recorded so the next person does not
+spend the same afternoon on `censusUserText`.
