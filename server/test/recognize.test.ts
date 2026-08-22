@@ -820,3 +820,48 @@ describe("the eval-only env overrides are bounded", () => {
     expect(temperature(undefined)).toBeUndefined();
   });
 });
+
+describe("a photograph that is not a cart cannot fill a bag", () => {
+  // Measured on the four shelf photographs in the kart corpus: the census called 102 of 102 badges
+  // products and refused none, which would have put up to 41 items a shopper is not buying into
+  // their bag. Rule 13 forbids it per badge and the model ignores that; asked once about the whole
+  // photograph it is right 10 times out of 10. This pins the gate, not the model.
+  const shelf = (subjectIsCart: boolean | undefined) => ({
+    ...(subjectIsCart === undefined ? {} : { subjectIsCart }),
+    marks: [wellFormedMark],
+    unmarkedItems: [{
+      description: "cucumbers", productKey: "::cucumber", catalogSku: null,
+      approxLocation: "middle shelf", confidence: 0.9,
+    }],
+    inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
+    occlusion: wellFormedOcclusion,
+  });
+  const marks: Mark[] = [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }];
+
+  it("returns nothing countable when the subject is not a cart", async () => {
+    mockOutput(shelf(false));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toEqual([]);
+    expect(result.unmarkedItems).toEqual([]);
+    expect(result.inViewCounts).toEqual([]);
+  });
+
+  it("keeps the occlusion report, which describes the photograph rather than the goods", async () => {
+    mockOutput(shelf(false));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.occlusion.severity).toBe("none");
+  });
+
+  it("passes everything through when the subject is a cart", async () => {
+    mockOutput(shelf(true));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toHaveLength(1);
+    expect(result.unmarkedItems).toHaveLength(1);
+  });
+
+  it("treats an absent field as a cart, so an older deployment behaves as before", async () => {
+    mockOutput(shelf(undefined));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toHaveLength(1);
+  });
+});

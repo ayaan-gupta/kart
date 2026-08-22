@@ -346,6 +346,24 @@ function normalizeCensusResponse(
   response: CensusResponse,
   diagnostics?: CensusDiagnostics,
 ): CensusResponse {
+  // A photograph of a shop's shelves is not a cart, and nothing that comes back about one may
+  // reach a bag.
+  //
+  // Rule 13 already forbids counting "shelves, displays, other shoppers' carts, the floor and
+  // anything held in a hand", and the model ignores it per badge: measured on the four shelf
+  // photographs in the kart corpus it called 102 of 102 badges products and refused none, which
+  // would have put up to 41 items a shopper is not buying into their bag, silently and with
+  // confident names. Asked the same question once about the whole photograph instead, it is right
+  // 10 times out of 10, false on all four shelves and true on all six trolleys.
+  //
+  // Emptied here rather than at a caller so that every client is covered by one check, including
+  // one too old to know the field exists. `occlusion` is kept because it describes the photograph
+  // rather than the goods, and the absent case reads as a cart, which is what every caller
+  // assumed before this field existed.
+  if (response.subjectIsCart === false) {
+    return { ...response, marks: [], unmarkedItems: [], inViewCounts: [] };
+  }
+
   const marks = response.marks.map((m) => ({ ...m, brand: normalizeBrand(m.brand) }));
   const markKeys = new Set(marks.map((m) => productKey(m.name, m.brand)));
 

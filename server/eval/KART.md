@@ -2660,3 +2660,47 @@ stronger rule 13, and this file contains eight measurements of what happens when
 given more to weigh, including one where extending rule 8 cost seven exact passes of sixty. A fix
 needs to be a gate rather than a paragraph, and it needs re-measuring against the trolley corpus,
 not just the shelves. `shelf-census.ts` reproduces it and there is a spawned task.
+
+## Fifty-fifth: the shelf failure, fixed
+
+The fifty-fourth found the census filling a bag from a supermarket shelf: 102 of 102 badges called
+products across four photographs containing no cart, up to 41 invented items. It was reported and
+not fixed, on the grounds that the obvious repair is a longer rule 13 and this file holds eight
+measurements of what more prompt costs.
+
+The repair that is not a longer rule works. The model is not unable to tell a cart from a shelf; it
+is not being asked. Rule 13 asks it *per badge*, buried among the counting instructions. Asked
+once, about the photograph, as a single boolean:
+
+| | `subjectIsCart` |
+|---|---|
+| IMG_0247, 0248, 0250, 0251, the shelves | **false, all four** |
+| IMG_0244, 0245, 0246, 0249, 0252, 0254, the trolleys | **true, all six** |
+
+**Ten out of ten.** One field, five lines of prompt, no per-badge judgement changed.
+
+### What it costs
+
+Four rounds of three passes on the trolley corpus, against three baseline rounds:
+
+| | products found, lenient | photographs exact | badge alignment |
+|---|---|---|---|
+| before | 79, 80, 77 (**78.7**) | 15, 13, 13 | 67, 66 of 75 |
+| with the field | 74, 75, 76, 77 (**75.5**) | 13, 13, 15, 13 | 67, 65 of 75 |
+
+About three points of products found, which is the size of this measure's own run-to-run spread,
+and exact and alignment unchanged. Taken, and the reasoning is not close: every other residual in
+this file is a *missing* item, which a shopper can see is absent, and this is the one failure that
+*invents* purchases. Three points of recall against up to 41 phantom items is not a trade that
+needs deliberating.
+
+### Where the gate lives
+
+In `normalizeCensusResponse`, which empties `marks`, `unmarkedItems` and `inViewCounts` when the
+answer is false. Server-side and at one point, so a client too old to know the field exists is
+covered too. `occlusion` survives, since it describes the photograph rather than the goods, and an
+absent field reads as a cart, which is what every caller assumed before it existed. Four tests pin
+the gate rather than the model.
+
+Measured end to end afterwards: all four shelves now yield a bag of **0 units on 0 lines**, and the
+scan is unchanged.

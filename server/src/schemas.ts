@@ -76,6 +76,15 @@ export const Occlusion = z.object({
 });
 
 export const CensusResponse = z.object({
+  /**
+   * Whether one shopping cart's interior is the subject of the photograph.
+   *
+   * Optional here and required in `censusJsonSchema`, deliberately: strict mode makes the model
+   * answer it on every call, while a response from an older deployment that predates the field
+   * still parses rather than failing outright. Read it as `!== false` so absent means cart, which
+   * is what every caller before this field assumed.
+   */
+  subjectIsCart: z.boolean().optional(),
   marks: z.array(MarkIdentification),
   unmarkedItems: z.array(UnmarkedItem),
   inViewCounts: z.array(InViewCount),
@@ -160,6 +169,7 @@ export function productKey(name: string, brand: string | null): string {
 export const censusJsonSchema = {
   type: "object",
   properties: {
+    subjectIsCart: { type: "boolean" },
     marks: {
       type: "array",
       items: {
@@ -221,7 +231,7 @@ export const censusJsonSchema = {
       additionalProperties: false,
     },
   },
-  required: ["marks", "unmarkedItems", "inViewCounts", "occlusion"],
+  required: ["subjectIsCart", "marks", "unmarkedItems", "inViewCounts", "occlusion"],
   additionalProperties: false,
 } as const;
 

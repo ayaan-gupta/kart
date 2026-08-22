@@ -32,7 +32,10 @@ import type { Mark } from '../../src/compositor';
 
 const HERE = join(import.meta.dirname, '..');
 const frames = JSON.parse(readFileSync(join(HERE, '.cache/kart/frames-named.json'), 'utf8'));
-const SHELVES = new Set(['IMG_0247', 'IMG_0248', 'IMG_0250', 'IMG_0251']);
+const ONLY_TROLLEYS = process.argv.includes('--trolleys');
+const SHELVES = new Set(ONLY_TROLLEYS
+  ? ['IMG_0244', 'IMG_0245', 'IMG_0246', 'IMG_0249', 'IMG_0252', 'IMG_0254']
+  : ['IMG_0247', 'IMG_0248', 'IMG_0250', 'IMG_0251']);
 
 for (const frame of frames.frames) {
   if (!SHELVES.has(frame.id)) continue;
@@ -61,7 +64,7 @@ for (const frame of frames.frames) {
   const lines = bagLines(state) as any[];
   const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
 
-  console.log(`\n  ${frame.id}: ${frame.boxes.length} badges -> ${products} called products, ` +
+  console.log(`\n  ${frame.id}: subjectIsCart=${census.subjectIsCart} | ${frame.boxes.length} badges -> ${products} called products, ` +
     `${notProducts.length} refused, ${unmarked} unmarked`);
   console.log(`      bag would hold ${units} units on ${lines.length} lines`);
   console.log(`      occlusion: ${census.occlusion?.severity} (${census.occlusion?.reason ?? ''})`);

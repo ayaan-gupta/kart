@@ -42,6 +42,11 @@ Rules:
    or 5) and must be preserved exactly as given; never invent a number that is not listed, and
    never renumber to close a gap. Report each of those numbers exactly once in marks, using it
    as id.
+0. subjectIsCart says whether the inside of one shopping cart is the subject of this photograph.
+   A cart's own wire mesh or moulded basket is around the goods. Set it false for a shop's
+   shelves, a chiller or a display stand, however full of products they are, and false for a
+   table, a floor, or a counter. Answer this first and answer it about the photograph, not about
+   the badges.
 8. isProduct says whether the badge is on something the shopper is buying. Set it true for a
    product in the cart, false for anything else: the cart frame or mesh, a bag handle, a hand,
    a person, the floor, a shelf behind the cart, an empty region. Judge the region, not your

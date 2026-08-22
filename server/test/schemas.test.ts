@@ -208,6 +208,15 @@ function walkAligned(zodNode: any, jsonNode: any, path: string): void {
     return;
   }
 
+  // A zod `.optional()` whose JSON Schema counterpart is still required, which is deliberate for
+  // `census.subjectIsCart`: strict mode makes the model answer it on every call, while a response
+  // from a deployment predating the field still parses instead of failing outright. The shapes
+  // must still agree below the optionality, so the inner type is walked.
+  if (t === "optional") {
+    walkAligned((zodNode as { unwrap(): unknown }).unwrap(), jsonNode, path);
+    return;
+  }
+
   throw new Error(`walkAligned: unhandled zod node type "${t}" at ${path}`);
 }
 
