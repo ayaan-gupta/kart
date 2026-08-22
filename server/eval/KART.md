@@ -574,6 +574,20 @@ things seen once, and on a pan those are not the same distinction.
 A shopper misses a duplicate on the screen. They do not miss a product that is not there, and
 they are charged for it either way, so an over-count is the error to keep.
 
+Giving the census the frame's whole catalog was the other idea and it is also refused. Rule 15
+lets a badge copy a SKU from its own region's "catalog:" line, so an unmarked product, which has
+no region and therefore no line, can never carry one. The union of every shortlist in the frame
+costs nothing to compute, since the shortlists are already in the request, and it would give an
+unmarked bag of apples a `kart_granny_smith_apples` to key on. Measured over eight scans it reads
+9, 9, 10, 11, 11, 11, 11, 12: one of eight exact against six of fourteen, with the mean unmoved
+at 10.5. The model does not take the offer often enough to matter, and offering it appears to
+cost a little precision elsewhere.
+
+Five things have now been tried against the last one or two units and each is refused with a
+number: a lower produce threshold, produce prompts split into groups, produce prompts in pairs,
+corroboration before an unmarked sighting counts, and the frame's catalog offered to the
+unmarked. What is left is not a parameter of this architecture.
+
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
 across four calls four seconds apart those words are not the same words. "Bag of apples" is a
