@@ -268,8 +268,9 @@ its first contact with a real answer rather than failing it.
 The stills are one census call each. A scan is up to eight, and the difference is not a detail.
 
 Asked the same three questions on the four frames the keyframe gate actually fires on, the 2B
-model puts 15 units in the bag against 10 real products, where the same model on the same
-trolley as a single photograph put in exactly 9 against 10.
+model put 15 units in the bag against 10 real products, where the same model on the same trolley
+as a single photograph put in exactly 9 against 10. Fixing the first of the two causes below
+brought that to 11.
 
 Two things compound across calls, and neither can happen when there is only one.
 
@@ -280,19 +281,26 @@ linking a barcode to a repeated VLM guess, not for merging name variants, and `p
 normalises case, accents and punctuation but nothing else, so two spellings of one product are
 two products.
 
-There is a stable identifier for this and the client throws it away. `catalogSku` is required by
+There was a stable identifier for this and the client threw it away. `catalogSku` is required by
 `CENSUS_RESPONSE_SCHEMA`, the prompt asks the model which catalog candidate the region is, and
 `marksFromRegions` carries each region's shortlist into the request so the model can answer. The
-field appears zero times in `src/`: `recognitionClient.ts` parses `name`, `brand` and `isProduct`
-and drops it, and `applyCensus` keys the bag on the free-text name.
+field appeared zero times in `src/`: `recognitionClient.ts` parsed `name`, `brand` and
+`isProduct` and dropped it, and `applyCensus` keyed the bag on the free-text name. So the
+pipeline did the work to obtain a stable key and then keyed on the one field that varies, which
+is not an artefact of a small model: any model writing a name twice writes it slightly
+differently, and a SKU copied from a shortlist does not drift.
 
-So the pipeline does the work to obtain a stable key and then keys on the one field that varies.
-That is not an artefact of a small model. Any model writing a name twice will write it slightly
-differently; a SKU copied from a shortlist does not drift.
+`markKey` now returns `sku:<sku>` when the model picked a catalog candidate and the name key
+otherwise, which takes the video from 15 units to **11 against 10**. The change is additive: a
+mark with no SKU keys exactly as it did. `marksSameProduct` goes with it, because
+`IdentifyResponse` carries no `catalogSku` and a closer look can therefore only produce a name
+key, so a single-key comparison would read a census and an identify that agree as disagreeing.
 
-**Hallucinations accumulate.** Across four calls the whole-frame question added a leek, broccoli,
-kale and a cucumber. None is in the trolley. One call can invent one of those; four calls invent
-four, and nothing later removes them because `unmarkedItems` is trusted by design.
+**Hallucinations accumulate**, and this one is not fixed. Across four calls the whole-frame
+question added a leek, broccoli, kale and a cucumber. None is in the trolley. One call can invent
+one of those; four calls invent four, and nothing later removes them because `unmarkedItems` is
+trusted by design. The single unit the video is still over is one of them, a leek, which has no
+catalog entry and therefore no SKU to merge on.
 
 Requiring a sighting to repeat before it enters the bag, the way `pendingAlias` already makes a
 barcode wait for a VLM guess to repeat, does not work here. Counted across the four calls, the
