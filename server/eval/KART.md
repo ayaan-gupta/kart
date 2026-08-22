@@ -5272,3 +5272,37 @@ would have found it** — which is worth knowing about the metric, not only abou
 So the finding stands and is narrow: resolution decides whether printed packaging can be read, the
 threshold is near 150 pixels, and on this corpus it explains one out-of-catalog miss rather than the
 errors the alignment metric counts.
+
+### Correcting the ninety-ninth: resolution explains almost nothing in the shipped configuration
+
+The ninety-ninth found printed names become unreadable below about 150 pixels and reached for the
+Muenster pack as the case. Measuring what the shipped census actually sees says that attribution is
+wrong.
+
+`CENSUS_LONG_EDGE` is **1536**, and these photographs are portrait, so a badge's short side in the
+composite is its normalised width times 1152 or its height times 1536. Across the six trolleys, the
+badges below the floor are:
+
+| badge | short side | what it is |
+|---|---|---|
+| IMG_0244 #1 | 109px | `skip` — the plastic disc in the child seat |
+| IMG_0246 #2 | 112px | `skip` |
+| IMG_0252 #8 | **84px** | the Fuji bag close-up, one of the three wrong badges |
+| IMG_0254 #3 | 121px | the jar, `out_of_catalog` |
+
+**Four badges of thirty, and two of them are regions labelled `skip`.** More to the point:
+
+    IMG_0254 badge 9, the Muenster pack:  175px  — above the floor
+
+So the pack the whole thread was built on is *legible* at the resolution the census sees it, and the
+shipped model misnames it anyway. The local 7B reads it correctly at a smaller crop than that. **That
+is a difference between models, not a difference in pixels**, and the ninety-ninth's framing pointed
+at the wrong cause.
+
+What survives: the 150-pixel floor is a real property, measured on a real crop, and it is worth
+knowing when sizing a composite. What does not: any claim that it explains this corpus's naming
+errors. The one badge below the floor that is also wrong, IMG_0252 #8 at 84px, was already tested at
+full resolution in the ninety-ninth and read as `Smoked Turkey Breast` there too.
+
+Raising `CENSUS_LONG_EDGE` would move four badges, two of which are not products, one of which is
+wrong at any resolution, and one of which is a jar the index has no SKU for. That is not a lever.
