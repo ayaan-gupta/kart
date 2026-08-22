@@ -173,6 +173,39 @@ describe("runIdentify request shape", () => {
   });
 });
 
+describe("occlusion cannot contradict itself", () => {
+  it("derives itemsLikelyHidden from severity when the model disagrees with itself", async () => {
+    // A real response came back severity "some" with itemsLikelyHidden false, which rule 16
+    // forbids. Two fields carrying one fact will disagree eventually, so the consequence is
+    // derived from the choice rather than trusted alongside it.
+    mockOutput({
+      marks: [],
+      unmarkedItems: [],
+      inViewCounts: [],
+      occlusion: { itemsLikelyHidden: false, severity: "some", reason: "bags overlap" },
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    expect(result.occlusion.itemsLikelyHidden).toBe(true);
+    expect(result.occlusion.severity).toBe("some");
+    expect(result.occlusion.reason).toBe("bags overlap");
+  });
+
+  it("leaves a clear view alone", async () => {
+    mockOutput({
+      marks: [],
+      unmarkedItems: [],
+      inViewCounts: [],
+      occlusion: { itemsLikelyHidden: true, severity: "none", reason: "nothing covered" },
+    });
+    const result = await runCensus(await blankJpeg(), [
+      { id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    ]);
+    expect(result.occlusion.itemsLikelyHidden).toBe(false);
+  });
+});
+
 describe("valid responses parse", () => {
   it("runCensus returns a structurally correct CensusResponse", async () => {
     mockOutput({

@@ -373,7 +373,17 @@ function normalizeCensusResponse(
       .map(([canonical, v]) => ({ canonical, rawKeys: v.rawKeys, count: v.count }));
   }
 
-  return { ...response, marks, inViewCounts };
+  // Rule 16 defines itemsLikelyHidden as a function of severity: true for "some" or "many",
+  // false only for "none". Two fields carrying one fact will disagree eventually, and on a real
+  // response they did, coming back "some" with itemsLikelyHidden false. Derive it here so the
+  // pair cannot contradict itself downstream. The model is still asked for both, because being
+  // asked to state the consequence is part of what makes it choose the severity carefully.
+  const occlusion = {
+    ...response.occlusion,
+    itemsLikelyHidden: response.occlusion.severity !== "none",
+  };
+
+  return { ...response, marks, inViewCounts, occlusion };
 }
 
 // ---------------------------------------------------------------------------
