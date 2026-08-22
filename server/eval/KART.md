@@ -15,114 +15,72 @@ only at the end, which is why this corpus is worth more for counting than any ot
 
 ## Where this stands
 
-This file grew by appending, so it reads chronologically and its early figures are superseded.
-This section is the current state; everything below is how it was arrived at.
+This file grew by appending across forty-one investigations, so it reads chronologically and its
+early figures are superseded. This section is the current state; everything below is how it was
+arrived at.
 
 **Scored by contents, not only by size.** A unit count cannot tell a right bag from a lucky one:
 one scan run scored a perfect nine while holding one product twice and missing two others. Both
-harnesses now assign each bag line to at most one real product and report two numbers, because
-this trolley holds two bags of apples and two breads, and resolving `apple` or `bread` inside the
+harnesses assign each bag line to at most one real product and report two numbers, because this
+trolley holds two bags of apples and two breads, and resolving `apple` or `bread` inside the
 scorer would be inventing the answer it exists to check.
 
-### The six photographs, capture path, two rounds of five passes
+### The app's scan, end to end
+
+`scan-loop.ts` runs the real frame loop in Node: the real `processFrame`, the real tracker, the
+real `RecognitionSession`, the shipped `runCensus`. Only the transport is stubbed, and the
+enumerator, replaced by this video's cached region column.
+
+| | units, nine real products | products found |
+|---|---|---|
+| as it was this morning | 19, 15, 15 (**16.3**) | five separate descriptions of the same greens |
+| as it ships now | 13, 11, 11, **9** (**11.0**) | 8, 8, 8, **9** of 9 |
+
+One run in four is a completely correct bag: nine units on nine lines, every product found, nothing
+invented. The single repeatable miss is the yellow produce bag.
+
+### The six photographs, one census call each
+
+This is the per-call quality of any single capture, measured on the server's regions:
 
 | | |
 |---|---|
 | exact on every pass, no spurious lines | **IMG_0244, IMG_0245, IMG_0246, IMG_0249** |
-| IMG_0252, 9 products | 7 of 10 passes exact by units |
-| IMG_0254, 15 products | 3 of 10 passes exact by units |
+| IMG_0252, 9 products | 7 of 10 passes exact |
+| IMG_0254, 15 products | 3 of 10 passes exact |
 | products found | 260 of 310 strict, **282 of 310** allowing shared words |
-| lines matching nothing real | 36 |
-| badge alignment | 218 of 250, 87.2% |
-
-### The nine-second scan, six runs, replayed so the model is held still
-
-| | |
-|---|---|
-| products found | **8 or 9 of 9 on every run**, 49 of 54 |
-| units | 9.8 against 9 |
-| lines matching nothing real | 10 |
-| the one repeatable miss | the yellow produce bag, in five runs of six |
-
-### A gap between what this measures and what the app runs
-
-**Every scan number in this file is measured on regions the shipped app does not produce.** Both
-harnesses feed the census regions from Grounding DINO, the server's enumerator, at a median of 5.1
-per frame. The app's scan screen does not use the server's enumerator. `scan.tsx` drives
-`RecognitionSession.onKeyframe`, which badges the census with marks from the on-device tracker,
-and those tracks are built from `AppleInstanceMaskDetector`, which is
-`VNGenerateForegroundInstanceMaskRequest`.
-
-Run over these exact video frames with `npm run bench:detector`, that detector returns **1 to 2
-instances per frame, mean 1.1**. `docs/detector-decision.md` already measured it as dead for
-enumeration, "1 instance every photo, 0 of roughly 100 items", and installed the remedy:
-`onCapture`, which sends no marks so the server enumerates. **`onCapture` is called only from
-tests. No screen calls it.**
-
-Simulating the shipped supply by keeping one region per frame, three runs:
-
-| | regions per frame | units, 9 real | products found |
-|---|---|---|---|
-| what this file measures | 5.1 | 9.8 | 8 to 9 of 9 |
-| what the app has | **1.1** | **15, 18, 18** | 7 to 8 of 9 |
-
-It finds roughly the same products and doubles the bag. With one badge almost everything arrives
-through `unmarkedItems`, which the twenty-fourth section measured as carrying no joining SKU half
-the time, so the descriptions multiply into separate lines. A shopper would see fifteen to
-eighteen lines for nine products.
-
-That simulation is optimistic twice over: it keeps the *best-scoring* Grounding DINO box rather
-than whatever blob Apple's segmenter returns, and it leaves the tracker the full region set for
-continuity. The real path is unlikely to be better than this and may be worse.
-
-**One consequence lands on work done today.** The census model chosen by path, shipped in the
-twenty-second section, keys on an empty marks array. `onKeyframe` returns early when
-`marks.length === 0`, so the app never sends one, and `MODELS.censusCapture` is unreachable from
-any screen as things stand. It is correct and tested, and nothing routes to it.
-
-Fixing this is wiring, not tuning: either point a screen at `onCapture`, or give `onKeyframe` the
-server's regions.
-
-I first called this a product decision on the grounds that `onCapture` drives the tracker from
-server regions, so outlines would refresh only on census calls, roughly every two seconds, instead
-of every frame. **Running the detector and looking at what it draws says that reasoning was
-wrong.** Its single instance on frame 016 is one outline around the entire pile of goods, the
-loaf, the Fuji bag, the yellow bag and the asparagus all inside it. There are no per-item outlines
-today to lose. The choice is one blob at thirty frames a second against ten accurate item outlines
-every couple of seconds, which is not a trade.
-
-What still stops it being a ten-line change is that `processFrame` feeds the tracker from device
-instances on every frame, so a capture's server regions would be overwritten by the next frame's
-blob. Doing it properly means the frame loop stops feeding the tracker, which is a restructure of
-`scan.tsx` that cannot be verified without running the app. That is why it is reported rather than
-made, and the reason is now "I cannot test it", not "it costs liveness".
+| badge alignment | 218 of 250 |
 
 ### What ships
 
 The EXIF fixes, without which `runIdentify` had never once run on a real phone photograph; the
 plural fold in `productKey`; the SKU alias; the `sharedNames` fold that merges one product reached
-under two catalog SKUs; the sharpness-conditioned produce pass; and a census model chosen by path,
-`gpt-5.4` for a captured still and `gpt-5.4-mini` for a scan frame, because the two paths fail
-differently and the corpora disagree about which model to use.
+under two catalog SKUs; the sharpness-conditioned produce pass; and **`scan.tsx` calling
+`onCapture`**, so the census is badged from the service's regions rather than from a device
+detector that returns one outline around the whole pile.
 
-### What is left, and why each fix was refused
+### What is left
 
-Three faults remain, and every fix available for them was tried and measured:
-
-| fault | fixes tried and refused |
+| fault | every fix tried, and refused with a number |
 |---|---|
-| the Fuji bag counted twice | fold by name (no shared word), by SKU (absent on half the descriptions), by overlap (0.204 for the pair to merge against 0.215 for a pair that must not) |
-| the yellow produce bag unseen | five prompt sets, three detector settings, server-side enumeration; only the paired produce prompts isolate it, and enabling them costs the cauliflower and the loaf in all six runs |
-| the shopper's tote counted as a product | rule 8 extended to cover a shopper's own belongings; it moved the tote 10 of 10 to 9 of 10 and cost seven exact passes |
+| the yellow produce bag unseen | five prompt sets, three detector settings, server-side enumeration, paired produce twice on two different paths; pacing ruled out, since the census does see a frame it is visible in |
+| the Fuji bag counted twice | folds by name, by SKU, and by overlap (0.204 for the pair to merge against 0.215 for a pair that must not) |
+| the shopper's tote counted as a product | rule 8 extended to cover a shopper's belongings; cost seven exact passes |
+| a census guess overwriting two that agreed | fix written, refused twice; the obvious implementation breaks the original counting-bug regression test |
 
-Plus one real bug, reproduced and left unfixed on purpose: a single census guess overwrites two
-that agreed with it, which deletes the brussels sprouts from every run at three calls. The fix
-works there and does not pay at the four calls that ship. See the thirty-second section.
+**The recurring mechanism, and the most useful thing this corpus taught:** every attempt to give
+the census more to see, say or weigh cost accuracy on what it was already doing. Produce prompts in
+pairs, the frame catalog offered to the unmarked channel, the session's own answers fed back, a
+larger model on a fused scan, a fuller non-product rule, a larger image. Six attempts, one shape.
+What helped was the opposite: fixing an orientation bug, giving two descriptions a key to join on,
+and pointing the app at regions it was already paying a service to compute.
 
-**The recurring mechanism, which is the most useful thing this corpus taught:** every attempt to
-give the census more to see, say or weigh cost accuracy on what it was already doing. Produce
-prompts in pairs, the frame catalog offered to the unmarked channel, the session's own answers fed
-back, a larger model on the scan, a fuller non-product rule. Five separate attempts, one shape.
+### What is not verified
+
+Nothing since the rewiring has run against a live camera. The loop is verified in Node and the app
+is verified to build, launch and render on a simulator, which has no camera device. Untested: the
+camera driving the loop, outlines redrawing from a capture's tracks, and whether coverage, amber
+and thumbnails read sensibly when tracks refresh on captures rather than every frame.
 
 ---
 
