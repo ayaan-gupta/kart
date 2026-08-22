@@ -263,6 +263,31 @@ harness: a reply numbered "1.\nOreo\n2.\nBread" had its bare numbers counted as 
 model named fourteen. Corrected, and the trust `applyCensus` places in `unmarkedItems` survives
 its first contact with a real answer rather than failing it.
 
+## A scan amplifies what a single photograph hides
+
+The stills are one census call each. A scan is up to eight, and the difference is not a detail.
+
+Asked the same three questions on the four frames the keyframe gate actually fires on, the 2B
+model puts 15 units in the bag against 10 real products, where the same model on the same
+trolley as a single photograph put in exactly 9 against 10.
+
+Two things compound across calls, and neither can happen when there is only one.
+
+**Names drift.** The same product comes back as "oreo" and "oreo cookies", as "bread" and
+"seedstastic bread" and "seedblossom bread", as "baguette" and "baguette bread". Every variant
+keys differently and becomes its own bag line. `FusionState` carries an alias mechanism for
+exactly this and it does not absorb variation of this size.
+
+**Hallucinations accumulate.** Across four calls the whole-frame question added a leek, broccoli,
+kale and a cucumber. None is in the trolley. One call can invent one of those; four calls invent
+four, and nothing later removes them because `unmarkedItems` is trusted by design.
+
+So the census being wrong costs more in a scan than in a photograph, and the pacing that limits
+cost also limits exposure: four calls here rather than the eight allowed. This says nothing about
+the shipped model, which is what the design assumes and what has never answered. It says the
+measurement to run first, once one does, is the video rather than the stills, because the stills
+cannot show this at all.
+
 ## What this corpus still cannot answer
 
 **The shipped census has never run.** It needs an OpenAI key, and the one supplied was already

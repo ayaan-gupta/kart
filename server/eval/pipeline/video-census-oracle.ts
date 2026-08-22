@@ -28,6 +28,18 @@ const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'ut
 const cart = truth.counted.find((c: any) => c.id === 'IMG_0252');
 
 /**
+ * `--local` swaps the oracle's answers for a real model's, from
+ * `.cache/kart/video-census-local.json`, asked the same three questions on the frames the
+ * keyframe gate actually fires on. The stills have been measured that way; the video had only
+ * ever been measured with detection alone or with an oracle.
+ */
+const useLocal = process.argv.includes('--local');
+const localAnswers = useLocal
+  ? JSON.parse(readFileSync(join(HERE, '.cache/kart/video-census-local.json'), 'utf8'))
+  : null;
+let firedIndex = -1;
+
+/**
  * What a correct census returns for a frame of this trolley. It cannot be per-badge here, the
  * way the stills oracle is, because the boxes move: what a census sees is the trolley, and every
  * product in it is either marked or unmarked depending on where the boxes happened to land. So
@@ -79,13 +91,35 @@ for (const frame of video.frames) {
     liveBoxes[track.id] = track.box;
     marks.push(mark(i, PRODUCTS[i % PRODUCTS.length]));
   });
-  const markedNames = new Set(marks.map((m) => m.name));
-  const census: CensusResult = {
-    marks,
-    unmarkedItems: PRODUCTS.filter((p) => !markedNames.has(p))
-      .map((description) => ({ description, confidence: 0.9 })),
-    inViewCounts: PRODUCTS.map((p) => ({ productKey: `::${p}`, count: 1 })),
-  };
+  firedIndex += 1;
+  let census: CensusResult;
+  if (localAnswers) {
+    const key = Object.keys(localAnswers)[firedIndex];
+    const answer = key === undefined ? { marks: [], listed: [] } : localAnswers[key];
+    const localMarks: CensusMark[] = answer.marks
+      .filter((m: any) => m.id < detection.length)
+      .map((m: any) => ({ ...mark(m.id, m.name), isProduct: m.isProduct }));
+    const kept = new Set(localMarks.filter((m) => m.isProduct).map((m) => m.name));
+    const unmarked = (answer.listed as string[])
+      .filter((p) => !kept.has(p))
+      .map((description) => ({ description, confidence: 0.8 }));
+    const tally = new Map<string, number>();
+    for (const m of localMarks) if (m.isProduct) tally.set(m.name, (tally.get(m.name) ?? 0) + 1);
+    for (const u of unmarked) tally.set(u.description, (tally.get(u.description) ?? 0) + 1);
+    census = {
+      marks: localMarks,
+      unmarkedItems: unmarked,
+      inViewCounts: [...tally].map(([name, count]) => ({ productKey: `::${name}`, count })),
+    };
+  } else {
+    const markedNames = new Set(marks.map((m) => m.name));
+    census = {
+      marks,
+      unmarkedItems: PRODUCTS.filter((p) => !markedNames.has(p))
+        .map((description) => ({ description, confidence: 0.9 })),
+      inViewCounts: PRODUCTS.map((p) => ({ productKey: `::${p}`, count: 1 })),
+    };
+  }
   fusion = applyCensus(fusion, census, markToTrack, live.map((t) => t.id), false, liveBoxes);
 }
 
