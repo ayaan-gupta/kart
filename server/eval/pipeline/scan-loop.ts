@@ -225,6 +225,9 @@ function serverMarks(frame: any): Mark[] {
 let currentFrame: any = null;
 let calls = 0;
 let identifyCalls = 0;
+/** Censuses that returned an answer, and those that threw. See the guard after the loop. */
+let censusOk = 0;
+let censusFailed = 0;
 
 const deps: SessionDeps = {
   // The transport only. `runCensus` is the shipped one; when the request carries no marks this
@@ -246,7 +249,19 @@ const deps: SessionDeps = {
       ? (bagLines(session.state.fusion) as any[])
           .map((l) => `${l.brand ? `${l.brand} ` : ''}${l.name}`)
       : [];
-    const census: any = await runCensus(image, marks, undefined, counted);
+    let census: any;
+    try {
+      census = await runCensus(image, marks, undefined, counted);
+      censusOk += 1;
+    } catch (err) {
+      // Counted rather than swallowed. `RecognitionSession` treats a failed census as a census
+      // that found nothing, which is right for one bad call mid-scan and catastrophic as the
+      // description of a whole run: with no key, or no credit, every call fails and this harness
+      // used to print "0 of 9" and exit 0, which reads exactly like a measured result. The check
+      // after the loop turns that into a loud failure.
+      censusFailed += 1;
+      throw err;
+    }
     let unmarked = SWEEP_ONCE && calls > 1 ? [] : (census.unmarkedItems ?? []);
     if (CORROBORATE) {
       const kept: any[] = [];
@@ -357,6 +372,14 @@ for (const frame of sequence) {
     // frame tracks against the server's regions rather than against the device's blob.
     if (result) pipeline = { ...pipeline, tracker: result.tracker };
   }
+}
+
+if (calls > 0 && censusOk === 0) {
+  console.error(
+    `\n  every census failed (${censusFailed} of ${calls} attempted). This is not a result: the ` +
+    `bag below would read 0 of 9 and the process would exit 0, which is indistinguishable from a ` +
+    `measured miss. Check OPENAI_API_KEY and the account's credit.`);
+  process.exit(1);
 }
 
 const lines = bagLines(session.state.fusion) as any[];

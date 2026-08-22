@@ -64,6 +64,14 @@ def main():
         proc = subprocess.run(argv, cwd=str(HERE), capture_output=True, text=True, env=env)
         tail = [l for l in proc.stdout.splitlines() if l.strip()][-6:]
         print("\n".join(tail))
+        # A check can also fail by succeeding at nothing. scan-loop.ts printed "0 of 9" and exited
+        # 0 when every census failed, and this runner called that "ran", which is the exact
+        # confusion it exists to prevent. Treat an all-zero result as a failure to be looked at.
+        joined = " ".join(tail)
+        if proc.returncode == 0 and ("0 of 9" in joined or "bag 0 against" in joined
+                                     or "0/31" in joined):
+            results.append((req, name, "SUSPECT", "produced an all-zero result"))
+            continue
         if proc.returncode != 0:
             err = (proc.stderr or "").strip().splitlines()
             why = next((l for l in err if "Error" in l or "error" in l), err[-1] if err else "failed")
@@ -75,6 +83,8 @@ def main():
     for req, name, state, why in results:
         print(f"  {state:<10} {req:<44} {name}" + (f"   [{why}]" if why else ""))
     print("\n  'ran' means the check produced numbers, not that the numbers are good;")
+    print("  'SUSPECT' means it exited cleanly with an all-zero result, which is usually a")
+    print("  broken run rather than a measured one. Read its output before believing it.")
     print("  read them above and compare against server/eval/KART.md.")
 
 

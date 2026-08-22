@@ -4113,3 +4113,46 @@ better selector was available and measurably better as a selector, and it did no
 which says the bottleneck was never selection. Recorded with the matcher signal named, because if
 `runIdentify` ever improves, this is the trigger to pair it with: it is free at 0.60 and safe to
 0.80, and the census's own confidence is neither.
+
+## Eighty-fourth: the runner caught the instrument, not the pipeline
+
+`verify.py --model` had never been run, and running it once with an empty account was worth doing on
+its own: a handoff command that fails on a bad path rather than on credit wastes the first attempt
+after a top-up. The census check failed exactly as it should, on the OpenAI error. The scan-loop
+check reported **"ran"**.
+
+It had not run. Every census failed, `RecognitionSession` treated each failure as a census that
+found nothing, and `scan-loop.ts` printed
+
+    bag holds 0 units on 0 lines, against 9 real products
+    products found 0 of 9 ... missing: oreo, cauliflower, asparagus, ...
+
+and **exited 0**. A complete failure of the pipeline is indistinguishable, in that output, from a
+scan that genuinely found nothing, and the exit code says everything is fine.
+
+That is the precise failure this file has now recorded three times under different names: the shelf
+photographs that were skipped because they had no count, the two inert constants that behave as
+though absent, and now a harness that reports catastrophe as a measurement. **It is also the failure
+`verify.py` was written to prevent, and `verify.py` fell for it.**
+
+### Both ends fixed
+
+`scan-loop.ts` counts censuses that returned an answer against those that threw, and refuses to
+print a bag when none succeeded:
+
+    every census failed (4 of 4 attempted). This is not a result: the bag below would read
+    0 of 9 and the process would exit 0, which is indistinguishable from a measured miss.
+
+exiting 1. Treating a failed census as "found nothing" is right for one bad call mid-scan and wrong
+as the description of a whole run, and only the run knows the difference.
+
+`verify.py` no longer trusts a zero exit code alone. A check that exits cleanly with an all-zero
+result is reported **SUSPECT** rather than "ran", because on this corpus an all-zero result is
+almost always a broken run rather than a measured one.
+
+With both, the model tier of the runner now reports two honest FAILEDs against an empty account
+instead of one FAILED and one silent lie.
+
+**The lesson is the one this file keeps relearning, applied to itself.** Every measurement here is
+only as good as its ability to tell "nothing happened" from "nothing was found", and that
+distinction has to be built deliberately, because both look like zero.
