@@ -47,9 +47,14 @@ core!, the apples show through the clear part beside it, and along the bottom it
 oz (3 lb), 2-1/2 inch, Extra Fancy, which is apple grading. The red an earlier pass read as
 tomatoes is those apples. On IMG_0254 the only red is the Alaskan sockeye salmon.
 
-IMG_0252 holds nine products, not ten. IMG_0254 holds fifteen, not sixteen. Every figure below
-that was taken before this date is against the higher numbers, and the two loaded trolleys are
-one and one further from their targets than they read.
+IMG_0252 holds nine products, not ten. IMG_0254 holds fifteen, not sixteen.
+
+**Any figure in this file with a denominator of 33, or "of 10 real products", or "of 16", was
+measured before 2026-08-22 and is against the old counts.** The corrected denominators are 31 for
+the six photographs, 9 for IMG_0252 and the scan, and 15 for IMG_0254. Those figures are left as
+they were rather than rewritten, because each was taken at a particular time against a particular
+target and changing the numbers after the fact would misrepresent when they were measured. The
+two loaded trolleys are one and one closer to their targets than the old figures read.
 
 Re-scored against the corrected counts, three passes: units 29, 24, 27 of 31, four of six
 photographs exact, badge alignment 21 of 23 in every pass. Both loaded trolleys now miss by
@@ -221,16 +226,19 @@ moves every number in this file.
 
 ## Counting
 
+Detection alone, before any census. The `real` column carries the corrected counts from the
+section above; the two loaded rows read 10 and 16 until 2026-08-22.
+
 | photograph | real | proposed | correct | error |
 |---|---|---|---|---|
 | one cauliflower | 1 | 2 | 1 | +1 |
 | one cauliflower | 1 | 1 | 1 | 0 |
 | + sprouts | 2 | 3 | 2 | +1 |
 | + asparagus | 3 | 3 | 3 | 0 |
-| loaded | 10 | 8 | 8 | -2 |
-| full | 16 | 11 | 10 | -5 |
+| loaded | 9 | 8 | 8 | -1 |
+| full | 15 | 11 | 10 | -4 |
 
-**25 of 33 items counted correctly**, 15 of 17 on the five photographs where the count is
+**25 of 31 items counted correctly**, 15 of 16 on the five photographs where the count is
 certain. The two `+1` errors are the same object: a white plastic disc moulded into the trolley's
 child seat, correctly detected and correctly not a product.
 
