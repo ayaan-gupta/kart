@@ -3812,3 +3812,54 @@ badge carried no shortlist. `CLAUDE.md`'s closed-world assumption says the deplo
 "understate what the shipped product will do". So the honest reading of these two is that they are
 measured in a world the product does not ship into. Testing that needs the two SKUs added to the
 index and the pass re-run, which is a build plus a census pass, and the account has no credit.
+
+## Seventy-eighth: the catalog is not the bottleneck, and the previous section got one of two wrong
+
+The seventy-seventh said both of IMG_0254's misnamed products were `out_of_catalog`, so both were
+artifacts of an evaluation catalog thinner than the one the product ships against. Checking the
+shortlist each badge actually carried says that is true of one and false of the other.
+
+| badge | what the shortlist offered | what the census said |
+|---|---|---|
+| 9, Muenster | `CheeseSlices`, Weikfield, `CheeseCubes`, Pulses, Cookies | "kirkland signature cheese slices" |
+| 10, asparagus | kart_brussels_sprouts, **`kart_asparagus`**, kart_seedtastic_bread, … | "vegetables" |
+
+Badge 9 behaves exactly as the closed-world argument predicts: the index has no Muenster, its
+nearest entry is a generic `CheeseSlices`, and the census dutifully answered cheese slices. Give
+that deployment the store's own catalog and the right name is on offer.
+
+**Badge 10 is the opposite and the seventy-seventh was wrong about it.** Its label was
+`purple_produce_bag`, not `out_of_catalog`, and `kart_asparagus` sat at rank 2 of the five
+candidates the service attached. The right SKU was offered and the census said "vegetables".
+
+### Measured across the corpus, the matcher is nearly perfect
+
+`score_shortlist.py` scores the first clause of `CLAUDE.md`'s closed-world instruction, "is the
+correct SKU in the top-k shortlist", which is a property of the matcher and the index and needs no
+model:
+
+| | |
+|---|---|
+| correct SKU in the top-5 shortlist | **21 of 22 (95%)** |
+| correct SKU at rank 1 | 19 of 22 (86%) |
+
+Its one miss is IMG_0252 badge 8, the close-up of a single red apple through plastic, which is the
+badge the census called "truffle".
+
+**So the catalog half of the closed world is working and the residual is not there.** That is worth
+having as a number rather than an assumption, because five sections of this file have reasoned about
+what the shipped deployment's catalog would do without ever checking what this one does.
+
+### What it moves, and what it does not
+
+The two clauses have to be reported apart, because from the bag they look identical: a product
+missing because the matcher never offered its SKU and a product missing because the census was
+offered it and said something else are the same empty line. Split here, 95% of the first and a
+concrete failure of the second on badge 10.
+
+It does not follow that the census should simply take rank 1. Badge 10's rank 1 is
+`kart_brussels_sprouts`, which is wrong, so a resolver that trusted the top candidate would swap one
+wrong name for another. The honest statement is narrower and still useful: **on this badge the
+information needed was present in the request and did not reach the answer.** Whether that
+generalises needs the second clause measured over a full pass, which needs credit. `score_shortlist.py`
+is committed so the first clause can be re-run after any change to the index or the matcher.
