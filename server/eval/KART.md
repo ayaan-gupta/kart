@@ -4862,6 +4862,20 @@ only route that matches "download it to my phone" literally.
 That is an account decision rather than an engineering one, and nothing in the code changes either
 way.
 
+**Once installed, it does run on its own.** Worth checking separately, because a Debug build fetches
+its JavaScript from Metro on the Mac and would stop working the moment the phone left the desk. The
+Release build does not:
+
+    xcodebuild -workspace ios/Kart.xcworkspace -scheme Kart -configuration Release \
+      -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
+
+succeeds and produces `Release-iphoneos/Kart.app`: arm64, **56 MB**, carrying a **4.1 MB
+`main.jsbundle`** inside it. No Metro, no cable, no laptop. So the honest split is that *installing*
+needs Xcode and a cable, and *running* needs nothing at all.
+
+Choose the Release configuration in Xcode's scheme editor before pressing Run if the phone is going
+to leave the desk; the Debug default will look fine on the desk and fail in a shop.
+
 **The one thing to do while it is running there** is read the `[kart] device sharpness` line the
 scan prints every thirty frames in a Debug build. `MIN_KEYFRAME_SHARPNESS` is 12, set against
 `score_video.py`'s whole-frame variance, while `FrameMetrics.sharpness` reports the largest of a 3x3
