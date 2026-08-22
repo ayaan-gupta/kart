@@ -4476,3 +4476,63 @@ handed to the shipped model, and still not named.
 
 **I could not run it. The account has no credit** (`credit-probe.ts` confirms it), and this is the
 measurement to spend the first credit on.
+
+## Ninetieth: two corrections and one real finding about the yellow bag
+
+The eighty-ninth called the augmented proposal "the first clean box any detector setting has ever
+put on this item". Looking at the crop says that is overstated, and why it scored as clean is worth
+more than the claim was.
+
+### The box is not clean, and `score_boxes.py` could not tell
+
+The crop holds the yellow bag, printed `ORGANIC` in white, **and a purple produce bag occupying
+more of the frame than the yellow one**, plus part of the baguette and the shopper's tote.
+`score_boxes.py` called it isolated because isolated means "covers most of this item without
+covering another **labelled** item", and `corpus/kart/boxes-IMG_0254.json` has no purple produce bag
+in it: that photograph's truth lists fifteen items and a purple bag is not among them, though one
+is plainly visible.
+
+**So the label set is incomplete for IMG_0254, and the isolation figure for any box overlapping that
+purple bag is optimistic.** That is a limitation of labels I wrote earlier today, and it means the
+seventieth's "isolated 11 of 20" and the eighty-ninth's "12 of 20" are both upper bounds rather than
+measurements. The reached figures are unaffected: they ask only whether an item is covered.
+
+### What the crop does establish, which is new and does not depend on the label gap
+
+Asked about that same crop three ways, the local 7B answers:
+
+| the question | the answer |
+|---|---|
+| no catalog help | **`Organic yellow onion`** |
+| the shortlist as this corpus's catalog actually has it | `Purple produce bag` |
+| the same shortlist with a yellow produce bag entry added | **`yellow produce bag`** |
+
+Three things follow, and the middle one is the finding.
+
+**The model reads yellow off this crop.** Unprompted it says `Organic yellow onion`: wrong product,
+right colour, right that something yellow and bagged is the subject. The twenty-sixth measured the
+word "yellow" appearing 0 times in 366 census entries and concluded the model never gets the chance;
+given a crop centred on it, it takes the chance immediately.
+
+**The catalog as built makes the answer worse, not better.** The index carries eight `kart_` SKUs
+and **no yellow anything** — confirmed directly, nothing in the whole index matches "yellow". Offer
+a shortlist whose nearest entry is `purple produce bag` and the model abandons a half-right free
+answer for a confidently wrong catalogued one. The seventy-ninth measured the shortlist helping on
+average, 17 of 22 to 19; this is the failure mode hiding inside that average, and it fires exactly
+on the item the corpus cannot get.
+
+**With the entry a real store would have, it is named correctly.** `CLAUDE.md` states the deployment
+assumption plainly: "the catalog is the complete set of things that can possibly be in the cart",
+and warns that open-world numbers "understate what the shipped product will do". This item is the
+sharpest instance of that in the corpus: it is missing from the evaluation index, and adding the one
+entry a real store's catalog would contain turns the answer right.
+
+### So the yellow bag's story, corrected
+
+It is not one failure. It is a hard-to-propose object **and** an out-of-catalog product, and the two
+have been masking each other all along. The detector work here removes the first; the second is not
+a pipeline defect at all, and the honest thing to say is that this corpus measures the yellow
+produce bag in a world the product does not ship into.
+
+That does not make the corpus figure wrong, and the figure is not being adjusted: the truth stands,
+the catalog stands, and 8 of 9 on IMG_0252 stands. What changes is what the residual means.
