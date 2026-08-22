@@ -2245,3 +2245,27 @@ Once the census is badged from the service, that path is no longer on the critic
 recognition quality. The device needs to know only that something is in the cart, well enough to
 fire a keyframe and hold a track for two seconds, and one blob does that. Whatever is spent next
 on this product, it should not be an on-device segmenter.
+
+## Forty-third: a component the harness was leaving out
+
+`onCapture` ends in `resolveUncertain`, which crops each amber track and asks `runIdentify` for a
+closer look. `scan-loop.ts` stubbed that call to fail, so **every scan figure measured through it,
+including the ones this file used to justify pointing `scan.tsx` at the capture path, came from a
+loop missing a real component.**
+
+Wired to the shipped `runIdentify`, which does its own cropping when given a box exactly as the
+service does. Four runs:
+
+| | identify calls | products found, lenient |
+|---|---|---|
+| identify stubbed out, as measured before | 0 | 8, 8, 8, 9 (8.25) |
+| identify running | 1, 3, 1, 1 | **9**, 8, 8, 8 (8.25) |
+
+It fires one to three times a session and the aggregate does not move. So the conclusions drawn
+from the earlier runs stand, and the instrument now exercises the path the app actually takes
+rather than three quarters of it. Run 1 produced a complete bag, nine of nine.
+
+Worth stating plainly because it is the second time today a harness proved to be measuring
+something other than what it claimed: the first was every scan number being taken on a region
+supply the app does not have. Both were found by reading code rather than by any result looking
+wrong. A number that agrees with expectation is not evidence the thing producing it is connected.

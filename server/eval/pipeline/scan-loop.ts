@@ -30,7 +30,7 @@ import { RecognitionSession } from '../../../src/engine/liveVision/orchestrator'
 import type { SessionDeps } from '../../../src/engine/liveVision/orchestrator';
 import { createPipelineState, processFrame } from '../../../src/engine/liveVision/pipeline';
 import { MAX_CANDIDATES } from '../../src/enumerate';
-import { runCensus } from '../../src/recognize';
+import { runCensus, runIdentify } from '../../src/recognize';
 import type { Mark } from '../../src/compositor';
 import { VIDEO_TRUTH, scoreContents } from './video-truth';
 
@@ -82,6 +82,7 @@ function serverMarks(frame: any): Mark[] {
 
 let currentFrame: any = null;
 let calls = 0;
+let identifyCalls = 0;
 
 const deps: SessionDeps = {
   // The transport only. `runCensus` is the shipped one; when the request carries no marks this
@@ -111,7 +112,20 @@ const deps: SessionDeps = {
       },
     } as any;
   },
-  requestIdentify: async () => ({ ok: false, failure: 'server' }) as any,
+  // The real crop identify, not a stub. `onCapture` ends in `resolveUncertain`, which crops each
+  // amber track and asks a closer look to settle it, and every scan figure measured here before
+  // this was wired excluded that path entirely. `runIdentify` does the cropping itself when given
+  // a box, exactly as the service does.
+  requestIdentify: async (req) => {
+    identifyCalls += 1;
+    const image = readFileSync(imageFor(currentFrame.order));
+    try {
+      const result: any = await runIdentify(image, req.hint, req.box);
+      return { ok: true, value: result } as any;
+    } catch {
+      return { ok: false, failure: 'server' } as any;
+    }
+  },
   lookupBarcode: async () => null,
   saveThumbnail: async () => null,
 };
@@ -165,7 +179,8 @@ for (const frame of video.frames) {
 
 const lines = bagLines(session.state.fusion) as any[];
 const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
-console.log(`\n  path=${PATHNAME}, ${DEVICE_REGIONS} device region(s) per frame, ${calls} census call(s)`);
+console.log(`\n  path=${PATHNAME}, ${DEVICE_REGIONS} device region(s) per frame, ` +
+  `${calls} census call(s), ${identifyCalls} identify call(s)`);
 console.log(`  bag holds ${units} units on ${lines.length} lines, against ${cart.products} real products`);
 for (const l of lines) console.log(`      ${String(l.qty).padStart(2)}  ${l.brand ? `${l.brand} ` : ''}${l.name}`);
 
