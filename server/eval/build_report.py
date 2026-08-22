@@ -289,7 +289,28 @@ client. Verified end to end: the app formed tracks, encoded a keyframe, POSTed t
 service took its marks and called the model, and it failed at the credit wall. The screenshot is the
 unavailable notice driven by a real failure for the first time, bag at zero. This was a simulator,
 not a phone.</p>
-<div class="scroll" style="display:flex;gap:16px"><figure class="shot-app"><img loading="lazy" alt="The app showing the unavailable notice" src="{app_shot}"><figcaption>a real 429: the failure is loud</figcaption></figure><figure class="shot-app"><img loading="lazy" alt="The app bag filled by a local model" src="{bag_shot}"><figcaption>the same app, local model, nine items</figcaption></figure></div><p class="section-note">The right-hand bag is filled with no OpenAI account. Read it as plumbing and not as recognition: the bundled test asset is a synthetic picture of coloured shapes, which is why four lines are "Orange square", "Blue oval", "Green square" and "Yellow rectangle". The recognition figures on this page are the corpus ones above.</p>
+<div class="scroll" style="display:flex;gap:16px"><figure class="shot-app"><img loading="lazy" alt="The app showing the unavailable notice" src="{app_shot}"><figcaption>a real 429: the failure is loud</figcaption></figure><figure class="shot-app"><img loading="lazy" alt="The app bag filled by a local model" src="{bag_shot}"><figcaption>the same app, local model, nine items</figcaption></figure></div><h3 style="font-size:.95rem;margin:26px 0 4px">The whole set, with no OpenAI account</h3>
+<p class="section-note">All ten photographs and the video, posted over HTTP to a running recognition
+service exactly as a phone would. Strict asks for the truth item's head noun; lenient for any shared
+non-generic word. The four shelf photographs hold no trolley and score 0 of 0 by construction.</p>
+<div class="scroll"><table class="gaps">
+<tr><th>input</th><th>products</th><th>strict</th><th>lenient</th></tr>
+<tr><td>IMG_0244</td><td>1</td><td class="yes">1</td><td>1</td></tr>
+<tr><td>IMG_0245</td><td>1</td><td class="yes">1</td><td>1</td></tr>
+<tr><td>IMG_0246</td><td>2</td><td class="yes">2</td><td>2</td></tr>
+<tr><td>IMG_0249</td><td>3</td><td class="yes">3</td><td>3</td></tr>
+<tr><td>IMG_0252</td><td>9</td><td class="yes">8</td><td>8</td></tr>
+<tr><td>IMG_0254</td><td>15</td><td class="yes">8</td><td>8</td></tr>
+<tr><td>six trolleys</td><td>31</td><td class="yes">23</td><td>23</td></tr>
+<tr><td>the video, four frames fused</td><td>10</td><td class="yes">7</td><td>8</td></tr>
+</table></div>
+<p class="section-note">The shipped model reaches 76 of 93 products over three passes and the video
+8 of 9, in about four seconds a frame. This is a 2B model with no catalog shortlist and box-shaped
+outlines, at 55 to 290 seconds a photograph. It is worse, except on the four sparse trolleys, where
+it finds every item every time. IMG_0252 misses exactly one thing and it is the yellow produce bag.
+Two faults stated rather than buried: the local census hardcodes <code>subjectIsCart</code> true, so
+it will report a shelf as a cart, and the shelf photographs draw 27, 21, 42 and 14 answers.</p>
+<p class="section-note">The right-hand bag is filled with no OpenAI account. Read it as plumbing and not as recognition: the bundled test asset is a synthetic picture of coloured shapes, which is why four lines are "Orange square", "Blue oval", "Green square" and "Yellow rectangle". The recognition figures on this page are the corpus ones above.</p>
 <p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
 reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
 IMG_0254, and 21 of 21 matching at IoU 0.7 or better. A scan keyframe takes 3.9s on MPS. A real
