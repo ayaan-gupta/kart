@@ -34,9 +34,36 @@ xcodebuild -workspace ios/Kart.xcworkspace -scheme Kart -configuration Release \
 ```
 
 `** BUILD SUCCEEDED **`, and the binary is `arm64`, `platform IOS`, `minos 17.0`. That is the
-device slice, not the simulator's. Installing it still needs either a cable and a free Apple ID,
-or a paid membership for over-the-air distribution; neither was available here, so **the app has
-never been run on a physical phone**. Everything below the build is verified; the install is not.
+device slice, not the simulator's.
+
+That build skips signing. Asking for a real signed device build says exactly what is missing:
+
+```bash
+xcodebuild -workspace ios/Kart.xcworkspace -scheme Kart -configuration Release \
+  -destination 'generic/platform=iOS' -allowProvisioningUpdates build
+```
+
+```
+error: No Accounts: Add a new account in Accounts settings.
+error: No profiles for 'dev.ayaangupta.kart' were found.
+** BUILD FAILED **
+```
+
+So the install is blocked on two specific things, not on anything about the pipeline:
+
+1. **Xcode has no Apple ID signed in.** A development certificate for
+   `ayaangupta2009@icloud.com` is already in the keychain, but Xcode itself has no account, so it
+   cannot create a provisioning profile. Fix in Xcode, Settings, Accounts. This needs the account
+   password, so it is yours to do and not something a tool should be handed.
+2. **No device is registered.** A free Apple ID can sign for a device only after that device is
+   attached once by cable, which is what registers its identifier and lets Xcode issue the
+   profile. After the first cable pairing, later installs can go over wifi.
+
+With both done, `xcodebuild ... -destination 'platform=iOS,name=<your iPhone>'` installs it, and a
+free-account build runs for seven days before it needs re-signing.
+
+**The app has never been run on a physical phone.** Everything up to signing is verified; the
+install is not, and nothing in this repository can substitute for the two steps above.
 
 ## Running the whole pipeline from this machine
 

@@ -5971,3 +5971,36 @@ seen from the other side.
 Between 55 and 290 seconds per photograph on an M-series Mac, against roughly four seconds for the
 shipped model. The whole set took about half an hour. This is a fallback for a machine with no
 credit, and the timings are the reason it is not a product.
+
+---
+
+## The hundred-and-thirteenth: what "needs a cable" actually resolves to
+
+Eleven sections have said the app cannot be installed on a phone without a cable or a paid
+membership. That was inference from the absence of a device, never a tested claim, and a tested
+claim is more useful because it names the remedy.
+
+The device build in the hundred-and-ninth passed `CODE_SIGNING_ALLOWED=NO`, which proves the code
+compiles for arm64 and proves nothing about signing. Asking for a real signed build:
+
+```
+error: No Accounts: Add a new account in Accounts settings.
+error: No profiles for 'dev.ayaangupta.kart' were found.
+** BUILD FAILED **
+```
+
+Two things, both outside this repository and neither about recognition:
+
+1. **Xcode has no Apple ID signed in.** A development certificate for `ayaangupta2009@icloud.com`
+   is in the keychain already, so the account exists; Xcode does not have it, so it cannot issue a
+   profile. That is a password prompt and belongs to the owner, not to a tool.
+2. **No device is registered.** A free account can only sign for a device it has seen, and it sees
+   one when it is attached by cable once. After that first pairing, installs can go over wifi.
+
+`security find-identity` shows the one valid identity, and the provisioning profile directory is
+empty, which is the same fact from the other side.
+
+So the honest state of requirement three is: the app compiles for real iPhone hardware, reaches a
+recognition service, fills a bag, and shows the right notice when the service fails, all verified;
+and it has never been installed on a phone, blocked on two account and hardware steps that no
+amount of work here can perform.
