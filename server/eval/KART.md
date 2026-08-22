@@ -5705,3 +5705,88 @@ item is genuinely never proposed, and no label artefact is propping that conclus
 The magnified view also confirms the `known_faults` entry with the naked eye: there is a **purple
 produce bag** sitting directly above the yellow one on IMG_0254, occupying roughly y 0.45 to 0.485,
 and the truth file has no entry for it. That one is still outstanding.
+
+---
+
+## The hundred-and-ninth: the phone was never blocked on a cable
+
+Every number in this file was produced by the eval harness, which hands the pipeline a cached
+region set and calls the recognition handlers as functions. Nothing in that path is a phone, a
+network, or a running server. Asked what the app would actually do installed on a phone, this file
+had no answer, and the answer turns out not to be about recognition at all.
+
+**A build made today names nothing, for three separate reasons, and only the third is the model.**
+
+| | missing | what the app does | how it was verified |
+|---|---|---|---|
+| 1 | `EXPO_PUBLIC_KART_API_URL` | every request returns `unconfigured` | the shipped bundle holds no recognition endpoint |
+| 2 | `ENUMERATOR_URL` | degraded: no outlines, no shortlist, 72% of units | the server logged `enumeration degraded` |
+| 3 | OpenAI credit | nothing recognized | `429 credit_balance_exhausted` |
+
+The first was found by building the app for real hardware and reading the JavaScript bundle it
+produced: the only URLs in it are library strings, Expo documentation, Metro's development port,
+and Open Food Facts. There is no `.env` anywhere in the repository, so `apiBaseUrl()` compiles to
+the empty string and `post()` returns `unconfigured` before it ever reaches the network.
+
+That last detail is worth keeping: **the barcode fast path still works on a phone with no server
+at all**, because Open Food Facts is called directly from the device. It is the only part of
+recognition that survives a total server outage.
+
+### The build itself is fine
+
+`xcodebuild -configuration Release -destination 'generic/platform=iOS'` returns
+`** BUILD SUCCEEDED **`, and the binary is `arm64`, `platform IOS`, `minos 17.0`. That is the
+device slice and not the simulator's, and it had never been checked. **Installing it still needs a
+cable or a paid membership, so the app has still never run on a physical phone.** Everything up to
+the install is now verified; the install is not, and no amount of work here changes that.
+
+### The second gap was the interesting one
+
+`ENUMERATOR_URL` being unset does not fail loudly. `enumerateRegions` returns an empty list with
+`degraded: "no enumerator configured"`, the census receives no marks, and it answers an open-world
+question with no set-of-mark badges and no catalog shortlist. The README calls this a supported
+mode and scores it at 72% of units with no outlines, which is true and is also **not the pipeline
+this file measured**. Every refusal and every improvement recorded above assumes the regions are
+there.
+
+So the enumerator now has a second host, `server/enumerator/local.py`, which runs the same
+detector on whatever accelerator a Mac has. It imports the prompts, the threshold, the
+de-duplication and the produce merge from `regions.py` rather than restating them, which is what
+makes the next claim checkable rather than hopeful:
+
+| | cached regions | local host | matched at IoU 0.7 |
+|---|---|---|---|
+| IMG_0252 | 10 | 10 | **10 of 10** |
+| IMG_0254 | 11 | 11 | **11 of 11** |
+
+Most of those match between 0.98 and 1.00. It is the same region set, so the measured pipeline is
+now runnable from this machine and reachable by a phone on the same wifi.
+
+Two honest differences from the deployment, both reported by `GET /` so a degraded run cannot hide:
+SAM2 is not installed locally, so polygons are bounding boxes and outlines are rectangles rather
+than silhouettes (0.902 coverage against 0.924); and no catalog index is built, so regions carry no
+SKU shortlist.
+
+### What it costs on a Mac
+
+| input | forward passes | time |
+|---|---|---|
+| a scan keyframe | 2 | **3.9s** |
+| a sharp photograph | 15 | ~20s |
+
+`PAIRED_PRODUCE_SHARPNESS` is what splits them, and the split lands the right way round for this:
+the expensive fourteen-pass path is the one photographs take, and a live scan takes the cheap one.
+A scan session is capped at eight census calls, so four seconds a call is usable. Twenty would not
+have been.
+
+### The whole chain, end to end
+
+A real corpus photograph posted through both servers reached the model and failed at
+`429 credit_balance_exhausted`, with the enumerator reporting 9 regions and no degraded mode. That
+is request parsing, image decode, enumeration, mark composition and the model call all working,
+stopping exactly where everything else in this file stops.
+
+The redaction discipline held under a live test rather than a unit test: the wire response was the
+fixed string `{"error":"Recognition failed"}` and the log contained no fragment of the key.
+
+`docs/running-on-a-phone.md` is the runbook.

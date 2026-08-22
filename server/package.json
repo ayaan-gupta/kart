@@ -6,7 +6,8 @@
     "smoke": "tsx scripts/smoke.ts",
     "eval": "tsx eval/run-eval.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "serve": "tsx scripts/serve.ts"
   },
   "dependencies": {
     "openai": "^6.10.0",
