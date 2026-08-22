@@ -60,11 +60,19 @@ taken since the sixty-seventh section's figures were measured.
 | 3 hidden items are flagged | first measured in the seventy-fifth, 5 of 6 by a local 7B; the shipped census's own field is still unrun for want of credit |
 | 4 unsure items are flagged | first measured in the eightieth: a wrong answer is 7x likelier to be flagged than a right one, and 7 of 9 errors are still asserted unflagged |
 
-**The residual is attributed rather than open.** On the hardest photograph it splits four ways:
-one product no proposal reaches, one reached only inside another product's box, one whose SKU the
-evaluation catalog lacks, and one whose correct SKU was offered at rank 2 and not taken. The
-detector's share is closed by construction in the seventy-sixth; the catalog's share is 95%
-correct in the seventy-eighth and is not the bottleneck.
+**The residual is explained, and it is two things rather than a diffuse gap.** Eight of the ten
+photographs are already perfect and repeatable (eighty-seventh); the whole of it is IMG_0252,
+IMG_0254 and the video.
+
+- **The yellow produce bag**, missed in all three, is one root cause failing at five layers:
+  rarely proposed, so never tracked, so fewer than `MIN_REFERENCES` crops exist, so it has no
+  catalog SKU, so the shortlist offers `purple_produce_bag` instead, so a good crop is named
+  wrongly. Five sections each found one layer and treated it as the fix. It was one thing
+  (ninety-first). Not fixable on this corpus; in a deployment the store's catalog would carry it.
+- **IMG_0254 is 40% catalogued** against IMG_0252's 89%, because the catalog is built from the
+  video and the video films IMG_0252's trolley (ninety-second). That is why two loaded trolleys
+  score so differently, and it is not the density problem that the seventieth through
+  eighty-eighth spent their effort on.
 
 **Two constants are inert**, `MIN_KEYFRAME_SHARPNESS` at 12 and `GREEN_CONFIDENCE` at 0.55. Both
 were set against one distribution and deployed against another, both behave exactly as if absent,
