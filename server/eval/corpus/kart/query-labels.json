@@ -26,7 +26,7 @@
    "baguette",
    "out_of_catalog",
    "out_of_catalog",
-   "purple_produce_bag"
+   "asparagus"
   ]
  },
  "identified": {
@@ -38,5 +38,8 @@
    "8": "Alaskan sockeye salmon",
    "9": "Muenster cheese"
   }
- }
+ },
+ "corrections": [
+  "IMG_0254 badge 10 was labelled purple_produce_bag and holds the asparagus bag. The crop is green stalks in plastic filling the box, with a sliver of purple wrapper at the left edge, which is what the original reading caught. Two independent readings agree it is asparagus: this crop, and the hand-labelled box in corpus/kart/boxes-IMG_0254.json, placed before the badge label was examined. The correction is score-neutral on every pass observed, because the census named this badge 'vegetables', 'bagged produce' or 'vegetable tray', and none of those matches either label's word set. It is made for attribution, not for the number: with the wrong label the asparagus miss reads as a detection failure, and it is a naming failure on a correctly isolated badge."
+ ]
 }

@@ -3758,3 +3758,57 @@ configuration one.
 
 This is the same shape as the yellow bag's ending, reached on a different corpus and a different
 layer. **Both residuals are the detector's, and both were being chased in the rules.**
+
+## Seventy-seventh: the residual is not all the detector's, and the previous section overclaimed
+
+The seventy-sixth ended "both residuals are the detector's, and both were being chased in the
+rules." Testing that against the shipped model's own answers says it is half right, and the half it
+gets wrong is the tractable half.
+
+If isolation were the binding constraint, every isolated product would reach the bag. Taking the
+four products IMG_0254 missed on a measured pass and asking what the detector actually gave the
+census for each:
+
+| missing product | what the detector gave | what the census said | cause |
+|---|---|---|---|
+| yellow produce bag | nothing, no box reaches it | nothing | **detection** |
+| broccoli | box 8, 61% of it but 98% of the salmon | "kroger alaskan sockeye salmon" | **grouping** |
+| Muenster cheese (second) | box 9, **isolated**, 78% of it, 27% of another | "kirkland signature cheese slices" | **naming** |
+| asparagus bag | box 10, **isolated**, 67% of it, 28% of another | "vegetables" | **naming** |
+
+**Two of the four are isolated, badged, and simply misnamed.** The census was handed a clean crop of
+each and answered with a category instead of a product. Badge 9 at full size reads `MUENSTER
+deli-sliced cheese, HAPPY FARMS, ALDI` in large type, so this is not a legibility limit either: the
+word is printed plainly on the pack and the answer invented a different brand.
+
+That is a different problem from grouping, it lives in a different component, and the seventy-sixth
+was wrong to fold it in.
+
+### A corpus label was hiding one of them
+
+`query-labels.json` called IMG_0254 badge 10 a `purple_produce_bag`. The crop is green stalks in
+plastic filling the frame with a sliver of purple wrapper at one edge, which is what the original
+reading caught. It is the asparagus bag, and the hand-labelled box in `boxes-IMG_0254.json` says so
+independently, having been placed before the badge label was ever looked at.
+
+The label is corrected, and **the correction is score-neutral on every pass observed**: the census
+called this badge "vegetables", "bagged produce" or "vegetable tray", and none of those matches
+either label's word set, so alignment reads the same before and after. That is worth stating because
+a truth edit that improves a score is the one edit this file must never make. This one changes only
+the attribution: with the wrong label the asparagus miss reads as a detector failure, and it is not
+one.
+
+### What it means for where the work is
+
+The residual on the corpus's hardest photograph splits four ways and only one quarter is the
+detector failing to see. Of the rest, one is grouping, which the seventy-sixth closed properly, and
+**two are the census naming a clean crop wrongly**, which nothing in this file has attacked because
+until there were boxes to check against, an isolated-but-misnamed product and a never-detected one
+looked identical from the bag.
+
+Both misnamed items are `out_of_catalog`, meaning the evaluation index has no SKU for them and the
+badge carried no shortlist. `CLAUDE.md`'s closed-world assumption says the deployment does have one:
+"the catalog is the complete set of things that can possibly be in the cart", and open-world numbers
+"understate what the shipped product will do". So the honest reading of these two is that they are
+measured in a world the product does not ship into. Testing that needs the two SKUs added to the
+index and the pass re-run, which is a build plus a census pass, and the account has no credit.
