@@ -2336,3 +2336,20 @@ It is worth noting what did **not** go wrong. `PAIRED_PRODUCE_SHARPNESS`, the pr
 this file fitted at 700, is computed server-side by `regions.sharpness` on the received image with
 the same whole-frame measure it was fitted on, so it is consistent and unaffected. Two sharpness
 scales exist in this system and only one of the two thresholds is on the right one.
+
+**The motion gate was checked for the same fault and does not have it.** `MAX_KEYFRAME_MOTION` is
+0.15, and the two sides really do measure the same thing: `score_video.py` takes the mean absolute
+difference over the full-resolution frame, `FrameMetrics` takes it over a 96-pixel nearest-
+neighbour subsample. Subsampling picks pixels rather than averaging them, so the scale survives,
+and on the same frame pairs the two agree to within half a percent:
+
+| frame pair | device-style subsample | full resolution |
+|---|---|---|
+| 002 | 0.1524 | 0.1510 |
+| 003 | 0.1513 | 0.1524 |
+| 007 | 0.1827 | 0.1828 |
+| 013 | 0.1647 | 0.1635 |
+
+So the sharpness mismatch is specific, not a symptom of the eval and the device disagreeing
+generally. It comes from one measure being a maximum over tiles and the other a mean over the
+frame, which no amount of care with resolution would reconcile.
