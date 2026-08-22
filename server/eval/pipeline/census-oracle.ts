@@ -79,7 +79,6 @@ for (const [id, entry] of photographs) {
     confidence: 0.9,
     needsCloserLook: false,
     isProduct: useVlm ? (vlm.get(`${id}#${m.id}`) ?? m.isProduct) : m.isProduct,
-    catalogSku: null,
   }));
 
   const unmarkedItems = entry.unmarkedItems.map((name: string) => ({
