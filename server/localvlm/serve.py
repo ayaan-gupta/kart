@@ -48,6 +48,23 @@ FRAME_Q = ("List every distinct grocery product you can see in this shopping tro
            "line, name only. Do not list the trolley, the floor, bags, shoes or people.")
 HIDDEN_Q = ("Are some products in this trolley hidden underneath or behind other products? "
             "Answer yes or no.")
+# `subjectIsCart` was hardcoded true when this file was written, which the hundred-and-twelfth
+# recorded as a fault: the four shelf photographs in the corpus are shop shelves, not trolleys,
+# and the census called every one of them a cart. It cost nothing in that table because those rows
+# hold no products to find, and it would matter to a shopper the moment the camera pointed at a
+# shelf.
+#
+# The wording is measured, not chosen. Asked to pick between two words ("Answer TROLLEY or SHELF")
+# this model narrates instead: "The image shows the in..." on both a trolley and a shelf, which any
+# keyword test then reads as whichever word it was looking for. A closed yes/no question about one
+# concrete visual fact does work, and separates all three photographs tried:
+#
+#     photograph               this question   "on shelving?"   the two-word choice
+#     IMG_0252, a trolley      Yes             No               narration
+#     IMG_0247, a shelf        No              Yes              narration
+#     IMG_0250, a shelf        No              Yes              TROLLEY, wrong
+CART_Q = ("Does this image show groceries inside a metal wire shopping cart basket? "
+          "Answer yes or no.")
 
 # A local model has no calibrated confidence, and inventing a number per answer would be a lie
 # dressed as a measurement. One fixed value is used for every answer, and this is what it means.
@@ -156,9 +173,14 @@ class Census:
             counts.setdefault(u["productKey"], 1)
 
         hidden = self.backend.ask(pil, HIDDEN_Q, tokens=8).strip().lower().startswith("yes")
+        # Anything that is not a clear yes is treated as not a cart. The census is allowed to be
+        # unsure and say so; what it must not do is assert a shelf is a trolley, which is the
+        # direction the hardcoded value used to fail in.
+        subject = self.backend.ask(pil, CART_Q, tokens=8).strip().upper()
+        is_cart = subject.startswith("YES")
 
         return {
-            "subjectIsCart": True,
+            "subjectIsCart": is_cart,
             "marks": results,
             "unmarkedItems": unmarked,
             "inViewCounts": [{"productKey": k, "count": v} for k, v in counts.items()],

@@ -6004,3 +6004,35 @@ So the honest state of requirement three is: the app compiles for real iPhone ha
 recognition service, fills a bag, and shows the right notice when the service fails, all verified;
 and it has never been installed on a phone, blocked on two account and hardware steps that no
 amount of work here can perform.
+
+---
+
+## The hundred-and-fourteenth: fixing the fault the section before it admitted
+
+The hundred-and-twelfth listed two faults in the local census path and left them listed.
+`subjectIsCart` was hardcoded true, so the census called all four shelf photographs trolleys. It
+is now asked, and the asking is the part worth recording.
+
+The first attempt used the phrasing this file would naturally reach for, a choice between two
+words: **"Answer TROLLEY or SHELF."** It scored **wrong on both shelf photographs**, and the reason
+is not that the model cannot tell:
+
+| photograph | "groceries inside a metal wire shopping cart basket?" | "products on store shelving?" | "Answer TROLLEY or SHELF" |
+|---|---|---|---|
+| IMG_0252, a trolley | Yes | No | *narrates* |
+| IMG_0247, a shelf | No | Yes | *narrates* |
+| IMG_0250, a shelf | No | Yes | **TROLLEY** |
+
+Asked to pick between two words it answers "The image shows the in..." instead, and a keyword test
+over that narration returns whichever word it was looking for. **The model knew the answer to two
+other phrasings of the same question and my phrasing threw it away.** Both closed questions about a
+concrete visual fact separate all three; the two-word choice separates none.
+
+So the question is now "Does this image show groceries inside a metal wire shopping cart basket?",
+and anything that is not a clear yes is treated as not a cart. Being unsure is allowed; asserting
+a shelf is a trolley is the direction the hardcoded value failed in.
+
+Verified on all seven photographs the corpus can answer: three trolleys true, four shelves false.
+
+This is the seventh time in this file a measured question has beaten a written one, and the first
+where the losing version was written in the same commit as the comment warning about it.
