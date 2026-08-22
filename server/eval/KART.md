@@ -218,6 +218,19 @@ detection alone and six of six for a census that answers correctly. Every sparse
 exact, which is the plastic disc finally leaving the bag and is exactly what `isProduct` is for.
 The two that miss cancel: one over by one, one under by one.
 
+Both misses are the stand-in model's naming rather than anything in the pipeline.
+
+On the three-item trolley it called the asparagus "brussels sprouts", so two tracks carry that
+name and become two units of it, while the whole-frame question separately and correctly names
+asparagus. The asparagus is counted twice, once wrongly as a sprout and once rightly as itself.
+On the loaded one it called the purple produce bag "subway sandwich" and offered "mr. lucky
+cauliflower" alongside a badge already named "cauliflower".
+
+`applyCensus` handled both correctly given what it was told. Fixing them by matching names more
+loosely would be tuning to one 2B model's particular mistakes, which is why it is not done here.
+It is the clearest statement available of what the remaining distance is: a better model, not a
+better pipeline.
+
 An earlier run of this reported 37 units and an over-count of four on the fullest trolley, and
 blamed the model for listing 24 products in a 16-product basket. That was a parsing fault in the
 harness: a reply numbered "1.\nOreo\n2.\nBread" had its bare numbers counted as products. The
