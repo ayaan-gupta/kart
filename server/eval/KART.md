@@ -55,7 +55,7 @@ taken since the sixty-seventh section's figures were measured.
 
 | `CLAUDE.md` requirement | where it stands |
 |---|---|
-| 1 every item reaches the bag | photographs **76 of 93** products over three passes, video **8 of 9**; detector reaches 19 of 20 readable products on the two loaded trolleys and isolates 11 |
+| 1 every item reaches the bag | photographs **76 of 93** products over three passes, video **8 of 9**; detector reaches 19 of 20 readable products on the two loaded trolleys and isolates 13 (11 before the hundred-and-eighth corrected a misplaced label) |
 | 2 quantities are right | 85 units against 93 real on the photographs; the scan bag holds 8.17 against 9 |
 | 3 hidden items are flagged | first measured in the seventy-fifth, 5 of 6 by a local 7B; the shipped census's own field is still unrun for want of credit |
 | 4 unsure items are flagged | first measured in the eightieth: a wrong answer is 7x likelier to be flagged than a right one, and 7 of 9 errors are still asserted unflagged |
@@ -5641,3 +5641,67 @@ detector cannot isolate it. It is `judged` in both, so it costs the headline not
 
 Two corrections in two sections, one of a claim that was too generous and one of a claim that was too
 harsh. **Neither direction is the safe one to guess in.**
+
+---
+
+## The hundred-and-eighth: correcting a label moved the headline up, which is the direction to distrust
+
+The hundred-and-seventh closed by saying one item is bad in both label sets and it is the same item.
+Leaving it bad was the wrong call. `yellow produce bag` is the item this whole investigation is
+about; every figure quoted for it came from a box that was mostly purple bag and baguette.
+
+So I re-placed it on IMG_0252 from a magnified view with the frame coordinates drawn on: the yellow
+`ORGANIC` bag runs about x 0.095 to 0.20, y 0.525 to 0.61, and the purple bag begins around x 0.19.
+The new box stops short of the purple. The crop is now mostly yellow with one purple corner.
+
+Re-scoring against the corrected label:
+
+| | before | after |
+|---|---|---|
+| reached, excluding judged | 19 of 20 | 19 of 20 |
+| **isolated, excluding judged** | **11 of 20** | **13 of 20** |
+
+**The headline moved up two after I edited a label, which is exactly the shape of a self-serving
+result, so it needs the mechanism stated.** The two rows that changed are `baguette` and
+`Fuji apple bag` on IMG_0252, and neither detector proposal changed at all. Isolation asks whether a
+proposal covers one labelled item without covering much of another; both proposals overlapped the
+*mislabelled* yellow box, which claimed baguette and purple-bag territory that the yellow bag does
+not occupy. They were being penalised for overlapping an item that was not there. IMG_0252 is now
+8 of 8 isolated excluding judged.
+
+The other half of the change is the one that argues against me: with a correct box, the yellow bag
+now reads **MISSED on both photographs** rather than found on one. The old label had it detected on
+IMG_0252, and that was a false credit — the detector was finding the purple bag underneath the
+mislabelled box.
+
+That second half is the reason to believe the first. A label edit that only ever moved numbers
+upward would be the thing to distrust; this one moved the item under audit down to zero found and
+moved two unrelated items up, which is what a genuine correction of a misplaced box looks like.
+It also makes the record internally consistent: every other section says the yellow bag is never
+proposed, and the truth file now agrees.
+
+`known_faults` in `boxes-IMG_0252.json` records that figures for this item taken before the
+re-placement are not comparable with ones after.
+
+**The refusals below do not need re-running.** Every detector comparison in this file scored each
+variant against the same label set, so the misplaced box penalised all of them equally: Grounding
+DINO at 0.23, MM Grounding DINO, LLMDet, threshold 0.20 and 0.15, and per-proposal re-detection all
+sat at "isolated 11 of 20" *together*. A constant offset applied to every row does not change which
+row wins, and no refusal in this file turned on a margin of two.
+
+### And IMG_0254's box did not need fixing
+
+Having corrected one, I checked the other rather than assuming the hundred-and-seventh was right
+about it. Magnifying IMG_0254 with the frame coordinates drawn on: the yellow `ORGANIC` bag runs
+about x 0.135 to 0.245, y 0.478 to 0.548, and the label already reads x 0.128 to 0.241, y 0.481 to
+0.541. The crop is mostly yellow bag. **That box is fine**, and the hundred-and-seventh's "bad in
+both label sets" was too harsh for this one — it was tightened earlier in the same session, which is
+why. Its remaining purple is at the top, where the purple bag genuinely rests on the yellow one, so
+the box is honest about the occlusion rather than misplaced.
+
+So the yellow bag's truth is now: correct on both photographs, MISSED by the detector on both. The
+item is genuinely never proposed, and no label artefact is propping that conclusion up any more.
+
+The magnified view also confirms the `known_faults` entry with the naked eye: there is a **purple
+produce bag** sitting directly above the yellow one on IMG_0254, occupying roughly y 0.45 to 0.485,
+and the truth file has no entry for it. That one is still outstanding.

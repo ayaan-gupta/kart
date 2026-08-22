@@ -37,12 +37,13 @@
   {
    "name": "yellow produce bag",
    "box": {
-    "x": 0.198,
-    "y": 0.482,
+    "x": 0.095,
+    "y": 0.525,
     "w": 0.105,
-    "h": 0.09
+    "h": 0.085
    },
-   "judged": true
+   "judged": true,
+   "note": "Re-placed from a magnified view. The earlier box was dominated by the purple bag and the baguette with only a sliver of yellow in it, which made every figure for this item unreliable; it is judged, so the readable headline was unaffected either way."
   },
   {
    "name": "Granny Smith apple bag",
@@ -94,5 +95,8 @@
    },
    "judged": false
   }
+ ],
+ "known_faults": [
+  "The yellow produce bag box was re-placed after an audit found the original dominated by the purple bag. Figures for this item taken before that are not comparable with ones after."
  ]
 }
