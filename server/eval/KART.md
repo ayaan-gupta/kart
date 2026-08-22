@@ -2479,3 +2479,30 @@ bandwidth to hand the census something it was measured to do worse with.
 
 That is the same shape as every other refusal here, arrived at from a new direction: the loss is
 real, its cause is understood, and the two ways to undo it both make things worse.
+
+## Fiftieth: more closer looks make the bag worse
+
+Wiring the crop identify into `scan-loop.ts` made one more constant testable. `resolveUncertain`
+only crops tracks below `GREEN_CONFIDENCE`, which is 0.55, and this file already measured that the
+census overstates its confidence: 9 wrong regions of 69 with only 4 flagged. So the closer look
+should be under-firing on items that are wrong, and raising the bar should buy resolution.
+
+`MAX_IDENTIFY_CALLS_PER_SESSION` is 6 and identify fires one to three times, so the budget is not
+what limits it. The threshold is. Two runs at each:
+
+| `GREEN_CONFIDENCE` | identify calls | products found, lenient |
+|---|---|---|
+| **0.55, as shipped** | 2, 3 | 9, 8 (**8.5 of 9**) |
+| 0.75 | 5, 0 | 8, 8 (8.0) |
+| 0.90 | 2, 6 | 7, 8 (7.5) |
+
+Monotonically worse, and the mechanism is in the design rather than in the numbers. An identify
+result is `verifiedByIdentify`, which `applyCensus` protects: a later census guess cannot overwrite
+it outright. So every extra closer look is another chance to replace a correct census answer with
+a worse one **and then defend it**. The protection that makes identify valuable when it is right
+is what makes it costly when it is wrong.
+
+That is the sixth constant confirmed at the value it already had, and the eighth measurement in
+this file to find that giving the pipeline more to do costs accuracy. The under-firing is real, and
+the fix for it is not "fire more"; it is confidence that means something, which is capability 4 and
+still does not work.
