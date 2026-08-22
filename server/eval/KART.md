@@ -2984,3 +2984,28 @@ volunteer it.
 do it, which is a capture rather than a change, and the fifty-third section's other limits point
 the same way: no barcode decodes anywhere here, and the app's real sessions are longer than nine
 seconds.
+
+## Sixty-third: the two new things, tested against each other
+
+Two changes shipped late in this session and they meet in one request. The cart question refuses a
+photograph that is not a trolley. `CensusRequest.counted` sends the names the bag already holds. A
+shopper who scans their cart and then pans onto a shelf sends both at once: a shelf image, and a
+prompt that says eight grocery products have already been counted in this session.
+
+That is the failure worth checking, because it is the one where the gate matters most and where a
+prior list of groceries is most likely to talk the model into calling a display a cart.
+
+| shelf photograph, with a cart's worth of names already counted | `subjectIsCart` | bag |
+|---|---|---|
+| IMG_0247 | false | **0 units on 0 lines** |
+| IMG_0248 | false | **0 units on 0 lines** |
+| IMG_0250 | false | **0 units on 0 lines** |
+| IMG_0251 | false | **0 units on 0 lines** |
+
+It holds. The names do not soften the judgement, which fits what they are: a list of phrasings to
+reuse, not evidence about what is in front of the camera.
+
+The converse needs no separate test. `scan-loop.ts` sends counted names on every census after the
+first and still builds bags of eight or nine products, so a trolley keeps registering as a trolley
+with the list present. Both directions covered, and the interaction between the day's two shipped
+features is measured rather than assumed.

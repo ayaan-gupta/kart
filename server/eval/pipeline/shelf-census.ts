@@ -51,7 +51,14 @@ for (const frame of frames.frames) {
     return mark;
   });
   const image = readFileSync(join(HERE, `.cache/kart/images/${frame.id}.jpg`));
-  const census: any = await runCensus(image, marks);
+  // Mid-session: the shopper has already scanned their cart, so the bag has names in it, and now
+  // the camera is on a shelf. If those names make the census more willing to call a shelf a cart,
+  // the gate fails exactly when it is needed.
+  const carried = process.argv.includes('--mid-session')
+    ? ['Oreo', 'Granny Smith apples', 'Seedtastic bread', 'baguette', 'Mr Lucky cauliflower',
+       'brussels sprouts', 'asparagus', 'purple produce bag']
+    : [];
+  const census: any = await runCensus(image, marks, undefined, carried);
   const products = census.marks.filter((m: any) => m.isProduct).length;
   const notProducts = census.marks.filter((m: any) => !m.isProduct);
   const unmarked = (census.unmarkedItems ?? []).length;
