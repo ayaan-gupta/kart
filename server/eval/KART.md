@@ -2380,3 +2380,30 @@ figure stands and the harness now differs from the app in nothing this corpus ca
 
 `keyframeMaxEdge` is 1536 and `CENSUS_LONG_EDGE` is 1536, which is the one place two constants on
 either side of the network turned out to already agree.
+
+## Forty-seventh: re-validating the day's biggest change on the corrected instrument
+
+`scan.tsx` was pointed at the capture path on the strength of `scan-loop.ts`, and three defects
+have since been found in that harness: the crop identify stubbed to fail, the image passed raw
+instead of encoded as the device sends it, and a contents scorer blind to quantity. A decision that
+large deserves re-measuring on the instrument as it now stands rather than as it was.
+
+It holds, by a wider margin than it was made on:
+
+| | units against 9 real | products found, lenient |
+|---|---|---|
+| `onKeyframe`, badged from the device detector | 17, 17, 15 (**16.3**) | 7, 7, 6 (**6.67 of 9**) |
+| `onCapture`, badged from the service's regions | 12, 9, 10 (**10.3**) | 8, 8, 9 (**8.33 of 9**) |
+
+Six units closer to the truth and one and two thirds more products found, on a harness that now
+runs the crop identify, sends the image the device would send, and counts units rather than lines.
+
+Two things worth drawing out. The gap in *products found* is visible here in a way it was not
+before, because the old harness never ran `resolveUncertain`: the closer look helps the capture
+path, which has real per-item regions to crop, and cannot help the other, whose single blob has
+nothing worth cropping. And the shipped path's bags are not merely larger but flatter, 17 lines for
+9 products, because with one badge almost everything arrives as free text through `unmarkedItems`.
+
+**The correction to make explicitly**: the figures in the thirty-sixth section, 19, 15, 15 against
+11, 11, 12, were measured on the flawed harness. They pointed the right way and the decision they
+supported was right, but the numbers themselves are superseded by the table above.
