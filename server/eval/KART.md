@@ -3593,3 +3593,56 @@ this file. So the end-to-end test in the previous section needs a sharper pass c
 If 0.20 fails only the second condition, the honest reading is that the threshold wants to depend on
 how much is in the frame, not that 0.20 is wrong. That would be a new rule and this corpus has six
 trolleys to fit it on, which is not enough. Recorded rather than attempted.
+
+## Seventy-fourth: the threshold candidate, measured end to end without a key
+
+The seventy-first held threshold 0.20 as a candidate because its end-to-end effect could not be
+measured with the OpenAI account empty. That was wrong about the tools available. `census_local.py`
+exists precisely for this: it assembles a census from a local Qwen2-VL asked one crop at a time, and
+`local-census-bag.ts` runs the shipped fusion over the result. Neither needs a key.
+
+Both files hardcoded one region set. Both now take `KART_FRAMES`, pairing with the `KART_VLM` and
+`KART_CENSUS_OUT` overrides already there, so one region set can be swapped for another and the
+same model asked the same questions about each.
+
+| photograph | real | 0.23, as shipped | 0.20 |
+|---|---|---|---|
+| IMG_0244 | 1 | **1** | 2 |
+| IMG_0245 | 1 | **1** | 2 |
+| IMG_0246 | 2 | **2** | **2** |
+| IMG_0249 | 3 | 4 | 4 |
+| IMG_0252 | 9 | 10 | **9** |
+| IMG_0254 | 15 | 16 | 18 |
+| **units** | **31** | **34** | 37 |
+| **exact** | | **3 of 6** | 2 of 6 |
+
+**The prediction from the region counts holds exactly.** Both sparse trolleys that were exact break,
+each gaining a unit, because the extra proposal on a nearly empty trolley is called a product: the
+crop-level log shows IMG_0244 going from 2 of 2 regions called products to 3 of 3. IMG_0254 takes
+the worst of it at +3. And IMG_0252 becomes **exact**, the one photograph where better-separated
+boxes were the whole point.
+
+So the three-part pass condition written one section ago is answered, and 0.20 fails part two. It is
+refused, not held.
+
+### What it is evidence for
+
+The split is not noise, it is the density story the region counts already told: 0.20 helps the
+trolley with ten products and hurts the trolleys with one. **A threshold that depended on how much
+is in the frame would take both wins**, and this is now the second independent measurement pointing
+at that rule. It is still not buildable here, because six trolleys is not a corpus to fit a
+density curve on, and a rule fitted on the same six that judged it would be worth nothing.
+
+### The caveat, which is real
+
+This is a 2B local model, not the gpt-5.4-mini the product ships. Its absolute numbers are worse and
+it may be more suggestible than the shipped model about calling an extra crop a product, which is
+exactly the mechanism under test. What the comparison holds still is everything else: same model,
+same three questions, same fusion, same truth, only the region set differs. **A clean A/B on a
+smaller model is weaker evidence than a clean A/B on the shipped one and much stronger than no
+measurement**, which is what this candidate had before.
+
+When the account has credit, the seventy-first's command still deserves running, if only to see
+whether the larger model resists the extra badge that the 2B one accepts. The prediction on record
+is that it will not: this file has measured "more regions is worse" five times on the shipped model
+and now a sixth time on a local one.

@@ -29,11 +29,14 @@ NAME_Q = ("What grocery product is this? Answer with the product name only, thre
 FRAME_Q = ("List every distinct grocery product you can see in this shopping trolley, one per "
            "line, name only. Do not list the trolley, the floor, bags, shoes or people.")
 
-frames = {f["id"]: f for f in json.loads(pathlib.Path(".cache/kart/frames.json").read_text())["frames"]}
+# Overridable for the same reason KART_VLM is: so one region set can be swapped for another
+# without a second copy of this file. `KART_CENSUS_OUT` already pairs with it.
+FRAMES = os.environ.get("KART_FRAMES", ".cache/kart/frames.json")
+frames = {f["id"]: f for f in json.loads(pathlib.Path(FRAMES).read_text())["frames"]}
 backend = vlm.load(MODEL)
 ask = backend.ask
 
-print(f"model {MODEL}", flush=True)
+print(f"model {MODEL}, regions {FRAMES}", flush=True)
 out = {}
 for pid in CARTS:
     frame = frames[pid]

@@ -21,8 +21,12 @@ import { applyCensus, bagLines, createFusionState } from '../../../src/engine/li
 import type { CensusMark, CensusResult } from '../../../src/engine/liveVision/fusion';
 
 const HERE = join(import.meta.dirname, '..');
-const frames = JSON.parse(readFileSync(join(HERE, '.cache/kart/frames.json'), 'utf8'));
-const local = JSON.parse(readFileSync(join(HERE, '.cache/kart/census-local.json'), 'utf8'));
+const FRAMES = process.env.KART_FRAMES ?? '.cache/kart/frames.json';
+const frames = JSON.parse(readFileSync(join(HERE, FRAMES), 'utf8'));
+// `KART_CENSUS_IN`/`KART_FRAMES` pair with the same variables on `census_local.py`, so one
+// region set can be swapped for another and scored without a second copy of either file.
+const CENSUS_IN = process.env.KART_CENSUS_IN ?? '.cache/kart/census-local.json';
+const local = JSON.parse(readFileSync(join(HERE, CENSUS_IN), 'utf8'));
 const isProduct = new Map<string, boolean>(
   JSON.parse(readFileSync(join(HERE, '.cache/kart/isproduct.json'), 'utf8'))
     .map((r: any) => [`${r.id}#${r.box}`, r.said]),
