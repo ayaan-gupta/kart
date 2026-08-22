@@ -144,6 +144,8 @@ export default function ScanScreen() {
   const [observedYaw, setObservedYaw] = useState<number | null>(null);
   const [occluded, setOccluded] = useState(false);
   const [amberPersists, setAmberPersists] = useState(false);
+  /** Every census so far has failed, so the scan is broken rather than the cart empty. */
+  const [unavailable, setUnavailable] = useState(false);
   const [permissionAsked, setPermissionAsked] = useState(false);
   // Whether the last-published occlusion verdict was true, read (not set) outside render so
   // `publish` can detect the false-to-true edge that starts a new episode. A ref, not state:
@@ -273,6 +275,8 @@ export default function ScanScreen() {
           setOccluded(nowOccluded);
 
           setAmberPersists(persistentAmber(session.state, current, Date.now()));
+          setUnavailable(session.state.censusFailures > 0
+            && session.state.censusFailures === session.state.censusCalls);
           useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
           refreshNextRequest();
         };
@@ -322,6 +326,8 @@ export default function ScanScreen() {
         // Cheap, synchronous, and needs no network, so it updates every cycle rather than only
         // when a request lands.
         setAmberPersists(persistentAmber(session.state, result.tracks, now));
+        setUnavailable(session.state.censusFailures > 0
+          && session.state.censusFailures === session.state.censusCalls);
       }),
     [],
   );
@@ -411,7 +417,7 @@ export default function ScanScreen() {
           notice shares the guide's own coverage exit, rather than reading raw `occluded`, which
           orchestrator.ts can stop updating for the rest of the session once the census budget is
           spent (I3 in the branch review) and would otherwise have no way to clear. */}
-      <CoachNotice kind={coachKind({ amberPersists, occluded: guide })} topInset={insets.top} />
+      <CoachNotice kind={coachKind({ amberPersists, occluded: guide, unavailable })} topInset={insets.top} />
       <CaptureGuide coverage={coverage} visible={guide} />
 
       <View

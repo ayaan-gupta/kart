@@ -40,6 +40,32 @@ describe('coachKind', () => {
     // avoids giving two instructions at once.
     expect(coachKind({ amberPersists: true, occluded: true })).toBe('occluded');
   });
+
+  it('reports unavailable when every census has failed', () => {
+    expect(coachKind({ amberPersists: false, occluded: false, unavailable: true }))
+      .toBe('unavailable');
+  });
+
+  it('prefers unavailable over both other notices', () => {
+    // "Bring your camera closer" and "move the items covering it" are both instructions to work
+    // harder at something that cannot succeed while recognition is not answering, which is worse
+    // than saying nothing. See KART.md's eighty-fifth section for how the silent version read to
+    // a shopper: an empty bag and a broken scan were the same screen.
+    expect(coachKind({ amberPersists: true, occluded: true, unavailable: true }))
+      .toBe('unavailable');
+  });
+
+  it('says nothing about availability when the flag is absent, as older callers pass', () => {
+    expect(coachKind({ amberPersists: false, occluded: false })).toBe('none');
+  });
+
+  it('has copy for every kind it can return', () => {
+    // A kind with no entry renders undefined text and announces undefined to a screen reader.
+    for (const kind of ['closer', 'occluded', 'unavailable'] as const) {
+      expect(typeof COACH_COPY[kind]).toBe('string');
+      expect(COACH_COPY[kind].length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('I3: the occluded notice has an exit even when the occlusion verdict itself is stuck', () => {

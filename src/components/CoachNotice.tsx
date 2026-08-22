@@ -5,21 +5,27 @@ import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { color, feedTextShadow, motion, space } from '../design/tokens';
 import { Sub } from '../design/type';
 
-export type CoachKind = 'none' | 'closer' | 'occluded';
+export type CoachKind = 'none' | 'closer' | 'occluded' | 'unavailable';
 
 /**
  * The exact wording asked for by the product owner. Do not reword these without asking; they
  * are the user-facing definition of two of this plan's three required features.
+ *
+ * `unavailable` is NOT product-owner copy. It was written here because the alternative was a
+ * shopper scanning a full trolley, finding nothing, and being told nothing (KART.md, eighty-fifth).
+ * It is deliberately plain and it needs their wording before it is final.
  */
 export const COACH_COPY: Record<Exclude<CoachKind, 'none'>, string> = {
   closer: 'Please bring your camera closer to items highlighted yellow',
   occluded:
     "We're pretty sure you're missing stuff in your cart. Move items that are covering it and scan those items.",
+  unavailable: "Scanning isn't working right now. Check your connection and try again.",
 };
 
 const SYMBOL: Record<Exclude<CoachKind, 'none'>, SymbolViewProps['name']> = {
   closer: 'viewfinder',
   occluded: 'square.3.layers.3d.top.filled',
+  unavailable: 'exclamationmark.triangle.fill',
 };
 
 /**
@@ -29,7 +35,14 @@ const SYMBOL: Record<Exclude<CoachKind, 'none'>, SymbolViewProps['name']> = {
  * remedy (move the things on top and scan them) also resolves most amber items, so it goes
  * first when both apply.
  */
-export function coachKind(input: { amberPersists: boolean; occluded: boolean }): CoachKind {
+export function coachKind(
+  input: { amberPersists: boolean; occluded: boolean; unavailable?: boolean },
+): CoachKind {
+  // First, and above both others. If recognition is not answering, "bring your camera closer" and
+  // "move the items covering it" are both instructions to work harder at something that cannot
+  // succeed, which is worse than saying nothing. Neither of the other two can be true for a good
+  // reason while every census is failing: they are derived from census answers.
+  if (input.unavailable) return 'unavailable';
   if (input.occluded) return 'occluded';
   if (input.amberPersists) return 'closer';
   return 'none';
