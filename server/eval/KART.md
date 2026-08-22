@@ -2444,3 +2444,31 @@ an orientation-6 photograph unrotated while stripping the tag, and `compositeMar
 badges on an image a quarter turn from the one the marks described. The same EXIF fault this
 corpus opened with, reintroduced by the tool built to measure it. A 20% result was too large to be
 the thing under test, which is the only reason it was caught.
+
+## Forty-ninth: the encoding loss is resolution, not compression
+
+The previous section measured the app's keyframe encode costing recall, and the obvious lever is
+the quality constant: `KartImageTools.encodeKeyframe` uses JPEG 0.85, and raising it costs only
+bandwidth. Three passes each:
+
+| keyframe JPEG quality | products found, lenient | photographs exact | lines matching nothing |
+|---|---|---|---|
+| **85, as shipped** | 74 of 93 | 12 of 18 | 10 |
+| 95 | 77 of 93 | 14 of 18 | 9 |
+| 100 | 76 of 93 | 12 of 18 | 8 |
+
+A spread of three, and not monotonic. The same quality-85 setting gave 72 in the previous
+section's run and 74 here, so run-to-run variation on this measure is about the size of the whole
+effect. **Compression is not what costs the recall.**
+
+Which leaves the downscale. The photographs are 5712 across and the keyframe is 1536, a 3.7-times
+linear reduction, and that is where the small print goes. The forty-eighth section's figure should
+therefore be read as five to seven points rather than a firm eight, and attributed to resolution.
+
+There is no lever there either, and this file already established why: `CENSUS_LONG_EDGE` was
+swept at 1024, 1536 and 2048, and 2048 was **worse** on every measure but one. So the census does
+not want the pixels back even when they are available. Sending a larger keyframe would cost
+bandwidth to hand the census something it was measured to do worse with.
+
+That is the same shape as every other refusal here, arrived at from a new direction: the loss is
+real, its cause is understood, and the two ways to undo it both make things worse.

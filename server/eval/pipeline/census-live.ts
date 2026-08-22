@@ -180,6 +180,9 @@ function scoreContents(lines: { name: string; qty: number }[], truth: Truth[]) {
  * of it, and this flag measures how much of the gap is the encoding alone.
  */
 const AS_KEYFRAME = process.argv.includes('--as-keyframe');
+/** `--keyframe-quality=N` varies the JPEG quality the device encodes at, which ships at 85. */
+const qArg = process.argv.find((a) => a.startsWith('--keyframe-quality='));
+const KEYFRAME_QUALITY = qArg ? Number(qArg.split('=')[1]) : 85;
 async function sendable(file: Buffer): Promise<Buffer> {
   if (!AS_KEYFRAME) return file;
   // `.rotate()` with no argument applies the EXIF orientation and drops the tag, which is what
@@ -192,7 +195,7 @@ async function sendable(file: Buffer): Promise<Buffer> {
   return sharp(file)
     .rotate()
     .resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 85 })
+    .jpeg({ quality: KEYFRAME_QUALITY })
     .toBuffer();
 }
 
