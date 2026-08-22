@@ -2948,3 +2948,31 @@ names sent back, that is much less true:
 A second pass used to grow the bag to eleven or twelve lines and now holds it at nine. The extra
 looks stop being a liability, which matters because a real scan is longer than nine seconds and
 will spend more of the budget than this corpus can.
+
+## Sixty-second: the yellow bag, closed for the last time
+
+Paired produce prompts contain the only detector proposal that isolates the yellow produce bag, and
+they were refused twice: once on the tracker-marked path and once on the capture path, both times
+because the extra regions produced more descriptions that would not join. The counted names cut
+exactly that cost five-fold, which made a third test genuinely justified rather than stubborn.
+
+| | products found, lenient | the yellow bag |
+|---|---|---|
+| **shipped regions, with counted names** | **8.17 of 9** | missing |
+| paired produce, with counted names | 6, 8, 8 (**7.33 of 9**) | **still missing in two runs of three** |
+
+Worse again, and it does not deliver the thing it was tried for. Run 1 lost both apple bags as
+well. Three configurations, three refusals, and on the last one the joining problem it was blamed
+on had been largely fixed.
+
+That closes the yellow produce bag. The full list of what was tried, across the session: five
+prompt sets on the still, three detector settings (shipped, `--tiles 2`, `--threshold 0.20`),
+server-side enumeration on the keyframe, capture pacing ruled out by showing the census does see a
+frame it is visible in, and paired produce on three pipelines. It is one small bag, side-on to a
+larger one of the same kind, in a pile; the detector will not separate it and the census will not
+volunteer it.
+
+**What it would take is not on this corpus.** A second angle on that corner of the trolley would
+do it, which is a capture rather than a change, and the fifty-third section's other limits point
+the same way: no barcode decodes anywhere here, and the app's real sessions are longer than nine
+seconds.
