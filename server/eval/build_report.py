@@ -111,6 +111,8 @@ def main(argv=None):
 
     shot = HERE / ".cache/kart/app-unavailable.png"
     app_shot = data_uri(shot) if shot.exists() else ""
+    bag = HERE / ".cache/kart/app-bag-local.png"
+    bag_shot = data_uri(bag) if bag.exists() else ""
 
     page = f"""<title>Kart Verification Results</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -275,8 +277,10 @@ made before <code>.env</code> existed had none.</td></tr>
 <tr><td>ENUMERATOR_URL</td><td>Degraded mode: no outlines, no catalog shortlist, 72% of units. Not
 the pipeline any figure on this page was measured on.</td><td class="yes">The server logged
 <code>enumeration degraded: no enumerator configured</code>.</td></tr>
-<tr><td>OpenAI credit</td><td>Nothing is recognized.</td><td class="yes">429
-<code>credit_balance_exhausted</code>.</td></tr>
+<tr><td>OpenAI credit</td><td><strong>Worked around.</strong> A local vision model now answers the
+same census contract from weights on the machine, so a bag fills with no account at all. It is
+worse than the shipped model and slower, and is a fallback rather than the product.</td><td class="yes">IMG_0252 named end to end in 113s with no credit: Oreo, cauliflower, Granny Smith apples and
+baguette right, two answers plainly wrong.</td></tr>
 </table></div>
 <p class="section-note">The app had never once called a server: the Frame Lab harness used local
 fixtures, written when nothing was deployed, so a full bag of named items on screen proved the
@@ -285,7 +289,7 @@ client. Verified end to end: the app formed tracks, encoded a keyframe, POSTed t
 service took its marks and called the model, and it failed at the credit wall. The screenshot is the
 unavailable notice driven by a real failure for the first time, bag at zero. This was a simulator,
 not a phone.</p>
-<div class="scroll"><figure class="shot-app"><img loading="lazy" alt="The app showing the unavailable notice" src="{app_shot}"><figcaption>frame-lab, server mode, real 429</figcaption></figure></div>
+<div class="scroll" style="display:flex;gap:16px"><figure class="shot-app"><img loading="lazy" alt="The app showing the unavailable notice" src="{app_shot}"><figcaption>a real 429: the failure is loud</figcaption></figure><figure class="shot-app"><img loading="lazy" alt="The app bag filled by a local model" src="{bag_shot}"><figcaption>the same app, local model, nine items</figcaption></figure></div><p class="section-note">The right-hand bag is filled with no OpenAI account. Read it as plumbing and not as recognition: the bundled test asset is a synthetic picture of coloured shapes, which is why four lines are "Orange square", "Blue oval", "Green square" and "Yellow rectangle". The recognition figures on this page are the corpus ones above.</p>
 <p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
 reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
 IMG_0254, and 21 of 21 matching at IoU 0.7 or better. A scan keyframe takes 3.9s on MPS. A real

@@ -14,10 +14,11 @@ configuration rather than recognition. There are three gaps, and only one of the
 |---|---|---|---|
 | 1 | `EXPO_PUBLIC_KART_API_URL` | never names anything: every request returns `unconfigured` | yes, the shipped bundle contains no recognition endpoint |
 | 2 | `ENUMERATOR_URL` | degraded mode: no outlines, no catalog shortlist, 72% of units | yes, the server logged `enumeration degraded: no enumerator configured` |
-| 3 | OpenAI credit | nothing is recognized at all | yes, `429 credit_balance_exhausted` |
+| 3 | OpenAI credit | nothing is recognized at all, unless the local fallback below is used | yes, `429 credit_balance_exhausted` |
 
 Gap 1 is the one that matters most and costs nothing to close. Gap 2 is closed locally by the
-host added below. Gap 3 is the user's account.
+host added below. Gap 3 is the user's account, and is now optional: a local vision model can
+answer the census instead, worse and slower but with no account at all.
 
 Note what still works with all three missing: the camera, the tracker, the outlines, and the
 barcode fast path, which resolves against Open Food Facts directly from the phone and is the only
@@ -142,3 +143,46 @@ enumeration, mark composition, and the call itself.
 
 The redaction discipline held under test. The wire response was the fixed string
 `{"error":"Recognition failed"}` and the log contained no fragment of the key.
+
+## Running with no OpenAI account at all
+
+`server/localvlm/serve.py` answers the census contract from weights on this machine, using the
+per-crop method `server/eval/pipeline/census_local.py` established. `runCensus` takes it only when
+`LOCAL_CENSUS_URL` is set, and is unchanged when it is not.
+
+```bash
+PORT=4330 server/.venv/bin/python server/localvlm/serve.py
+```
+
+Then start the recognition service with all three pointed at each other, and with both timeouts
+raised, because the local model answers one region at a time:
+
+```bash
+ENUMERATOR_URL=http://127.0.0.1:4320 LOCAL_CENSUS_URL=http://127.0.0.1:4330 \
+  RECOGNITION_TIMEOUT_MS=900000 node --env-file=server/.env.local \
+  server/node_modules/.bin/tsx server/scripts/serve.ts
+```
+
+The app needs its own budget raised too, in `.env`, because its default is 20 seconds:
+
+```
+EXPO_PUBLIC_KART_REQUEST_TIMEOUT_MS=180000
+```
+
+**Both defaults are the product values and neither should ship raised.** 25s on the server exists
+because Vercel kills the function at 30s; 20s in the app exists because a shopper will not wait
+longer than that.
+
+### What it is worth
+
+Measured on IMG_0252 through the whole stack, HTTP 200 in 113 seconds: Oreo, cauliflower, Granny
+Smith apples, bread and baguette named correctly, brussels sprouts named "brocolli sprouts", two
+answers plainly wrong and one duplicated. The ninety-sixth section of `KART.md` puts the same
+model at 18 of 22 against the shipped 20 of 22 on the alignment metric.
+
+It is the difference between a machine with no credit recognizing nothing and recognizing most of
+a trolley. It is not the product.
+
+`LOCAL_CONFIDENCE` in that file is 0.6, above `GREEN_CONFIDENCE`, and the reason is written there:
+at 0.5 every item waited for a closer look, the closer look calls `identify`, and `identify` needs
+the credit this path exists to avoid, so the bag stayed empty on every run.
