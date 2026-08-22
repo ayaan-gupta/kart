@@ -275,8 +275,20 @@ Two things compound across calls, and neither can happen when there is only one.
 
 **Names drift.** The same product comes back as "oreo" and "oreo cookies", as "bread" and
 "seedstastic bread" and "seedblossom bread", as "baguette" and "baguette bread". Every variant
-keys differently and becomes its own bag line. `FusionState` carries an alias mechanism for
-exactly this and it does not absorb variation of this size.
+keys differently and becomes its own bag line. The alias mechanism in `FusionState` is for
+linking a barcode to a repeated VLM guess, not for merging name variants, and `productKey`
+normalises case, accents and punctuation but nothing else, so two spellings of one product are
+two products.
+
+There is a stable identifier for this and the client throws it away. `catalogSku` is required by
+`CENSUS_RESPONSE_SCHEMA`, the prompt asks the model which catalog candidate the region is, and
+`marksFromRegions` carries each region's shortlist into the request so the model can answer. The
+field appears zero times in `src/`: `recognitionClient.ts` parses `name`, `brand` and `isProduct`
+and drops it, and `applyCensus` keys the bag on the free-text name.
+
+So the pipeline does the work to obtain a stable key and then keys on the one field that varies.
+That is not an artefact of a small model. Any model writing a name twice will write it slightly
+differently; a SKU copied from a shortlist does not drift.
 
 **Hallucinations accumulate.** Across four calls the whole-frame question added a leek, broccoli,
 kale and a cucumber. None is in the trolley. One call can invent one of those; four calls invent
