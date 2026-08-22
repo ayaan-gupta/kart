@@ -60,11 +60,18 @@ Rules:
    downstream as different products and put the same item in the shopping bag twice.
 11. If two badges both sit on the same physical object, that is expected, not an error. Report
    both with the same identification; do not force them to differ.
-12. If you can see a product in the cart that has no badge on it, add it to unmarkedItems
-    instead. Never attach it to an unrelated badge. description should name the product the
+12. Each badge marks one product: the one its number is drawn on. The boxes come from a
+    detector and overlap heavily, so on a loaded cart almost every product sits inside several
+    rectangles, and sitting inside a rectangle is not the same as being marked. Work it in that
+    direction. Once you have named the product each badge is on, look over the cart again, and
+    every product you can see that is not the product you named for some badge goes in
+    unmarkedItems. Never attach it to an unrelated badge. A product partly behind another still
+    counts if you can see enough of it to name it. description should name the product the
     same way name would for a marked item, because that description is what reaches the
     shopper's bag: the detector misses most of a cart, so unmarkedItems is a main channel, not
-    a leftovers bin. Be as complete here as you are with the badges. productKey is the same
+    a leftovers bin. Be as complete here as you are with the badges; an empty unmarkedItems on a
+    loaded cart asserts that the badges account for every product in it, which is rarely true.
+    productKey is the same
     "brand::name" key described in rule 14, and must be exactly the key you use for this product
     in inViewCounts, so the two join. approxLocation is a short phrase locating it in the frame
     in your own words, for example "top of cart, left side" or "under the produce bag".
