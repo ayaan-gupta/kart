@@ -183,3 +183,61 @@ describe("censusUserText offers the catalog's shortlist", () => {
     expect(CENSUS_SYSTEM_PROMPT).toContain("catalogSku to null");
   });
 });
+
+describe("censusUserText carries what the session already counted", () => {
+  const mark = (id: number) => ({ id, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } });
+
+  it("says nothing extra when nothing has been counted yet", () => {
+    // The first census of a session, and every single-capture request. Unchanged from before the
+    // field existed, which is what keeps an older client behaving identically.
+    expect(censusUserText([mark(1)])).not.toMatch(/already counted/i);
+    expect(censusUserText([])).toBe(
+      "No regions were detected. List every grocery product you can see in unmarkedItems.",
+    );
+  });
+
+  it("lists the names so the census reuses a phrasing rather than inventing a third", () => {
+    const text = censusUserText([mark(1)], ["Oreo", "Granny Smith apples"]);
+    expect(text).toMatch(/already counted/i);
+    expect(text).toContain("Oreo");
+    expect(text).toContain("Granny Smith apples");
+  });
+
+  it("says the list is not a limit on what to report", () => {
+    // Without this the model can read the list as exhaustive and stop volunteering products it can
+    // see, which would turn a fix for duplicate lines into a cause of missing ones. The whole point
+    // is to constrain the wording, never the contents.
+    const text = censusUserText([mark(1)], ["Oreo"]);
+    expect(text).toMatch(/not a (limit|restriction)/i);
+    expect(text).toMatch(/every other product/i);
+  });
+
+  it("carries them on the no-regions path too, which is what a capture sends", () => {
+    // `onCapture` sends no marks, so this branch is the one the app actually takes.
+    const text = censusUserText([], ["Oreo"]);
+    expect(text).toMatch(/already counted/i);
+    expect(text).toContain("Oreo");
+  });
+});
+
+describe("CENSUS_SYSTEM_PROMPT asks whether the photograph is even a cart", () => {
+  // Measured on the four shelf photographs in the kart corpus: without this the census called 102
+  // of 102 badges products and refused none, which would put up to 41 items a shopper is not buying
+  // into their bag. The schema requires the field, so removing only the rule would leave the model
+  // answering a question it has not been told how to answer.
+  it("names the field and what makes something a cart", () => {
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/subjectIsCart/);
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/mesh|basket/i);
+  });
+
+  it("names the cases it must be false for", () => {
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/shelves/i);
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/chiller|display/i);
+  });
+
+  it("asks it about the photograph rather than about the badges", () => {
+    // Whitespace-tolerant: the prompt is wrapped, so this phrase spans a line break. Asserting
+    // the literal string would make the test hostage to the wrap column.
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/judge\s+the\s+photograph,\s+not\s+the\s+badges/i);
+  });
+});
