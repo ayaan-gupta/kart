@@ -218,6 +218,9 @@ const results: any[] = [];
 const roundsArg = process.argv.find((a) => a.startsWith('--rounds='));
 const ROUNDS = roundsArg ? Math.max(1, Number(roundsArg.split('=')[1])) : 1;
 
+/** Requirement 3: whether each photograph was reported as hiding items. */
+const occlusionSeen: { id: string; hidden: boolean }[] = [];
+
 const passes: { aligned: number; scorable: number; units: number; real: number; exact: number }[] = [];
 let alignedRight = 0;
 let alignedScorable = 0;
@@ -317,6 +320,15 @@ for (const frame of frames.frames) {
     truthTotal += truth.length;
     spuriousTotal += contents.spurious.length;
   }
+  // Requirement 3 of the testing standard, which no figure in this file had ever covered: items
+  // hidden under other items must be flagged so the shopper is asked to move them. IMG_0254 is the
+  // case that matters, a woven tote lying across the middle of the trolley with the Fuji and yellow
+  // produce bags under it, and a bag that silently omits them is a worse answer than one that says
+  // it cannot see them.
+  const occ = census.occlusion;
+  occlusionSeen.push({ id: frame.id, hidden: occ?.itemsLikelyHidden === true });
+  console.log(`  ${frame.id}: occlusion ${occ?.itemsLikelyHidden ? 'HIDDEN' : 'none'}` +
+    `${occ?.severity ? ` (${occ.severity})` : ''}${occ?.reason ? `: ${occ.reason}` : ''}`);
   console.log(`  ${frame.id}: bag ${units} against ${entry.products} real` +
     (contents ? `, products found ${contents.strict}/${contents.lenient} of ${truth.length}` +
       (contents.missing.length ? `, missing ${contents.missing.join(', ')}` : '') +
@@ -339,6 +351,10 @@ if (REPEATS > 1) {
   console.log(`  badge alignment  per pass ${per((p) => p.aligned).join(', ')} of ${passes[0].scorable}`);
   console.log(`  units in the bag per pass ${per((p) => p.units).join(', ')} against ${passes[0].real}`);
   console.log(`  photographs exact per pass ${per((p) => p.exact).join(', ')} of 6`);
+}
+for (const id of [...new Set(occlusionSeen.map((o) => o.id))]) {
+  const runs = occlusionSeen.filter((o) => o.id === id);
+  console.log(`  occlusion flagged ${runs.filter((r) => r.hidden).length}/${runs.length}  ${id}`);
 }
 console.log(`  badge alignment  ${alignedRight}/${alignedScorable}` +
   ` (${(alignedRight / Math.max(alignedScorable, 1) * 100).toFixed(1)}%)`);

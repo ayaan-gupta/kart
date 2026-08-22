@@ -3315,3 +3315,39 @@ to "fix" it without re-measuring. This is the third time in this file a change t
 correct on inspection lost to the corpus, and the second where the tidy explanation for the loss
 turned out to be impossible on reading the code. **A four-line fix with a passing unit test and a
 clear rationale is still a guess until the corpus has seen it.**
+
+## Sixty-ninth: requirement 3 instrumented, unmeasured, and why IMG_0254 is the case for it
+
+`CLAUDE.md` names four separately measurable things and this file has numbers for three. Nothing
+here has ever reported the third: **items hidden under other items are flagged as hidden, so the
+shopper is asked to move them.**
+
+That is not a gap in the pipeline, which carries the machinery: `occlusion` is a required field of
+`censusJsonSchema`, `assessOcclusion` combines it with the geometric covered rule, and guided
+capture opens above `OCCLUSION_HIDDEN`. It is a gap in the instrument. `census-live.ts` scored the
+bag and the badges and threw the occlusion verdict away.
+
+### Why it matters most on the photograph with the largest residual
+
+IMG_0254 loses five to eight of fifteen products, more than the rest of the corpus put together,
+and looking at the photograph says the losses are not scattered. A shopper's woven tote lies across
+the middle of the trolley, and the Fuji apple bag and the yellow produce bag lie under it. The
+corpus's own count note says so and calls two of the fifteen "judged rather than read".
+
+For those two items a bag that silently omits them is a *worse* answer than one that says it cannot
+see them. Requirement 3 is the designed response and this corpus is exactly the case it was written
+for. Whether the census actually fires it here is unknown, which is the point of this section.
+
+`census-live.ts` now prints each photograph's verdict and a per-photograph flagged count. It
+typechecks and it has not been run: the OpenAI account reached `429 credit_balance_exhausted`
+partway through the first pass, so no live figure exists and none is quoted here.
+
+**What to run when the account has credit:**
+
+    node --env-file=server/.env.local server/node_modules/.bin/tsx \
+      server/eval/pipeline/census-live.ts --repeat=3
+
+and read the `occlusion flagged N/3` lines. The result that would matter: IMG_0254 flagged on every
+pass and the four sparse photographs flagged on none. If IMG_0254 is *not* flagged, then part of
+what this file has been counting as a recognition failure is a reporting failure instead, and the
+fix is in the prompt rather than the detector.
