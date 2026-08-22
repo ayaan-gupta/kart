@@ -4695,3 +4695,58 @@ And the eighty-eighth refused the augmented regions on an end-to-end unit count 
 catalog that had no yellow entry**, where the box became a spurious `purple cabbage` line. With the
 entry present that line may become a correct one, so **that refusal now rests on a measurement made
 under the wrong catalog and deserves re-running.**
+
+## Ninety-fourth: two overclaims in two sections, and what actually survives
+
+The ninety-third said four of the yellow bag's five layers now work and only the shipped model was
+untested. Pushing one step further says that was wrong, twice over.
+
+### The rank-1 result was an artifact of a seven-product index
+
+`Index.build` on the nine kart folders indexes seven products, because `granny_smith_apples` and
+`oreo` fall below `MIN_REFERENCES`. Ranking first against six competitors is not the shipped
+question. Against the real index — 310 SKUs, the same fine-tuned encoders, nearest prototype:
+
+| | 1 | 2 | 3 |
+|---|---|---|---|
+| as shipped | kart_purple_produce_bag **0.773** | kart_baguette 0.771 | kart_seedtastic_bread 0.641 |
+| **+ yellow** | kart_purple_produce_bag **0.773** | kart_baguette 0.771 | **kart_yellow_produce_bag 0.715** |
+
+Rank **3**, not rank 1. Still inside the top-5 the census is shown, so the first clause of the
+closed-world instruction is satisfied — and that is all it is.
+
+### At its real rank, the naming does not follow, and it is not the ordering
+
+| shortlist put to the model | answer |
+|---|---|
+| no yellow entry, as today | `Purple produce bag` |
+| **yellow present at its real rank 3** | **`Purple produce bag`** |
+| yellow first, the seven-product ordering | `yellow produce bag` |
+
+The obvious reading is rank anchoring, and it is wrong. Told the list is unordered: `Purple produce
+bag`. Sorted alphabetically, which puts purple fourth and yellow fifth: `Purple produce bag`. Asked
+to name the dominant colour before choosing: `Baguette`.
+
+**The model is not being misled by the order. It is looking at a crop with a prominent purple bag in
+it and saying so.** The ninetieth already established that box is not clean — "a purple produce bag
+occupying more of the frame than the yellow one" — and the ninety-third read past its own correction
+because a rank-1 result was exciting.
+
+### What survives
+
+- **The ninety-first's conclusion is still wrong and its correction stands.** The video does contain
+  ten or more usable views of the bag; the 3fps sample does not. `build_yellow_reference.py` is
+  committed and reproduces 18 at 28% yellow or better.
+- **A `kart_yellow_produce_bag` SKU is buildable and lands in the top-5** for this box against the
+  full 310. That is real, and it is the first time this item has been representable in the catalog
+  at all.
+- **It does not fix the naming**, because the box the detector can produce still holds two bags, and
+  no catalog entry disambiguates a crop that genuinely contains both.
+
+So the layer that fails is the one the sixty-fifth named at the beginning: **nothing proposes the
+yellow produce bag alone.** Everything downstream is fine, and everything downstream has now been
+demonstrated to be fine, which is worth more than another refusal.
+
+**Two overclaims in two sections is the pattern to notice.** Both came from a real result read one
+step past what it showed, and both were caught by asking the next question rather than by rereading
+the last answer.
