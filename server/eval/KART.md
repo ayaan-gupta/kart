@@ -3646,3 +3646,58 @@ When the account has credit, the seventy-first's command still deserves running,
 whether the larger model resists the extra badge that the 2B one accepts. The prediction on record
 is that it will not: this file has measured "more regions is worse" five times on the shipped model
 and now a sixth time on a local one.
+
+## Seventy-fifth: requirement 3 gets its first number, and it is not zero
+
+`CLAUDE.md` names four separately measurable things. Three have had numbers in this file for weeks.
+The third, **items hidden under other items are flagged as hidden, so the shopper is asked to move
+them**, has never had one. The sixty-ninth instrumented it and could not run it. It can be run
+locally after all, the same way the seventy-fourth ran the threshold candidate.
+
+### The geometric half cannot answer it, structurally
+
+`covered()` measures how much of a *detected* box is hidden by other *detected* boxes. It protects
+an item the detector found that something else sits on top of. It is unable, by construction, to
+report the case this corpus actually turns on: the Fuji and yellow produce bags under the shopper's
+tote on IMG_0254 are never detected, so there is no subject box to score and nothing to flag. **For
+an item that is hidden badly enough to defeat the detector, the census's `occlusion.itemsLikelyHidden`
+is the only channel that exists.** That is worth stating plainly, because the geometric rule is the
+half with a threshold and an audit, and it is the half that cannot help here.
+
+### Asked of a local model, one question per photograph
+
+`occlusion_local.py` asks each photograph whether any item is hidden underneath or behind another.
+The expected answers come from the corpus, not from me: `counts.json` records the tote across
+IMG_0254 and, for IMG_0252, that "the tomatoes and the yellow bag drew nothing; both sit behind and
+under the purple bag".
+
+| model | four sparse trolleys | IMG_0252 | IMG_0254 | four shelves | score |
+|---|---|---|---|---|---|
+| Qwen2.5-VL-3B | clear, clear, clear, clear | clear | clear | all clear | 4 of 6 |
+| **Qwen2.5-VL-7B, 4-bit** | clear, clear, clear, clear | clear | **HIDDEN** | all clear | **5 of 6** |
+
+**The 3B's 4 of 6 is a degenerate answer and must not be read as partial success.** It says no to
+every photograph in the corpus, and scores four because two thirds of the scorable set are
+negatives. A constant answer is what this file's scoring standard exists to catch.
+
+The 7B is not degenerate. It flags the one photograph with something lying across the trolley, keeps
+all four sparse trolleys clear, and keeps all four shelves clear, so the question does not simply
+leak "yes" on a crowded picture. Its miss is IMG_0252, where the occlusion is one produce bag partly
+behind another rather than a tote over the whole basket, which is the harder case and the one the
+corpus itself hedges on.
+
+### What this is worth
+
+It does not report what the service answers: different model, different prompt, no severity and no
+reason. What it establishes is the prior question, and the answer is the useful one. **The signal is
+present in the photograph and a 7B model reads it**, so the shipped census, which is larger and has
+a purpose-written occlusion field with severity and reason, is more likely working than not. Before
+this the honest position was that requirement 3 might be silently dead on this corpus and nobody
+could tell.
+
+It also repeats a pattern this file already recorded on badge alignment, where a 2B model put all
+three answers on the wrong badge: **on this task, capability is the variable, not prompting.** The
+same question, unchanged, goes from useless to 5 of 6 between 3B and 7B.
+
+The sixty-ninth's command still deserves running when the account has credit, and now with a
+concrete expectation to check it against rather than an open question.
