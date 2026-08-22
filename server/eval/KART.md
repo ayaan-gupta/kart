@@ -4219,3 +4219,30 @@ of a whole run, and `scan-loop.ts` inherits that because it runs the real sessio
 **That is where this bug lives in general: not in code that forgets to handle an error, but in code
 that handles it correctly at one scale and inherits the handling at another.** The fix in both cases
 was not to stop catching, it was to count.
+
+### Verified on a simulator, without a camera
+
+The eighty-fifth's notice shipped unverified, because the scan screen needs a camera the simulator
+does not have. That was the wrong conclusion: `src/app/dev/frame-lab.tsx` runs the **real**
+`RecognitionSession`, `processFrame`, fusion and `CoachNotice` against offline fixtures, and it is
+reachable in a Debug build by long-pressing the logo.
+
+It gains a third mode. `Run with recognition offline` answers every census the way a server that is
+down, unreachable or out of credit does, and takes the captured detector instances that `replay`
+uses, because without tracks nothing is confirmed, no keyframe fires, and the failure it exists to
+show could never happen.
+
+| mode | bag | notice |
+|---|---|---|
+| `Run with recognition offline` | **0 items** | **shown**: "Scanning isn't working right now. Check your connection and try again." |
+| `Replay captured Vision output` | **5 items** | **none** |
+
+Both were confirmed by screenshot on a Debug build against a live Metro bundle. The notice is
+driven by real session state, not a hard-coded kind: five instances produce tracks, the tracks fire
+a keyframe, every census fails, `censusFailures` reaches `censusCalls`, and the notice appears. The
+replay run is the control, and it is the state that used to be indistinguishable from the offline
+one: five items found and nothing said, against nothing found and nothing said.
+
+One harness-only change came with it. `CoachNotice` now renders after the diagnostics sheet in the
+Frame Lab, because that sheet is pinned to the same top offset the notice uses and covered it
+exactly. `scan.tsx` has nothing above the notice, so its order is untouched.

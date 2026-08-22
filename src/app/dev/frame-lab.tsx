@@ -66,7 +66,8 @@ const RUN_ITERATIONS = 6;
 const ITERATION_DELAY_MS = 300;
 
 type RunStatus = 'idle' | 'loading-asset' | 'running' | 'done' | 'error';
-type RunMode = 'live' | 'replay';
+/** `offline` fails every census, so the unavailable notice can be seen without a broken server. */
+type RunMode = 'live' | 'replay' | 'offline';
 
 function StatusLine({ label, value, good }: { label: string; value: string; good: boolean | null }) {
   const dot = good === null ? color.sub : good ? color.teal : color.record;
@@ -112,6 +113,7 @@ export default function FrameLabScreen() {
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null);
   const [lastScan, setLastScan] = useState<FrameScan | null>(null);
   const [amberPersists, setAmberPersists] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [probe, setProbe] = useState<WorkletBoundaryProbeResult | null>(null);
   const [probing, setProbing] = useState(false);
@@ -136,9 +138,15 @@ export default function FrameLabScreen() {
     setStatus('loading-asset');
     setMode(runMode);
     setErrorText(null);
+    setUnavailable(false);
     pipelineStateRef.current = createPipelineState();
     sessionRef.current = new RecognitionSession({
-      requestCensus: devRequestCensus,
+      // In `offline` mode the census answers the way a server that is down, unreachable or out of
+      // credit does. Nothing else changes, so what appears on screen is the real notice driven by
+      // the real session state, not a rendering of a hard-coded kind.
+      requestCensus: runMode === 'offline'
+        ? (async () => ({ ok: false, failure: 'server' })) as typeof devRequestCensus
+        : devRequestCensus,
       requestIdentify: devRequestIdentify,
       lookupBarcode: async () => null,
       saveThumbnail,
@@ -169,8 +177,10 @@ export default function FrameLabScreen() {
         // Simulator cannot produce; see the module doc above) is swapped for real, previously
         // captured detector output. sharpness, motion, error, keyframe and crops all stay
         // exactly what this call's own live plugin invocation returned, in both modes.
+        // `offline` needs instances too: without tracks nothing is ever confirmed, no keyframe
+        // fires, and no census is attempted, so the failure it exists to show could never happen.
         const scan: FrameScan =
-          runMode === 'replay'
+          runMode === 'replay' || runMode === 'offline'
             ? { ...toFrameScan(raw), instances: CAPTURED_FRAME_LAB_INSTANCES }
             : toFrameScan(raw);
         setLastScan(scan);
@@ -213,6 +223,8 @@ export default function FrameLabScreen() {
         }
 
         setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
+        setUnavailable(session.state.censusFailures > 0
+          && session.state.censusFailures === session.state.censusCalls);
 
         if (i < RUN_ITERATIONS) await new Promise((resolve) => setTimeout(resolve, ITERATION_DELAY_MS));
       }
@@ -270,7 +282,6 @@ export default function FrameLabScreen() {
         </GlassSurface>
       </View>
 
-      <CoachNotice kind={coachKind({ amberPersists, occluded: guide })} topInset={insets.top} />
       <CaptureGuide coverage={coverage} visible={guide} />
 
       <ScrollView
@@ -328,6 +339,13 @@ export default function FrameLabScreen() {
             <View style={styles.buttonRow}>
               <Button label="Replay captured Vision output" onPress={() => void run('replay')} />
             </View>
+            <View style={styles.buttonRow}>
+              {/* Every census fails, which is what a shopper gets when the service is down or the
+                  account is out of credit. Before the eighty-fifth section of KART.md that was a
+                  silent empty bag; this is how the notice that replaced it gets looked at without
+                  a camera or a broken server. */}
+              <Button label="Run with recognition offline" onPress={() => void run('offline')} />
+            </View>
 
             <View style={styles.divider} />
             <Headline color={color.onFeed}>Worklet boundary probe</Headline>
@@ -359,6 +377,11 @@ export default function FrameLabScreen() {
           </View>
         </GlassSurface>
       </ScrollView>
+
+      {/* After the diagnostics sheet, not before it: the sheet is pinned to the same top
+          offset the notice uses, and in this harness the notice is the thing being looked at.
+          scan.tsx has nothing above it, so the order there is unchanged. */}
+      <CoachNotice kind={coachKind({ amberPersists, occluded: guide, unavailable })} topInset={insets.top} />
 
       <BagTray onFinish={close} />
     </View>
