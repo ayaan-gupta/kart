@@ -3951,3 +3951,48 @@ degenerate answer as a passing grade is worse than no default.
 
 With this, the local half of all four requirements runs in one command, and the two model checks
 name their own price.
+
+## Eighty-first: the calibration lever, opened and closed in one section
+
+The eightieth called requirement 4 "the one metric a change could move without touching detection
+or naming". Looking at what drives it says that is true of the requirement and false of the lever.
+
+An item goes amber when `identity.needsCloserLook || identity.confidence < GREEN_CONFIDENCE`, and
+`GREEN_CONFIDENCE` is **0.55**. The census's confidences on this corpus run from 0.56 to 0.99, and
+**not one mark in 75 falls below 0.55**, right or wrong. So the threshold contributes nothing and
+amber is decided entirely by `needsCloserLook`, which fires on 2 of 9 wrong answers.
+
+**That is the second inert constant this file has found**, after `MIN_KEYFRAME_SHARPNESS` at 12
+against a device that reports hundreds. Both were set against one distribution and are deployed
+against another, and in both cases the inertness is invisible from the outcome: the pipeline behaves
+exactly as if the rule were absent, and no test fails.
+
+### Raising it does not work either, and the distributions say why
+
+| threshold | wrong flagged | right flagged, the cost |
+|---|---|---|
+| **0.55, as shipped** | 2 of 9 (22%) | 2 of 66 (3%) |
+| 0.90 | 2 of 9 (22%) | 4 of 66 (6%) |
+| 0.95 | 3 of 9 (33%) | 14 of 66 (21%) |
+| 0.96 | 5 of 9 (56%) | 19 of 66 (29%) |
+| 0.98 | 8 of 9 (89%) | 34 of 66 (52%) |
+
+Wrong answers sit at 0.56, 0.77, 0.92, 0.95, 0.95, 0.96, 0.96, 0.97, 0.98. Right answers sit
+between 0.62 and 0.99 with 43 of 66 at 0.97 or above. **The two distributions overlap almost
+completely in the region that matters**, so there is no threshold that catches most of the errors
+without flagging a quarter to a half of the correct answers with them.
+
+Everything up to 0.90 is free and buys nothing: the flags it adds land only on right answers. The
+first threshold that catches a third of the errors costs a fifth of the correct ones.
+
+### What that means for the requirement
+
+Requirement 4's weakness is in the model's calibration, not in the constant reading it. A 0.06 mean
+gap with this much overlap is a signal you can measure and cannot act on, and raising
+`GREEN_CONFIDENCE` would trade a quiet failure for a noisy one: more amber items, more identify
+calls, and this file has already recorded identify overwriting two censuses that agreed.
+
+So the constant stays at 0.55, now documented as inert rather than assumed to be working, which is
+the whole difference between the two states. Moving requirement 4 needs a confidence signal worth
+thresholding, which is a model property, and the honest next test is whether the shipped model's
+`needsCloserLook` separates better than its `confidence` does on a larger sample than nine errors.
