@@ -117,6 +117,31 @@ const MAX_MOTION = motionArg ? Number(motionArg.split('=')[1]) : undefined;
 const intervalArg = process.argv.find((a) => a.startsWith('--interval='));
 const MIN_INTERVAL_MS = intervalArg ? Number(intervalArg.split('=')[1]) : undefined;
 
+/**
+ * `--pairs=<name>` badges the census from a second region set instead of the shipped one, either
+ * on every call or, with `--pairs-first`, on the first call only.
+ *
+ * The paired produce prompts were refused twice, in the twenty-seventh section and again in the
+ * thirty-ninth, both times as an all-or-nothing setting: every frame detected with them. Both
+ * refusals are sound about that setting and neither tests this one. They contain the only
+ * proposal on this corpus that isolates the yellow produce bag, and forcing them everywhere costs
+ * the cauliflower and the Seedtastic loaf on every run.
+ *
+ * The fusion rule says that trade should not have to be paid in full. Fusion absorbs a missed
+ * product and amplifies an extra description: a product one census misses another finds, so the
+ * cauliflower lost on a flooded call comes back on the three that are not flooded, while an extra
+ * region that reaches a real product adds a line that persists. Flooding one call is the shape
+ * that asymmetry rewards, and it is the same shape as `--sweep-once`, which worked for the same
+ * reason.
+ */
+const pairsArg = process.argv.find((a) => a.startsWith('--pairs='));
+const PAIRS: Map<number, any> | null = pairsArg
+  ? new Map(JSON.parse(readFileSync(join(HERE, pairsArg.split('=')[1]), 'utf8'))
+      .frames.map((f: any) => [f.order, f]))
+  : null;
+/** Restrict `--pairs` to the first census. Without it the alternate set is used by every census. */
+const PAIRS_FIRST = process.argv.includes('--pairs-first');
+
 const video = JSON.parse(readFileSync(
   join(HERE, framesArg ? framesArg.split('=')[1] : 'video-frames-catalog.json'), 'utf8'));
 const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'utf8'));
@@ -177,8 +202,12 @@ const deps: SessionDeps = {
     calls += 1;
     const image = await keyframeFor(currentFrame.order);
     const enumerated = req.marks === undefined || req.marks.length === 0;
+    // The first census may draw its regions from a second set; see `--pairs-first`.
+    const regionFrame = PAIRS !== null && (!PAIRS_FIRST || calls === 1)
+      ? (PAIRS.get(currentFrame.order) ?? currentFrame)
+      : currentFrame;
     const marks: Mark[] = enumerated
-      ? (NO_ENUMERATOR ? [] : serverMarks(currentFrame))
+      ? (NO_ENUMERATOR ? [] : serverMarks(regionFrame))
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
     if (marks.length === 0 && !NO_ENUMERATOR) return { ok: false, failure: 'server' } as any;
     const counted = REUSE_NAMES

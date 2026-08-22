@@ -71,7 +71,7 @@ census the names the session already has so it reuses a phrasing instead of inve
 
 | fault | every fix tried, and refused with a number |
 |---|---|
-| the yellow produce bag unseen | five prompt sets, three detector settings, server-side enumeration, paired produce twice on two different paths; pacing ruled out, since the census does see a frame it is visible in |
+| the yellow produce bag unseen | **explained rather than open** (sixty-fifth): its only isolating proposal is on order 15, and the loop censuses orders 6, 12, 18, 24. Five prompt sets, three detector settings, server-side enumeration and paired produce on three pipelines all failed because none of them changes which frames are censused; no pacing that keeps four captures reaches order 15 |
 | the Fuji bag counted twice | folds by name, by SKU, and by overlap (0.204 for the pair to merge against 0.215 for a pair that must not) |
 | the shopper's tote counted as a product | rule 8 extended to cover a shopper's belongings; cost seven exact passes |
 | a census guess overwriting two that agreed | fix written, refused twice; the obvious implementation breaks the original counting-bug regression test |
@@ -2985,6 +2985,11 @@ do it, which is a capture rather than a change, and the fifty-third section's ot
 the same way: no barcode decodes anywhere here, and the app's real sessions are longer than nine
 seconds.
 
+One line above is wrong and the sixty-fifth section corrects it. "Capture pacing ruled out by
+showing the census does see a frame it is visible in" conflates two things: the census does see a
+frame the bag is *visible* in, and it never sees the frame the bag is *proposable* in. Those are
+different frames, and the difference is the whole explanation.
+
 ## Sixty-third: the two new things, tested against each other
 
 Two changes shipped late in this session and they meet in one request. The cart question refuses a
@@ -3035,3 +3040,92 @@ That is the answer the earlier note in `docs/detector-decision.md` anticipated w
 enumeration-less operation "a supported degraded mode, reported as `enumeration: degraded`, not a
 failure", measured at 72% of hand-labelled units. It is supported here too, and now with a number
 against the alternative rather than only against nothing.
+
+## Sixty-fifth: the yellow bag is not unlucky, it is on a frame the scan never looks at
+
+Three sections have now refused the paired produce prompts. The twenty-seventh refused them on
+`video-census-live.ts`, the thirty-ninth on `scan-loop.ts`, and both closed by calling the search
+space for the yellow produce bag exhausted. Exhausted is a claim about effort. This section
+replaces it with a mechanism, and the mechanism turns out to explain all three results at once.
+
+### The untried shape, and why it looked right
+
+Both refusals tested the prompts as an all-or-nothing setting: every frame detected with them. The
+fusion rule says that is the expensive way to buy a region. Fusion absorbs a missed product and
+amplifies an extra description, so the cauliflower and the Seedtastic loaf that paired regions cost
+on a flooded call come back from the calls that are not flooded, while a region that reaches a real
+product leaves a line that persists. Flooding **one** call is the shape that asymmetry rewards, and
+it is the shape `--sweep-once` already won with.
+
+`scan-loop.ts --pairs=<set>` badges the census from a second region set, on every call or, with
+`--pairs-first`, on the first only. Six runs each through the app's real loop, against six runs of
+the shipped path measured the same afternoon rather than quoted from an earlier section:
+
+| | units against 9 | products found, lenient | the yellow bag |
+|---|---|---|---|
+| **as it ships** | 8, 8, 8, 9, 8, 8 (**8.17**) | 8, 8, 8, 9, 7, 8 (**8.0**) | found in **1** of 6 |
+| `--pairs --pairs-first` | 8, 10, 10, 11, 10, 9 (**9.67**) | 8, 8, 8, 8, 8, 7 (**7.83**) | found in **0** of 6 |
+
+Worse on both, and worse in exactly the way the fusion rule predicts for the *cost* side: one
+flooded call is enough to raise the bag from 8.17 units to 9.67, because the extra descriptions it
+produces persist through every later call. The benefit side never arrived at all.
+
+### Why it never arrived, which is the real finding
+
+The loop censuses four frames: orders 6, 12, 18 and 24. The twenty-sixth section located the yellow
+bag's best view at **order 15**, and the twenty-seventh found its one isolating proposal there, at
+80% yellow. Order 15 is not in that list and never has been.
+
+Measuring the colour of every proposal on the frames the loop actually captures says how far off it
+is. The fraction of pixels that are yellow by hue, in the best box of each frame:
+
+| frame | shipped set | with paired prompts |
+|---|---|---|
+| order 6 | 14% (8 boxes) | 14% (10 boxes) |
+| order 12 | 14% (5 boxes) | 14% (10 boxes) |
+| order 18 | **21%** (2 boxes) | **21%** (8 boxes) |
+| order 24 | 4% (4 boxes) | 4% (4 boxes) |
+
+The paired prompts add regions to the captured frames, nineteen to thirty-two, and do not change
+the best yellow box on any of them. The 21% is the Seedtastic loaf, whose labels are yellow. Nothing
+on any captured frame is a yellow bag; the 80% proposal is on a frame no census sees.
+
+**That explains all three refusals as one fact.** On `video-census-live.ts`, which censuses every
+frame, paired prompts recovered the bag in three runs of six because order 15 is among them. On
+`scan-loop.ts`, which censuses four, they recovered it in one of four. Restricted to the first call,
+order 6, they recover it never. The prompts were never the variable; which frames get censused was.
+
+This also corrects the sixty-second section, which closed this item by ruling pacing out "by
+showing the census does see a frame it is visible in". It does. Order 18 shows the bag. What no
+censused frame has is a *proposal* on it, and the sixty-second read visibility as though it settled
+proposability. It does not, and that conflation is why three sections looked at prompts.
+
+### Pacing cannot reach it either
+
+If the barrier is which frames are censused, the lever is `minIntervalMs`, and 2500 ms is the value
+that would put a capture on order 15. The forty-first section measured 1000, 2000 and 3000 and
+found the shipped 2000 a peak; 2500 was the gap in that table. Six runs:
+
+| pacing | captures | products found, lenient |
+|---|---|---|
+| **2000 ms, as shipped** | 4 | **8.0** of 9 |
+| 2500 ms | **2** | 4.83 of 9 |
+
+Two captures, not the three the arithmetic suggests: the keyframe gate also tests motion, and
+raising the interval pushes each candidate window into the pan's fast part. So the cliff in that
+table is between 2000 and 2500, not between 2000 and 3000, and no pacing that keeps four captures
+selects order 15.
+
+### What this closes, and what it hands to the phone
+
+The yellow produce bag is not missing because of a threshold, a prompt set, a model or a naming
+failure. Every one of those was measured and none of them is the cause. It is missing because its
+only isolating proposal lives on a frame that nine seconds of video at 2000 ms pacing never
+censuses, and every pacing that would reach it spends captures this clip cannot afford.
+
+That is a prediction rather than a defeat, and it is falsifiable on a phone: a shopper scanning a
+real trolley pans for longer than nine seconds, spends more of the eight-call budget, and censuses
+frames this clip simply does not contain. `--loops` cannot stand in for that, because replaying the
+same twenty-seven frames captures the same views again, which the fifty-third section measured as
+the same products on more lines. **The one product this corpus cannot find is the one whose fix
+needs a longer scan, not a better rule.**
