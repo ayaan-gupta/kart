@@ -108,6 +108,24 @@ The trolley that had never reached its count under any shipped configuration rea
 is untouched, because every one of its frames falls below the threshold and gets exactly the pass
 it had before.
 
+### The fullest trolley is not a defect, it is the recall number
+
+IMG_0254 still reads 11 to 13 of 15, and `why_missing.py` says detection is behaving correctly.
+The grocery pass proposes 20 boxes and 11 survive. Every one of the nine dropped is dropped for a
+reason that is right: two are group boxes containing 7 and 8 of the kept members, and the other
+seven are NMS duplicates at IoU 0.53 to 0.99 of a box that was kept. The paired produce pass adds
+nothing, because its single proposal sits entirely inside a box the first pass already drew.
+
+So the four products with no bag line have no proposal at all. They are the ones under the
+shopper's tote and behind other items, and nothing in the detector ever sees them. That is the 38%
+enumeration recall this pipeline is built around, and `unmarkedItems` is the designed mitigation
+for exactly it, recovering none to two of the four depending on the run.
+
+Which makes the two photographs different problems, and only one of them was ever a bug. IMG_0252
+was a detector miss on a visible object and is fixed. IMG_0254 is recall on objects that are not
+visible to a detector at all, and the answer to it is the shopper being asked to move things,
+which is what `occlusion.severity` "many" on that photograph is for and what it reports.
+
 This was checkable on day one and was not checked. Ten attempts were made at a gap that was
 partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
 moves every number in this file.
