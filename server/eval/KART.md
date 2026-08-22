@@ -91,9 +91,10 @@ were set against one distribution and deployed against another, both behave exac
 and neither breaks a test. The first needs a reading from a real camera; the second is documented
 as inert in the eighty-first, where raising it measured worse.
 
-**What is still blocked and on whom.** Credit on the OpenAI account, for the shipped census's
-occlusion field and any end-to-end retest. A phone over a real trolley, for the blur gate and for
-the longer-pan prediction the sixty-sixth makes. Neither is a code change.
+**What is still blocked and on whom.** Credit on any Responses-API endpoint, and a phone over a
+real trolley. Neither is a code change, and the pending work is listed in order, with what each
+outcome would mean, in **`WHEN-CREDIT-RETURNS.md`** beside this file — read that rather than
+searching four thousand lines for the open threads.
 
 ### A photograph that is not a cart
 
