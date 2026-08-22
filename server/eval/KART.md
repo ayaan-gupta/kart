@@ -1365,3 +1365,59 @@ invention, in a free-text channel with no key, no usable confidence signal, and 
 that separates "the same loaf twice" from "two different bags of apples" on the evidence
 available. Both refusals are measured on held-still answers, so they are not statements about
 this corpus's noise; they are statements about the fixes.
+
+## Twenty-fourth: the scan's systematic extra line, traced and not fixable from the label
+
+Reading the six replayed scan bags rather than their totals shows the same extra line in all six:
+a `purple produce bag` line beside a separate apple line. Both are the Fuji bag. Verified by
+zooming into IMG_0252 at full resolution: the purple bag is printed **"WEST GROWN FUJI, Sure to
+please!"** and holds red apples, with the Granny Smith bag in green beside it. The trolley really
+does hold two bags of apples, and this is the same one twice.
+
+The SKUs say why they never join:
+
+| description | catalogSku |
+|---|---|
+| `purple produce bag`, every occurrence, six runs | `kart_purple_produce_bag` |
+| `packaged apples`, `red apple`, `apples in plastic bag`, `apple` | **`None`**, every one |
+
+Across all 32 unmarked items in the six runs, **17 carry no SKU at all (53%)**. So the one channel
+that could join two descriptions of one product is empty for exactly the descriptions that need
+it.
+
+### The label really is wrong, and correcting it does not help
+
+`corpus/kart/run-labels.json` labels that track `purple_produce_bag`, and `build_kart_catalog.py`
+turns it into the SKU. That is the same misreading already corrected in `counts.json` and in
+`census-live.ts`'s SAME map, never propagated here. It is a genuine corpus defect: a model shown
+red apples and offered a SKU literally named `purple_produce_bag` is right to decline it.
+
+Renaming it to `kart_fuji_apple_bag` in the scan's shortlist and re-running six times:
+
+| | units against 9 real |
+|---|---|
+| shortlist as-is | 9, 11, 11, 11, 9, 10 (mean 10.2) |
+| SKU named for what the bag is | 11, 10, 11, 11, 11, 10 (mean 10.7) |
+
+No better, and the mechanism says why rather than leaving it to the spread: **only 1 of 14 apple
+descriptions picked the renamed SKU up**, and the overall attachment rate fell, 15 of 32 to 10 of
+28. The model's wording changed (`purple produce bag` became `bagged apples`) while the join
+stayed missing. So the wrong label is not what was stopping it.
+
+### The structural reason
+
+An unmarked item has no region, so it has no `catalog:` line of its own. Rule 12 asks it to search
+every *other* region's list for a match, which is a harder question than copying from its own, and
+it is answered about half the time. That is a design gap, not a wording one, and this file already
+records the fix for it being tried and refused: "the frame's catalog offered to the unmarked" is
+one of the seven listed above.
+
+The rename was reverted so the corpus stays self-consistent. Correcting the label properly means
+rebuilding the index, and this measurement says the rebuild would be cosmetic.
+
+### One thing this changes about how the scan should be read
+
+Run 3 scores 9 units against 9 real and is still wrong: its lines are the Fuji bag twice, once as
+`Kart purple produce bag` and once as `red apple`, with the yellow produce bag and the brussels
+sprouts missing. **A correct total is not a correct bag**, and on this corpus the unit count
+flatters the scan. Every scan figure in this file should be read with that in mind.
