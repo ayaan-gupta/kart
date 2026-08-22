@@ -5,7 +5,33 @@ if (!apiKey) {
   throw new Error("OPENAI_API_KEY is not set. Copy .env.example to .env and fill it in.");
 }
 
-export const openai = new OpenAI({ apiKey });
+/**
+ * `OPENAI_BASE_URL` points the client at any OpenAI-compatible endpoint instead of OpenAI's own.
+ *
+ * Unset, nothing changes: the SDK's own default applies and this is the client it has always
+ * built. Set, it covers the case that stopped every model-tier measurement in `server/eval` -- an
+ * account with no credit -- without waiting on that one account, since Azure OpenAI, a second
+ * organisation, a gateway or a locally served model all speak the same protocol.
+ *
+ * Validated rather than passed through. A typo here does not fail loudly at construction; it fails
+ * on the first request, several layers down, as a connection error that reads like the network
+ * being off, and `redactSecrets` is between you and the detail. Parsing it here says which
+ * variable is wrong.
+ */
+const rawBaseUrl = process.env.OPENAI_BASE_URL?.trim();
+let baseURL: string | undefined;
+if (rawBaseUrl) {
+  try {
+    baseURL = new URL(rawBaseUrl).toString();
+  } catch {
+    throw new Error(
+      `OPENAI_BASE_URL is not a valid URL: ${JSON.stringify(rawBaseUrl)}. ` +
+        "Unset it to use OpenAI's own endpoint.",
+    );
+  }
+}
+
+export const openai = new OpenAI(baseURL ? { apiKey, baseURL } : { apiKey });
 
 export const MODELS = {
   /**
