@@ -4023,3 +4023,47 @@ So the constant stays at 0.55, now documented as inert rather than assumed to be
 the whole difference between the two states. Moving requirement 4 needs a confidence signal worth
 thresholding, which is a model property, and the honest next test is whether the shipped model's
 `needsCloserLook` separates better than its `confidence` does on a larger sample than nine errors.
+
+## Eighty-second: the amber lever again, this time measured past the flag
+
+The eighty-first closed the calibration lever by counting flags: raising `GREEN_CONFIDENCE` to 0.96
+catches 5 of 9 wrong answers and costs 19 of 66 right ones. That is the cost of *flagging*, and a
+flag is not the outcome. An amber item goes to `resolveUncertain`, which crops it and asks again,
+and the seventy-ninth measured per-crop naming at 20 of 22. So the question the product faces is the
+**net after the second look**, and counting flags cannot answer it. Reopening a conclusion I had
+just written.
+
+`amber_net.py` applies each threshold to the confidences of the shipped model, taken from the saved
+responses of a live run, and re-asks every badge that goes amber. Only the second look is a
+stand-in, a local 7B given the same crop and the same catalog shortlist the service attaches.
+
+| threshold | badges right, before → after | repaired | broken | net |
+|---|---|---|---|---|
+| **0.55, as shipped** | 60 → **62** | 2 | **0** | **+2** |
+| 0.92 | 60 → 60 | 2 | 2 | 0 |
+| 0.95 | 60 → 61 | 3 | 2 | +1 |
+| 0.96 | 60 → 59 | 3 | 4 | −1 |
+| 0.98 | 60 → 57 | 3 | 6 | −3 |
+
+**The shipped value is the peak, and the reason is better than the one the eighty-first gave.** It
+is not that raising it costs too many flags. It is that every badge the higher thresholds add is one
+where the second look breaks more than it fixes, so the curve turns negative before it catches even
+half the errors.
+
+### The useful finding is about which signal to trust
+
+At 0.55 the threshold contributes nothing, so amber is decided entirely by `needsCloserLook`, and
+that selection **repairs two badges and breaks none**. The census's own flag is a high-precision,
+low-recall signal: it fires on only 2 of 9 errors, and when it fires the second look is right to
+run. Its `confidence` number is the opposite, a value with a 0.06 mean gap and almost total overlap,
+and every attempt to threshold it lands on badges the second look then gets wrong.
+
+So requirement 4's two channels are not equally good and should not be improved together. **The flag
+is worth acting on and the number is not.** That is a more useful statement than "the constant is
+inert", and it is the one the eighty-first should have made: `GREEN_CONFIDENCE` at 0.55 is inert,
+and the pipeline is better for it, because the signal it would activate is the untrustworthy one.
+
+The stand-in is the caveat. The shipped `runIdentify` is a different model with its own prompt, so
+the repaired and broken columns are estimates of a mechanism rather than counts of what the service
+would do. What is not an estimate is the shape: three thresholds in a row make it worse, and the
+best column is the one already in `config.ts`.
