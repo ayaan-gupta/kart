@@ -213,10 +213,16 @@ export default function ScanScreen() {
         // enough, still enough, and paced by `minIntervalMs`/the scene-change interval; see
         // `pipeline.ts`, `keyframe.ts`), passed through as `wantsKeyframe`'s second argument so
         // it actually gates the request instead of being computed and discarded.
+        // The tracks these read are `result.tracks` until a capture lands, and the capture's own
+        // afterwards. `onCapture` builds tracks from the regions the service enumerated, and those
+        // are the real items; the frame's are one blob from the device detector. Reading the frame's
+        // after a capture would ask for thumbnails of the blob and never of the products, and would
+        // compute the amber state from one track instead of eight.
+        let current = result.tracks;
         const refreshNextRequest = () => {
           nextRequestRef.current = {
-            wantKeyframe: session.wantsKeyframe(result.tracks, result.keyframe.fire),
-            cropTrackIds: tracksNeedingThumbnail(session.state, result.tracks),
+            wantKeyframe: session.wantsKeyframe(current, result.keyframe.fire),
+            cropTrackIds: tracksNeedingThumbnail(session.state, current),
           };
         };
         refreshNextRequest();
@@ -242,7 +248,7 @@ export default function ScanScreen() {
           wasOccludedRef.current = nowOccluded;
           setOccluded(nowOccluded);
 
-          setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
+          setAmberPersists(persistentAmber(session.state, current, Date.now()));
           useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
           refreshNextRequest();
         };
@@ -274,6 +280,7 @@ export default function ScanScreen() {
                   ...pipelineStateRef.current,
                   tracker: captured.tracker,
                 };
+                current = captured.tracks;
                 setTracks(captured.tracks);
               }
               publish();
