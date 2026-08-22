@@ -33,13 +33,20 @@ const HERE = join(import.meta.dirname, '..');
  */
 const withCatalog = !process.argv.includes('--no-catalog');
 /**
+ * `--frames=<name>` reads a different cache file from `.cache/kart/`, so a detection change can
+ * be put through the same census without a second copy of this file. It has to carry the catalog
+ * column, which `score_kart.py --index` writes.
+ */
+const framesArg = process.argv.find((a) => a.startsWith('--frames='));
+const FRAMES = framesArg ? framesArg.split('=')[1] : 'frames-named.json';
+/**
  * The model is not deterministic and these counts move by two or three units between identical
  * runs, so a single pass cannot tell a change from noise. `--repeat N` runs the whole set N
  * times and reports the spread as well as the mean.
  */
 const repeatArg = process.argv.find((a) => a.startsWith('--repeat='));
 const REPEATS = repeatArg ? Math.max(1, Number(repeatArg.split('=')[1])) : 1;
-const frames = JSON.parse(readFileSync(join(HERE, '.cache/kart/frames-named.json'), 'utf8'));
+const frames = JSON.parse(readFileSync(join(HERE, `.cache/kart/${FRAMES}`), 'utf8'));
 const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'utf8'));
 const labels = {
   ...JSON.parse(readFileSync(join(HERE, 'corpus/kart/still-labels.json'), 'utf8')).boxes,
@@ -144,5 +151,7 @@ console.log(`  badge alignment  ${alignedRight}/${alignedScorable}` +
   ` (${(alignedRight / Math.max(alignedScorable, 1) * 100).toFixed(1)}%)`);
 console.log(`  units in the bag ${bagUnits} against ${realUnits} real items`);
 console.log(`  photographs exact ${exact}/${results.length}`);
-writeFileSync(join(HERE, withCatalog ? 'kart-census-live.json' : 'kart-census-live-nocatalog.json'),
+const stem = FRAMES === 'frames-named.json' ? '' : `-${FRAMES.replace(/\.json$/, '')}`;
+writeFileSync(
+  join(HERE, withCatalog ? `kart-census-live${stem}.json` : 'kart-census-live-nocatalog.json'),
   JSON.stringify(results, null, 1));

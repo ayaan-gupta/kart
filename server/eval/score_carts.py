@@ -61,7 +61,7 @@ def curated(tiers=("cart", "haul")):
     return out
 
 
-def detect_all(images, threshold, produce_pass=False, produce_threshold=None,
+def detect_all(images, threshold, produce_pass=False, produce_threshold=None, produce_pairs=False,
                log=print):  # noqa: C901
     """Boxes per photograph, through the service's own prompt, threshold and de-duplication.
 
@@ -105,8 +105,12 @@ def detect_all(images, threshold, produce_pass=False, produce_threshold=None,
             boxes = [boxes[i] for i in keep]
             scores = [scores[i] for i in keep]
         if produce_pass:
-            produce_boxes, produce_scores = run(
-                regions.PRODUCE_PROMPT, produce_threshold or regions.PRODUCE_THRESHOLD)
+            cut = produce_threshold or regions.PRODUCE_THRESHOLD
+            produce_boxes, produce_scores = [], []
+            for prompt in (regions.PRODUCE_PROMPTS if produce_pairs else (regions.PRODUCE_PROMPT,)):
+                pb, ps = run(prompt, cut)
+                produce_boxes += pb
+                produce_scores += ps
             raw += len(produce_boxes)
             extra = regions.merge_produce(boxes, produce_boxes, produce_scores)
             boxes += [produce_boxes[i] for i in extra]
@@ -173,6 +177,11 @@ def main(argv=None):
     parser.add_argument("--out", default=str(HERE / "carts-frames.json"))
     parser.add_argument("--tiers", default="cart,haul")
     parser.add_argument("--produce-threshold", type=float, default=None)
+    parser.add_argument("--produce-pairs", action="store_true",
+                        help="run the produce nouns two to a prompt instead of all 28 in one. "
+                             "This corpus is the one that decides it: the 0.12 threshold sweep "
+                             "that recovered the same trolley tomatoes shattered these net bags "
+                             "into 27 proposals, so whether pairs do the same is the question")
     parser.add_argument("--produce-pass", action="store_true",
                         help="second forward pass over regions.PRODUCE_PROMPT, kept only where "
                              "the first pass found nothing")
@@ -190,7 +199,8 @@ def main(argv=None):
 
     started = time.time()
     frames = detect_all(images, args.threshold, produce_pass=args.produce_pass,
-                        produce_threshold=args.produce_threshold)
+                        produce_threshold=args.produce_threshold,
+                        produce_pairs=args.produce_pairs)
     frames = name_all(frames, pathlib.Path(args.index))
     frames = add_coverage(frames)
 

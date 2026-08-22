@@ -346,6 +346,23 @@ def test_the_produce_pass_only_adds_where_the_first_pass_found_nothing():
     assert kept == [1]
 
 
+def test_the_paired_produce_prompts_carry_every_noun_exactly_once():
+    """Splitting the prompt must not quietly drop a noun. Grounding DINO gives a phrase away to
+    its companions, so the pairs exist to keep each one loud enough to clear PRODUCE_THRESHOLD,
+    and a pass that lost a noun would trade one kind of miss for another."""
+    regions = _regions()
+    single = [n.strip() for n in regions.PRODUCE_PROMPT.split(".") if n.strip()]
+    paired = [n.strip() for p in regions.PRODUCE_PROMPTS for n in p.split(".") if n.strip()]
+    assert paired == single
+    assert len(regions.PRODUCE_PROMPTS) == (len(single) + 1) // 2
+    assert all(p.endswith(".") for p in regions.PRODUCE_PROMPTS)
+
+
+def test_an_odd_noun_count_leaves_a_prompt_of_one():
+    regions = _regions()
+    assert regions._in_pairs("a. b. c.") == ("a. b.", "c.")
+
+
 def test_the_produce_pass_deduplicates_against_itself():
     """Twenty-eight nouns describe one onion several ways. Without this a bag of them arrives
     once per matching noun, on empty ground where nothing else will suppress it."""

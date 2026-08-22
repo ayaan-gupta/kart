@@ -88,6 +88,40 @@ PRODUCE_PROMPT = (
 # hand-counted evidence behind it, and because the video path already recovers the yellow bag at
 # 0.30 by moving the camera, which is what the shipped product does.
 PRODUCE_THRESHOLD = 0.30
+# The same nouns, in pairs, for callers that can afford the passes.
+#
+# Grounding DINO dilutes a phrase by its companions, which is the reason the produce nouns are a
+# second pass rather than part of the grocery prompt at all. The reason stops being applied at
+# the boundary: PRODUCE_PROMPT is itself 28 phrases carrying a threshold chosen for a short one.
+# Measured in `eval/dilution.py`, on regions whose contents are known:
+#
+#   phrases in the prompt        1     2     4     8    16    28
+#   tomatoes, IMG_0252        0.32  0.32  0.28  0.18  0.15  0.15
+#   cauliflower, IMG_0252     0.66  0.56  0.39  0.16  0.21  0.23
+#   brussels sprouts          0.34  0.32  0.31  0.31  0.27  0.27
+#   apples, IMG_0252          0.30  0.30  0.21  0.23  0.17  0.27
+#
+# At one or two phrases five of six subjects clear 0.30; at 28, two do. So the single prompt is
+# close to inert: on the ten-product trolley it proposes nothing at all, and lowering the
+# threshold does not fix that, because at 28 phrases no box is proposed at that location at any
+# threshold. 0.22 and 0.15 add 3 and 15 regions across the ten photographs, change counting not
+# at all, and add nothing to that frame.
+#
+# In pairs at the same 0.30, the six trolley photographs gain exactly one region, and it is the
+# tomatoes on the vine that no configuration had ever found, offered by "bananas. apples." at
+# 0.34. The other five gain nothing, which is what the threshold staying at 0.30 buys: this is
+# not the 0.12 sweep that recovered the same tomatoes and shattered the cart corpus's net bags
+# into 27 proposals.
+#
+# The cost is fourteen forward passes where there was one. `PRODUCE_PROMPT` stays the default for
+# anything on a latency budget.
+def _in_pairs(prompt):
+    """The nouns of one prompt, re-emitted two to a prompt."""
+    nouns = [n.strip() for n in prompt.split(".") if n.strip()]
+    return tuple(". ".join(nouns[i:i + 2]) + "." for i in range(0, len(nouns), 2))
+
+
+PRODUCE_PROMPTS = _in_pairs(PRODUCE_PROMPT)
 # A second-pass box overlapping a first-pass box by this much is the same item seen twice, and
 # the first pass wins. Everything the second pass contributes therefore lands where the first
 # found nothing, which is why it cannot cost a packaged item: across the three cart photographs

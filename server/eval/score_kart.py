@@ -61,7 +61,8 @@ def detector(device=None):
     return ground, device
 
 
-def propose(pil, ground, produce_pass=True, threshold=None, tiles=1, produce_threshold=None):
+def propose(pil, ground, produce_pass=True, threshold=None, tiles=1, produce_threshold=None,
+            produce_pairs=False):
     """The regions the service would return for one frame, in normalized coordinates.
 
     `tiles` also runs the detector over an NxN grid of half-overlapping tiles, merged with the
@@ -93,9 +94,13 @@ def propose(pil, ground, produce_pass=True, threshold=None, tiles=1, produce_thr
         boxes, scores = [boxes[i] for i in keep], [scores[i] for i in keep]
     added = 0
     if produce_pass:
-        produce_boxes, produce_scores = ground(
-            pil, regions.PRODUCE_PROMPT,
-            regions.PRODUCE_THRESHOLD if produce_threshold is None else produce_threshold)
+        cut = regions.PRODUCE_THRESHOLD if produce_threshold is None else produce_threshold
+        prompts = regions.PRODUCE_PROMPTS if produce_pairs else (regions.PRODUCE_PROMPT,)
+        produce_boxes, produce_scores = [], []
+        for prompt in prompts:
+            pb, ps = ground(pil, prompt, cut)
+            produce_boxes += pb
+            produce_scores += ps
         raw += len(produce_boxes)
         for i in regions.merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= regions.MAX_INSTANCES:
@@ -192,6 +197,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-produce-pass", action="store_true")
     parser.add_argument("--threshold", type=float, default=regions.BOX_THRESHOLD)
+    parser.add_argument("--produce-pairs", action="store_true",
+                        help="run the produce nouns two to a prompt instead of all 28 in one. "
+                             "Fourteen forward passes instead of one; see regions.PRODUCE_PROMPTS "
+                             "and eval/dilution.py for what the long prompt gives away")
     parser.add_argument("--produce-threshold", type=float, default=None,
                         help="the produce pass runs at PRODUCE_THRESHOLD by default. It is worth "
                              "sweeping because that number was chosen for a short prompt and the "
@@ -233,7 +242,8 @@ def main(argv=None):
         pil.thumbnail((MAX_SIDE, MAX_SIDE))
         result = propose(pil, ground, produce_pass=not args.no_produce_pass,
                          threshold=args.threshold, tiles=args.tiles,
-                         produce_threshold=args.produce_threshold)
+                         produce_threshold=args.produce_threshold,
+                         produce_pairs=args.produce_pairs)
         result["id"] = path.stem
         result["pixels"] = list(pil.size)
         frames.append(result)
