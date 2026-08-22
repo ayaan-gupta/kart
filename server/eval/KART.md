@@ -2172,3 +2172,41 @@ That is the pattern for the whole file, restated once: **more regions, more prom
 more pixels, more rules — every one of them measured worse.** What helped was the opposite kind of
 change: fixing an orientation bug, giving two descriptions a key to join on, and pointing the app
 at the regions it was already paying a service to compute.
+
+## Fortieth: the last refusal re-tested, and the suite caught what the numbers did not
+
+The thirty-second section found a real fusion bug, wrote the fix and refused it because it did not
+pay at four census calls. That was measured on the old path. On the capture path tracks are
+re-derived from server regions at each capture, so the dynamics differ enough to re-ask.
+
+Re-applied and run through the app's real loop, four runs:
+
+| | products found, lenient | units against 9 |
+|---|---|---|
+| without the protection | 8, 8, 8, **9** (8.25) | 13, 11, 11, 9 (11.0) |
+| with it | 8, 8, 8, 8 (8.0) | 11, 10, 11, 10 (10.5) |
+
+Marginally tighter units, marginally fewer products, and it loses the one run in four that produced
+a completely correct bag. On those numbers alone it would be a coin-toss refusal.
+
+**The test suite settled it properly.** Three tests fail with the protection in place, and they are
+not incidental:
+
+- `does not undercount two cartons that a crop identify renames to the same new name` — the
+  regression test for the original counting bug this whole engine exists to fix
+- `I6: a later plain census does not clobber what a crop identify already found`
+- `follows up on a low confidence item with a crop`
+
+The cause is in the patch, not the idea. Its agreement branch `continue`s before writing the
+identity, so `confidence` and `needsCloserLook` freeze at the values the first census gave them,
+and an item that should have been referred to a crop identify never is. A protection against stale
+answers that itself makes answers stale.
+
+Reverted. The bug in the thirty-second section remains real and remains recorded; what is now also
+recorded is that the obvious implementation of its fix breaks the counting guarantee, so anyone
+returning to it needs a version that refreshes the identity while still refusing to re-key it.
+
+**Two independent reasons to refuse, and the stronger one came from the tests rather than the
+corpus.** That is worth saying at the end of forty investigations: the numbers here are noisy
+enough that a marginal result should never be the only evidence, and this project's own regression
+suite was the better instrument.
