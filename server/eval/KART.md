@@ -226,23 +226,23 @@ its first contact with a real answer rather than failing it.
 
 ## What this corpus still cannot answer
 
-**The census has never run**, and nothing local can stand in for it. Two attempts were
-measured on the three non-product boxes here, the trolley's moulded plastic disc and the
-shopper's tote:
+**The shipped census has never run.** It needs an OpenAI key, and the one supplied was already
+revoked, so every number above that involves a census comes either from an oracle or from a 2B
+open model standing in.
+
+Grounding DINO cannot stand in for its `isProduct` judgement, in either direction. Measured on
+the three non-product boxes here, the trolley's moulded plastic disc and the shopper's tote:
 
 | test | non-products | real products | separable |
 |---|---|---|---|
 | detector score | 0.568, 0.569, 0.643 | 0.572 to 0.702 | no, the tote outscores 17 of 25 |
 | match against "a shopping trolley. a plastic fitting. a handbag. a shoe." | 0.315 to 0.390 | up to 0.416, all 25 match | no |
 
-Grounding DINO cannot make this judgement in either direction: it cannot be thresholded into it
-and it cannot be asked. `isProduct` needs the model the census was designed around.
+It cannot be thresholded into the judgement and it cannot be asked for it. A model can: a 2B one
+gets 24 of 28 and refuses both discs. What remains unmeasured is the shipped model's own answers,
+and the part of them most at risk is badge alignment, which the section above says why.
 
-The original statement stands: **The census has never run.** Every identity above is the catalog matcher's own decision standing
-in for the model that would choose among the candidates it offers. `isProduct` is the field that
-would reject the plastic disc and the tote outright rather than leaving them amber.
-
-**Sixteen items is the largest trolley here.** A full weekly shop is several times that, and the
+**Sixteen items is the largest trolley here.** **Sixteen items is the largest trolley here.** A full weekly shop is several times that, and the
 misses already concentrate on items lying under other items.
 
 **One video, nine seconds, one trolley.** Enough to find a gate that rejected everything. Not
