@@ -1514,3 +1514,49 @@ The obvious remedy is to give a scan keyframe the regions the capture path gets,
 server-side rather than trusting the tracker's marks. That is an architectural change with a real
 latency cost per census call, and this corpus can measure its accuracy but not its cost, so it is
 recorded here as the next measurable step rather than made.
+
+## Twenty-seventh: the sharpness rule, doubted on good grounds and confirmed on better ones
+
+The twenty-sixth found the yellow bag reaches the census through no region on either path. Probing
+frame 016 with every prompt available says something sharper:
+
+| prompt set | proposals | best coverage of the yellow bag | regions isolating it |
+|---|---|---|---|
+| grocery prompt | 12 | 100% | **0** (the box also holds the purple bag) |
+| produce, single, which is what ships here | 0 | 0% | 0 |
+| **produce, paired** | 25 | 97% | **1**, at 80% yellow and 23% purple |
+| targeted colour wording | 7 | 98% | 0 |
+
+The paired produce prompts find it. They are blocked on this frame by the shipped sharpness rule:
+frame 016 measures 217 against `PAIRED_PRODUCE_SHARPNESS` of 700.
+
+**That was worth doubting.** The rule was fitted on unit counts, and the twenty-fifth showed unit
+counts rank scan runs backwards. A rule justified by a misleading metric deserves re-measuring on
+a better one.
+
+### Re-measured by contents, the rule holds
+
+Detection re-run over the whole video with `--produce-pairs` gives 205 regions, 7.6 per frame
+against the shipped 5.1, and the catalog column refreshed against the same index. Six scan runs:
+
+| | products found, allowing shared words | consistently missing |
+|---|---|---|
+| shipped sharpness rule | 8, 8, 8, 9, 8, 8 of 9 | the yellow bag, in five of six |
+| paired produce forced | 7, 6, 7, 6, 6, 7 of 9 | **cauliflower and Seedtastic bread, in all six** |
+
+Worse on every run, and worse in a specific way: the extra regions cost the cauliflower and the
+loaf **every single time**, while recovering the yellow bag in three runs of six. Two reliable
+products for one unreliable one is a bad trade, and by units alone it would have looked almost
+level, seven to ten against nine.
+
+**So `PAIRED_PRODUCE_SHARPNESS` stays, now resting on a measurement that can tell a right bag from
+a lucky one.** The suspicion about its original justification was sound; the rule survived it.
+
+### What this closes
+
+The yellow produce bag is reachable in principle, by exactly one proposal from a prompt set that
+costs two other products to enable. Every other route was checked and none isolates it: the
+grocery prompt draws one box over it and the purple bag together, targeted colour wording does the
+same, server-side enumeration on the keyframe raises its coverage from 12% to 78% and still only
+inside a box that wholly contains the purple bag, and the tracker never confirms it as its own
+track. That is the whole search space for this item on this corpus, and it is exhausted.
