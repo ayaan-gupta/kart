@@ -2279,15 +2279,19 @@ it keys the count on the UPC rather than on words.
 
 It is not a gap here, and the reason matters more than the stub.
 
-Decoded with OpenCV's `BarcodeDetector` over every image in the corpus:
+Decoded twice, the second time with the app's own detector:
 
-| | frames | decoded |
+| decoder | images | decoded |
 |---|---|---|
-| the scan video | 26 | **0** |
-| the ten photographs, at 5712 by 4284 | 10 | **0** |
-| the same photographs downscaled toward keyframe size | 10 | **0** |
+| OpenCV `BarcodeDetector`, video frames | 26 | **0** |
+| OpenCV, photographs at 5712 by 4284 | 10 | **0** |
+| OpenCV, the same downscaled toward keyframe size | 10 | **0** |
+| **Apple `VNDetectBarcodesRequest`, everything** | **40** | **0** |
 
-Not one, anywhere. The barcodes are physically present, `#4079` is legible by eye on the
+The last row settles it. That is the exact request `KartVisionFrameProcessorPlugin.readBarcodes`
+makes, and `ENABLE_BARCODE_FAST_PATH` is true, so the app really does ask for barcodes on every
+frame. Vision is markedly better at this than OpenCV and finds nothing either. Not one barcode,
+anywhere, by either decoder. The barcodes are physically present, `#4079` is legible by eye on the
 cauliflower wrapper, but none is flat, square-on and unoccluded enough to decode. A trolley is a
 pile: labels face the sides, the bottom, and each other.
 
