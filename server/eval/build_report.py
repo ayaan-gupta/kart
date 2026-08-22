@@ -86,6 +86,29 @@ def main(argv=None):
     refused = sum(1 for r in shelves if r.get("is_cart") is False)
     vid = "".join(card(r) for r in caps)
 
+    # The two changes waiting on a census pass, drawn rather than described. Both had their
+    # recommendation corrected by looking at these pictures rather than at their totals.
+    pending = ""
+    for stem, title, note in (
+        ("filter", "The proposal filter, off by default",
+         "Red boxes are the proposals it would remove before the census is asked about them. On "
+         "IMG_0254 all four are real products &mdash; the second egg carton, the jar, the salmon and "
+         "the asparagus. The totals still improve, because the unmarked sweep volunteers most of "
+         "them back, which is a weaker reason to ship than the numbers alone suggested."),
+        ("augment", "The added regions, for the yellow produce bag",
+         "Green boxes are what a lower detection threshold adds where the shipped pass found "
+         "nothing. The one on the yellow bag also holds the purple bag and part of the baguette, so "
+         "it reaches the item without isolating it &mdash; which is why the local model calls it "
+         "purple cabbage."),
+    ):
+        shots = "".join(
+            f'<figure class="wide"><img loading="lazy" alt="{title}" src="{data_uri(f)}">'
+            f'<figcaption>{f.stem.split("-", 1)[1]}</figcaption></figure>'
+            for f in sorted(RENDER.glob(f"{stem}-*.jpg")))
+        if shots:
+            pending += (f'<section class="pending"><h3>{title}</h3><p>{note}</p>'
+                        f'<div class="shots">{shots}</div></section>')
+
     page = f"""<title>Kart Verification Results</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +189,15 @@ details li {{ margin:3px 0; }}
   color:var(--ink-2); font-size:.88rem; margin-bottom:52px; }}
 .shelf ul {{ margin:8px 0 0; padding-left:18px; font-family:"IBM Plex Mono",monospace;
   font-size:.82rem; }}
+.pending {{ border:1px solid var(--rule); background:var(--raise); border-radius:12px;
+  padding:20px 22px; margin-bottom:22px; }}
+.pending h3 {{ margin:0 0 8px; font-family:"IBM Plex Sans",sans-serif; font-size:1rem; }}
+.pending p {{ margin:0 0 16px; color:var(--ink-2); font-size:.88rem; max-width:66ch; }}
+.shots {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }}
+figure.wide {{ margin:0; }}
+figure.wide img {{ width:100%; height:auto; border-radius:8px; display:block; }}
+figcaption {{ font-family:"IBM Plex Mono",monospace; font-size:.72rem; color:var(--ink-2);
+  padding-top:6px; }}
 footer {{ border-top:1px solid var(--rule); padding-top:22px; color:var(--ink-2); font-size:.82rem;
   max-width:70ch; }}
 </style>
@@ -207,6 +239,12 @@ refuses the photograph first. Without it these became up to 41 invented items.</
 <p class="section-note">The scan fires four censuses as the camera passes over the trolley. Each
 capture sees part of the cart; the bag is fused from all four.</p>
 <div class="grid">{vid}</div>
+
+<h2>Waiting on a census pass</h2>
+<p class="section-note">Two changes are implemented and switched off until they can be measured
+against the shipped model. Both are drawn here because looking at them changed what they were worth:
+a total can say a change is free while the picture shows it removing four real products.</p>
+{pending}
 
 <footer>Drawn from saved runs, not re-measured for this page. Boxes come from the shipped detector
 pass, answers from the census responses those runs recorded, and verdicts are re-derived against the
