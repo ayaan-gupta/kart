@@ -1,0 +1,880 @@
+[
+ {
+  "id": "IMG_0244",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "cauliflower",
+    "said": "lucky cauliflower",
+    "ok": true
+   },
+   {
+    "badge": 1,
+    "truth": "skip",
+    "said": "plastic spoon",
+    "ok": true
+   }
+  ],
+  "units": 1,
+  "real": 1,
+  "lines": [
+   {
+    "key": "lucky::cauliflower",
+    "name": "cauliflower",
+    "brand": "Lucky",
+    "size": "1 head",
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "brand": "Lucky",
+     "size": "1 head",
+     "category": "produce",
+     "confidence": 0.93,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 1,
+     "name": "plastic spoon",
+     "brand": null,
+     "size": null,
+     "category": "other",
+     "confidence": 0.72,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "lucky::cauliflower",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "Cart is mostly empty and the visible items are not significantly covering other products."
+   }
+  }
+ },
+ {
+  "id": "IMG_0245",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "cauliflower",
+    "said": "mr. lucky cauliflower",
+    "ok": true
+   }
+  ],
+  "units": 1,
+  "real": 1,
+  "lines": [
+   {
+    "key": "mr lucky::cauliflower",
+    "name": "cauliflower",
+    "brand": "Mr. Lucky",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "cauliflower",
+     "brand": "Mr. Lucky",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "mr lucky::cauliflower",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "Only one produce item is visible and it is not significantly blocked."
+   }
+  }
+ },
+ {
+  "id": "IMG_0246",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "cauliflower",
+    "said": "cudahy cauliflower",
+    "ok": true
+   },
+   {
+    "badge": 1,
+    "truth": "brussels_sprouts",
+    "said": "brussels sprouts",
+    "ok": true
+   },
+   {
+    "badge": 2,
+    "truth": "skip",
+    "said": "cart strap buckle",
+    "ok": true
+   }
+  ],
+  "units": 2,
+  "real": 2,
+  "lines": [
+   {
+    "key": "cudahy::cauliflower",
+    "name": "Cauliflower",
+    "brand": "Cudahy",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::brussels sprouts",
+    "name": "Brussels sprouts",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "Cauliflower",
+     "brand": "Cudahy",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.96,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 1,
+     "name": "Brussels sprouts",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "cart strap buckle",
+     "brand": null,
+     "size": null,
+     "category": "other",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "cudahy::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "Only two produce packages are in the cart and they are mostly visible; the rest is empty cart interior."
+   }
+  }
+ },
+ {
+  "id": "IMG_0249",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "cauliflower",
+    "said": "mr. lucky cauliflower",
+    "ok": true
+   },
+   {
+    "badge": 1,
+    "truth": "brussels_sprouts",
+    "said": "brussels sprouts",
+    "ok": true
+   },
+   {
+    "badge": 2,
+    "truth": "asparagus",
+    "said": "shopping cart frame",
+    "ok": false
+   }
+  ],
+  "units": 2,
+  "real": 3,
+  "lines": [
+   {
+    "key": "mr lucky::cauliflower",
+    "name": "Cauliflower",
+    "brand": "Mr. Lucky",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::brussels sprouts",
+    "name": "Brussels Sprouts",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "Cauliflower",
+     "brand": "Mr. Lucky",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 1,
+     "name": "Brussels Sprouts",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.92,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "shopping cart frame",
+     "brand": null,
+     "size": null,
+     "category": "other",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": false,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "mr lucky::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::brussels sprouts",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": false,
+    "severity": "none",
+    "reason": "The cart contents are mostly visible and only lightly overlap each other; no significant hidden stack of items."
+   }
+  }
+ },
+ {
+  "id": "IMG_0252",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "oreo",
+    "said": "nabisco oreo sandwich cookies",
+    "ok": true
+   },
+   {
+    "badge": 1,
+    "truth": "cauliflower",
+    "said": "mira lucky cauliflower",
+    "ok": true
+   },
+   {
+    "badge": 2,
+    "truth": "seedtastic_bread",
+    "said": "seeded bread",
+    "ok": true
+   },
+   {
+    "badge": 3,
+    "truth": "granny_smith_apples",
+    "said": "green onions",
+    "ok": false
+   },
+   {
+    "badge": 4,
+    "truth": "brussels_sprouts",
+    "said": "spinach",
+    "ok": false
+   },
+   {
+    "badge": 5,
+    "truth": "baguette",
+    "said": "baguette",
+    "ok": true
+   },
+   {
+    "badge": 6,
+    "truth": "asparagus",
+    "said": "asparagus",
+    "ok": true
+   },
+   {
+    "badge": 7,
+    "truth": "purple_produce_bag",
+    "said": "red cabbage",
+    "ok": false
+   }
+  ],
+  "units": 8,
+  "real": 10,
+  "lines": [
+   {
+    "key": "nabisco::oreo sandwich cookies",
+    "name": "Oreo sandwich cookies",
+    "brand": "Nabisco",
+    "size": null,
+    "category": "snacks",
+    "qty": 1
+   },
+   {
+    "key": "mira lucky::cauliflower",
+    "name": "cauliflower",
+    "brand": "Mira Lucky",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::seeded bread",
+    "name": "seeded bread",
+    "brand": null,
+    "size": null,
+    "category": "bakery",
+    "qty": 1
+   },
+   {
+    "key": "::green onions",
+    "name": "green onions",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::spinach",
+    "name": "spinach",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::baguette",
+    "name": "baguette",
+    "brand": null,
+    "size": null,
+    "category": "bakery",
+    "qty": 1
+   },
+   {
+    "key": "::asparagus",
+    "name": "asparagus",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::red cabbage",
+    "name": "red cabbage",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "Oreo sandwich cookies",
+     "brand": "Nabisco",
+     "size": null,
+     "category": "snacks",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 1,
+     "name": "cauliflower",
+     "brand": "Mira Lucky",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "seeded bread",
+     "brand": null,
+     "size": null,
+     "category": "bakery",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "green onions",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.97,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "spinach",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.89,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "baguette",
+     "brand": null,
+     "size": null,
+     "category": "bakery",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "asparagus",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 7,
+     "name": "red cabbage",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.84,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "nabisco::oreo sandwich cookies",
+     "count": 1
+    },
+    {
+     "productKey": "mira lucky::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::seeded bread",
+     "count": 1
+    },
+    {
+     "productKey": "::green onions",
+     "count": 1
+    },
+    {
+     "productKey": "::spinach",
+     "count": 1
+    },
+    {
+     "productKey": "::baguette",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagus",
+     "count": 1
+    },
+    {
+     "productKey": "::red cabbage",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "Several produce bags overlap and partially cover items, especially in the lower center and right side of the cart."
+   }
+  }
+ },
+ {
+  "id": "IMG_0254",
+  "rows": [
+   {
+    "badge": 0,
+    "truth": "seedtastic_bread",
+    "said": "seedtastic bread",
+    "ok": true
+   },
+   {
+    "badge": 1,
+    "truth": "cauliflower",
+    "said": "dole cauliflower",
+    "ok": true
+   },
+   {
+    "badge": 2,
+    "truth": "out_of_catalog",
+    "said": "eggs",
+    "ok": null
+   },
+   {
+    "badge": 3,
+    "truth": "out_of_catalog",
+    "said": "jarred sauce or spread",
+    "ok": null
+   },
+   {
+    "badge": 4,
+    "truth": "not_a_product",
+    "said": "seeded cracker or crispbread",
+    "ok": false
+   },
+   {
+    "badge": 5,
+    "truth": "granny_smith_apples",
+    "said": "little bear lettuce",
+    "ok": false
+   },
+   {
+    "badge": 6,
+    "truth": "out_of_catalog",
+    "said": "eggs",
+    "ok": null
+   },
+   {
+    "badge": 7,
+    "truth": "baguette",
+    "said": "baguette",
+    "ok": true
+   },
+   {
+    "badge": 8,
+    "truth": "out_of_catalog",
+    "said": "bell pepper",
+    "ok": null
+   },
+   {
+    "badge": 9,
+    "truth": "out_of_catalog",
+    "said": "eggs",
+    "ok": null
+   },
+   {
+    "badge": 10,
+    "truth": "purple_produce_bag",
+    "said": "salad greens",
+    "ok": false
+   }
+  ],
+  "units": 11,
+  "real": 16,
+  "lines": [
+   {
+    "key": "::seedtastic bread",
+    "name": "Seedtastic bread",
+    "brand": null,
+    "size": null,
+    "category": "bakery",
+    "qty": 1
+   },
+   {
+    "key": "dole::cauliflower",
+    "name": "cauliflower",
+    "brand": "Dole",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::eggs",
+    "name": "eggs",
+    "brand": null,
+    "size": "12 count",
+    "category": "dairy",
+    "qty": 3
+   },
+   {
+    "key": "::jarred sauce or spread",
+    "name": "jarred sauce or spread",
+    "brand": null,
+    "size": null,
+    "category": "other",
+    "qty": 1
+   },
+   {
+    "key": "::seeded cracker or crispbread",
+    "name": "seeded cracker or crispbread",
+    "brand": null,
+    "size": null,
+    "category": "snacks",
+    "qty": 1
+   },
+   {
+    "key": "little bear::lettuce",
+    "name": "lettuce",
+    "brand": "Little Bear",
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::baguette",
+    "name": "baguette",
+    "brand": null,
+    "size": null,
+    "category": "bakery",
+    "qty": 1
+   },
+   {
+    "key": "::bell pepper",
+    "name": "bell pepper",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   },
+   {
+    "key": "::salad greens",
+    "name": "salad greens",
+    "brand": null,
+    "size": null,
+    "category": "produce",
+    "qty": 1
+   }
+  ],
+  "census": {
+   "marks": [
+    {
+     "id": 0,
+     "name": "Seedtastic bread",
+     "brand": null,
+     "size": null,
+     "category": "bakery",
+     "confidence": 0.96,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 1,
+     "name": "cauliflower",
+     "brand": "Dole",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 2,
+     "name": "eggs",
+     "brand": null,
+     "size": "12 count",
+     "category": "dairy",
+     "confidence": 0.99,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 3,
+     "name": "jarred sauce or spread",
+     "brand": null,
+     "size": null,
+     "category": "other",
+     "confidence": 0.41,
+     "needsCloserLook": true,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 4,
+     "name": "seeded cracker or crispbread",
+     "brand": null,
+     "size": null,
+     "category": "snacks",
+     "confidence": 0.63,
+     "needsCloserLook": true,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 5,
+     "name": "lettuce",
+     "brand": "Little Bear",
+     "size": null,
+     "category": "produce",
+     "confidence": 0.91,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 6,
+     "name": "eggs",
+     "brand": null,
+     "size": "12 count",
+     "category": "dairy",
+     "confidence": 0.99,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 7,
+     "name": "baguette",
+     "brand": null,
+     "size": null,
+     "category": "bakery",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 8,
+     "name": "bell pepper",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.94,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 9,
+     "name": "eggs",
+     "brand": null,
+     "size": "12 count",
+     "category": "dairy",
+     "confidence": 0.98,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    },
+    {
+     "id": 10,
+     "name": "salad greens",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.86,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": null
+    }
+   ],
+   "unmarkedItems": [],
+   "inViewCounts": [
+    {
+     "productKey": "::seedtastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "dole::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "::eggs",
+     "count": 3
+    },
+    {
+     "productKey": "::jarred sauce or spread",
+     "count": 1
+    },
+    {
+     "productKey": "::seeded cracker or crispbread",
+     "count": 1
+    },
+    {
+     "productKey": "little bear::lettuce",
+     "count": 1
+    },
+    {
+     "productKey": "::baguette",
+     "count": 1
+    },
+    {
+     "productKey": "::bell pepper",
+     "count": 1
+    },
+    {
+     "productKey": "::salad greens",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "Several items overlap and are partly covered by bread, greens, and egg cartons, so a few products are obscured."
+   }
+  }
+ }
+]

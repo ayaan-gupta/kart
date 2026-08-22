@@ -161,7 +161,8 @@ question on the same 28 regions, scores 24 of 28 and rejects both plastic discs,
 case neither the detector's score nor a negative prompt could reach.
 
 **The compositor is correct.** `compositeMarks` draws the badges on a real trolley photograph,
-EXIF orientation honoured, boxes aligned.
+EXIF orientation honoured, boxes aligned. *This was wrong, and the section below has the
+correction: the pixels were turned and the frame was still the wrong shape.*
 
 **Badge alignment is the part at risk.** Set-of-mark prompting is what no per-crop measurement
 can test, and it is where a small model fails outright. On IMG_0249, three items and three
@@ -322,6 +323,113 @@ cost also limits exposure: four calls here rather than the eight allowed. This s
 the shipped model, which is what the design assumes and what has never answered. It says the
 measurement to run first, once one does, is the video rather than the stills, because the stills
 cannot show this at all.
+
+## What the key showed
+
+The census ran. Everything above this line was written without one, and three of the four things
+it concluded hold up. The fourth does not: the compositor was not correct, and neither were two
+other pieces of shipped code that nothing without a real answer could have caught.
+
+Five defects, in the order they were found, each with what it cost.
+
+**The harness was not sending what the service sends.** It read `frames.json`, which has no
+catalog column, so every request went out with no shortlist while `marksFromRegions` attaches one
+on every shipped request and rule 15 of the prompt is written around it. It composited the badges
+and then handed the result to `runCensus`, which composites again, so every badge was drawn twice.
+It numbered from zero where `marksFor` numbers from one. Reading `frames-named.json` instead moved
+badge alignment from 16 of 23 to 22, and turned `catalogSku` from null on every mark into 8 of 8
+right on the loaded trolley. Three of the four regions the census had named wrong had the right
+answer sitting at the top of a shortlist it was never shown.
+
+**The frame was squashed.** `compositeMarks` sizes its resize from `metadata()`, and sharp turns
+the pixels on `.rotate()` but goes on reporting the stored width and height, so orientations 5 to
+8 come back the wrong way round. With `fit: "fill"` a 4284 by 5712 trolley became 1536 by 1152
+with a third of its width squeezed out. Nothing downstream could notice: boxes are normalized, so
+the badges still landed on the right products, the response still parsed, and every count still
+looked plausible. Every photograph here is orientation 6, which is what a phone writes when it is
+held upright.
+
+The visible symptom was brands. One cauliflower whose wrapper legibly reads MR. LUCKY came back as
+"ducky", "misty lick", "pinnacle lucky", "the little potato company?", "goodlife" and "mira lucky"
+across runs, every one at confidence 0.95 with `needsCloserLook` false. Writing the composited
+image to a file and looking at it is what found this, and the double badges.
+
+**Identify had never run on a phone photograph.** `cropToBox` computes its extract rectangle from
+the same unswapped pair. Against a rotated buffer that is not a squashed crop, it is sharp
+throwing "bad extract area", so `runIdentify` failed outright on every EXIF-turned photograph. The
+second pass, which exists to resolve exactly the items the first pass is unsure about, had never
+resolved one. With the rectangle right it reads that wrapper on all six crops of it at confidence
+0.97 to 0.99, so the information was in the photograph the whole time.
+
+**`unmarkedItems` was always empty.** Zero on every one of eighteen calls, six photographs at
+three resolutions, including a sixteen-product trolley with eleven badges. `applyCensus` is built
+on the opposite assumption: enumeration recall is 38%, so the whole-frame answer is meant to be
+the main channel rather than a leftovers bin.
+
+Neither obvious cause is the cause. Reasoning effort none, low and medium return 0, 0 and 1 on the
+fullest trolley. Long edge 1024, 1536 and 2048 all return zero.
+
+The cause is in the rule. Rule 12 asked for "a product in the cart that has no badge on it", and
+the badges are detector boxes that overlap heavily: on a loaded trolley almost every product sits
+inside several rectangles, so that phrase describes the empty set. Rewritten to name the direction
+of the work, bind each badge to one product and then sweep what is left, with sitting inside a
+rectangle said plainly not to be the same as being marked, it moves from 0 of 6 runs to 6 of 6 on
+the fullest trolley, listing the meat tray, the purple bag, the yellow bag and the salmon.
+
+**Two spellings of one product, twice.** Marks key by `catalogSku` since that change was made, so
+a badge keys as `sku:kart_brussels_sprouts`. `UnmarkedItem` has no `catalogSku` field to offer, so
+the same product listed as unmarked can only key as `::brussels sprouts`. The two never meet.
+
+Both guards that exist to stop a product being counted twice compared one spelling. The first,
+against the live tracks, let a trolley of three items produce a bag of five. The second, against
+everything already in the bag, is the one a scan needs: a scan pans, so the badge that named the
+purple produce bag at three seconds is gone by five, and when the census at five seconds lists the
+same bag as unmarked only the bag itself can recognise it. That one was worth three units of ten
+on the video.
+
+## The census, run
+
+Five passes over the six photographs, so the spread is visible rather than a single sample:
+
+| | before | after |
+|---|---|---|
+| badge alignment | 16 of 23 | **21 of 23, in all five passes** |
+| units in the bag | 25 of 33 | **28, 27, 30, 28, 29** |
+| photographs exact | 3 of 6 | **4 of 6, in all five passes** |
+
+The four sparse trolleys are exact in every pass. What remains is the two loaded ones: eight or
+nine of ten, and twelve to fourteen of sixteen. The two products missing from the ten are the
+yellow produce bag and the tomatoes on the vine, and both are honestly marginal in that
+photograph: the yellow bag shows one corner from under the bread and the tomatoes show as red
+through the purple bag's plastic. The scan is what a shopper would use to recover them.
+
+## The scan, run
+
+The video had a defect of its own, and it is not the model's. `video-frames.json` carries the
+matcher's shortlist per box and not one of its 137 boxes had a single one of this trolley's eight
+products anywhere in its five entries. A cauliflower was offered Pulses, Salt and Poha. The
+matcher is not at fault: `score_video.py` ran first and `build_kart_catalog.py` cut this trolley's
+references out of the video afterwards, so the column was never refreshed and the catalog channel
+has been silently dead on this video for every run over it. Refreshed against the same index, 129
+of 130 boxes carry one.
+
+| | units | lines | real |
+|---|---|---|---|
+| stale catalog column, drifting names | 19 | 18 | 10 |
+| refreshed column | 13 | 12 | 10 |
+| and the bag able to see both spellings | **10, 11, 13** | 10, 11, 12 | 10 |
+
+Four census calls of a cap of eight. The count lands on ten or one or three over it, and the
+honest reading of the exact run is that it is exact by cancellation rather than by a clean sweep:
+"bag of apples" is a second sighting of the Granny Smiths under a description that merges with
+nothing, and the brussels sprouts arrive as "green leafy produce bag". The residual is unmarked
+descriptions drifting between calls, which is the one place a SKU cannot reach, because unmarked
+items are not offered one.
+
+Those references were cut from this same video, so the refreshed shortlist is better than a
+store's catalog would be and this bounds the shipped path from above rather than estimating it.
+The stills are where the shortlist is honest: references from the video, queries from photographs
+it never saw.
 
 ## What this corpus still cannot answer
 
