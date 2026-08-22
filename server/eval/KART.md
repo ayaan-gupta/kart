@@ -4842,6 +4842,26 @@ Worth noting for anyone else who picks this up: the team id is a personal one, c
 this is a single-developer repository. It should come out, into an `.xcconfig` or CI secret, before
 the project is shared.
 
+### "Download it to my phone" is narrower than it sounds
+
+The Mac holds **one Apple Development certificate and no distribution certificate**. That decides
+what is possible, and it is worth stating plainly rather than leaving as an assumption:
+
+| route | possible now |
+|---|---|
+| Xcode, phone attached, Run | **yes** — this is what the signing config above enables |
+| TestFlight | **no** — needs a paid Apple Developer Program membership and a distribution certificate |
+| Ad-hoc `.ipa` sent to the phone | **no** — same requirement |
+| App Store | no |
+
+So there is no link to tap and no file to download. Installing it means attaching the phone once and
+pressing Run, and on a free personal team the installed app stops launching after seven days and has
+to be re-run from Xcode. A paid membership removes the expiry and unlocks TestFlight, which is the
+only route that matches "download it to my phone" literally.
+
+That is an account decision rather than an engineering one, and nothing in the code changes either
+way.
+
 **The one thing to do while it is running there** is read the `[kart] device sharpness` line the
 scan prints every thirty frames in a Debug build. `MIN_KEYFRAME_SHARPNESS` is 12, set against
 `score_video.py`'s whole-frame variance, while `FrameMetrics.sharpness` reports the largest of a 3x3
