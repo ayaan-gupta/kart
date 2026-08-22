@@ -109,6 +109,9 @@ def main(argv=None):
             pending += (f'<section class="pending"><h3>{title}</h3><p>{note}</p>'
                         f'<div class="shots">{shots}</div></section>')
 
+    shot = HERE / ".cache/kart/app-unavailable.png"
+    app_shot = data_uri(shot) if shot.exists() else ""
+
     page = f"""<title>Kart Verification Results</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,6 +206,9 @@ details li {{ margin:3px 0; }}
   font-size:.78rem; white-space:nowrap; }}
 .gaps .yes {{ color:var(--ink); font-weight:600; }}
 .scroll {{ overflow-x:auto; }}
+.shot-app {{ margin:0 0 18px; max-width:300px; }}
+.shot-app img {{ width:100%; height:auto; border-radius:14px; border:1px solid var(--rule);
+  display:block; }}
 .shots {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }}
 figure.wide {{ margin:0; }}
 figure.wide img {{ width:100%; height:auto; border-radius:8px; display:block; }}
@@ -262,16 +268,24 @@ below is the model. The app compiles for real iPhone hardware: Release, arm64, i
 needs a cable or a paid membership, so it has never run on a physical device.</p>
 <div class="scroll"><table class="gaps">
 <tr><th>missing</th><th>what the app does</th><th>how it was checked</th></tr>
-<tr><td>EXPO_PUBLIC_KART_API_URL</td><td>Every request returns <code>unconfigured</code>. The camera,
-the tracker and the outlines still work, and so does the barcode path, which calls Open Food Facts
-straight from the phone.</td><td class="yes">The shipped JavaScript bundle holds no recognition
-endpoint at all.</td></tr>
+<tr><td>EXPO_PUBLIC_KART_API_URL</td><td><strong>Closed.</strong> Unset, every request returned
+<code>unconfigured</code> while the camera, tracker, outlines and barcode path kept working. A
+<code>.env</code> now carries it.</td><td class="yes">The endpoint is in the built bundle; the build
+made before <code>.env</code> existed had none.</td></tr>
 <tr><td>ENUMERATOR_URL</td><td>Degraded mode: no outlines, no catalog shortlist, 72% of units. Not
 the pipeline any figure on this page was measured on.</td><td class="yes">The server logged
 <code>enumeration degraded: no enumerator configured</code>.</td></tr>
 <tr><td>OpenAI credit</td><td>Nothing is recognized.</td><td class="yes">429
 <code>credit_balance_exhausted</code>.</td></tr>
 </table></div>
+<p class="section-note">The app had never once called a server: the Frame Lab harness used local
+fixtures, written when nothing was deployed, so a full bag of named items on screen proved the
+pipeline and nothing about reaching a service. A <code>server</code> run mode now uses the real
+client. Verified end to end: the app formed tracks, encoded a keyframe, POSTed to the service, the
+service took its marks and called the model, and it failed at the credit wall. The screenshot is the
+unavailable notice driven by a real failure for the first time, bag at zero. This was a simulator,
+not a phone.</p>
+<div class="scroll"><figure class="shot-app"><img loading="lazy" alt="The app showing the unavailable notice" src="{app_shot}"><figcaption>frame-lab, server mode, real 429</figcaption></figure></div>
 <p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
 reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
 IMG_0254, and 21 of 21 matching at IoU 0.7 or better. A scan keyframe takes 3.9s on MPS. A real
