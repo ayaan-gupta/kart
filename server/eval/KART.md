@@ -291,7 +291,16 @@ is not an artefact of a small model: any model writing a name twice writes it sl
 differently, and a SKU copied from a shortlist does not drift.
 
 `markKey` now returns `sku:<sku>` when the model picked a catalog candidate and the name key
-otherwise, which takes the video from 15 units to **11 against 10**. The change is additive: a
+otherwise, which takes the video from 15 units to **11 against 10**.
+
+The same simulation applied to the stills makes them worse, 3 of 6 exact against 4, and the
+reason is a limit of the simulation rather than of the change. A local model is not given the
+catalog shortlist, so the SKUs here are assigned by matching its words against catalog names, and
+within a single call that merges marks the model may have meant as different things. A real
+census picks a candidate per region from a shortlist built for that region and cannot make that
+mistake. So the stills number stays as measured without SKUs, and the video number stands,
+because there the merge being tested is across calls, where "oreo" and "oreo cookies" four
+seconds apart are unambiguously one pack. The change is additive: a
 mark with no SKU keys exactly as it did. `marksSameProduct` goes with it, because
 `IdentifyResponse` carries no `catalogSku` and a closer look can therefore only produce a name
 key, so a single-key comparison would read a census and an identify that agree as disagreeing.
