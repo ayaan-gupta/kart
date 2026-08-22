@@ -266,8 +266,11 @@ a total can say a change is free while the picture shows it removing four real p
 
 <h2>On a phone</h2>
 <p class="section-note">A build installed on a phone today names nothing, and only the third reason
-below is the model. The app compiles for real iPhone hardware: Release, arm64, iOS 17. Installing it
-needs a cable or a paid membership, so it has never run on a physical device.</p>
+below is the model. The app compiles for real iPhone hardware: Release, arm64, iOS 17. A signed
+build names the two things blocking an install, and neither is about recognition: Xcode has no Apple
+ID signed in, so it cannot issue a provisioning profile, and no device is registered, which a free
+account only does after the phone is attached once by cable. It has never run on a physical
+device.</p>
 <div class="scroll"><table class="gaps">
 <tr><th>missing</th><th>what the app does</th><th>how it was checked</th></tr>
 <tr><td>EXPO_PUBLIC_KART_API_URL</td><td><strong>Closed.</strong> Unset, every request returned
