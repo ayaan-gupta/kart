@@ -1078,3 +1078,57 @@ six**, and an instrument that can now tell a one-line change from nothing at all
 No fusion-layer fix is safe without that answer. Joining on name alone would merge the two apple
 bags this trolley really does contain, and `addAlias`'s conflict path, reached when one key is
 pulled toward two targets, deliberately strands both rather than guessing.
+
+## Nineteenth: the fold, and what the corpus can and cannot say about it
+
+The eighteenth priced the scan's extra lines and left the fix open, because the two readings of
+the Oreo split needed different fixes and I could not tell which reading was right. Looking at
+IMG_0252 settles it without needing the catalog's opinion at all: **the trolley holds one packet
+of Oreos, party size, and no second Oreo anywhere.** Whatever a store's product list says, the
+correct bag has one Oreo line, so two lines is wrong however many SKUs exist. That makes it a
+code fix rather than a corpus edit.
+
+### The evidence that makes a name fold safe
+
+The name is all the two sightings share, and the name alone is not enough: this trolley holds two
+bags of apples, and folding on the name would collapse them. What separates the cases is already
+in the data and is evidence rather than a threshold. **A census is shown numbered badges and
+answers each one separately, so two badges in a single call are two objects, whatever it calls
+them.** Counted over the six captured runs, exactly one name ever did that: `bread`, in run 6's
+second call, where the baguette and the Seedtastic loaf were both called bread. That is the one
+case a fold must refuse, and the rule refuses it without being told to.
+
+So `FusionState` gained `sharedNames`, and `bagLines` folds two same-named lines only when that
+name has never appeared twice in one call. The fold happens at the line, not through `addAlias`,
+whose conflict path deliberately strands both quantities to protect barcodes; nothing here
+touches identities, aliases or quantities, so a wrong fold costs one line's display and no state.
+
+### Measured exactly, with the model held still
+
+| | before | after |
+|---|---|---|
+| scan, six replayed answer sets | 9, 10, 10, 12, 12, 10 | 9, 10, 9, 11, 11, 9 |
+| exact, of 6 | 1 | 3 |
+| photographs, thirty replayed passes | 22 of 30 exact, 145 units, 105/115 badges | **identical, to the number** |
+
+Every split merged, nothing regressed, and the photographs did not move at all, which is what
+should happen: one call cannot disagree with itself. This equals the ceiling the eighteenth
+measured by collapsing the SKU in the corpus, so the code fix buys the whole of what the corpus
+edit would have bought, without editing the corpus.
+
+### What the live corpus cannot show, and why that is not a contradiction
+
+Six live scans after the fold: 9, 11, 11, 11, 9, 10, mean 10.17, against a pooled 10.29 over the
+fourteen live runs recorded before it. **That is not a demonstration and I am not offering it as
+one.** The fold is worth about two thirds of a unit; the live spread is about one and a half. A
+six-run live sample cannot resolve an effect four times smaller than its own noise, which is
+exactly what the seventeenth investigation established and exactly why the replay instrument was
+built. The claim rests on the held-still measurement, where the model was byte-identical in both
+columns, and on nothing else.
+
+### The risk it carries
+
+Two identical products that no single census ever badges together would fold into one line, and
+the bag would undercount by one. Nothing in this corpus does that, so the risk is reasoned rather
+than measured. It is the direction this corpus's error does not currently run, and a second
+capture set with genuine duplicates is the thing that would test it.

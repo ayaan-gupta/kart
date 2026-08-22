@@ -44,6 +44,21 @@ const FRAMES = framesArg ? framesArg.split('=')[1] : 'frames-named.json';
  * runs, so a single pass cannot tell a change from noise. `--repeat N` runs the whole set N
  * times and reports the spread as well as the mean.
  */
+/**
+ * `--replay=<file>` answers each photograph from a saved run instead of calling the model.
+ *
+ * The same instrument `video-census-live.ts` carries, and for the same reason: everything here
+ * except `runCensus` is deterministic, so replaying the saved answers holds the model still and
+ * lets a fusion-layer change be measured exactly rather than against this corpus's own spread.
+ * The file is one this harness wrote, and each entry is matched by photograph id and pass number
+ * rather than by position, so a run over a different frame set fails loudly.
+ */
+const replayArg = process.argv.find((a) => a.startsWith('--replay='));
+const REPLAY: Map<string, any> | null = replayArg
+  ? new Map(JSON.parse(readFileSync(replayArg.split('=')[1], 'utf8'))
+      .map((e: any) => [`${e.id}#${e.pass}`, e.census]))
+  : null;
+
 const repeatArg = process.argv.find((a) => a.startsWith('--repeat='));
 const REPEATS = repeatArg ? Math.max(1, Number(repeatArg.split('=')[1])) : 1;
 const frames = JSON.parse(readFileSync(join(HERE, `.cache/kart/${FRAMES}`), 'utf8'));
@@ -103,7 +118,14 @@ for (const frame of frames.frames) {
   // handing it the result drew every badge twice, once at 1333 and again at 1024 over the top
   // of the first, which is not an image the service ever sends.
   const image = readFileSync(join(HERE, `.cache/kart/images/${frame.id}.jpg`));
-  const census = await runCensus(image, marks);
+  let census: Awaited<ReturnType<typeof runCensus>>;
+  if (REPLAY) {
+    const saved = REPLAY.get(`${frame.id}#${pass}`);
+    if (!saved) throw new Error(`replay file has no entry for ${frame.id} pass ${pass}`);
+    census = saved;
+  } else {
+    census = await runCensus(image, marks);
+  }
 
   // Alignment: did the answer for badge i land on badge i?
   const byId = new Map<number, any>(census.marks.map((m: any) => [m.id, m]));
@@ -156,6 +178,9 @@ console.log(`  badge alignment  ${alignedRight}/${alignedScorable}` +
 console.log(`  units in the bag ${bagUnits} against ${realUnits} real items`);
 console.log(`  photographs exact ${exact}/${results.length}`);
 const stem = FRAMES === 'frames-named.json' ? '' : `-${FRAMES.replace(/\.json$/, '')}`;
-writeFileSync(
-  join(HERE, withCatalog ? `kart-census-live${stem}.json` : 'kart-census-live-nocatalog.json'),
-  JSON.stringify(results, null, 1));
+// A replay run answered from this file, so writing it back would at best be a no-op.
+if (!REPLAY) {
+  writeFileSync(
+    join(HERE, withCatalog ? `kart-census-live${stem}.json` : 'kart-census-live-nocatalog.json'),
+    JSON.stringify(results, null, 1));
+}

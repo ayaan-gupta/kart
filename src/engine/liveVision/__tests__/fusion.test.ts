@@ -1,4 +1,4 @@
-import {
+import { foldedName,
   addAlias,
   applyBarcode,
   applyCensus,
@@ -803,5 +803,75 @@ describe('addAlias', () => {
     const state = { ...createFusionState(), aliases: { a: 'b', b: 'a' } };
     expect(() => resolveKey(state, 'a')).not.toThrow();
     expect(typeof resolveKey(state, 'a')).toBe('string');
+  });
+});
+
+describe('one packet reached under two catalog SKUs', () => {
+  // The nine-second scan put one packet of Oreos in the bag twice: the first census picked sku
+  // `Oreo` off the shortlist and the fourth picked `kart_oreo` off the same shortlist, and the
+  // tracker had lost and re-acquired the packet in between, so there was no shared track to carry
+  // the first answer across and no shared key either, the brand having drifted too.
+  const sku = (id: number, name: string, brand: string | null, catalogSku: string) =>
+    ({ ...mark(id, name, brand), catalogSku });
+
+  it('folds two SKUs for one packet into a single line', () => {
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([sku(1, 'Oreo', 'Oreo', 'Oreo')], [[productKey('Oreo', 'Oreo'), 1]]),
+      { 1: 'track_1' },
+      ['track_1'],
+    );
+    state = applyCensus(
+      state,
+      census([sku(1, 'Oreo', 'Cadbury', 'kart_oreo')], [[productKey('Oreo', 'Cadbury'), 1]]),
+      { 1: 'track_12' },
+      ['track_12'],
+    );
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].qty).toBe(1);
+  });
+
+  it('refuses to fold a name one census put on two badges at once', () => {
+    // The guard, and the case that makes it necessary: this trolley really does hold a baguette
+    // and a seedtastic loaf, and one census called them both "bread". Two badges in one call are
+    // two objects however the model names them, so the name is barred from folding thereafter.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census(
+        [sku(1, 'bread', 'Weikfield', 'Bread'), sku(2, 'bread', null, 'kart_seedtastic_bread')],
+        [[productKey('bread', null), 2]],
+      ),
+      { 1: 't1', 2: 't2' },
+      ['t1', 't2'],
+    );
+    expect(state.sharedNames).toContain('bread');
+    expect(bagLines(state)).toHaveLength(2);
+  });
+
+  it('keeps the bar in place for the rest of the session', () => {
+    // Once a name has named two things, a later pair of calls that happen not to overlap must not
+    // be allowed to fold it: the second loaf did not stop existing because it went out of frame.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'bread'), mark(2, 'bread')], [[productKey('bread', null), 2]]),
+      { 1: 't1', 2: 't2' },
+      ['t1', 't2'],
+    );
+    state = applyCensus(
+      state,
+      census([sku(1, 'bread', 'Weikfield', 'Bread')], [[productKey('bread', 'Weikfield'), 1]]),
+      { 1: 't3' },
+      ['t3'],
+    );
+    expect(bagLines(state).length).toBeGreaterThan(1);
+  });
+
+  it('derives foldedName from productKey so the two cannot drift', () => {
+    expect(foldedName('Granny Smith Apples')).toBe(productKey('Granny Smith Apples', null).slice(2));
+    expect(foldedName('Oreo')).toBe(foldedName('OREO'));
   });
 });

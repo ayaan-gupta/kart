@@ -81,6 +81,17 @@ export interface FusionState {
    * frame leaves no permanent trace on the bag.
    */
   pendingAlias: Record<string, { key: string; count: number }>;
+  /**
+   * Normalised product names that one census call put on two or more badges at once, and which
+   * therefore name more than one object in this trolley.
+   *
+   * A census is shown numbered badges and answers each one separately, so two badges in a single
+   * call are two things, whatever it calls them. That is the only evidence in the system that
+   * distinguishes "the same packet, seen again" from "a second packet". `bagLines` uses it to
+   * decide which same-named identities it may fold, and a name recorded here is never folded
+   * again for the rest of the session.
+   */
+  sharedNames: string[];
 }
 
 /**
@@ -121,7 +132,7 @@ function unmarkedKey(
 }
 
 export function createFusionState(): FusionState {
-  return { identities: {}, aliases: {}, maxSimultaneous: {}, merged: [], pendingAlias: {} };
+  return { identities: {}, aliases: {}, maxSimultaneous: {}, merged: [], pendingAlias: {}, sharedNames: [] };
 }
 
 /**
@@ -194,6 +205,18 @@ export function productKey(name: string, brand: string | null): string {
   // next, so folding it would mangle "Kellogg's" to "kellogg" for nothing.
   const foldName = (s: string) => norm(s).split(' ').map(foldPlural).join(' ');
   return `${brand ? norm(brand) : ''}::${foldName(name)}`;
+}
+
+/**
+ * The name half of a `productKey`, with no brand.
+ *
+ * Derived from `productKey` itself rather than reimplemented, so the two can never drift: with a
+ * null brand the key is exactly `"::" + foldName(name)`, and the two leading colons come off.
+ * That matters because `productKey` is one of three copies that must stay character-identical,
+ * and a second normaliser sitting beside it would be a fourth thing to keep in step.
+ */
+export function foldedName(name: string): string {
+  return productKey(name, null).slice(2);
 }
 
 /** A resolved barcode keys on the UPC itself, which is ground truth and needs no normalizing. */
@@ -353,6 +376,23 @@ export function applyCensus(
 ): FusionState {
   let working: FusionState = { ...state, identities: { ...state.identities } };
   const merged = new Set(state.merged);
+
+  // Which names this one call put on more than one badge. Counted over the call's own marks
+  // before any of them are applied, so it does not matter which order they are processed in, and
+  // counted on the name alone: two badges reading "apples" are two bags of apples even when the
+  // model gives them different brands, which is exactly the case a name fold must not touch.
+  {
+    const perCall = new Map<string, number>();
+    for (const mark of census.marks) {
+      if (mark.isProduct === false) continue;
+      const name = foldedName(mark.name);
+      if (name.length === 0) continue;
+      perCall.set(name, (perCall.get(name) ?? 0) + 1);
+    }
+    const shared = new Set(state.sharedNames);
+    for (const [name, count] of perCall) if (count > 1) shared.add(name);
+    if (shared.size !== state.sharedNames.length) working = { ...working, sharedNames: [...shared] };
+  }
 
   for (const mark of census.marks) {
     const trackId = markToTrack[mark.id];
@@ -668,6 +708,7 @@ export function applyCensus(
     maxSimultaneous,
     merged: [...merged],
     pendingAlias: working.pendingAlias,
+    sharedNames: working.sharedNames,
   };
 }
 
@@ -748,10 +789,53 @@ export function bagLines(state: FusionState): BagLine[] {
       display.set(key, { identity, id });
     }
   }
-  return order
+  const lines = order
     .map((key) => {
       const { identity } = display.get(key)!;
       return { key, name: identity.name, brand: identity.brand, size: identity.size, category: identity.category, qty: state.maxSimultaneous[key] ?? 0 };
     })
     .filter((line) => line.qty > 0);
+
+  // One last fold, for the same product reached under two different keys.
+  //
+  // A key is a catalog SKU when the model picked one, and a scan asks several times. The model is
+  // free to pick a different valid SKU each time, because a shortlist can legitimately hold two
+  // entries for one packet, and when the tracker has meanwhile lost and re-acquired the item there
+  // is no shared track to carry the earlier answer across either. Measured on the nine-second
+  // scan, that put one packet of Oreos in the bag twice, as "Oreo" under sku `Oreo` from the first
+  // call and "Cadbury Oreo" under sku `kart_oreo` from the fourth, on tracks track_1 and track_12.
+  //
+  // The name is all these two sightings share, and the name alone is not enough: a trolley holding
+  // two bags of apples has two lines that a name fold would wrongly collapse. `sharedNames` is what
+  // separates the cases, and it is evidence rather than a guess. A census is shown numbered badges
+  // and answers each one separately, so two badges in one call are two objects however it names
+  // them, and any name that ever did that is barred from folding for the rest of the session.
+  //
+  // Folding at the line rather than through `addAlias` is deliberate: an alias pulled toward two
+  // targets hits the conflict path, which strands both quantities on purpose to protect barcodes.
+  // Nothing here touches identities, aliases or quantities, so a fold that should not have happened
+  // costs one line's display and no state.
+  const shared = new Set(state.sharedNames);
+  const byName = new Map<string, number>();
+  const folded: typeof lines = [];
+  for (const line of lines) {
+    const name = foldedName(line.name);
+    const at = name.length > 0 && !shared.has(name) ? byName.get(name) : undefined;
+    if (at === undefined) {
+      if (name.length > 0 && !shared.has(name)) byName.set(name, folded.length);
+      folded.push(line);
+      continue;
+    }
+    // The same object at two moments, not two of it, so the quantity is the larger of the two
+    // rather than their sum. The surviving line keeps its place and takes whichever of the two
+    // descriptions carries a brand, since that is the more specific answer.
+    const kept = folded[at];
+    folded[at] = {
+      ...kept,
+      brand: kept.brand ?? line.brand,
+      size: kept.size ?? line.size,
+      qty: Math.max(kept.qty, line.qty),
+    };
+  }
+  return folded;
 }
