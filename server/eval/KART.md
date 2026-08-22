@@ -2269,3 +2269,34 @@ Worth stating plainly because it is the second time today a harness proved to be
 something other than what it claimed: the first was every scan number being taken on a region
 supply the app does not have. Both were found by reading code rather than by any result looking
 wrong. A number that agrees with expectation is not evidence the thing producing it is connected.
+
+## Forty-fourth: the corpus cannot exercise the system's best channel
+
+`scan-loop.ts` stubs `lookupBarcode` to null and never hands the loop a barcode. That looked like
+the same kind of fidelity gap as the stubbed identify, and a worse one, because a barcode identity
+is ground truth: `applyCensus` protects it outright, a later census guess cannot overwrite it, and
+it keys the count on the UPC rather than on words.
+
+It is not a gap here, and the reason matters more than the stub.
+
+Decoded with OpenCV's `BarcodeDetector` over every image in the corpus:
+
+| | frames | decoded |
+|---|---|---|
+| the scan video | 26 | **0** |
+| the ten photographs, at 5712 by 4284 | 10 | **0** |
+| the same photographs downscaled toward keyframe size | 10 | **0** |
+
+Not one, anywhere. The barcodes are physically present, `#4079` is legible by eye on the
+cauliflower wrapper, but none is flat, square-on and unoccluded enough to decode. A trolley is a
+pile: labels face the sides, the bottom, and each other.
+
+**So every number in this file measures the system with its most reliable channel switched off.**
+That is not a flaw in the measurements, it is a fact about photographing a loaded trolley from
+above, and the pipeline is built for exactly that: `unmarkedItems`, the catalog shortlist and the
+census exist because the barcode usually is not readable. But it does bound what this corpus can
+say. A shopper who holds an item up to the camera gets a UPC and a certain answer, and nothing
+here measures that path, in either direction.
+
+It also confirms the stub is faithful rather than convenient: wiring a real barcode decoder into
+`scan-loop.ts` would return nothing on all 26 frames and change no figure in this file.
