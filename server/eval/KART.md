@@ -2933,3 +2933,18 @@ region, and the measurement is what separates them rather than the reasoning.
 Shipped: `CensusRequest.counted`, sent by both of the orchestrator's census call sites from
 `bagLines`, parsed server-side with the entries bounded and sanitised because the text reaches a
 model prompt. An absent list behaves exactly as before, so an older client is unaffected.
+
+### It also repairs the longer-scan result
+
+The fifty-third section measured a second pass over the trolley finding the same products and
+adding lines, and concluded the unspent half of the census budget was not withheld value. With the
+names sent back, that is much less true:
+
+| two passes, six censuses | lines | units against 9 | products found |
+|---|---|---|---|
+| without the names | 11, 12 | 11, 12 | 9, 8 of 9 |
+| **with them** | **9, 9** | 10, 10 | 8, 8 of 9 |
+
+A second pass used to grow the bag to eleven or twelve lines and now holds it at nine. The extra
+looks stop being a liability, which matters because a real scan is longer than nine seconds and
+will spend more of the budget than this corpus can.
