@@ -491,7 +491,7 @@ should not have to find it again.
 So the tenth item of that trolley is reachable, and reaching it costs more than it is worth. The
 pipeline's answer there stays the designed one: nine of ten counted, `occlusion.severity` "some"
 with a reason naming the overlapping bags on every run, and a scan of the same trolley that
-counts exactly ten. The two it misses are the yellow
+counts ten on a third of runs and eleven to thirteen on the rest. The two it misses are the yellow
 produce bag and the tomatoes on the vine. Looking at the photograph at full size, the yellow bag
 shows one corner from under the baguette and the tomatoes show as red through the purple bag's
 plastic, so this is close to what the frame contains rather than a defect in reading it. The
@@ -509,14 +509,27 @@ references out of the video afterwards, so the column was never refreshed and th
 has been silently dead on this video for every run over it. Refreshed against the same index, 129
 of 130 boxes carry one.
 
-| | units | lines | real |
-|---|---|---|---|
-| stale catalog column, drifting names | 19 | 18 | 10 |
-| refreshed column | 13 | 12 | 10 |
-| the bag able to see both spellings | 10, 11, 13 | 10, 11, 12 | 10 |
-| a SKU on unmarked items too | **10, 10, 10** | 10, 10, 10 | 10 |
+| | units against 10 real | lines |
+|---|---|---|
+| stale catalog column, drifting names | 19 | 18 |
+| refreshed column | 13 | 12 |
+| the bag able to see both spellings | 10, 11, 13 | 10, 11, 12 |
+| a SKU on unmarked items too | **10, 10, 10** | 10, 10, 10 |
 
-Four census calls of a cap of eight, and exactly ten every time.
+Four census calls of a cap of eight. That last row is three runs and it is not the distribution.
+Thirteen more runs later, on a byte-identical input file and with nothing in the path between
+them changed, the fifteen readings are:
+
+    9  9  10 10 10 10 10 10  11 11  12  13 13 13 13
+
+Five of fifteen exact, median eleven, and the spread is one over to three over rather than under.
+The first three being ten each was a streak, and reporting it as "exact and stable" was wrong.
+
+What moves is the unmarked channel across calls. A badged product keys by SKU and merges every
+time; an unmarked sighting keys by SKU only when the model offers one, and on a blurry frame it
+often cannot, so the same bag of apples described three ways across four calls is one line on a
+good run and three on a bad one. Every reading over ten is that, and every reading under ten is a
+product no call ever named.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
