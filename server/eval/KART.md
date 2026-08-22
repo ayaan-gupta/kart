@@ -3701,3 +3701,60 @@ same question, unchanged, goes from useless to 5 of 6 between 3B and 7B.
 
 The sixty-ninth's command still deserves running when the account has credit, and now with a
 concrete expectation to check it against rather than an open question.
+
+## Seventy-sixth: the grouping is in the detector, and no rule around it can undo that
+
+The seventieth named grouping as the dominant failure on loaded trolleys: 11 of 20 readable
+products isolated, the rest reached only inside a box that also holds another product. Three
+candidate fixes existed. All three are now closed, two of them by construction rather than by
+measurement, which is cheaper and more final.
+
+### `degroup` cannot fire, at any setting
+
+`degroup` drops a box that contains `GROUP_MEMBERS` other *proposals* at `GROUP_CONTAINMENT`. The
+six boxes doing the swallowing contain, at 0.90 containment, **zero** other proposals. At 0.70 the
+best of them contains one.
+
+| | products it swallows | proposals inside, 0.90 | at 0.70 |
+|---|---|---|---|
+| IMG_0252 box 5 | baguette, yellow bag | 0 | 0 |
+| IMG_0252 box 7 | Fuji bag, yellow bag | 0 | 0 |
+| IMG_0254 box 2 | egg carton, beef pack | 0 | 0 |
+| IMG_0254 box 6 | egg carton, Muenster | 0 | 1 |
+| IMG_0254 box 7 | baguette, jar, Fuji bag | 0 | 1 |
+| IMG_0254 box 8 | salmon, broccoli | 0 | 0 |
+
+`GROUP_MEMBERS` is 5 and lowering it is pointless: **even at one, there is nothing inside these
+boxes to count.** The rule exists to delete a proposal whose parts were separately found, and here
+the parts were never found. Its own comment already refused 3 members for costing 6.7 points on
+sparse photographs, "the ones most like a cart", which is the same sparse-trolley cost that refused
+the threshold candidate two sections ago. It is the right rule for whole-trolley boxes and it has
+nothing to say about pairs.
+
+### Looking closer at the same region does not separate it either
+
+That leaves the idea `--tiles 2` was reaching for and got wrong. Tiling cuts a fixed grid through
+the frame, so a product straddling a tile edge is reached by neither, which is why it measured
+worst of six. Re-detecting **inside each proposal** has no such edge, because the crop is drawn on
+an object boundary the detector itself chose. The parts do appear: four of the six swallowing boxes
+yield two or more children on re-detection, IMG_0254's baguette-jar-Fuji box yielding five.
+
+| | proposals | reached, readable | isolated, readable |
+|---|---|---|---|
+| shipped | 21 | 19 of 20 | **11 of 20** |
+| re-detect inside every proposal | **47** | 19 of 20 | **11 of 20** |
+
+**More than double the proposals and not one product better separated.** The children are sub-parts,
+a label or a corner of the thing already found, not the neighbouring product. Nothing about looking
+closer at a region makes the detector see two objects where it saw one.
+
+### What that leaves
+
+The isolation ceiling on this corpus is a property of what Grounding DINO proposes on a loaded
+trolley, not of the rules around it. Threshold moves the count without moving isolation and breaks
+the sparse trolleys; tiling is worse; `degroup` cannot engage; per-proposal re-detection buys
+nothing. Improving it means a different proposal source, which is a model change and not a
+configuration one.
+
+This is the same shape as the yellow bag's ending, reached on a different corpus and a different
+layer. **Both residuals are the detector's, and both were being chased in the rules.**
