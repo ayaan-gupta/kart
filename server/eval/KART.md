@@ -71,7 +71,7 @@ census the names the session already has so it reuses a phrasing instead of inve
 
 | fault | every fix tried, and refused with a number |
 |---|---|
-| the yellow produce bag unseen | **explained rather than open** (sixty-fifth): its only isolating proposal is on order 15, and the loop censuses orders 6, 12, 18, 24. Five prompt sets, three detector settings, server-side enumeration and paired produce on three pipelines all failed because none of them changes which frames are censused; no pacing that keeps four captures reaches order 15 |
+| the yellow produce bag unseen | **explained rather than open** (sixty-fifth): its only isolating proposal is on order 15, and the loop censuses orders 6, 12, 18, 24. Five prompt sets, three detector settings, server-side enumeration and paired produce on three pipelines all failed because none of them changes which frames are censused; no pacing that keeps four captures reaches order 15. The sixty-sixth then reaches it with a different gate rule and measures the price: 3 of 6 recoveries for 1.17 products lost |
 | the Fuji bag counted twice | folds by name, by SKU, and by overlap (0.204 for the pair to merge against 0.215 for a pair that must not) |
 | the shopper's tote counted as a product | rule 8 extended to cover a shopper's belongings; cost seven exact passes |
 | a census guess overwriting two that agreed | fix written, refused twice; the obvious implementation breaks the original counting-bug regression test |
@@ -3116,6 +3116,11 @@ raising the interval pushes each candidate window into the pan's fast part. So t
 table is between 2000 and 2500, not between 2000 and 3000, and no pacing that keeps four captures
 selects order 15.
 
+That last clause is true of `minIntervalMs` and false in general, which the sixty-sixth section
+shows by changing the gate instead of the interval and landing on order 15 with four captures
+intact. The conclusion it was supporting survives anyway, for a reason measured there rather than
+assumed here.
+
 ### What this closes, and what it hands to the phone
 
 The yellow produce bag is not missing because of a threshold, a prompt set, a model or a naming
@@ -3129,3 +3134,77 @@ frames this clip simply does not contain. `--loops` cannot stand in for that, be
 same twenty-seven frames captures the same views again, which the fifty-third section measured as
 the same products on more lines. **The one product this corpus cannot find is the one whose fix
 needs a longer scan, not a better rule.**
+
+## Sixty-sixth: the frame that was unreachable, reached, and it still does not pay
+
+The sixty-fifth found the yellow produce bag's only isolating proposal on order 15, a frame the
+loop never censuses, and said no pacing that keeps four captures reaches it. That was true of
+`minIntervalMs`, the only pacing lever anyone had tried. It is not true of the gate itself.
+
+`evaluateKeyframe` is first-past-the-post: once the interval has elapsed it fires on the next frame
+that is sharp enough, still enough and has tracks. Every pacing experiment in this file changed how
+*often* it fires. None changed *which frame in the window* it takes, and on this clip that choice is
+made badly:
+
+| | motion | sharpness |
+|---|---|---|
+| order 15, passed over | **0.0477** | **90** |
+| order 18, captured instead | 0.108 | 60 |
+
+The frame the loop takes is worse on both signals than one three frames earlier in the same window.
+It is taken only for being later.
+
+### The rule, which is causal and shippable
+
+`--best-in-window=motion|sharp` keeps the best frame seen since the last capture and sends that
+buffer when the interval elapses, instead of the live frame. No lookahead is involved: a phone can
+hold the best keyframe it has already encoded. The cost is a picture up to `minIntervalMs` old, and
+a tracker that is current alongside it.
+
+It reaches the frame. `--best-in-window=motion` captures orders 3, 9, **15** and 19 where the
+shipped gate captures 6, 12, 18 and 24.
+
+### Six runs of everything, against the same-day baseline
+
+| | products found, lenient | the yellow bag |
+|---|---|---|
+| **as it ships** | **8.0** of 9 | 1 of 6 |
+| `--pairs --pairs-first` | 7.83 | **0** of 6 |
+| `--best-in-window=sharp` | 7.67 | 1 of 6 |
+| `--best-in-window=motion` | 6.5 | 2 of 6 |
+| `--best-in-window=motion --pairs` | 6.83 | **3 of 6** |
+
+The relationship is monotone and it is the answer to the whole question: **every step that finds the
+yellow bag more often finds the trolley less well.** The configuration that reaches its frame *and*
+gives that frame the prompts that isolate it recovers it in half the runs, three times the shipped
+rate, and pays 1.17 products for it, mostly the cauliflower and the Granny Smith bag.
+
+### Why the cost, which the frame lists show outright
+
+| rule | frames captured |
+|---|---|
+| as it ships | 007, 013, 019, **025** |
+| `--best-in-window=sharp` | 004, 009, 018, **025** |
+| `--best-in-window=motion` | 004, 010, 016, **020** |
+
+Choosing the stillest frame biases every capture earlier, because the camera is stillest just after
+it settles and moves fastest at the end of each sweep. Four captures that all sit early in their
+windows cover less of the pan, and the motion rule's last capture is order 19, so the final third of
+the trolley is never censused at all. That is the forty-first section's geometric mechanism again,
+arriving through a different door: the sharpness criterion keeps order 24 and loses only 0.33
+products, the motion criterion drops it and loses 1.5.
+
+### What is now closed
+
+The yellow produce bag is reachable. This section builds the rule that reaches it and measures what
+it costs, which is more than it returns, on every one of the four configurations tried. Combined
+with the sixty-fifth, the item is no longer a mystery or an exhaustion:
+
+- it is proposable on exactly one frame of twenty-seven, and only under paired produce prompts
+- the shipped gate cannot select that frame, and the rule that can costs a third of the pan
+- reaching it and prompting for it recovers it in 3 runs of 6, for 1.17 products lost
+
+**The shipped configuration is a peak on this corpus, and this is the fourth lever confirmed to be
+at its best rather than merely unexamined.** What would change the arithmetic is not a better rule
+but more frames: a longer pan gives a gate that already works more chances to see the corner of the
+trolley that this one shows for a single second.

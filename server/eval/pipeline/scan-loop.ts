@@ -31,6 +31,7 @@ import { RecognitionSession } from '../../../src/engine/liveVision/orchestrator'
 import type { SessionDeps } from '../../../src/engine/liveVision/orchestrator';
 import { createPipelineState, processFrame } from '../../../src/engine/liveVision/pipeline';
 import { MAX_CANDIDATES } from '../../src/enumerate';
+import { MAX_KEYFRAME_MOTION, MIN_KEYFRAME_SHARPNESS } from '../../../src/engine/liveVision/config';
 import { runCensus, runIdentify } from '../../src/recognize';
 import type { Mark } from '../../src/compositor';
 import { VIDEO_TRUTH, scoreContents } from './video-truth';
@@ -134,6 +135,37 @@ const MIN_INTERVAL_MS = intervalArg ? Number(intervalArg.split('=')[1]) : undefi
  * that asymmetry rewards, and it is the same shape as `--sweep-once`, which worked for the same
  * reason.
  */
+/**
+ * `--best-in-window=motion|sharp` sends the best frame seen since the last capture rather than the
+ * first eligible one.
+ *
+ * `evaluateKeyframe` is first-past-the-post: once `minIntervalMs` has elapsed it fires on the next
+ * frame that is sharp enough, still enough and has tracks. Every pacing experiment in this file
+ * changed *how often* it fires. None changed *which frame within the window* it picks, and on this
+ * clip the difference is stark: the loop captures order 18 at motion 0.108 and sharpness 60, while
+ * order 15, three frames earlier in the same window, sits at motion 0.0477 and sharpness 90. The
+ * better frame is passed over only for being earlier, and it is the one frame whose region set
+ * isolates the yellow produce bag (sixty-fifth section).
+ *
+ * This is causal and shippable, not lookahead: the device keeps the best keyframe it has seen since
+ * the last capture, and when the interval elapses it sends that buffer instead of the live frame.
+ * The cost is a picture up to `minIntervalMs` old, which a static trolley does not mind and a
+ * moving one might; the tracker handed alongside it is still current, exactly as it would be on a
+ * phone.
+ */
+const bestArg = process.argv.find((a) => a.startsWith('--best-in-window='));
+const BEST_IN_WINDOW = bestArg ? bestArg.split('=')[1] : null;
+if (BEST_IN_WINDOW !== null && BEST_IN_WINDOW !== 'motion' && BEST_IN_WINDOW !== 'sharp') {
+  throw new Error(`--best-in-window must be "motion" or "sharp", got ${BEST_IN_WINDOW}`);
+}
+/** Better by the chosen criterion, among frames the gate would accept on their own merits. */
+function preferred(a: any, b: any): any {
+  if (a === null) return b;
+  return BEST_IN_WINDOW === 'sharp'
+    ? (b.sharpness > a.sharpness ? b : a)
+    : (b.motion < a.motion ? b : a);
+}
+
 const pairsArg = process.argv.find((a) => a.startsWith('--pairs='));
 const PAIRS: Map<number, any> | null = pairsArg
   ? new Map(JSON.parse(readFileSync(join(HERE, pairsArg.split('=')[1]), 'utf8'))
@@ -259,6 +291,9 @@ const deps: SessionDeps = {
   saveThumbnail: async () => null,
 };
 
+/** The best frame seen since the last capture; see `--best-in-window`. */
+let bestPending: any = null;
+
 const session = new RecognitionSession(deps);
 let pipeline = createPipelineState();
 
@@ -291,10 +326,20 @@ for (const frame of sequence) {
   });
   pipeline = stepped.state;
 
+  // The buffer `--best-in-window` sends: frames the gate would accept but for the timer.
+  if (BEST_IN_WINDOW !== null && stepped.tracks.length > 0
+      && frame.sharpness >= MIN_KEYFRAME_SHARPNESS && frame.motion <= MAX_KEYFRAME_MOTION) {
+    bestPending = preferred(bestPending, frame);
+  }
+
   if (!stepped.keyframe.fire) continue;
   if (!session.wantsKeyframe(stepped.tracks, stepped.keyframe.fire)) continue;
+  // Fire on the buffered best when asked to, and on the live frame otherwise.
+  const shot = BEST_IN_WINDOW !== null && bestPending !== null ? bestPending : frame;
+  bestPending = null;
+  currentFrame = shot;
   let image: string;
-  try { image = (await keyframeFor(frame.order)).toString('base64'); } catch { continue; }
+  try { image = (await keyframeFor(shot.order)).toString('base64'); } catch { continue; }
 
   // Which frames the loop actually captures, and how many tracks it had going in. Worth printing
   // rather than inferring: the capture path paces differently from the old one (frames 7, 13, 19,
@@ -302,7 +347,7 @@ for (const frame of sequence) {
   // pacing problem. Frame 13 is inside the window where that bag is plainly visible, the census
   // sees it there, and "yellow" still appears nowhere in any answer. The track counts also show
   // `onCapture` seeding: one live track going into the first capture, eight into the second.
-  console.log(`  capture at t=${frame.t}s, frame-${String(frame.order + 1).padStart(3, '0')}, ` +
+  console.log(`  capture at t=${frame.t}s, frame-${String(shot.order + 1).padStart(3, '0')}, ` +
     `${stepped.tracks.length} live track(s) going in`);
   if (PATHNAME === 'shipped') {
     await session.onKeyframe(image, stepped.tracks, frame.t * 1000);
