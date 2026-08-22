@@ -2623,3 +2623,40 @@ items, which is the thing that gets worse with volume.
 None of this makes the numbers wrong. It makes them narrow, and the direction of the narrowness is
 knowable: the barcode channel and the longer session both point the same way, so the app in a shop
 is more likely to be better than these figures than worse.
+
+## Fifty-fourth: four photographs nothing had ever looked at
+
+Ten photographs, and six of them have been measured to death in this file. The other four —
+IMG_0247, IMG_0248, IMG_0250, IMG_0251 — are the supermarket shelves this trolley was filled from,
+and **nothing had ever run the census on them.** `score_kart.py` measures only detection there,
+because they carry no hand count, and `census-live.ts` skips any frame without one. They sat in
+the corpus all along as the one thing it holds that is not a cart.
+
+That makes them the negative case, and the pipeline fails it completely:
+
+| | badges | called a product | refused | units it would put in the bag |
+|---|---|---|---|---|
+| IMG_0247 | 24 | **24** | **0** | 15 |
+| IMG_0248 | 20 | **20** | **0** | 15 |
+| IMG_0250 | 43 | **43** | **0** | 41 |
+| IMG_0251 | 15 | **15** | **0** | 14 |
+
+**Not one badge refused across 102, on four photographs containing no cart at all.** IMG_0250's
+own occlusion note describes the refrigerated display as "the cart shelves", so the model is not
+distinguishing the two and being lenient, it is not distinguishing them.
+
+Rule 13 already asks for the opposite, in as many words: "Count only what is inside the cart:
+shelves, displays, other shoppers' carts, the floor and anything held in a hand are not in this
+cart and must not be counted, marked, or listed as unmarked." The instruction exists and is
+ignored.
+
+**Why this outranks the yellow produce bag.** Every residual this file has chased is a missing
+item, and a shopper can see that something is absent. This is the opposite failure: it invents
+purchases. A shopper who raises the phone above the trolley, or leaves the scan open walking down
+an aisle, gets up to 41 items added that they are not buying, silently, with confident names.
+
+Not fixed here, and the reason is on the record rather than convenient: the obvious repair is a
+stronger rule 13, and this file contains eight measurements of what happens when the census is
+given more to weigh, including one where extending rule 8 cost seven exact passes of sixty. A fix
+needs to be a gate rather than a paragraph, and it needs re-measuring against the trolley corpus,
+not just the shelves. `shelf-census.ts` reproduces it and there is a spawned task.
