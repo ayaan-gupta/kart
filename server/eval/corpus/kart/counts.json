@@ -1,5 +1,5 @@
 {
- "note": "Item counts for the trolley photographs, established by looking at each one zoomed and at every numbered proposal drawn on it. Six of the ten photographs are one trolley being loaded, so the count is knowable at each step rather than only at the end, which is what makes this set worth more for counting than any other here.",
+ "note": "Item counts for the trolley photographs, established by looking at each one zoomed and at every numbered proposal drawn on it. Six of the ten photographs are one trolley being loaded, so the count is knowable at each step rather than only at the end, which is what makes this set worth more for counting than any other here. Four of the ten photographs are store shelves rather than trolleys (IMG_0247, IMG_0248, IMG_0250, IMG_0251) and carry products: 0 with subject: \"shelf\". They are counted here so the whole folder is scored rather than the six trolleys alone.",
  "product": "one purchasable unit. Two egg cartons are two. A bag of apples is one. The trolley's own plastic disc is not a product, and neither is the shopper's tote bag.",
  "rule": "`correct` counts real products covered by at least one proposal. A proposal on a non-product does not subtract from it; it shows up as `proposed` exceeding `correct`.",
  "counted": [
@@ -124,6 +124,46 @@
      "the shopper's woven tote bag"
     ]
    }
+  },
+  {
+   "id": "IMG_0247",
+   "products": 0,
+   "correct": 0,
+   "confidence": "certain",
+   "items": [],
+   "subject": "shelf",
+   "note": "NOT A TROLLEY. A produce aisle: boxed berries, cut melon, cucumbers, grapes, bagged lettuce and broccoli on four shelves. The correct answer is an EMPTY bag: a shopper's cart is the subject this product counts, and a shelf holds hundreds of facings that are not in anyone's cart. `products: 0` is therefore the right count and not a missing label. Scored so `subjectIsCart` is guarded by the corpus's main instrument: before this entry existed census-live.ts skipped every photograph without a count, so all four shelves were silently unscored and a revert of the shelf gate would have left every photograph figure unchanged. Any line at all in the bag here is a spurious line.",
+   "non_products": []
+  },
+  {
+   "id": "IMG_0248",
+   "products": 0,
+   "correct": 0,
+   "confidence": "certain",
+   "items": [],
+   "subject": "shelf",
+   "note": "NOT A TROLLEY. The same produce aisle from a step further along, with the berry cases and cucumber boxes in view. The correct answer is an EMPTY bag: a shopper's cart is the subject this product counts, and a shelf holds hundreds of facings that are not in anyone's cart. `products: 0` is therefore the right count and not a missing label. Scored so `subjectIsCart` is guarded by the corpus's main instrument: before this entry existed census-live.ts skipped every photograph without a count, so all four shelves were silently unscored and a revert of the shelf gate would have left every photograph figure unchanged. Any line at all in the bag here is a spurious line.",
+   "non_products": []
+  },
+  {
+   "id": "IMG_0250",
+   "products": 0,
+   "correct": 0,
+   "confidence": "certain",
+   "items": [],
+   "subject": "shelf",
+   "note": "NOT A TROLLEY. An open refrigerated meat case, several shelves of packaged beef and poultry. The correct answer is an EMPTY bag: a shopper's cart is the subject this product counts, and a shelf holds hundreds of facings that are not in anyone's cart. `products: 0` is therefore the right count and not a missing label. Scored so `subjectIsCart` is guarded by the corpus's main instrument: before this entry existed census-live.ts skipped every photograph without a count, so all four shelves were silently unscored and a revert of the shelf gate would have left every photograph figure unchanged. Any line at all in the bag here is a spurious line.",
+   "non_products": []
+  },
+  {
+   "id": "IMG_0251",
+   "products": 0,
+   "correct": 0,
+   "confidence": "certain",
+   "items": [],
+   "subject": "shelf",
+   "note": "NOT A TROLLEY. A refrigerated poultry case, close in, mostly Kirkwood chicken breast family packs on yellow trays. The correct answer is an EMPTY bag: a shopper's cart is the subject this product counts, and a shelf holds hundreds of facings that are not in anyone's cart. `products: 0` is therefore the right count and not a missing label. Scored so `subjectIsCart` is guarded by the corpus's main instrument: before this entry existed census-live.ts skipped every photograph without a count, so all four shelves were silently unscored and a revert of the shelf gate would have left every photograph figure unchanged. Any line at all in the bag here is a spurious line.",
+   "non_products": []
   }
  ],
  "not_countable": [

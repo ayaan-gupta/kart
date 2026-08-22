@@ -3513,3 +3513,46 @@ prompt sets, which is as close to settled as this corpus can make it.**
 One thing this does *not* settle: whether 0.20 helps the video's other eight products end to end.
 More regions is exactly the change this file has measured as harmful five times, and the account has
 no credit to find out. The seventy-first section's shipping rule applies unchanged.
+
+## Seventy-third: four of the ten photographs were never scored at all
+
+Every "photographs" figure in this file, including the sixty-seventh's 75 of 93 measured today,
+covers **six of the ten photographs in the corpus**. `census-live.ts` iterates the region set and
+skips any frame without a hand count:
+
+    const entry = counted.get(frame.id);
+    if (!entry) continue;
+
+and `counts.json` held six entries. IMG_0247, IMG_0248, IMG_0250 and IMG_0251 have been present in
+the region set the whole time and scored by nothing.
+
+They are the four store photographs: two of a produce aisle, one of an open meat case, one close in
+on packaged poultry. Their absence is not an oversight about labelling difficulty. **Their correct
+answer is an empty bag**, because a shelf is not a cart and its hundreds of facings are in nobody's
+trolley, and that is exactly what `subjectIsCart` was built to deliver.
+
+### The hole this leaves is a silent one
+
+The shelf gate was measured when it shipped, at 10 of 10 discrimination, in `shelf-census.ts`. But
+the corpus's *main* instrument never saw these photographs, so **reverting `subjectIsCart` would
+have left every photograph figure in this file unchanged.** A guard that only one purpose-built
+harness exercises is a guard that a future change can remove without any number moving, which is
+the same failure this file has recorded three times under a different name: measured is not
+protected.
+
+### What changed
+
+`counts.json` now carries all ten, the four shelves at `products: 0` with `subject: "shelf"` and a
+note saying the zero is a real count rather than a missing label. `census-live.ts` carries an empty
+truth array for each, which is truthy, so the contents scorer runs and every line a shelf produces
+is counted spurious.
+
+Verified offline, since the OpenAI account has no credit: a synthetic replay of empty censuses over
+all ten frames now scores ten photographs where it scored six, the four shelves reading `bag 0
+against 0 real` and counting as exact. That exercises the whole scoring path without a model.
+
+**Two figures change denominator and are not comparable across this line.** "Photographs exact" was
+out of 6 per pass and is now out of 10, since a shelf answered with an empty bag is an exact answer.
+Products found is unaffected at 31 per pass, because the shelves contribute no truth items; only
+spurious lines can move. The sixty-seventh's 75 of 93 therefore still stands as the products figure,
+and its 13 of 18 exact does not.

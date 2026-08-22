@@ -110,6 +110,13 @@ const BAGUETTE: Truth = { id: 'baguette', strong: ['baguette'], weak: ['bread'] 
 const YELLOW: Truth = { id: 'yellow produce bag', strong: ['yellow'], weak: ['produce bag'] };
 
 const TRUTH: Record<string, Truth[]> = {
+  // The four shelf photographs. Their truth is genuinely empty: a shelf is not a cart, so the
+  // right bag holds nothing and every line in it is spurious. Present so `subjectIsCart` is
+  // guarded here and not only in `shelf-census.ts` (see corpus/kart/counts.json).
+  IMG_0247: [],
+  IMG_0248: [],
+  IMG_0250: [],
+  IMG_0251: [],
   IMG_0244: [CAULIFLOWER],
   IMG_0245: [CAULIFLOWER],
   IMG_0246: [CAULIFLOWER, SPROUTS],
@@ -307,6 +314,8 @@ for (const frame of frames.frames) {
   bagUnits += units; realUnits += entry.products;
   if (units === entry.products) exact += 1;
   // Contents as well as size. A right total can still be a wrong bag.
+  // `?? undefined` deliberately keeps an EMPTY array truthy for this check: a shelf's truth is
+  // empty, and skipping it would leave its spurious lines uncounted.
   const truth = TRUTH[frame.id];
   let contents: ReturnType<typeof scoreContents> | null = null;
   if (truth) {
