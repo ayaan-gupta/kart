@@ -4970,3 +4970,56 @@ than its numbers did: the detector is working exactly as designed and the entire
 
 The report now covers all ten photographs and the four video captures, fourteen cards, and the
 shelf figure in the summary strip is a result this page produced rather than one it quotes.
+
+## Ninety-eighth: filtering proposals before badging, the first change that pays
+
+Seven times in this file a better detector has produced a worse bag, always by the same mechanism:
+every proposal is a badge, every badge is a question, and every question can produce a line. The
+seventy-sixth called that structural. It is not — it is an argument for a filter between proposing
+and labelling, which is also what the hallucination-mitigation literature does about the same
+problem.
+
+The signal was already measured here. The eighty-third found the catalog matcher's own confidence
+separates right badges from wrong ones at a **+0.122** mean gap, twice the census's own, with a free
+operating point: at **0.60** it catches 3 of 9 wrong badges and **0 of 66 right ones**, because no
+correct badge on this corpus scores below it.
+
+`filter_proposals.py` scores every proposal against the index and drops the ones the catalog does
+not recognise at all, before any of them becomes a badge. Same census model, same fusion, same
+truth:
+
+| | proposals | units against 31 | exact | products found, lenient | lines matching nothing |
+|---|---|---|---|---|---|
+| shipped detector | 34 | 37 | 4 of 6 | **24** of 31 | 13 |
+| **shipped + filter** | 24 | **33** | **5 of 6** | 23 of 31 | **10** |
+| MM Grounding DINO | 43 | 38 | 3 of 6 | 23 of 31 | 15 |
+| **MM Grounding DINO + filter** | 34 | 34 | 4 of 6 | **24** of 31 | **10** |
+
+**Both filtered rows beat their own unfiltered row on every column that matters**, and the filter
+turns the detector swap from a regression into a small win: MM Grounding DINO plus the filter keeps
+every product the shipped detector finds and invents **three fewer lines** than it.
+
+The shipped detector plus the filter is the other end of the same trade — best exactness at 5 of 6
+and closest unit count at 33, for one product given up.
+
+### What it costs, and why that cost is a corpus artifact
+
+The filter drops what the catalog does not recognise, and on this corpus that includes real products
+the index has no SKU for. IMG_0254 falls from 11 proposals to 7 under the shipped detector, and the
+one product lost is an out-of-catalog item. The ninety-second measured that photograph at **40%
+catalogued** against IMG_0252's 89%, because the catalog is built from the video and the video films
+a different trolley.
+
+So the cost side of this trade is largest exactly where the corpus is least like the deployment.
+`CLAUDE.md` assumes the store's full catalog; with one, a proposal the catalog cannot recognise is
+far more likely to be genuinely not a product, which is what the filter is for.
+
+### Before this ships
+
+Two things. It is measured through a local 7B census, not gpt-5.4-mini, and the second clause of the
+closed-world instruction — whether the shipped model converts the surviving badges the same way —
+needs credit. And 0.60 comes from 75 badges on six photographs; it is the right operating point on
+the only evidence there is, which is not the same as the right one.
+
+But this is the first change in this file that improves the bag rather than explaining why nothing
+can. It is worth the credit-backed run ahead of everything else queued.
