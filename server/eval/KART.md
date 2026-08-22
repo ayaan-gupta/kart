@@ -4366,3 +4366,64 @@ perfect answer, and it is not actionable here: changing the census model is a me
 needs credit, and this file has already recorded that the larger gpt-5.4 does *worse* on the scan
 by sweeping harder. What it does close is a direction — nobody should spend another afternoon on
 `censusUserText` for this item.
+
+## Eighty-eighth: the yellow bag is reachable on the stills, and still not worth reaching
+
+The seventy-second closed the yellow produce bag on the video: no detector threshold changes the
+best yellow box on any frame the loop censuses. That was measured on the video and quietly assumed
+of the stills. It is false of the stills.
+
+Scoring the labelled boxes at each cached threshold, the line that had been MISSED at every setting:
+
+| threshold | IMG_0254, yellow produce bag |
+|---|---|
+| 0.23, as shipped | MISSED |
+| 0.20 | MISSED |
+| 0.18 | MISSED |
+| **0.15** | **isolated — box 15, 95% of it, 10% of another** |
+
+At 0.15 the detector draws a box that is almost entirely the yellow bag and almost nothing else.
+The single most stubborn item in this corpus, missed on both loaded trolleys and the video, refused
+at prompts, tiling, pacing, the gate rule and four fusion variants, **is proposable on a still after
+all.**
+
+### And the density rule that would exploit it
+
+0.15 cannot ship globally: the seventy-fourth measured 0.20 breaking both sparse trolleys, and 0.15
+is further in the same direction. But the seventy-first and seventy-fourth both ended by pointing at
+the same unbuilt idea, a threshold that depends on how much is in the frame, and the corpus splits
+cleanly: 1 to 3 proposals on the sparse trolleys at 0.23, 10 and 11 on the loaded ones.
+
+So: 0.15 for a frame the shipped pass already found 8 or more regions in, 0.23 otherwise. Sparse
+trolleys keep exactly what they have, which removes the failure that refused 0.20.
+
+| | reached, readable | isolated, readable |
+|---|---|---|
+| shipped | 19 of 20 | 11 of 20 |
+| **density-conditional** | 19 of 20 | **12 of 20** |
+
+Better on the metric it was built for. Then, end to end through the local 7B:
+
+| | units against 31 | exact | IMG_0254 alone |
+|---|---|---|---|
+| shipped regions | **37** | 4 of 6 | 19 against 15 |
+| density-conditional | 42 | 4 of 6 | **24 against 15** |
+
+**Five units worse, all of it on the photograph the rule exists to help.** The six extra proposals
+IMG_0254 gains do include the one that isolates the yellow bag, and they also include five that
+become lines for things already counted or not products at all.
+
+### What this finally settles
+
+Isolation is necessary and not sufficient, and this is the cleanest demonstration in the file.
+Every proposal is a badge, every badge is a question, and every question can produce a line. Buying
+one correct isolation with six proposals loses on any corpus where the census answers all six.
+
+The yellow produce bag is therefore closed for a second time, on different evidence and with the
+opposite finding underneath it: **not unreachable, but unaffordable.** On the video no setting
+reaches it; on the stills 0.15 does, and the bag it arrives in is worse than the bag without it.
+
+The density rule is refused with it. The caveat from the seventy-fourth stands unchanged: this is a
+local 7B that sweeps hard, and the shipped model might convert those six proposals differently. It
+is the sixth measurement in this file pointing the same way, which is the reason to believe it and
+also the reason it deserves the credit-backed re-run when there is credit.
