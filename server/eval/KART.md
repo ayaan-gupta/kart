@@ -13,6 +13,66 @@ not committed.
 Six photographs of one trolley being loaded makes the count knowable at every step rather than
 only at the end, which is why this corpus is worth more for counting than any other here.
 
+## Where this stands
+
+This file grew by appending, so it reads chronologically and its early figures are superseded.
+This section is the current state; everything below is how it was arrived at.
+
+**Scored by contents, not only by size.** A unit count cannot tell a right bag from a lucky one:
+one scan run scored a perfect nine while holding one product twice and missing two others. Both
+harnesses now assign each bag line to at most one real product and report two numbers, because
+this trolley holds two bags of apples and two breads, and resolving `apple` or `bread` inside the
+scorer would be inventing the answer it exists to check.
+
+### The six photographs, capture path, two rounds of five passes
+
+| | |
+|---|---|
+| exact on every pass, no spurious lines | **IMG_0244, IMG_0245, IMG_0246, IMG_0249** |
+| IMG_0252, 9 products | 7 of 10 passes exact by units |
+| IMG_0254, 15 products | 3 of 10 passes exact by units |
+| products found | 260 of 310 strict, **282 of 310** allowing shared words |
+| lines matching nothing real | 36 |
+| badge alignment | 218 of 250, 87.2% |
+
+### The nine-second scan, six runs, replayed so the model is held still
+
+| | |
+|---|---|
+| products found | **8 or 9 of 9 on every run**, 49 of 54 |
+| units | 9.8 against 9 |
+| lines matching nothing real | 10 |
+| the one repeatable miss | the yellow produce bag, in five runs of six |
+
+### What ships
+
+The EXIF fixes, without which `runIdentify` had never once run on a real phone photograph; the
+plural fold in `productKey`; the SKU alias; the `sharedNames` fold that merges one product reached
+under two catalog SKUs; the sharpness-conditioned produce pass; and a census model chosen by path,
+`gpt-5.4` for a captured still and `gpt-5.4-mini` for a scan frame, because the two paths fail
+differently and the corpora disagree about which model to use.
+
+### What is left, and why each fix was refused
+
+Three faults remain, and every fix available for them was tried and measured:
+
+| fault | fixes tried and refused |
+|---|---|
+| the Fuji bag counted twice | fold by name (no shared word), by SKU (absent on half the descriptions), by overlap (0.204 for the pair to merge against 0.215 for a pair that must not) |
+| the yellow produce bag unseen | five prompt sets, three detector settings, server-side enumeration; only the paired produce prompts isolate it, and enabling them costs the cauliflower and the loaf in all six runs |
+| the shopper's tote counted as a product | rule 8 extended to cover a shopper's own belongings; it moved the tote 10 of 10 to 9 of 10 and cost seven exact passes |
+
+Plus one real bug, reproduced and left unfixed on purpose: a single census guess overwrites two
+that agreed with it, which deletes the brussels sprouts from every run at three calls. The fix
+works there and does not pay at the four calls that ship. See the thirty-second section.
+
+**The recurring mechanism, which is the most useful thing this corpus taught:** every attempt to
+give the census more to see, say or weigh cost accuracy on what it was already doing. Produce
+prompts in pairs, the frame catalog offered to the unmarked channel, the session's own answers fed
+back, a larger model on the scan, a fuller non-product rule. Five separate attempts, one shape.
+
+---
+
 ## Four defects, none of which the substitute corpora could show
 
 **Frames arrived rotated.** Phone photographs carry EXIF orientation and every one of these is
