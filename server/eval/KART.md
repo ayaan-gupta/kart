@@ -1697,3 +1697,50 @@ It also separates the two models where the old scorer could not. Both sat flat a
 every pass; scored properly, gpt-5.4 ranges 21 to 23 across passes while mini ranges 21 to 23 too,
 but their totals differ by three and one gpt-5.4 round sits four badges below the other. The old
 number's perfect stability across forty passes was the gap holding it still, not the pipeline.
+
+## Thirty-first: the tote, the last of the three faults, and the rule that did not fix it
+
+Of the three named faults the tote was the only one whose fixes were not yet exhausted. The
+earlier attempt at it was reverted as a misdiagnosis: it was treated as an `isProduct` failure when
+the model was really misnaming the tan woven texture as bread. Measured again with the better
+instruments, the diagnosis changes.
+
+**The tote is counted as a product in 20 of 20 passes, both models.** Never once flagged. What the
+models call it differs sharply: mini says `baguette` on all ten, while gpt-5.4 says `purple produce
+bag`, `wafer crispbread crackers`, `wrapped cheese slices`, and **twice names it correctly** as
+`woven placemat` and `woven placemat or household mat` while still setting `isProduct` true.
+
+That last part is what makes it a rule-following gap rather than a naming failure. Rule 8's list of
+non-products is "the cart frame or mesh, a bag handle, a hand, a person, the floor, a shelf behind
+the cart, an empty region". Nothing in it covers the shopper's own belongings lying in with the
+goods, which is a real category every trolley meets: a reusable tote, a handbag, a coat, keys.
+
+### Extending the rule made things worse
+
+Rule 8 was given that category explicitly, in general terms rather than describing this tote. Two
+rounds of five passes each, on the capture model, against the two rounds already recorded:
+
+| | before | after |
+|---|---|---|
+| tote counted as a product | 10 of 10 | 9 of 10 |
+| products found, strict | 260 of 310 | **239 of 310** |
+| products found, lenient | 282 of 310 | 275 of 310 |
+| lines matching nothing real | 36 | **48** |
+| photographs exact, by units | 49 of 60 | **42 of 60** |
+
+It barely moved the thing it targeted and cost twenty-one strict identifications, twelve extra
+spurious lines and seven exact passes. Reverted.
+
+The mechanism is worth recording because it is the same one this file has hit before: **anything
+that gives the census more to weigh costs it accuracy on what it was already doing.** A longer
+non-product list is more to weigh. The produce pairs, the frame catalog offered to the unmarked,
+the session's own answers fed back, and now a fuller rule 8 have all failed the same way.
+
+One thing the measurement did clear up: a fear that naming "a reusable shopping bag" would make the
+model reject real produce bags. It did reject IMG_0252's badge 8 once, but that badge was already
+being rejected twice in a round taken before the change, so the rule did not cause it.
+
+All three named faults are now closed, each with the fixes tried and refused by number: the Fuji
+bag counted twice (name, SKU and overlap folds all refused), the yellow produce bag unseen (five
+prompt sets, three detector settings, and server-side enumeration all refused), and the tote
+counted as a product (rule 8 extended and reverted).
