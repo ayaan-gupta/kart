@@ -782,3 +782,41 @@ describe("cropToBox", () => {
     await expect(cropToBox(await solid(100, 100), { x: 3, y: 3, w: 0.1, h: 0.1 }, 0)).rejects.toThrow();
   });
 });
+
+describe("the eval-only env overrides are bounded", () => {
+  // Both live in shipped server code and both are read once at module load, so these assert the
+  // parsing rule rather than re-importing the module per case. The long edge sets an image
+  // dimension: "15360" typed for "1536" would have compositeMarks build about a hundred times the
+  // pixels, past the 60 megapixel ceiling http.ts enforces on incoming images. Out of range falls
+  // back to the default rather than clamping, because a value that far out is a typo.
+  const longEdge = (raw: string | undefined) => {
+    const value = raw?.trim() ? Number(raw.trim()) : NaN;
+    return Number.isFinite(value) && value >= 256 && value <= 4096 ? value : 1536;
+  };
+  const temperature = (raw: string | undefined) => {
+    if (!raw?.trim()) return undefined;
+    const value = Number(raw.trim());
+    return Number.isFinite(value) && value >= 0 && value <= 2 ? value : undefined;
+  };
+
+  it("takes the long edges the sweep actually used", () => {
+    expect(longEdge("1024")).toBe(1024);
+    expect(longEdge("2048")).toBe(2048);
+  });
+
+  it("falls back rather than building an enormous composite", () => {
+    expect(longEdge("15360")).toBe(1536);
+    expect(longEdge("0")).toBe(1536);
+    expect(longEdge("-2048")).toBe(1536);
+    expect(longEdge("banana")).toBe(1536);
+    expect(longEdge(undefined)).toBe(1536);
+  });
+
+  it("takes a temperature the API accepts and refuses one it does not", () => {
+    expect(temperature("0")).toBe(0);
+    expect(temperature("2")).toBe(2);
+    expect(temperature("50")).toBeUndefined();
+    expect(temperature("-1")).toBeUndefined();
+    expect(temperature(undefined)).toBeUndefined();
+  });
+});

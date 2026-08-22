@@ -40,9 +40,15 @@ const CENSUS_LONG_EDGE = (() => {
   // size. The reason is the one this corpus keeps giving: more pixels is more for the census to
   // say, and the extra things it finds are net wrong. Resolution looked like the exception, since
   // it adds legibility rather than content, and it is not one.
+  // Bounded, because this is an env var in shipped server code and it sets an image dimension.
+  // `15360` typed for `1536` would have `compositeMarks` build roughly a hundred times the pixels,
+  // past the 60 megapixel ceiling `http.ts` enforces on incoming images and a plausible way to
+  // exhaust a function's memory. The sweep that produced this number used 1024, 1536 and 2048, so
+  // 4096 is generous for anything anyone would legitimately try; outside the range it falls back
+  // rather than clamping, since a value that far out is a typo and not an intention.
   const raw = process.env.KART_CENSUS_LONG_EDGE?.trim();
   const value = raw ? Number(raw) : NaN;
-  return Number.isFinite(value) && value > 0 ? value : 1536;
+  return Number.isFinite(value) && value >= 256 && value <= 4096 ? value : 1536;
 })();
 
 function dataUrl(jpeg: Buffer): string {
@@ -196,10 +202,12 @@ function toSafeError(context: string, err: unknown): Error {
  * is a property of the measurement, not of any particular fix.
  */
 const CENSUS_TEMPERATURE = (() => {
+  // Bounded to the range the API accepts, for the same reason as the long edge above: an
+  // out-of-range value here would fail every census call with a 400 rather than fall back.
   const raw = process.env.KART_CENSUS_TEMPERATURE?.trim();
   if (!raw) return undefined;
   const value = Number(raw);
-  return Number.isFinite(value) ? value : undefined;
+  return Number.isFinite(value) && value >= 0 && value <= 2 ? value : undefined;
 })();
 
 async function requestOutputText(
