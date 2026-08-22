@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import { openai, MODELS } from "./openai.js";
-import { compositeMarks, type Box, type Mark } from "./compositor.js";
+import { compositeMarks, orientedSize, type Box, type Mark } from "./compositor.js";
 import {
   CensusResponse,
   IdentifyResponse,
@@ -11,7 +11,22 @@ import {
 } from "./schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
 
-const CENSUS_LONG_EDGE = 1024;
+/**
+ * The badged frame is sent at this long edge. 1024 was chosen before there was a photograph to
+ * check it against; a phone photograph is 5712 by 4284, so it was a 5.6x downscale.
+ *
+ * Measured on the real trolleys, six census calls per setting, against a cauliflower whose
+ * wrapper legibly reads "Mr. Lucky":
+ *
+ *   1024   2 of 6 read the brand right, the rest "Marketside", "Mia Luck", "Kart", none
+ *   1536   6 of 6                       4683 input tokens against 3531
+ *   2048   6 of 6                       5551 input tokens, and nothing 1536 does not do
+ *
+ * needsCloserLook was false on all eighteen, so a misread here is never referred to identify
+ * and reaches the shopper's bag under a brand that is not on the packet. That is what the extra
+ * thousand tokens buy.
+ */
+const CENSUS_LONG_EDGE = 1536;
 
 function dataUrl(jpeg: Buffer): string {
   return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
@@ -30,8 +45,9 @@ function dataUrl(jpeg: Buffer): string {
  */
 export async function cropToBox(image: Buffer, box: Box, padding = 0.08): Promise<Buffer> {
   const base = sharp(image).rotate(); // honour EXIF orientation, as compositeMarks does
-  const meta = await base.metadata();
-  if (!meta.width || !meta.height) throw new Error("Could not read image dimensions");
+  // Post-rotation dimensions. Against the stored pair this threw "bad extract area" outright on
+  // an orientation 6 photograph, so identify never got to look at anything the census flagged.
+  const meta = orientedSize(await base.metadata());
 
   const padX = box.w * padding;
   const padY = box.h * padding;
