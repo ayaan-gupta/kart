@@ -429,6 +429,8 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9H4C3NF3SZ;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.ayaangupta.kart;
 				PRODUCT_NAME = Kart;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kart/Kart-Bridging-Header.h";
@@ -462,6 +464,8 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9H4C3NF3SZ;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.ayaangupta.kart;
 				PRODUCT_NAME = Kart;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kart/Kart-Bridging-Header.h";

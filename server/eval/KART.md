@@ -4819,14 +4819,28 @@ What is missing is not code:
 
 | | |
 |---|---|
-| `DEVELOPMENT_TEAM` | absent from `project.pbxproj`, so Xcode cannot sign for a device |
+| `DEVELOPMENT_TEAM` | **now set** to `9H4C3NF3SZ`, with `CODE_SIGN_STYLE = Automatic` |
 | a connected iPhone | none attached; only the Mac appears under devices |
 | `NSCameraUsageDescription` | **present** |
 | `NSMotionUsageDescription` | **present** |
 
-So getting it onto a phone is a two-step setup rather than an engineering task: open
-`ios/Kart.xcworkspace`, Signing & Capabilities, automatically manage signing, choose a team, attach
-the phone, Run. The permission prompts are already correct on first launch.
+Signing is now configured rather than left as a task. The Mac already carries a valid identity,
+`Apple Development: ayaangupta2009@icloud.com`, whose certificate OU gives team `9H4C3NF3SZ`, and
+both the Debug and Release configurations of the app target now set that team with automatic signing.
+
+Building for a device with `-allowProvisioningUpdates` gets all the way to the one thing left:
+
+    error: Communication with Apple failed: Your team has no devices from which to generate a
+    provisioning profile. Connect a device to use ...
+
+That is the signing chain working and asking for hardware. Attaching an iPhone and pressing Run
+registers the device and generates the profile automatically; nothing else needs configuring, and
+the permission prompts are already correct on first launch. The simulator build is unaffected and
+still succeeds.
+
+Worth noting for anyone else who picks this up: the team id is a personal one, checked in because
+this is a single-developer repository. It should come out, into an `.xcconfig` or CI secret, before
+the project is shared.
 
 **The one thing to do while it is running there** is read the `[kart] device sharpness` line the
 scan prints every thirty frames in a Debug build. `MIN_KEYFRAME_SHARPNESS` is 12, set against
