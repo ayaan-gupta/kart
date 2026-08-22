@@ -5023,3 +5023,22 @@ the only evidence there is, which is not the same as the right one.
 
 But this is the first change in this file that improves the bag rather than explaining why nothing
 can. It is worth the credit-backed run ahead of everything else queued.
+
+### The filter's threshold, swept on the metric it will be judged by
+
+0.60 came from badge-level correctness in the eighty-third, not from the bag. Swept on the bag,
+shipped detector throughout:
+
+| matcher confidence | proposals kept | units against 31 | exact | products found | lines matching nothing |
+|---|---|---|---|---|---|
+| 0.50 | 132 of 132 | — | — | — | — |
+| off | 132 | 37 | 4 of 6 | 24 | 13 |
+| **0.60** | 95 | **33** | **5 of 6** | **23** | **10** |
+| 0.70 | 60 | 33 | 5 of 6 | 22 | 11 |
+
+**0.50 is inert** — no proposal on this corpus scores below it — and 0.70 drops more than half of them
+to find one fewer product and one more spurious line. 0.60 is the peak of the three.
+
+That is worth more than the number itself: the threshold was chosen on one measurement, whether a
+badge is named correctly, and holds on a different one, what reaches the bag. A constant fitted on
+the metric it is then judged by proves nothing; this one was not.
