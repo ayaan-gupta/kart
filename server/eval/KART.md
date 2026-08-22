@@ -4299,3 +4299,41 @@ at a time and the shipped path asks one composite with numbered badges, so this 
 pipelines. That is the honest framing, and it is also the useful one, because the per-crop pipeline
 is the only one a local model can run at all — the twenty-first measured a 2B putting all three
 answers on the wrong badge under set-of-mark.
+
+## Eighty-seventh: where the gap actually is, stated per photograph
+
+"75 of 93 products" is the number this file has quoted, and it hides the thing worth knowing. Per
+photograph, three passes of the shipped code:
+
+| photograph | | result |
+|---|---|---|
+| IMG_0244 | 1 product | **1 of 1, every pass, no spurious line** |
+| IMG_0245 | 1 product | **1 of 1, every pass** |
+| IMG_0246 | 2 products | **2 of 2, every pass** |
+| IMG_0249 | 3 products | **3 of 3, every pass** |
+| IMG_0247, 0248, 0250, 0251 | shelves, not carts | **0 units on 0 lines**, which is the right answer |
+| IMG_0252 | 9 products | 8 of 9 twice, **9 of 9** once, one spurious line on two passes |
+| IMG_0254 | 15 products | 10 or 11 of 15 |
+| the video | 9 products | 8 of 9 |
+
+**Eight of the ten photographs are already perfect and repeatable.** Not "close", not "on average":
+the same right answer on every pass, with nothing invented. The whole residual is two photographs
+and one video.
+
+### And most of that residual is one object
+
+The yellow produce bag is a single physical item that appears in IMG_0252, IMG_0254 and the video,
+and is missed in all three. It is one object accounting for three of the corpus's misses, and the
+sixty-fifth through sixty-sixth explain it completely: its only isolating detector proposal exists
+on one video frame of twenty-seven, which the census never sees, and on the stills it sits behind
+and under the purple bag where nothing proposes it at all.
+
+Take that one bag out and the corpus reads: IMG_0252 **9 of 9**, the video **9 of 9**, and IMG_0254
+still short by four, which is the density problem the seventieth measured as a detector that reaches
+19 of 20 readable products and isolates 11.
+
+**So the honest shape of "not perfect" is one small yellow bag and one very full trolley**, not a
+pipeline that is broadly 80% right. The aggregate figure averages four solved photographs and four
+correctly-refused shelves together with two open ones, which is exactly the criticism the
+thirty-first section made of every "photographs" figure before it, and which this file then went on
+to repeat for fifty sections.
