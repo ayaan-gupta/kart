@@ -28,36 +28,44 @@ scorer would be inventing the answer it exists to check.
 ### The app's scan, end to end
 
 `scan-loop.ts` runs the real frame loop in Node: the real `processFrame`, the real tracker, the
-real `RecognitionSession`, the shipped `runCensus`. Only the transport is stubbed, and the
-enumerator, replaced by this video's cached region column.
+real `RecognitionSession`, the shipped `runCensus` and the shipped `runIdentify`. Only the
+transport is stubbed, and the enumerator, replaced by this video's cached region column.
 
-| | units, nine real products | products found |
-|---|---|---|
-| as it was this morning | 19, 15, 15 (**16.3**) | five separate descriptions of the same greens |
-| as it ships now | 13, 11, 11, **9** (**11.0**) | 8, 8, 8, **9** of 9 |
+| | units, nine real products | products found | lines matching nothing real |
+|---|---|---|---|
+| as it was this morning | 19, 15, 15 (**16.3**) | 6.67 of 9 | five descriptions of one lot of greens |
+| **as it ships now** | 8, 8, 10, 9, 9, 8 (**8.67**) | **8.17 of 9** | **0.33** |
 
-One run in four is a completely correct bag: nine units on nine lines, every product found, nothing
-invented. The single repeatable miss is the yellow produce bag.
+The bag went from about seventeen lines to about nine for a nine-product trolley, and almost
+nothing in it is invented any more. The single repeatable miss is the yellow produce bag, closed in
+the sixty-second section after eleven separate attempts.
+
+### A photograph that is not a cart
+
+Four of the ten photographs are the shelves this trolley was filled from, and nothing had censused
+them until the fifty-fourth section. They produced 15, 15, 41 and 14 units of goods a shopper is
+not buying. They now produce **0 units on 0 lines**, all four.
 
 ### The six photographs, one census call each
 
-This is the per-call quality of any single capture, measured on the server's regions:
+This is the per-call quality of any single capture, on the server's regions, and it is a bound on
+the app rather than a description of it: the app composites a 1536-pixel JPEG re-encoded from a
+motion-blurred video frame, which costs five to seven points on its own.
 
 | | |
 |---|---|
-| exact on every pass, no spurious lines | **IMG_0244, IMG_0245, IMG_0246, IMG_0249** |
-| IMG_0252, 9 products | 7 of 10 passes exact |
-| IMG_0254, 15 products | 3 of 10 passes exact |
-| products found | 260 of 310 strict, **282 of 310** allowing shared words |
-| badge alignment | 218 of 250 |
+| exact on every pass | **IMG_0244, IMG_0245, IMG_0246, IMG_0249** |
+| products found | 75.0 of 93 allowing words this trolley shares between two products |
+| badge alignment | about 67 of 75 |
 
 ### What ships
 
 The EXIF fixes, without which `runIdentify` had never once run on a real phone photograph; the
-plural fold in `productKey`; the SKU alias; the `sharedNames` fold that merges one product reached
-under two catalog SKUs; the sharpness-conditioned produce pass; and **`scan.tsx` calling
-`onCapture`**, so the census is badged from the service's regions rather than from a device
-detector that returns one outline around the whole pile.
+plural fold in `productKey`; the SKU alias; the `sharedNames` fold; the sharpness-conditioned
+produce pass; **`scan.tsx` calling `onCapture`**, so the census is badged from the service's regions
+rather than from a device detector that returns one outline around the whole pile; **the cart
+question**, which stops a shelf filling a bag; and **`CensusRequest.counted`**, which tells each
+census the names the session already has so it reuses a phrasing instead of inventing a third.
 
 ### What is left
 
