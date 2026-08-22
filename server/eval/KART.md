@@ -228,8 +228,26 @@ cauliflower" alongside a badge already named "cauliflower".
 
 `applyCensus` handled both correctly given what it was told. Fixing them by matching names more
 loosely would be tuning to one 2B model's particular mistakes, which is why it is not done here.
-It is the clearest statement available of what the remaining distance is: a better model, not a
-better pipeline.
+
+A bigger model was the obvious next move and it does not help. Qwen2.5-VL-3B, asked the same
+three questions:
+
+| | 2B | 3B |
+|---|---|---|
+| isProduct, of 28 regions | **24** | 20 |
+| real products kept, of 25 | **22** | 17 |
+| non-products rejected, of 3 | 2 | **3** |
+| units in the bag, of 33 | **33** | 29 |
+| photographs exact | 4 of 6 | 4 of 6 |
+
+The 3B refuses every non-product, including the tote the 2B waves through, and pays for it by
+refusing eight real products instead of three. It also fixes the asparagus the 2B called brussels
+sprouts, and breaks two things the 2B had right. Four of six either way, on different
+photographs.
+
+So the failures are different rather than fewer, and going from two billion parameters to three
+is not the axis. The census was designed around a frontier model, and what these two establish is
+that the gap is real rather than a matter of picking a slightly larger open one.
 
 An earlier run of this reported 37 units and an over-count of four on the fullest trolley, and
 blamed the model for listing 24 products in a 16-product basket. That was a parsing fault in the
