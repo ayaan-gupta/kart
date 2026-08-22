@@ -63,7 +63,17 @@ the choice is among 562 products.
 |---|---|---|---|
 | frozen, single encoder | 8/13 | 8/8 | 5/5 |
 | frozen, two-encoder ensemble | 7/13 | 7/7 | 5/5 |
-| **fine-tuned, one epoch** | **10/13** | **10/10** | **5/5** |
+| **fine-tuned, single encoder** | **10/13** | **10/10** | **5/5** |
+| fine-tuned, two-encoder ensemble | 10/13 | 10/10 | 5/5 |
+
+The last row is the point of the last two. The ensemble buys nothing once the encoder is
+fine-tuned: identical decisions on all nineteen boxes, the same +0.05 separation, the same ten
+named. Top-1 is 92.3% in every configuration.
+
+That has a consequence for what to deploy. The shipped default is the frozen two-encoder
+ensemble. The best configuration measured here is a single fine-tuned encoder, which matches
+ensemble-plus-fine-tune exactly while running half the encoders. Whatever the ensemble adds on
+frozen features, fine-tuning already supplies.
 
 Top-1 is 92.3% in all three. Fine-tuning does not rank better here, it calibrates better, and
 calibration is the half that decides what the shopper sees. Frozen, a box with no answer scored
