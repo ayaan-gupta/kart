@@ -453,15 +453,44 @@ Fifteen more regions for no change in counting at all, and never the tomatoes. A
 detector proposes no box at that location at any threshold, so this is not a threshold that is
 set too high; the phrase is simply gone.
 
-**Split the prompt.** Running the 28 nouns as five passes of six, or seven of four, adds exactly
-zero regions on all six photographs. Four companions already cost the tomatoes their 0.32. Pairs
-would recover it, at fourteen forward passes per keyframe against the two the service runs now,
-which is not a trade worth making for one object on one photograph.
+**Split the prompt.** Five passes of six, or seven of four, add exactly zero regions on all six
+photographs: four companions already cost the tomatoes their 0.32. **Pairs recover it.** The six
+trolley photographs gain exactly one region between them and it is the tomatoes, offered by
+"bananas. apples." at 0.34, with the four sparse trolleys gaining nothing at all. That last part
+is what holding PRODUCE_THRESHOLD at 0.30 buys, and it is the difference between this and the
+0.12 sweep.
 
-So the honest statement is that the tenth and ninth items of that trolley are not reachable from
-that single frame by this detector, and the pipeline's answer to a trolley that is hiding things
-is the one it already gives: `occlusion.severity` "some", with a reason naming the overlapping
-bags, on every run. The scan of that same trolley counts it exactly. The two it misses are the yellow
+So the prompt is now `PRODUCE_PROMPTS`, the same nouns two to a prompt, and the tenth item is
+reachable after all.
+
+| | one prompt of 28 | pairs |
+|---|---|---|
+| ten trolley photographs, mean absolute count error | 1.5 items | **1.2** |
+| the five where the count is certain | 0.8 items | **0.4** |
+| IMG_0252, regions proposed | 8 | **10**, for 10 real products |
+| IMG_0252, census bag over three passes | 8, 9, 9 | **9, 9, 10** |
+| stills, units in the bag | 29, 31, 27 | 27, 29, **32** |
+| stills, photographs exact | 4, 5, 4 | 4, 4, **5** |
+
+And the corpus that rejected the 0.12 sweep, on the same 24 photographs both ways:
+
+| | one prompt of 28 | pairs |
+|---|---|---|
+| items counted correctly | 38 of 43 | **38 of 43** |
+| mean absolute count error | 0.5 items | **0.5 items** |
+| proposals nested inside another | 8 of 289, 2.8% | 27 of 303, 8.9% |
+| seconds over the corpus | 97.6 | 426.2 |
+
+Counting is untouched there, which is the thing the sweep destroyed and the reason it was
+refused. Two costs are real and are not hidden: nesting triples, which is the same shattering in
+miniature, and the pass costs fourteen forward passes where it cost one. `app.py` carries both
+numbers at the loop, and setting it back to `(PRODUCE_PROMPT,)` undoes both at the cost of the
+tomatoes.
+
+The ninth item, the yellow produce bag, is still not read. On the pass where the bag reaches ten
+it arrives as a badge the catalog matched to an Indian shelf product, "tata agni truffle", so the
+count is right and the name is not. The trolley is also still correctly reported as occluded
+every time, and the scan of it counts exactly ten. The two it misses are the yellow
 produce bag and the tomatoes on the vine. Looking at the photograph at full size, the yellow bag
 shows one corner from under the baguette and the tomatoes show as red through the purple bag's
 plastic, so this is close to what the frame contains rather than a defect in reading it. The

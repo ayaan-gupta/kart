@@ -54,7 +54,7 @@ from regions import (  # noqa: E402
     NESTED_CONTAINMENT,
     NESTED_MAX_RATIO,
     NMS_IOU,
-    PRODUCE_PROMPT,
+    PRODUCE_PROMPTS,
     PRODUCE_THRESHOLD,
     SIMPLIFY_EPSILON,
     dedupe,
@@ -188,7 +188,30 @@ class Enumerator:
         #
         # The cost is a second DINO forward pass per keyframe. SAM still runs once, over the
         # merged set.
-        produce_boxes, produce_scores = ground(PRODUCE_PROMPT, PRODUCE_THRESHOLD)
+        # Two nouns to a prompt, not all twenty-eight in one, because the paragraph above stops
+        # being true at the boundary: PRODUCE_PROMPT is itself 28 phrases carrying a threshold
+        # chosen for a short one. eval/dilution.py measures what that gives away, on regions
+        # whose contents are known. A cauliflower scores 0.66 with the noun alone and 0.23 with
+        # 27 companions; the tomatoes on the ten-product trolley score 0.32 and 0.15. At one or
+        # two phrases five of six subjects clear 0.30, at 28 two do, and on that trolley the
+        # single prompt proposes nothing at all.
+        #
+        # Measured both ways on both counting corpora. The ten trolley photographs: mean absolute
+        # count error 1.5 items to 1.2, and 0.8 to 0.4 on the five where the count is certain,
+        # with the trolley that had never exceeded nine of ten reaching ten. The 24 cart
+        # photographs, which is where the 0.12 threshold sweep was rejected for shattering net
+        # bags: 38 of 43 counted correctly either way, mean absolute error 0.5 either way, so the
+        # thing that sweep broke is untouched. Holding PRODUCE_THRESHOLD at 0.30 is why.
+        #
+        # It is not free. Proposals sitting inside another proposal go from 8 of 289 to 27 of
+        # 303 on the cart corpus, which is the same shattering in miniature, and the pass costs
+        # fourteen forward passes where it cost one. Set this back to `(PRODUCE_PROMPT,)` to undo
+        # both, at the cost of the tomatoes.
+        produce_boxes, produce_scores = [], []
+        for prompt in PRODUCE_PROMPTS:
+            found, found_scores = ground(prompt, PRODUCE_THRESHOLD)
+            produce_boxes += found
+            produce_scores += found_scores
         for i in merge_produce(boxes, produce_boxes, produce_scores):
             if len(boxes) >= MAX_INSTANCES:
                 break
