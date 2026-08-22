@@ -81,8 +81,21 @@ twenty-second section, keys on an empty marks array. `onKeyframe` returns early 
 any screen as things stand. It is correct and tested, and nothing routes to it.
 
 Fixing this is wiring, not tuning: either point a screen at `onCapture`, or give `onKeyframe` the
-server's regions. Both change what the shopper does with the camera, which is a product decision
-rather than an accuracy one, so it is reported here rather than made.
+server's regions.
+
+I first called this a product decision on the grounds that `onCapture` drives the tracker from
+server regions, so outlines would refresh only on census calls, roughly every two seconds, instead
+of every frame. **Running the detector and looking at what it draws says that reasoning was
+wrong.** Its single instance on frame 016 is one outline around the entire pile of goods, the
+loaf, the Fuji bag, the yellow bag and the asparagus all inside it. There are no per-item outlines
+today to lose. The choice is one blob at thirty frames a second against ten accurate item outlines
+every couple of seconds, which is not a trade.
+
+What still stops it being a ten-line change is that `processFrame` feeds the tracker from device
+instances on every frame, so a capture's server regions would be overwritten by the next frame's
+blob. Doing it properly means the frame loop stops feeding the tracker, which is a restructure of
+`scan.tsx` that cannot be verified without running the app. That is why it is reported rather than
+made, and the reason is now "I cannot test it", not "it costs liveness".
 
 ### What ships
 
