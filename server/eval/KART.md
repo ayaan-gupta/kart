@@ -4427,3 +4427,52 @@ The density rule is refused with it. The caveat from the seventy-fourth stands u
 local 7B that sweeps hard, and the shipped model might convert those six proposals differently. It
 is the sixth measurement in this file pointing the same way, which is the reason to believe it and
 also the reason it deserves the credit-backed re-run when there is credit.
+
+## Eighty-ninth: the first clean box on the yellow bag, and the question it opens
+
+The eighty-eighth refused a density rule that swaps a dense frame's whole region set to threshold
+0.15, because five of the six proposals it gains are ground the shipped pass already covers, and
+each becomes a line. The rule was wrong; the observation under it was not. **Keep the shipped set
+and add only what is genuinely new.**
+
+`augment_regions.py` adds a 0.15 proposal to a dense frame only when it overlaps nothing already
+there: no IoU above 0.30 with any shipped box, and not sitting inside one past 0.60. Sparse frames
+are untouched, which is what the seventy-fourth's failure requires.
+
+| | proposals, the two loaded trolleys | reached, readable | isolated, readable |
+|---|---|---|---|
+| shipped | 10, 11 | 19 of 20 | 11 of 20 |
+| whole set at 0.15 | 12, 17 | 19 of 20 | 12 of 20 |
+| **new ground only** | **12, 13** | **20 of 20** | **12 of 20** |
+
+**Every labelled item on both loaded trolleys is now reached**, for two extra proposals each rather
+than six, and IMG_0254's yellow produce bag is *isolated*: 95% of it, 10% of anything else. That is
+the first clean box any detector setting has ever put on this item on a still.
+
+### The census does not convert it, and that is the open question
+
+End to end through the local 7B, IMG_0254 goes from 19 units to 21 against 15 real, and the two new
+badges are named `eggs in carton`, a duplicate of a carton already counted, and **`purple cabbage`**
+— which is the box on the yellow bag.
+
+So the detector delivered and the naming failed. On this model, at least. And that matters more
+than the unit count, because **the shipped model has never been asked this question**: the
+twenty-sixth measured the word "yellow" appearing 0 times in 366 census entries across eighteen scan
+runs, and the reason was always that no badge ever landed on it. Now one does.
+
+**This is the one experiment in this file whose input did not exist before**, and it is cheap: one
+census on IMG_0254 with `--frames=frames-augment15.json`. Every other refusal here re-ran a question
+the corpus had already answered in some form. This one has not been asked.
+
+    server/.venv/bin/python server/eval/augment_regions.py
+    node --env-file=server/.env.local server/node_modules/.bin/tsx \
+      server/eval/pipeline/census-live.ts --frames=frames-augment15.json --repeat=3
+
+Two outcomes and both are worth having. If gpt-5.4-mini names that box anything matching "yellow"
+or "produce bag", the corpus's most stubborn item is solved on the stills and the rule to ship is
+narrow and measured. If it answers `purple cabbage` too, then the item is closed for the third and
+final time on the strongest possible evidence: a clean, isolated, uncontaminated crop of the object,
+handed to the shipped model, and still not named.
+
+**I could not run it. The account has no credit** (`credit-probe.ts` confirms it), and this is the
+measurement to spend the first credit on.
