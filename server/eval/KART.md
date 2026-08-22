@@ -5180,3 +5180,24 @@ proposals the catalog cannot account for, worth most on frames full of goods the
 know, and almost silent everywhere else.** That is still worth having — an unrecognised proposal is
 a question with no good answer — but it is not the recognition improvement the corpus figure makes
 it look like.
+
+### It is not a second line of defence behind the shelf gate
+
+A tempting secondary claim for the filter: a shelf's hundreds of facings are not in this shopper's
+cart, so a catalog filter should thin them heavily and limit the damage if `subjectIsCart` ever let
+one through. Measured, it does not:
+
+| | proposals dropped at 0.60 |
+|---|---|
+| four shelves | 30 of 102 (**29%**) |
+| six trolleys | 7 of 30 (**23%**) |
+
+**Near enough the same rate.** The filter is not discriminating between a shelf and a cart at all;
+it removes proposals the index cannot place, and a shelf in the same store is about as placeable as
+a trolley from it. The catalog holds 310 general grocery products, not only this trolley's eight.
+
+So the claim is withdrawn before it was made anywhere but here. `subjectIsCart` remains the only
+thing standing between a shelf photograph and a bag full of goods nobody is buying, and the filter
+would reduce that failure by roughly a third rather than prevent it.
+
+Worth the ten seconds it took: the hypothesis was plausible, cheap to check, and wrong.
