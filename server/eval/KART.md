@@ -405,14 +405,15 @@ The sixteen-product trolley reached sixteen exactly, once. It moves between elev
 which is the unmarked sweep being more or less complete on a given call rather than anything
 structural.
 
-The ten-product trolley does not move: eight or nine, never ten, and `unmarkedItems` is empty on
-it in every single run at every effort and every resolution. Reasoning effort was re-tested once
+The ten-product trolley did not move under any of this: eight or nine, never ten, and
+`unmarkedItems` empty on it in every run at every effort and every resolution. What moved it was
+detection rather than the census, and the section below is how. Reasoning effort was re-tested once
 the rule and the frame were both fixed, because "does effort help" is a different question when
 the question put to the model is a different question, and the answer did not change: none, low
 and medium give 0, 0, 0 on this trolley and 1, 0, 2 on the fullest one. `effort: "none"` is not
 what limits the sweep, either before the fixes or after them.
 
-### Why the tenth item is out of reach from that frame
+### What the tenth item cost, and what it took to reach it
 
 The two it misses are the yellow produce bag and the tomatoes on the vine, and the census is not
 the only thing that never sees them: the detector proposes no box for either. `why_missing.py`
