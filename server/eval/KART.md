@@ -3351,3 +3351,64 @@ and read the `occlusion flagged N/3` lines. The result that would matter: IMG_02
 pass and the four sparse photographs flagged on none. If IMG_0254 is *not* flagged, then part of
 what this file has been counting as a recognition failure is a reporting failure instead, and the
 fix is in the prompt rather than the detector.
+
+## Seventieth: box-level truth at last, and what the detector actually reaches on IMG_0254
+
+Every recall claim in this file has been indirect: a product is "found" if a name reaches the bag.
+That cannot separate a detector that never proposed an item from a census that saw it and called it
+something else. IMG_0254 loses more products than the rest of the corpus together and deserved the
+direct measurement, which needs box-level truth this corpus has never had.
+
+`corpus/kart/boxes-IMG_0254.json` is that: fifteen hand-labelled boxes, three marked `judged`
+because `counts.json` already records two of the fifteen as "judged rather than read" under the
+shopper's tote and a third as "a bagged green, label not legible". `score_boxes.py` scores against
+it and needs **no model and no API credit**, which is why it exists.
+
+It reports two things deliberately, and the gap between them is the finding:
+
+- **reached** — some proposal covers most of the item
+- **isolated** — some proposal covers most of it *without* also swallowing another labelled item
+
+| | with judged | readable only |
+|---|---|---|
+| reached | 13 of 15 | **11 of 12** |
+| isolated | 6 of 15 | **5 of 12** |
+
+**The detector reaches almost everything and isolates less than half of it.** Eleven of twelve
+readable products have a proposal over them, so this photograph's residual is not a detector that
+cannot see. Six of those eleven arrive only inside a box that also contains a different product,
+and a badge drawn on such a box asks the census about the pair. That is the yellow bag's problem
+from the sixty-fifth section, found again on a still, and it is the structural reason IMG_0254
+underperforms.
+
+The two genuine misses are the first Muenster pack, whose twin *is* isolated, and the yellow
+produce bag, which no proposal reaches on this photograph either.
+
+### It sharpens the sixty-eighth section rather than settling it
+
+The second Muenster is missing from the bag on nearly every pass, and only one of the two packs is
+proposed. But the model reported `count: 2` under `::muenster cheese`, so it perceived both, and
+the brandless-key gate orphaned that count. **The evidence was real and it was lost**, which means
+the intent of that refused fix was right even though shipping it measured 6.5 products worse. The
+refusal stands on its numbers; this makes it worth revisiting once the clamp-release interaction is
+understood, rather than closed.
+
+### A correction, and a trap worth naming
+
+Every photograph in this corpus is stored 5712x4284 **landscape** with EXIF orientation 6, while
+every box in `frames-named.json` is normalised against the **corrected 4284x5712 portrait**. A
+reader that opens the JPEG without applying EXIF gets boxes a quarter turn from their objects.
+
+This file made that mistake twice today. The first labelling pass placed all fifteen boxes in
+landscape space and `score_boxes.py` duly reported the egg cartons, the baguette, the loaf and the
+cauliflower as MISSED, items the census names correctly on every pass. A contradiction that plain
+is a broken instrument, not a discovery. Earlier the same day a contact sheet of IMG_0252's badges
+was rendered the same wrong way and read as evidence that no badge covers the yellow bag; that
+reading is withdrawn, since the crops were a quarter turn out. **Crops of a dense trolley look like
+groceries in any orientation, which is exactly why they were believed.** What settled it was
+rendering the detector's own proposals and seeing them snap onto objects only after
+`ImageOps.exif_transpose`. The label file records the space it is in, in its own `space` field, so
+the next reader does not have to rediscover this.
+
+The video work is unaffected: its frames are 1080x1920 with no EXIF tag, stored exactly as the
+frame records claim, so the sixty-fifth and sixty-sixth sections stand as measured.

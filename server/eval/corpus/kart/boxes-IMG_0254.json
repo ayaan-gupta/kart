@@ -1,0 +1,158 @@
+{
+ "image": "IMG_0254",
+ "space": "Normalised against the EXIF-CORRECTED image, 4284x5712 portrait. Every photograph in this corpus is stored 5712x4284 landscape with EXIF orientation 6, and every box in `.cache/kart/frames-named.json` is in the corrected portrait space (its width/height fields read 1000x1333). A reader that opens the JPEG without applying EXIF gets the landscape pixels and every box lands a quarter turn away. That mistake was made once while producing this file and caught by rendering the detector's own proposals, which aligned only after `ImageOps.exif_transpose`.",
+ "provenance": "Hand-labelled by eye against a normalised grid over the corrected image, then verified by rendering the boxes back. Placed to support a detector-RECALL metric (does any proposal reach this item), not a localisation metric: the boxes are deliberately generous, several overlap, and the baguette's is loose because the loaf lies diagonally and these are axis-aligned. Not suitable for scoring box tightness.",
+ "judged_note": "Three items carry judged=true. corpus/kart/counts.json records that on this photograph 'two of the fifteen are judged rather than read', because a shopper's woven tote lies across the middle; the Fuji and yellow produce bags are those two. Broccoli is a third, listed there as 'a bagged green, label not legible'. Report recall both with and without them.",
+ "items": [
+  {
+   "name": "egg carton",
+   "box": {
+    "x": 0.15,
+    "y": 0.09,
+    "w": 0.23,
+    "h": 0.21
+   },
+   "judged": false
+  },
+  {
+   "name": "egg carton (second)",
+   "box": {
+    "x": 0.42,
+    "y": 0.05,
+    "w": 0.3,
+    "h": 0.21
+   },
+   "judged": false
+  },
+  {
+   "name": "Muenster cheese",
+   "box": {
+    "x": 0.385,
+    "y": 0.115,
+    "w": 0.18,
+    "h": 0.18
+   },
+   "judged": false
+  },
+  {
+   "name": "Muenster cheese (second)",
+   "box": {
+    "x": 0.555,
+    "y": 0.165,
+    "w": 0.17,
+    "h": 0.155
+   },
+   "judged": false
+  },
+  {
+   "name": "beef pack",
+   "box": {
+    "x": 0.248,
+    "y": 0.17,
+    "w": 0.175,
+    "h": 0.15
+   },
+   "judged": false
+  },
+  {
+   "name": "baguette",
+   "box": {
+    "x": 0.13,
+    "y": 0.32,
+    "w": 0.62,
+    "h": 0.18
+   },
+   "judged": false
+  },
+  {
+   "name": "jar",
+   "box": {
+    "x": 0.655,
+    "y": 0.348,
+    "w": 0.12,
+    "h": 0.082
+   },
+   "judged": false
+  },
+  {
+   "name": "Granny Smith apple bag",
+   "box": {
+    "x": 0.5,
+    "y": 0.4,
+    "w": 0.3,
+    "h": 0.22
+   },
+   "judged": false
+  },
+  {
+   "name": "Seedtastic bread",
+   "box": {
+    "x": 0.078,
+    "y": 0.55,
+    "w": 0.225,
+    "h": 0.235
+   },
+   "judged": false
+  },
+  {
+   "name": "asparagus bag",
+   "box": {
+    "x": 0.258,
+    "y": 0.598,
+    "w": 0.242,
+    "h": 0.182
+   },
+   "judged": false
+  },
+  {
+   "name": "Alaskan sockeye salmon",
+   "box": {
+    "x": 0.348,
+    "y": 0.528,
+    "w": 0.252,
+    "h": 0.192
+   },
+   "judged": false
+  },
+  {
+   "name": "Mr Lucky cauliflower",
+   "box": {
+    "x": 0.558,
+    "y": 0.568,
+    "w": 0.242,
+    "h": 0.212
+   },
+   "judged": false
+  },
+  {
+   "name": "Fuji apple bag",
+   "box": {
+    "x": 0.378,
+    "y": 0.378,
+    "w": 0.142,
+    "h": 0.122
+   },
+   "judged": true
+  },
+  {
+   "name": "yellow produce bag",
+   "box": {
+    "x": 0.128,
+    "y": 0.458,
+    "w": 0.115,
+    "h": 0.095
+   },
+   "judged": true
+  },
+  {
+   "name": "broccoli",
+   "box": {
+    "x": 0.44,
+    "y": 0.648,
+    "w": 0.185,
+    "h": 0.14
+   },
+   "judged": true
+  }
+ ]
+}
