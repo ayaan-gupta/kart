@@ -180,7 +180,21 @@ Checked on IMG_0254. Of the seven refused produce boxes, six sit inside a kept b
 So the containers are single-product boxes by every test available, and the refusals are correct
 by every one of them. What is actually happening is that one grocery box covers two adjacent
 products whose own boxes overlap rather than nest, so no containment count can see the second.
-There is no safe rule here, and this is where the corpus stops being able to answer.
+
+And raising `PRODUCE_INSIDE` is not an escape either, which is worth stating because it is the
+obvious thing to reach for. Every refused box is inside its container at 0.99 or 1.00:
+
+    broccoli 0.50 at 1.00    broccoli 0.34 at 1.00    bro 0.30 at 0.99
+    broccoli 0.47 at 1.00    broccoli 0.35 at 1.00    cheese 0.37 at 0.99
+    a pack   0.41 at 1.00
+
+The threshold is 0.7. Moving it to 0.8, 0.9 or 0.95 admits none of them, because they are not
+marginally inside, they are wholly inside. Only removing the containment test admits them, and
+that is measured two sections up: with an overlap test alone the second pass took 7 proposals to
+19, splitting one clementine net into seven fruits and one onion net into four.
+
+So there is no setting of this knob that helps, only its absence, and its absence is worse. This
+is where the corpus stops being able to answer.
 
 Resolution is not it either, and this is the one that settles it. The detector receives a 1333
 thumbnail; the census was raised to 1536 today because it could not read labels, and the detector
