@@ -26,7 +26,24 @@ import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "./
  * and reaches the shopper's bag under a brand that is not on the packet. That is what the extra
  * thousand tokens buy.
  */
-const CENSUS_LONG_EDGE = 1536;
+const CENSUS_LONG_EDGE = (() => {
+  // `KART_CENSUS_LONG_EDGE` overrides it for the eval harnesses only, and the answer is recorded
+  // here so the question is not reopened. 2048 was swept once before, but against the old rule 12,
+  // when every resolution returned an empty unmarkedItems and the sweep could only report zeroes.
+  // Asked again on a pipeline that can answer, over two rounds of five passes on the six trolley
+  // photographs, 2048 against 1536:
+  //   photographs exact          49 of 60  ->  41 of 60
+  //   products found, lenient   282 of 310 -> 276 of 310
+  //   lines matching nothing     36        ->  46
+  //   badge alignment           218 of 250 -> 210 of 250
+  // Worse on everything except strict identifications, which move 260 to 262 and are noise at that
+  // size. The reason is the one this corpus keeps giving: more pixels is more for the census to
+  // say, and the extra things it finds are net wrong. Resolution looked like the exception, since
+  // it adds legibility rather than content, and it is not one.
+  const raw = process.env.KART_CENSUS_LONG_EDGE?.trim();
+  const value = raw ? Number(raw) : NaN;
+  return Number.isFinite(value) && value > 0 ? value : 1536;
+})();
 
 function dataUrl(jpeg: Buffer): string {
   return `data:image/jpeg;base64,${jpeg.toString("base64")}`;

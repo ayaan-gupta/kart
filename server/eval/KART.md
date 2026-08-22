@@ -1862,3 +1862,38 @@ understood, and the protection is written and known to work. What this corpus ca
 case where it matters: `MAX_CENSUS_CALLS_PER_SESSION` is 8 and this nine-second video only ever
 reaches 4, so a late misread never has a long-established identity to destroy here. A longer scan
 would settle it, and that is a capture question rather than a code one.
+
+## Thirty-third: resolution looked like the exception, and is not
+
+Every refused fix in this file failed the same way: giving the census more to see, say or weigh
+cost it accuracy on what it was already doing. Resolution seemed like it should be different. It
+adds no content at all, only legibility, and the three remaining faults are a small bag, an
+unreadable label, and two adjacent halves of one bag — exactly what more pixels should help.
+
+`CENSUS_LONG_EDGE` is 1536. 2048 had been swept once before, but against the old rule 12, when
+`unmarkedItems` came back empty at every resolution and the sweep could only report zeroes. The
+rule has since been rewritten and that channel is now the main one, so the number was worth asking
+again on a pipeline that can answer it. Two rounds of five passes on the six photographs, capture
+model, contents-scored:
+
+| | 1536, as shipped | 2048 |
+|---|---|---|
+| photographs exact, by units | **49 of 60** | 41 of 60 |
+| products found, strict | 260 of 310 | 262 of 310 |
+| products found, lenient | **282 of 310** | 276 of 310 |
+| lines matching nothing real | **36** | 46 |
+| badge alignment | **218 of 250** | 210 of 250 |
+
+Worse on four measures of five, and the exception moves two counts, which is noise at that size.
+Eight fewer exact passes and ten more spurious lines.
+
+**The mechanism holds even here.** More pixels is more for the census to say, and what it finds
+with them is net wrong: the spurious lines rise faster than the real products do. Resolution
+looked like the one lever that adds legibility without adding load, and the corpus says there is
+no such lever for this call. `KART_CENSUS_LONG_EDGE` stays as an eval-only override defaulting to
+1536, carrying the measurement in its docstring.
+
+That makes six independent attempts sharing one shape: produce prompts in pairs, the frame catalog
+offered to the unmarked channel, the session's own answers fed back, a larger model on the scan, a
+fuller non-product rule, and now a larger image. Whatever is limiting this census, it is not what
+it can see.
