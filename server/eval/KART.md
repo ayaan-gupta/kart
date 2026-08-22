@@ -4750,3 +4750,39 @@ demonstrated to be fine, which is worth more than another refusal.
 **Two overclaims in two sections is the pattern to notice.** Both came from a real result read one
 step past what it showed, and both were caught by asking the next question rather than by rereading
 the last answer.
+
+### Correcting one sentence: it is proposed alone, on frames nothing looks at
+
+The ninety-fourth closed with "nothing proposes the yellow produce bag alone". That is false as
+written, and the reference crops in `build_yellow_reference.py` are the proof: fourteen of them,
+each a clean view of the bag, each cut from a detector box.
+
+Precisely, at 30fps and threshold 0.15, a box at or above 28% yellow exists on **twenty frames**:
+
+    108 114 123 126 129 132 135 138 141 144 147 150 153 156 159 162 168 171 174 177
+    t = 3.6s ................................................................ 5.9s
+
+Against what the pipeline actually looks at:
+
+| | frames censused | inside the clean window |
+|---|---|---|
+| shipped, captures at t=2,4,6,8s | 60, **120**, 180, 240 | one, frame 120 |
+| `--best-in-window=motion` (sixty-sixth) | 30, 90, **150**, 190 | one, frame 150 |
+
+**Frame 120 is inside the window and is not one of the twenty.** Its neighbours 114 and 123 both
+carry a clean box and it does not: the shipped capture misses by a single sampled frame. Frame 150,
+which the best-in-window gate takes, *is* one of the twenty.
+
+So the accurate statement is narrower and more useful than the one it replaces: **the yellow produce
+bag is proposed alone, on about eight per cent of the video's frames, at a detection threshold and a
+frame rate the pipeline does not run.** Reaching it needs 30fps detection at 0.15, roughly ten times
+the detection the design is built around and the reason `score_video.py` samples at 3fps at all.
+
+The three changes that would line up — the gate rule from the sixty-sixth, threshold 0.15, and the
+catalog entry from the ninety-third — have each been measured harmful alone, at 6.5 of 9, five units,
+and rank 3 respectively. Stacking three measured-harmful changes to recover one product is not a
+trade this file has ever seen pay, and it is the same arithmetic the eighty-eighth ran and lost.
+
+What has changed is that every one of those layers is now understood and none of them is a mystery.
+The item is reachable in principle at ten times the detection budget, and that is a product decision
+about cost, not an open question about recognition.
