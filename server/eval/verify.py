@@ -49,6 +49,17 @@ def main():
                     help="also run the checks that call OpenAI and cost money")
     args = ap.parse_args()
 
+    # One blank-image census before the expensive ones, so an empty account costs a single call
+    # rather than a whole run of failures that then have to be told apart from real zeros.
+    credit_ok = True
+    if args.model:
+        probe = subprocess.run(
+            ["node", f"--env-file={ROOT}/server/.env.local", TSX,
+             str(HERE / "pipeline/credit-probe.ts")],
+            cwd=str(HERE), capture_output=True, text=True)
+        credit_ok = "CREDIT OK" in probe.stdout
+        print(f"\n=== credit probe\n{probe.stdout.strip() or probe.stderr.strip()[:200]}")
+
     results = []
     for req, name, argv, needs_model in CHECKS:
         if argv is None:
@@ -56,6 +67,9 @@ def main():
             continue
         if needs_model and not args.model:
             results.append((req, name, "SKIPPED", "needs --model"))
+            continue
+        if needs_model and not credit_ok:
+            results.append((req, name, "SKIPPED", "no OpenAI credit"))
             continue
         print(f"\n=== {req}\n--- {name}\n", flush=True)
         env = dict(os.environ)
