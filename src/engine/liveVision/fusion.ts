@@ -43,6 +43,14 @@ export interface CensusMark {
    * identifying real products.
    */
   isProduct?: boolean;
+  /**
+   * Which catalog candidate this is, copied exactly from the shortlist the request carried, or
+   * null when no catalog was consulted or nothing it offered fits.
+   *
+   * Optional so a server that predates the field, or a deployment with no catalog, behaves
+   * exactly as before.
+   */
+  catalogSku?: string | null;
 }
 
 export interface CensusResult {
@@ -113,6 +121,24 @@ export function createFusionState(): FusionState {
  * `productKey` in `server/src/schemas.ts`; the client and the server both compute it and the
  * in-view clamp silently stops matching if they ever diverge.
  */
+/**
+ * The key a mark counts under.
+ *
+ * A catalog SKU when the model picked one, and the model's own words otherwise. The name is what
+ * drifts: measured across the four census calls of a nine-second scan, one trolley's contents
+ * came back as "oreo" and "oreo cookies", as "bread" and "seedstastic bread" and "seedblossom
+ * bread", and each spelling became its own line in the bag, turning ten products into fifteen
+ * units. A SKU copied out of a shortlist cannot drift, and the request already carries the
+ * shortlist for exactly this reason.
+ *
+ * `sku:` rather than a bare SKU so the three key spaces stay tellable apart: `upc:` is a scanned
+ * barcode, `sku:` is a catalog match, and `brand::name` is the model's own words.
+ */
+export function markKey(mark: { name: string; brand: string | null; catalogSku?: string | null }): string {
+  const sku = mark.catalogSku?.trim();
+  return sku ? `sku:${sku}` : productKey(mark.name, mark.brand);
+}
+
 export function productKey(name: string, brand: string | null): string {
   const norm = (s: string) =>
     s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
@@ -314,7 +340,7 @@ export function applyCensus(
 
     // A resolved barcode is ground truth. Never let a later VLM guess overwrite one.
     if (existing?.source === 'barcode') {
-      const candidateKey = productKey(mark.name, mark.brand);
+      const candidateKey = markKey(mark);
       const pending = working.pendingAlias[trackId];
       if (pending && pending.key === candidateKey) {
         // The same guess has now shown up on this barcoded track in two distinct censuses.
@@ -342,7 +368,7 @@ export function applyCensus(
     // fresh identify (`fromIdentify`): a second closer look supersedes the first without
     // needing corroboration.
     if (existing?.source === 'vlm' && existing.verifiedByIdentify && !fromIdentify) {
-      const candidateKey = productKey(mark.name, mark.brand);
+      const candidateKey = markKey(mark);
       const existingKey = resolveKey(working, existing.key);
       if (resolveKey(working, candidateKey) === existingKey) continue; // already the same product
 
@@ -364,7 +390,7 @@ export function applyCensus(
     }
 
     working.identities[trackId] = {
-      key: resolveKey(working, productKey(mark.name, mark.brand)),
+      key: resolveKey(working, markKey(mark)),
       name: mark.name,
       brand: mark.brand,
       size: mark.size,

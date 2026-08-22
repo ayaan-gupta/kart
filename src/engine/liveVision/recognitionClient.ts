@@ -186,6 +186,9 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
       // Absent means true. A server that predates this field was identifying products, and
       // defaulting to false there would empty the bag rather than clean it.
       isProduct: raw.isProduct !== false,
+      // The one stable identifier in the response, and until now the client parsed the whole
+      // mark and dropped it. The bag then keyed on the name, which is the field that drifts.
+      catalogSku: nullableStr(raw.catalogSku),
     });
   }
 

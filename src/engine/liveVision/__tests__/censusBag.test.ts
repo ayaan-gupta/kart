@@ -78,3 +78,44 @@ describe('the bag the census builds', () => {
     expect(bagLines(state).map((l) => l.name)).toEqual(['cauliflower']);
   });
 });
+
+describe('keying on the catalog SKU', () => {
+  const boxes = { a: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, b: { x: 0.5, y: 0.1, w: 0.2, h: 0.2 } };
+  const skuMark = (id: number, name: string, catalogSku: string | null): CensusMark => ({
+    id, name, brand: null, size: null, category: 'other',
+    confidence: 0.9, needsCloserLook: false, isProduct: true, catalogSku,
+  });
+
+  it('counts two spellings of one product as one product', () => {
+    // Measured across the four census calls of a nine-second scan: one trolley's contents came
+    // back as "oreo" and "oreo cookies", as "bread" and "seedstastic bread". Each spelling was
+    // its own bag line, which is most of why ten products became fifteen units.
+    const census: CensusResult = {
+      marks: [skuMark(0, 'oreo', 'kart_oreo'), skuMark(1, 'oreo cookies', 'kart_oreo')],
+      inViewCounts: [{ productKey: 'sku:kart_oreo', count: 1 }],
+      unmarkedItems: [],
+    };
+    const state = applyCensus(createFusionState(), census, { 0: 'a', 1: 'b' }, ['a', 'b'], false, boxes);
+    expect(bagLines(state)).toHaveLength(1);
+  });
+
+  it('still separates two genuinely different products', () => {
+    const census: CensusResult = {
+      marks: [skuMark(0, 'milk', 'kart_milk'), skuMark(1, 'almond milk', 'kart_almond_milk')],
+      inViewCounts: [], unmarkedItems: [],
+    };
+    const state = applyCensus(createFusionState(), census, { 0: 'a', 1: 'b' }, ['a', 'b'], false, boxes);
+    expect(bagLines(state)).toHaveLength(2);
+  });
+
+  it('falls back to the name when no catalog was consulted', () => {
+    // A deployment with no catalog, or a region the catalog had nothing for. Behaviour has to be
+    // exactly what it was before the field was read at all.
+    const census: CensusResult = {
+      marks: [skuMark(0, 'oreo', null), skuMark(1, 'oreo cookies', null)],
+      inViewCounts: [], unmarkedItems: [],
+    };
+    const state = applyCensus(createFusionState(), census, { 0: 'a', 1: 'b' }, ['a', 'b'], false, boxes);
+    expect(bagLines(state)).toHaveLength(2);
+  });
+});

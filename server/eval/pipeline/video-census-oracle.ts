@@ -98,18 +98,32 @@ for (const frame of video.frames) {
     const answer = key === undefined ? { marks: [], listed: [] } : localAnswers[key];
     const localMarks: CensusMark[] = answer.marks
       .filter((m: any) => m.id < detection.length)
-      .map((m: any) => ({ ...mark(m.id, m.name), isProduct: m.isProduct }));
-    const kept = new Set(localMarks.filter((m) => m.isProduct).map((m) => m.name));
+      .map((m: any) => ({
+        ...mark(m.id, m.name), isProduct: m.isProduct,
+        // What the shortlist in the request would have supplied. The same SKU whichever way the
+        // model phrased the name, which is the whole point of the field.
+        catalogSku: m.catalogSku ?? null,
+      }));
+    // An unmarked sighting keys the same way a mark does when the catalog knows it, so a product
+    // named on one keyframe and listed on the next is one product rather than two.
+    const listedSku: Record<string, string | null> = answer.listedSku ?? {};
+    const keyOf = (name: string) => (listedSku[name] ? `sku:${listedSku[name]}` : `::${name}`);
+    const kept = new Set(localMarks.filter((m) => m.isProduct)
+      .map((m) => (m.catalogSku ? `sku:${m.catalogSku}` : `::${m.name}`)));
     const unmarked = (answer.listed as string[])
-      .filter((p) => !kept.has(p))
-      .map((description) => ({ description, confidence: 0.8 }));
+      .filter((p) => !kept.has(keyOf(p)))
+      .map((description) => ({ description, productKey: listedSku[description] ? `sku:${listedSku[description]}` : undefined, confidence: 0.8 }));
     const tally = new Map<string, number>();
-    for (const m of localMarks) if (m.isProduct) tally.set(m.name, (tally.get(m.name) ?? 0) + 1);
-    for (const u of unmarked) tally.set(u.description, (tally.get(u.description) ?? 0) + 1);
+    for (const m of localMarks) {
+      if (!m.isProduct) continue;
+      const k = m.catalogSku ? `sku:${m.catalogSku}` : `::${m.name}`;
+      tally.set(k, (tally.get(k) ?? 0) + 1);
+    }
+    for (const u of unmarked) tally.set(keyOf(u.description), (tally.get(keyOf(u.description)) ?? 0) + 1);
     census = {
       marks: localMarks,
       unmarkedItems: unmarked,
-      inViewCounts: [...tally].map(([name, count]) => ({ productKey: `::${name}`, count })),
+      inViewCounts: [...tally].map(([productKey, count]) => ({ productKey, count })),
     };
   } else {
     const markedNames = new Set(marks.map((m) => m.name));
