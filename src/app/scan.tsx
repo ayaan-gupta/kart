@@ -27,7 +27,7 @@ import { ItemHighlights } from '../components/ItemHighlights';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
 import { createLookupCache, lookupBarcode } from '../engine/liveVision/barcodeLookup';
-import { DETECT_TARGET_FPS } from '../engine/liveVision/config';
+import { DETECT_TARGET_FPS, MIN_KEYFRAME_SHARPNESS } from '../engine/liveVision/config';
 import { createCoverageState, observeYaw, type CoverageState } from '../engine/liveVision/coverage';
 import { scanCart } from '../engine/liveVision/frameProcessor';
 import { bagLines } from '../engine/liveVision/fusion';
@@ -149,6 +149,8 @@ export default function ScanScreen() {
   // `publish` can detect the false-to-true edge that starts a new episode. A ref, not state:
   // nothing needs to re-render when this changes on its own.
   const wasOccludedRef = useRef(false);
+  /** Development only: the device's own sharpness readings, for MIN_KEYFRAME_SHARPNESS. */
+  const sharpnessSeenRef = useRef<number[]>([]);
 
   const guide = guideVisible({ occluded, coverage });
   // The gyroscope only runs while the guide is on screen. Leaving it subscribed for a whole
@@ -198,6 +200,28 @@ export default function ScanScreen() {
 
         if (scan.width > 0 && scan.height > 0) {
           setFrameSize({ width: scan.width, height: scan.height });
+        }
+
+        // Development only: what the device's own FrameMetrics actually reports, which is the one
+        // reading MIN_KEYFRAME_SHARPNESS needs and cannot get here.
+        //
+        // That constant is 12 and was set against `score_video.py`'s figure, the variance of the
+        // Laplacian over the whole frame. `FrameMetrics.sharpness` returns the largest of a 3 by 3
+        // grid of 128-pixel tiles instead, which runs several times higher, so on a phone the only
+        // blur test left rejects nothing (see its docstring, and KART.md's forty-fifth section).
+        // Setting it properly needs a distribution from a real camera over a real trolley, which a
+        // simulator cannot give: it has no camera device, so this block never runs there.
+        if (__DEV__) {
+          const seen = sharpnessSeenRef.current;
+          seen.push(scan.sharpness);
+          if (seen.length % 30 === 0) {
+            const sorted = [...seen].sort((a, b) => a - b);
+            console.log(
+              `[kart] device sharpness over ${seen.length} frames: ` +
+              `min ${sorted[0].toFixed(0)}, median ${sorted[Math.floor(sorted.length / 2)].toFixed(0)}, ` +
+              `max ${sorted[sorted.length - 1].toFixed(0)} (MIN_KEYFRAME_SHARPNESS is ${MIN_KEYFRAME_SHARPNESS})`,
+            );
+          }
         }
 
         const result = processFrame(pipelineStateRef.current, scan, now);
