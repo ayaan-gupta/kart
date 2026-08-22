@@ -5105,3 +5105,31 @@ derived from badge naming and then held on bag contents, so the next reader does
 that it was not fitted to its own metric.
 
 To validate: set it to 0.6 and run `server/eval/verify.py --model`.
+
+### The filter replicated on a second census model
+
+The ninety-eighth's caveat was that every number came from one local model standing in for the
+census. The ideal answer needs credit. The available one is a second model, and it is worth more
+than nothing: an effect that survives two different censuses is a property of the filter rather than
+of one model's habits.
+
+Same regions, same fusion, same truth, only the census model differs:
+
+| census | | units against 31 | products found, lenient | lines matching nothing |
+|---|---|---|---|---|
+| Qwen2.5-VL **7B** | unfiltered | 37 | 24 | 13 |
+| Qwen2.5-VL **7B** | filtered at 0.6 | **33** | 23 | **10** |
+| Qwen2-VL **2B** | unfiltered | 34 | 25 | 9 |
+| Qwen2-VL **2B** | filtered at 0.6 | **31** | 24 | **7** |
+
+**Both models move the same way and by about the same amount**: four units closer to the truth and
+three fewer invented lines on the 7B, three and two on the 2B, each costing one product. The 2B
+filtered lands on **31 units against 31 real**, exactly right in total.
+
+The two models disagree about plenty else — the 2B finds one more product unfiltered and is worse at
+`isProduct` — so their agreement here is about the filter and not about a shared quirk. The cost is
+the same on both, and it is the same product: an out-of-catalog item the matcher cannot recognise by
+construction, which the ninety-second showed is a corpus artifact rather than a pipeline one.
+
+That is two of three. `gpt-5.4-mini` is a third model and the one that ships, and
+`MIN_CATALOG_CONFIDENCE` stays at zero until it has been asked.
