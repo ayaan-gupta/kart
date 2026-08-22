@@ -2082,3 +2082,43 @@ loop is verified in Node and the app is verified to build, launch and render; wh
 covers is the live camera driving it, the outlines redrawing from a capture's tracks, and whether
 coverage, amber and thumbnails read sensibly when tracks refresh on captures rather than on every
 frame. Those want ten seconds with a real phone and a real trolley.
+
+## Thirty-seventh: the rewiring made this morning's model split meaningless, so it is gone
+
+`MODELS.censusCapture` selected gpt-5.4 when a request arrived with no marks, on the reasoning
+that a captured still and a scan frame fail differently. The thirty-sixth commit pointed
+`scan.tsx` at `onCapture`, which sends no marks. So every census the app makes now takes the
+capture branch, and the split has nothing left to select on.
+
+Worse, it was selecting the wrong way. Measured on the real frame loop, three runs each against
+nine real products:
+
+| census model, capture path | units |
+|---|---|
+| gpt-5.4, what the split chose | 12, 12, 11 (**mean 11.7**) |
+| gpt-5.4-mini | 8, 11, 10 (**mean 9.7**) |
+
+The original finding holds and is not contradicted: gpt-5.4 reads a single photograph better, 49
+of 60 passes exact against 44 and 282 of 310 products found against 258. It sweeps harder for
+products no badge landed on, which on one image is more of the trolley found and across four
+fused calls is more descriptions that will not join.
+
+**What changed is which of those two situations the app is in.** It has no screen that captures a
+single still: `index.tsx` and `FloatingNav` route only to `/scan`, and every keyframe there is now
+fused with the others. The photograph numbers describe a path the product does not offer. So the
+split is removed rather than left choosing the wrong model, `MODELS.census` is mini, and the
+measurement that argued for gpt-5.4 is recorded beside it so the case is not lost.
+
+### Where the app's scan actually stands now
+
+Same harness, same corpus, the real loop end to end:
+
+| | units, nine real products |
+|---|---|
+| this morning: `onKeyframe` + device regions | 19, 15, 15 (**16.3**) |
+| now: `onCapture` + server regions + mini | 8, 11, 9 (**9.3**) |
+
+The bag the app builds for this trolley went from roughly seventeen lines to roughly nine, against
+nine real products. That is the largest single improvement in this file and none of it came from
+tuning the census: it came from checking what the app ran and finding it was not what the corpus
+measured.

@@ -449,22 +449,11 @@ export async function runCensus(
   image: Buffer,
   marks: Mark[],
   diagnostics?: CensusDiagnostics,
-  /**
-   * True when this is one still the shopper captured and the server found the regions itself,
-   * false when the marks came from a scan's on-device tracker. It selects the model, and only
-   * the model: see `MODELS.censusCapture` for the measurement that separates the two.
-   *
-   * Defaults to false so every existing two- and three-argument caller keeps the scan model,
-   * which is what the eval harnesses want: they supply cached marks to avoid re-running
-   * detection, so `marks.length` cannot stand in for the distinction there the way it can in
-   * the request handler, where an empty list really does mean the server is enumerating.
-   */
-  capture = false,
 ): Promise<CensusResponse> {
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
 
   const outputText = await requestOutputText("runCensus", {
-    model: capture ? MODELS.censusCapture : MODELS.census,
+    model: MODELS.census,
     reasoning: { effort: "none" },
     ...(CENSUS_TEMPERATURE === undefined ? {} : { temperature: CENSUS_TEMPERATURE }),
     input: [

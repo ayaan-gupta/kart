@@ -80,7 +80,7 @@ const deps: SessionDeps = {
       ? serverMarks(currentFrame)
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
     if (marks.length === 0) return { ok: false, failure: 'server' } as any;
-    const census: any = await runCensus(image, marks, undefined, enumerated);
+    const census: any = await runCensus(image, marks);
     return {
       ok: true,
       value: {

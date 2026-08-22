@@ -16,26 +16,24 @@ export const MODELS = {
    * only against more reasoning effort on this one, which does nothing.
    */
   census: process.env.KART_CENSUS_MODEL?.trim() || "gpt-5.4-mini",
-  /**
-   * Census for one captured still, where the server found the regions itself.
+  /*
+   * Why mini and not gpt-5.4, which reads a single photograph better.
    *
-   * The same call, deliberately on a larger model, because the two paths fail differently and
-   * the corpora say so. A bigger model sweeps harder for products no badge landed on. Given one
-   * photograph that is more of the trolley found; given the four calls of a pan it is more
-   * descriptions of the same goods in different words, and the bag fills with them.
+   * On six trolley photographs scored one call at a time, gpt-5.4 wins clearly: 49 of 60 passes
+   * exact against 44, and 282 of 310 products found against 258. It sweeps harder for products no
+   * badge landed on, and on one image that is more of the trolley found.
    *
-   * Measured over two independent rounds of five passes on the six trolley photographs,
-   * gpt-5.4 against gpt-5.4-mini:
-   *   photographs exact        44 of 60  ->  49 of 60
-   *   mean absolute error       0.55     ->   0.28
-   *   IMG_0252, nine products   3 of 10  ->   7 of 10   (units 7 to 11 -> 8 to 9)
-   *   IMG_0254, fifteen         1 of 10  ->   3 of 10   (error 2.40 -> 1.30)
-   *   the four sparse ones      10 of 10 -> 10 of 10, except one pass of IMG_0249
-   *   badge alignment           21 of 23 on every pass, both models
-   * And on the nine-second scan, the other way, decisively: 13.5 units against nine real, where
-   * mini gives 10.2. That is why this is a second entry and not a change to the one above.
+   * A scan is not one image. Its bag is fused from several calls, and sweeping harder there means
+   * more descriptions of the same goods in words that will not join. Measured on the real frame
+   * loop with `server/eval/pipeline/scan-loop.ts`, three runs each against nine real products:
+   *   gpt-5.4          12, 12, 11 units   (mean 11.7)
+   *   gpt-5.4-mini      8, 11, 10 units   (mean  9.7)
+   *
+   * Both were once selected by path, on the reasoning that a captured still and a scan frame want
+   * different models. `scan.tsx` now uses the capture path for every keyframe, and the app has no
+   * screen that captures a single still, so every census it makes is one that will be fused. The
+   * split had nothing left to select on and was removed rather than left selecting the wrong way.
    */
-  censusCapture: process.env.KART_CAPTURE_CENSUS_MODEL?.trim() || "gpt-5.4",
   /** Identify: one tight crop of an uncertain item. */
   identify: "gpt-5.4",
   /** Escalation for items identify still cannot resolve. Used sparingly. */

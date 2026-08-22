@@ -14,7 +14,7 @@ import type { CensusDiagnostics } from "../src/recognize.js";
 // every test below also asserts the model id actually sent matches these constants).
 vi.mock("../src/openai.js", () => ({
   openai: { responses: { create: vi.fn() } },
-  MODELS: { census: "gpt-5.4-mini", censusCapture: "gpt-5.4", identify: "gpt-5.4", escalate: "gpt-5.5" },
+  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", escalate: "gpt-5.5" },
 }));
 
 const { openai, MODELS } = await import("../src/openai.js");
@@ -780,43 +780,5 @@ describe("cropToBox", () => {
 
   it("rejects a box entirely outside the image", async () => {
     await expect(cropToBox(await solid(100, 100), { x: 3, y: 3, w: 0.1, h: 0.1 }, 0)).rejects.toThrow();
-  });
-});
-
-describe("the census model follows the path, not the picture", () => {
-  // The two paths fail differently and the corpora disagree about which model to use, so the
-  // choice is wired to the caller rather than to anything about the image. A scan frame must not
-  // reach the capture model however many marks it carries, and a captured still must reach it
-  // even though nothing about the buffer says which it is. See MODELS.censusCapture.
-  const marks: Mark[] = [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }];
-
-  const answer = {
-    marks: [wellFormedMark],
-    unmarkedItems: [],
-    inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
-    occlusion: wellFormedOcclusion,
-  };
-
-  it("uses the scan model when the caller does not say it is a capture", async () => {
-    mockOutput(answer);
-    await runCensus(await blankJpeg(), marks);
-    expect(create.mock.calls[0][0].model).toBe(MODELS.census);
-    expect(create.mock.calls[0][0].model).toBe("gpt-5.4-mini");
-  });
-
-  it("uses the capture model when the caller says it is a capture", async () => {
-    mockOutput(answer);
-    await runCensus(await blankJpeg(), marks, undefined, true);
-    expect(create.mock.calls[0][0].model).toBe(MODELS.censusCapture);
-    expect(create.mock.calls[0][0].model).toBe("gpt-5.4");
-  });
-
-  it("changes nothing else about the request", async () => {
-    mockOutput(answer);
-    await runCensus(await blankJpeg(), marks, undefined, true);
-    const params = create.mock.calls[0][0];
-    expect(params.reasoning).toEqual({ effort: "none" });
-    expect(params.text.format.name).toBe("cart_census");
-    expect(params.text.format.strict).toBe(true);
   });
 });
