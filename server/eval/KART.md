@@ -2810,3 +2810,37 @@ That single rule accounts for most of this file:
 Treat any change that makes the census say *more* as expensive, even when a photograph improves.
 And note what the two shipped wins have in common: neither adds anything, both give two existing
 descriptions a way to become one.
+
+## Fifty-ninth: the direction the fusion rule points at, and why it is not shipped
+
+If fusion amplifies extra descriptions, and `unmarkedItems` is where the unjoinable ones come from,
+then the prediction is specific: let the first census of a session sweep the trolley and let the
+rest correct only their badges. `scan-loop.ts --sweep-once` does that. Six runs:
+
+| | units against 9 | lines | products found | spurious lines |
+|---|---|---|---|---|
+| as it ships | 8, 12, 10, 11, 9, 10 (10.0) | 8 to 11 | 8.33 of 9 | about 1.7 |
+| sweep once | 8, 8, 8, 8, 9, 8 (**8.17**) | **8, every run** | 8.0 of 9 | **0** |
+
+The prediction holds, and the shape of the win is better than the totals suggest. The sweep-once
+bag contains **nothing invented**: eight lines, eight real products, no phantoms, and the same bag
+every run. The shipped path carries about two invented lines and varies by four units. It trades
+a third of a product for the elimination of both the duplicates and the variance.
+
+**It is not shipped, for a reason this corpus cannot test.** The nine-second video is a *static*
+trolley. This project's own corpus notes say the six photographs are "one trolley being loaded item
+by item", which is the real use: a shopper scans while shopping. Under `--sweep-once`, a product
+put in the cart after the first census is never swept, because only the first call is allowed to
+volunteer anything unbadged, and the device detector that would badge it returns one outline around
+the whole pile. **A shopper adding items mid-scan would silently lose them**, and that is the same
+class of failure as the shelf bug: the bag disagrees with the trolley and the shopper cannot see
+why.
+
+So the honest state is: measured better here, on the one trolley that never changes, and carrying a
+named risk on the trolleys that do. What would settle it is a scan of a cart being loaded, which is
+a capture, not a code change. Recorded and spawned rather than taken.
+
+The narrower version worth trying first is not "sweep once" but "sweep what is not already there":
+allow `unmarkedItems` on every call but drop entries that duplicate a line already in the bag. That
+is the paraphrase problem this file refused twice on lexical grounds, and it may be tractable now
+that `sharedNames` gives a safe test for when two names are one product.

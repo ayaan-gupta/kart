@@ -68,6 +68,17 @@ const framesArg = process.argv.find((a) => a.startsWith('--frames='));
  *
  * The tracker is not reset between loops, exactly as it would not be mid-session.
  */
+/**
+ * `--sweep-once` keeps `unmarkedItems` from the first census of a session and drops it from the
+ * rest, testing what the fusion rule predicts.
+ *
+ * Fusion absorbs a missed product and amplifies an extra description (see KART.md). `unmarkedItems`
+ * is where the unjoinable descriptions come from: the trolley is static, so every later call
+ * re-describes goods the first one already named, in fresh words that will not join. Letting the
+ * first call sweep and the rest only correct their badges is the "less" this rule points at.
+ */
+const SWEEP_ONCE = process.argv.includes('--sweep-once');
+
 const loopsArg = process.argv.find((a) => a.startsWith('--loops='));
 const LOOPS = loopsArg ? Math.max(1, Number(loopsArg.split('=')[1])) : 1;
 
@@ -142,10 +153,12 @@ const deps: SessionDeps = {
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
     if (marks.length === 0) return { ok: false, failure: 'server' } as any;
     const census: any = await runCensus(image, marks);
+    const unmarked = SWEEP_ONCE && calls > 1 ? [] : (census.unmarkedItems ?? []);
     return {
       ok: true,
       value: {
         ...census,
+        unmarkedItems: unmarked,
         regions: marks.map((m) => ({
           id: m.id,
           box: m.box,
