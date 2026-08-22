@@ -168,4 +168,30 @@ describe('the closer look and the census keying differently', () => {
     expect(lines).toHaveLength(1);
     expect(lines.reduce((n, l) => n + (l.qty ?? 1), 0)).toBe(1);
   });
+
+  it('does not open a second line when the badge that named it is no longer live', () => {
+    // A scan pans. From the nine-second video: a badge names the purple produce bag at three
+    // seconds and keys it by SKU, the camera moves on, and the census at five seconds lists the
+    // same bag as unmarked, keyed by name because unmarked items have no SKU to offer. By then
+    // the track is gone, so the live-track guard cannot see it and only the set of identities
+    // already in the bag can. It has to know both spellings too.
+    const named = applyCensus(
+      createFusionState(),
+      {
+        marks: [skuMark(0, 'purple produce bag', 'kart_purple_produce_bag')],
+        inViewCounts: [], unmarkedItems: [],
+      },
+      { 0: 'a' }, ['a'], false, boxes,
+    );
+    const later = applyCensus(
+      named,
+      {
+        marks: [],
+        inViewCounts: [],
+        unmarkedItems: [{ description: 'purple produce bag', confidence: 0.8 }],
+      },
+      {}, [], false, {},
+    );
+    expect(bagLines(later)).toHaveLength(1);
+  });
 });

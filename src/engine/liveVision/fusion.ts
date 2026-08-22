@@ -562,9 +562,16 @@ export function applyCensus(
   // Only items the model explicitly listed as unmarked count here. An inViewCounts entry alone
   // is not enough: a count against a mark id that was never sent is a model error, and inventing
   // a bag line from it would put hallucinated products in the bag.
-  const keysWithIdentity = new Set(
-    Object.values(working.identities).map((i) => resolveKey(working, i.key)),
-  );
+  // Both spellings again, and for every identity in the bag rather than only the live ones. A
+  // product named on one keyframe is often gone from the frame by the next, so the track that
+  // carries it is no longer live when a later census lists the same product as unmarked. On the
+  // nine-second scan that put "purple produce bag" in the bag twice, once from the badge at
+  // three seconds keyed by SKU and again from the unmarked list at five seconds keyed by name.
+  const keysWithIdentity = new Set<string>();
+  for (const identity of Object.values(working.identities)) {
+    keysWithIdentity.add(resolveKey(working, identity.key));
+    keysWithIdentity.add(resolveKey(working, productKey(identity.name, identity.brand)));
+  }
   // Two separate entries naming the same product are two units of it. The model is supposed to
   // say so in inViewCounts, but when it lists a product twice and counts it once, the listing is
   // the more direct evidence, so take whichever is larger.
