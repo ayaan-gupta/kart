@@ -382,20 +382,36 @@ export function applyCensus(
   let working: FusionState = { ...state, identities: { ...state.identities } };
   const merged = new Set(state.merged);
 
-  // Which names this one call put on more than one badge. Counted over the call's own marks
-  // before any of them are applied, so it does not matter which order they are processed in, and
-  // counted on the name alone: two badges reading "apples" are two bags of apples even when the
-  // model gives them different brands, which is exactly the case a name fold must not touch.
+  // Which names this one call put on more than one *object*. Counted over the call's own marks
+  // before any of them are applied, so processing order cannot matter, and counted on the name
+  // alone: two badges reading "apples" are two bags of apples even when the model gives them
+  // different brands, which is exactly the case a name fold must not touch.
+  //
+  // Two badges are not automatically two objects. The boxes come from a detector and overlap
+  // heavily, so a product routinely sits inside several of them, and the census prompt's rule 11
+  // tells the model that two badges on one physical object are expected and to "report both with
+  // the same identification". Counting badges would therefore mark a name shared whenever the
+  // detector double-boxed something, which bars that name from folding for the rest of the
+  // session and quietly undoes the fold in `bagLines` for the very products most likely to need
+  // it. Nested boxes are counted once, by the same `containment` test and threshold the in-view
+  // clamp below uses.
   {
-    const perCall = new Map<string, number>();
+    const perCall = new Map<string, string[]>();
     for (const mark of census.marks) {
       if (mark.isProduct === false) continue;
       const name = foldedName(mark.name);
       if (name.length === 0) continue;
-      perCall.set(name, (perCall.get(name) ?? 0) + 1);
+      const trackId = markToTrack[mark.id];
+      const seen = perCall.get(name);
+      if (seen === undefined) { perCall.set(name, [trackId]); continue; }
+      // Same name again: a second object only if its box is not nested in one already counted.
+      const nested = liveBoxes !== undefined && trackId !== undefined && liveBoxes[trackId] !== undefined
+        && seen.some((other) => other !== undefined && liveBoxes[other] !== undefined
+          && containment(liveBoxes[trackId], liveBoxes[other]) >= NESTED_CONTAINMENT);
+      if (!nested) seen.push(trackId);
     }
     const shared = new Set(state.sharedNames);
-    for (const [name, count] of perCall) if (count > 1) shared.add(name);
+    for (const [name, ids] of perCall) if (ids.length > 1) shared.add(name);
     if (shared.size !== state.sharedNames.length) working = { ...working, sharedNames: [...shared] };
   }
 

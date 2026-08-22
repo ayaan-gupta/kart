@@ -918,3 +918,56 @@ describe('a folded line keeps the key its picture is filed under', () => {
     expect(bagLines(state)[0].mergedKeys).toBeUndefined();
   });
 });
+
+describe('sharedNames counts objects, not badges', () => {
+  // The detector overlaps heavily and the census prompt's rule 11 tells the model that two badges
+  // on one physical object are expected and to report both with the same identification. Counting
+  // badges would mark that name shared and bar it from folding for the rest of the session, which
+  // silently undoes the fold for exactly the products most likely to need it.
+  const boxes = {
+    a: { x: 0.1, y: 0.1, w: 0.3, h: 0.3 },
+    // Wholly inside `a`: the same packet, boxed twice.
+    inner: { x: 0.15, y: 0.15, w: 0.1, h: 0.1 },
+    // Somewhere else entirely: a genuinely second packet.
+    far: { x: 0.6, y: 0.6, w: 0.3, h: 0.3 },
+  };
+
+  it('does not bar a name the detector merely double-boxed', () => {
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'Oreo'), mark(2, 'Oreo')], [[productKey('Oreo', null), 1]]),
+      { 1: 'a', 2: 'inner' },
+      ['a', 'inner'],
+      false,
+      { a: boxes.a, inner: boxes.inner },
+    );
+    expect(state.sharedNames).not.toContain(foldedName('Oreo'));
+  });
+
+  it('still bars a name two separate objects share', () => {
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'apples'), mark(2, 'apples')], [[productKey('apples', null), 2]]),
+      { 1: 'a', 2: 'far' },
+      ['a', 'far'],
+      false,
+      { a: boxes.a, far: boxes.far },
+    );
+    expect(state.sharedNames).toContain(foldedName('apples'));
+  });
+
+  it('bars the name when there are no boxes to tell the cases apart', () => {
+    // Without `liveBoxes` there is no evidence either way, and refusing to fold is the safe
+    // direction: a missed fold shows one product twice, a wrong one deletes a product.
+    let state = createFusionState();
+    state = applyCensus(
+      state,
+      census([mark(1, 'apples'), mark(2, 'apples')], [[productKey('apples', null), 2]]),
+      { 1: 'a', 2: 'far' },
+      ['a', 'far'],
+    );
+    expect(state.sharedNames).toContain(foldedName('apples'));
+  });
+});
