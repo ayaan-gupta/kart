@@ -38,6 +38,28 @@ becomes the pacing interval that is supposed to do this job.
 neighbour, so labelling a track labels two products as one. References are cut into
 appearance-consistent runs at exactly those points before being labelled.
 
+## The count this file was scored against was wrong
+
+Read at full resolution on 2026-08-22, two entries in `counts.json` are one object. "purple
+produce bag" and "tomatoes on the vine" are a single purple bag of Fuji apples: the purple sheet
+runs continuously under and around a white label printed MIDWEST GROWN / FUJI / Sweet to the
+core!, the apples show through the clear part beside it, and along the bottom it reads Net Wt 48
+oz (3 lb), 2-1/2 inch, Extra Fancy, which is apple grading. The red an earlier pass read as
+tomatoes is those apples. On IMG_0254 the only red is the Alaskan sockeye salmon.
+
+IMG_0252 holds nine products, not ten. IMG_0254 holds fifteen, not sixteen. Every figure below
+that was taken before this date is against the higher numbers, and the two loaded trolleys are
+one and one further from their targets than they read.
+
+Re-scored against the corrected counts, three passes: units 29, 24, 27 of 31, four of six
+photographs exact, badge alignment 21 of 23 in every pass. Both loaded trolleys now miss by
+exactly one rather than by two and by four, which is a different and smaller problem than the one
+ten experiments were aimed at.
+
+This was checkable on day one and was not checked. Ten attempts were made at a gap that was
+partly an artifact of the target, and the corpus is small enough that a single mislabelled bag
+moves every number in this file.
+
 ## Counting
 
 | photograph | real | proposed | correct | error |

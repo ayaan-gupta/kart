@@ -72,15 +72,14 @@
   },
   {
    "id": "IMG_0252",
-   "products": 10,
+   "products": 9,
    "correct": 8,
    "confidence": "certain",
    "items": [
     "Oreo party size",
     "baguette",
-    "purple produce bag",
+    "Fuji apple bag",
     "yellow produce bag",
-    "tomatoes on the vine",
     "Granny Smith apple bag",
     "Seedtastic bread",
     "asparagus bag",
@@ -95,7 +94,7 @@
   },
   {
    "id": "IMG_0254",
-   "products": 16,
+   "products": 15,
    "correct": 10,
    "confidence": "moderate",
    "uncertain": 2,
@@ -112,8 +111,7 @@
     "asparagus bag",
     "Alaskan sockeye salmon",
     "Mr Lucky cauliflower",
-    "tomatoes on the vine",
-    "purple produce bag",
+    "Fuji apple bag",
     "yellow produce bag",
     "broccoli"
    ],
@@ -159,5 +157,6 @@
    "tomatoes on the vine"
   ],
   "why_it_matters": "Occlusion is the whole of the remaining count error and this is the mechanism that addresses it. The shipped path is a video scan, not a single photograph, so the number that describes the product is the video one."
- }
+ },
+ "correction": "2026-08-22. Two entries on IMG_0252 and IMG_0254, \"purple produce bag\" and \"tomatoes on the vine\", are one object: a purple bag of Fuji apples. Read at full resolution the purple sheet runs continuously under and around a white label printed MIDWEST GROWN / FUJI / Sweet to the core!, with the apples visible through the clear part beside it and Net Wt 48 oz (3 lb), 2-1/2 inch, Extra Fancy along the bottom, which is apple grading and not something tomatoes are sold under. The red the earlier count read as tomatoes is those apples. IMG_0252 goes from 10 products to 9 and IMG_0254 from 16 to 15. Every number in KART.md taken before this date was scored against the higher figures."
 }
