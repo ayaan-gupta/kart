@@ -26,6 +26,11 @@ def main(argv=None):
     ap.add_argument("--frames", default="frames-mm.json")
     ap.add_argument("--index", default=str(CACHE / "index-b16-ft1.npz"))
     ap.add_argument("--min-confidence", type=float, default=0.60)
+    ap.add_argument("--keep-score", type=float, default=None,
+                    help="also keep a proposal the matcher is unsure of when the detector's own "
+                         "score is at least this. The filter's only measured cost is dropping real "
+                         "products the index has no SKU for, and the detector score is an "
+                         "independent signal that something is an object at all.")
     ap.add_argument("--out", default="frames-mm-filtered.json")
     args = ap.parse_args(argv)
 
@@ -52,11 +57,20 @@ def main(argv=None):
             crops.append(pil.crop((x0, y0, x1, y1)))
             order.append(i)
         results = matcher.match(crops, detail=True) if crops else []
-        keep = [order[n] for n, r in enumerate(results)
-                if (r.get("confidence") or 0) >= args.min_confidence]
+        scores = frame.get("scores") or []
+        keep = []
+        rescued = 0
+        for n, r in enumerate(results):
+            i = order[n]
+            if (r.get("confidence") or 0) >= args.min_confidence:
+                keep.append(i)
+            elif args.keep_score is not None and i < len(scores) and scores[i] >= args.keep_score:
+                keep.append(i)
+                rescued += 1
         seen_total += len(frame["boxes"])
         kept_total += len(keep)
-        print(f"  {frame['id']}: {len(frame['boxes'])} -> {len(keep)} proposals")
+        print(f"  {frame['id']}: {len(frame['boxes'])} -> {len(keep)} proposals"
+              + (f" ({rescued} kept on detector score alone)" if rescued else ""))
         frame["boxes"] = [frame["boxes"][i] for i in keep]
         if frame.get("scores"):
             frame["scores"] = [frame["scores"][i] for i in keep if i < len(frame["scores"])]

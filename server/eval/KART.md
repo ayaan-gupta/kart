@@ -5062,3 +5062,26 @@ to find one fewer product and one more spurious line. 0.60 is the peak of the th
 That is worth more than the number itself: the threshold was chosen on one measurement, whether a
 badge is named correctly, and holds on a different one, what reaches the bag. A constant fitted on
 the metric it is then judged by proves nothing; this one was not.
+
+### A refinement refused before it cost anything
+
+The filter's one measured cost is dropping real products the index has no SKU for. The detector's
+own score is an independent signal that something is an object at all, so keeping a
+matcher-rejected proposal when its detector score is high looks like it should recover exactly those
+without readmitting junk.
+
+Checking the two distributions first, on the two loaded trolleys:
+
+| | detector scores |
+|---|---|
+| kept by the matcher at 0.60 | 0.582 … 0.683 |
+| dropped by it | 0.572 … 0.646 |
+
+**They overlap almost entirely.** The dropped proposals are not lower-scoring objects, they are
+objects the catalog does not know, and the detector is equally sure about both groups. Any threshold
+that rescued the real product would readmit the junk with it.
+
+`--keep-score` exists on `filter_proposals.py` and is documented as measured not to help here,
+because a corpus with a fuller catalog might separate differently. The refusal cost one distribution
+print rather than two census runs and a bag comparison, which is the whole reason to look at the
+signal before building on it.
