@@ -1006,3 +1006,75 @@ photographs still returned anywhere from 26 to 33 units across fifteen passes. S
 conclusion in this file, that a one-to-two-unit change cannot be verified here, is no longer an
 observation about investigations that happened to fail. It is a property of the instrument. More
 captures raise the denominator and lower the noise floor; nothing in the request shape will.
+
+## Eighteenth investigation: holding the model still
+
+The seventeenth closed off narrowing the spread at the model. This one goes around it.
+
+Everything in the scan harness except `runCensus` is deterministic: `processFrame`, `marksFor`,
+the shortlist attach, `applyCensus` and `bagLines` return the same thing for the same input,
+every time. So the model's answers can be recorded once and replayed, which holds the noise
+perfectly still and lets a fusion-layer change be measured exactly rather than statistically.
+
+`--replay=<file>` does that, against a file this harness already wrote. Six live runs were
+captured and each replayed: **9, 10, 10, 12, 12, 10 units live, and the identical numbers on
+replay, six for six.** The instrument is exact, not approximate.
+
+### What the extra lines are
+
+With the model held still, the bags can be read rather than sampled. Both twelve-line runs carry
+`Oreo Oreo` **and** `Cadbury Oreo` as separate lines. It is one packet of Oreos.
+
+| | call 0 | call 3 |
+|---|---|---|
+| name | `Oreo` | `Oreo` |
+| brand | `Oreo` | `Cadbury` |
+| `catalogSku` | `Oreo` | `kart_oreo` |
+| track | `track_1` | `track_12` |
+
+Three things this rules out. The SKUs are not hallucinated: every one of the 78 non-null
+`catalogSku` values across all six runs appears in the shortlist that box was actually offered,
+so the model chose validly both times. The two sightings are not one track, so no shared identity
+exists to carry the answer across. And `productKey` cannot join them, because the brand differs.
+
+The shortlists offer `kart_oreo` (12 times), `Oreo` (12 times) and `Cadbury` (12 times) for the
+same box: the reference index holds 310 SKUs, of which 8 are this trolley's `kart_*` references
+cut from the video and the other 302 come from a public grocery dataset whose SKUs are brand
+words. The same shape produces `bread` against `Seedtastic Bread` in run 6, from `Bread` (15
+times) against `kart_seedtastic_bread`.
+
+### What it costs, exactly
+
+Rewriting only `Oreo` to `kart_oreo` in the saved answers and replaying all six:
+
+| | as-is | one SKU collapsed |
+|---|---|---|
+| units per run | 9, 10, 10, 12, 12, 10 | 9, 10, 9, 11, 11, 9 |
+| mean against 9 real | 10.5 | 9.83 |
+| exact | 1 of 6 | 3 of 6 |
+
+Every run that split merged; no run got worse. This is not a sampled result and does not need a
+confidence interval: the model was byte-identical in both columns.
+
+### Why this is scan-only
+
+Thirty photograph passes were checked for the same thing and contain **zero** within-pass SKU
+splits. A photograph is one census call, and one call cannot disagree with itself. The split
+needs two calls, which is what a scan is.
+
+### The part that is not mine to decide
+
+The obvious fix is to collapse the duplicate in the index, and I have not done it, because the
+argument against is real. `Oreo` and `kart_oreo` may not be one product: the trolley holds an
+Oreo party size, the generic entry is some other Oreo pack, and a store that stocks two pack
+sizes genuinely has two SKUs. If that is the case the matcher is right to offer both, the census
+is right to pick either, and the defect is that nothing pins the choice across calls — which is
+the unmarked-description fault this file already names, now with a measured price.
+
+The two readings need different fixes and only one of them is a code change, so the reading has
+to be settled first. What is settled either way is the size: **one line per scan, in four runs of
+six**, and an instrument that can now tell a one-line change from nothing at all.
+
+No fusion-layer fix is safe without that answer. Joining on name alone would merge the two apple
+bags this trolley really does contain, and `addAlias`'s conflict path, reached when one key is
+pulled toward two targets, deliberately strands both rather than guessing.

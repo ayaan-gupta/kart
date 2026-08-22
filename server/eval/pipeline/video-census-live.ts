@@ -71,6 +71,27 @@ const imageFor = (order: number) =>
 const capArg = process.argv.find((a) => a.startsWith('--max-calls='));
 const MAX_CALLS = capArg ? Number(capArg.split('=')[1]) : Infinity;
 
+/**
+ * `--replay=<file>` answers each census from a saved run instead of calling the model.
+ *
+ * Everything in the loop below except `runCensus` is deterministic: `processFrame`, `marksFor`,
+ * the shortlist attach, `applyCensus` and `bagLines` all return the same thing for the same
+ * input, every time. So replaying the saved answers holds the model perfectly still and lets a
+ * fusion-layer change be measured exactly, with none of the run-to-run spread that makes a
+ * one-unit change unfalsifiable against the live model (see KART.md, seventeenth investigation).
+ *
+ * The file is one this harness wrote: `server/eval/kart-video-census-live.json`. Each entry is
+ * consumed in call order and its `t` and `order` are checked against the frame actually reached,
+ * so a replay file from a different frame set or a changed keyframe gate fails loudly instead of
+ * quietly scoring the wrong pairing.
+ */
+/** `--trace` prints which track each badge resolved to, for diagnosing a split bag line. */
+const TRACE = process.argv.includes('--trace');
+const replayArg = process.argv.find((a) => a.startsWith('--replay='));
+const REPLAY: any[] | null = replayArg
+  ? JSON.parse(readFileSync(replayArg.split('=')[1], 'utf8'))
+  : null;
+
 let pipeline = createPipelineState();
 let fusion: FusionState = createFusionState();
 let censusCalls = 0;
@@ -134,11 +155,30 @@ for (const frame of video.frames) {
   fired += 1;
   censusCalls += 1;
 
-  const census = await runCensus(image, marks) as unknown as CensusResult;
+  let census: CensusResult;
+  if (REPLAY) {
+    const saved = REPLAY[censusCalls - 1];
+    if (!saved) throw new Error(`replay file has no entry for census call ${censusCalls}`);
+    if (saved.t !== frame.t || saved.order !== frame.order) {
+      throw new Error(
+        `replay entry ${censusCalls - 1} is for t=${saved.t}s frame ${saved.order}, but this run ` +
+        `reached t=${frame.t}s frame ${frame.order}; the replay file does not match this frame set`,
+      );
+    }
+    census = saved.census as CensusResult;
+  } else {
+    census = await runCensus(image, marks) as unknown as CensusResult;
+  }
   const liveBoxes: Record<string, any> = {};
   for (const t of live) liveBoxes[t.id] = t.box;
   fusion = applyCensus(fusion, census, markToTrack, live.map((t) => t.id), false, liveBoxes);
 
+  if (TRACE) {
+    for (const m of census.marks) {
+      console.log(`      trace: badge ${m.id} -> track ${markToTrack[m.id]}  ` +
+        `name=${JSON.stringify(m.name)} brand=${JSON.stringify(m.brand)} sku=${JSON.stringify(m.catalogSku)}`);
+    }
+  }
   const named = census.marks.filter((m) => m.isProduct).map((m) => m.name);
   const unmarked = (census.unmarkedItems ?? []).map((u: any) => u.description);
   console.log(`  t=${String(frame.t).padStart(5)}s  ${marks.length} badges -> ` +
@@ -153,7 +193,15 @@ const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
 console.log(`\n  catalog shortlist ${withCatalog ? 'attached, refreshed against the current index' : 'withheld'}`);
 console.log(`  ${video.frames.length} frames, ${fired} census calls (cap is 8)`);
 console.log(`  bag holds ${units} units on ${lines.length} lines, against ${cart.products} real products`);
+for (const l of lines) {
+  console.log(`      ${String(l.qty).padStart(2)}  ${l.brand ? `${l.brand} ` : ''}${l.name}`);
+}
 for (const line of lines) console.log(`    ${line.qty ?? 1} x ${line.name}`);
 const missing = PRODUCTS.filter((p) => !lines.some((l) => (l.name ?? '').toLowerCase().includes(p.split('_')[0])));
 console.log(missing.length ? `  not obviously present: ${missing.join(', ')}` : '  nothing missing');
-writeFileSync(join(HERE, 'kart-video-census-live.json'), JSON.stringify(calls, null, 1));
+// A replay run answered from the file it would write here, so writing would be a no-op at best
+// and, if the run was reached through different flags, would overwrite the saved answers with
+// the same answers under a pairing they were not recorded against.
+if (!REPLAY) {
+  writeFileSync(join(HERE, 'kart-video-census-live.json'), JSON.stringify(calls, null, 1));
+}
