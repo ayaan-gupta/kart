@@ -152,6 +152,12 @@ export const useScanline = create<ScanlineState>()(
             qty: line.qty,
             // `line.key` first, then any key folded into this line: the picture is stored under
             // the resolved key of whichever track earned it, which may be the one the fold dropped.
+            //
+            // Known, small, and deliberate: if *both* folded keys earned a picture, only the one
+            // chosen here reaches the item, and `deleteHaul` reclaims files by `thumbnailUri`, so
+            // the other is orphaned on disk when the haul is deleted. It is a few KB, it needs a
+            // second field on the persisted `HaulItem` to fix, and that type already carries a
+            // version-2 migration. Left as it is rather than paid for with schema risk.
             thumbnailUri:
               thumbnails[line.key] ??
               (line.mergedKeys ?? []).map((k) => thumbnails[k]).find(Boolean) ??
