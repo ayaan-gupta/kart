@@ -24,6 +24,7 @@
  *       server/eval/pipeline/scan-loop.ts --path=capture
  */
 import { readFileSync } from 'node:fs';
+import sharp from 'sharp';
 import { join } from 'node:path';
 import { bagLines } from '../../../src/engine/liveVision/fusion';
 import { RecognitionSession } from '../../../src/engine/liveVision/orchestrator';
@@ -65,6 +66,31 @@ const cart = truth.counted.find((c: any) => c.id === 'IMG_0252');
 const imageFor = (order: number) =>
   join(HERE, `.cache/kart/video/frame-${String(order + 1).padStart(3, '0')}.jpg`);
 
+/**
+ * The frame as the device would upload it, not as it sits on disk.
+ *
+ * `KartVisionFrameProcessorPlugin` encodes a keyframe through `KartImageTools.encodeKeyframe`, at
+ * `keyframeMaxEdge` 1536 and JPEG quality 0.85. The corpus frames are 1080 by 1920, so the device
+ * downscales before sending and the service composites that, which is one more JPEG generation
+ * than reading the file gives. Passing the file straight through would hand the census a slightly
+ * better image than the app can, and brand reading is exactly what a second compression softens.
+ *
+ * `--raw-frames` restores the old behaviour for comparison.
+ */
+const RAW_FRAMES = process.argv.includes('--raw-frames');
+const encoded = new Map<number, Buffer>();
+async function keyframeFor(order: number): Promise<Buffer> {
+  const cached = encoded.get(order);
+  if (cached) return cached;
+  const file = readFileSync(imageFor(order));
+  const out = RAW_FRAMES ? file : await sharp(file)
+    .resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+  encoded.set(order, out);
+  return out;
+}
+
 /** The frame's full region set, shaped the way `marksFromRegions` shapes it for the service. */
 function serverMarks(frame: any): Mark[] {
   return frame.boxes.map((box: any, i: number) => {
@@ -90,7 +116,7 @@ const deps: SessionDeps = {
   // service would have returned for it.
   requestCensus: async (req) => {
     calls += 1;
-    const image = readFileSync(imageFor(currentFrame.order));
+    const image = await keyframeFor(currentFrame.order);
     const enumerated = req.marks === undefined || req.marks.length === 0;
     const marks: Mark[] = enumerated
       ? serverMarks(currentFrame)
@@ -118,7 +144,7 @@ const deps: SessionDeps = {
   // a box, exactly as the service does.
   requestIdentify: async (req) => {
     identifyCalls += 1;
-    const image = readFileSync(imageFor(currentFrame.order));
+    const image = await keyframeFor(currentFrame.order);
     try {
       const result: any = await runIdentify(image, req.hint, req.box);
       return { ok: true, value: result } as any;
@@ -157,7 +183,7 @@ for (const frame of video.frames) {
   if (!stepped.keyframe.fire) continue;
   if (!session.wantsKeyframe(stepped.tracks, stepped.keyframe.fire)) continue;
   let image: string;
-  try { image = readFileSync(imageFor(frame.order)).toString('base64'); } catch { continue; }
+  try { image = (await keyframeFor(frame.order)).toString('base64'); } catch { continue; }
 
   // Which frames the loop actually captures, and how many tracks it had going in. Worth printing
   // rather than inferring: the capture path paces differently from the old one (frames 7, 13, 19,

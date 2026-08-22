@@ -2353,3 +2353,30 @@ and on the same frame pairs the two agree to within half a percent:
 So the sharpness mismatch is specific, not a symptom of the eval and the device disagreeing
 generally. It comes from one measure being a maximum over tiles and the other a mean over the
 frame, which no amount of care with resolution would reconcile.
+
+## Forty-sixth: the harness now sends what the device sends
+
+Three ways `scan-loop.ts` differed from the app have been closed, and it is worth listing them
+together because two of the three were invisible until someone read the code rather than the
+numbers.
+
+| difference | what it was | outcome |
+|---|---|---|
+| the crop identify | `requestIdentify` stubbed to fail, so `resolveUncertain` never ran | wired to the shipped `runIdentify`; it fires 1 to 3 times a session, aggregate unchanged |
+| barcodes | `lookupBarcode` stubbed, no barcode ever handed to the loop | faithful: Apple's own `VNDetectBarcodesRequest` decodes 0 of 40 corpus images |
+| the image itself | the frame read from disk at 1080 by 1920 | now encoded as `KartImageTools` does, 1536 long edge at JPEG quality 0.85 |
+
+The last one mattered least and was worth checking anyway. The device downscales and re-encodes
+before uploading, so the service composites a frame that has been through JPEG twice, and a second
+compression is exactly what softens the small print a brand reading depends on. Measured:
+
+| | products found, lenient |
+|---|---|
+| frames read raw, as measured before | 8, 8 of 9 (8.0) |
+| encoded as the device sends them | 8, 8, **9** of 9 (8.3) |
+
+No cost, slightly better if anything, comfortably inside the run-to-run spread. So every earlier
+figure stands and the harness now differs from the app in nothing this corpus can detect.
+
+`keyframeMaxEdge` is 1536 and `CENSUS_LONG_EDGE` is 1536, which is the one place two constants on
+either side of the network turned out to already agree.
