@@ -17,6 +17,7 @@ de-duplicated, then the produce second pass merged in where the first found noth
 """
 
 import argparse
+import os
 import json
 import pathlib
 import sys
@@ -44,9 +45,13 @@ def detector(device=None):
     from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
 
     device = device or ("mps" if torch.backends.mps.is_available() else "cpu")
-    proc = AutoProcessor.from_pretrained("IDEA-Research/grounding-dino-base")
-    dino = AutoModelForZeroShotObjectDetection.from_pretrained(
-        "IDEA-Research/grounding-dino-base").to(device)
+    # `KART_DETECTOR` swaps the proposal model without a second copy of this file. The shipped one
+    # is the default; MM Grounding DINO and LLMDet use this same class and processor, and their
+    # published gains sit on LVIS rather than COCO, which is the long-tailed many-small-objects
+    # benchmark this corpus's residual looks like. See KART.md's ninety-sixth section.
+    model_id = os.environ.get("KART_DETECTOR", "IDEA-Research/grounding-dino-base")
+    proc = AutoProcessor.from_pretrained(model_id)
+    dino = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(device)
 
     def ground(pil, text, threshold):
         inputs = proc(images=pil, text=text, return_tensors="pt").to(device)
@@ -223,7 +228,7 @@ def main(argv=None):
     from PIL import Image, ImageOps
 
     ground, device = detector()
-    print(f"grounding-dino-base on {device}")
+    print(f"{os.environ.get('KART_DETECTOR', 'IDEA-Research/grounding-dino-base')} on {device}")
 
     truth = {}
     truth_path = HERE / "corpus" / "kart" / "counts.json"

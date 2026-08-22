@@ -4833,3 +4833,64 @@ scan prints every thirty frames in a Debug build. `MIN_KEYFRAME_SHARPNESS` is 12
 `score_video.py`'s whole-frame variance, while `FrameMetrics.sharpness` reports the largest of a 3x3
 grid of tiles and runs several times higher, so on a phone the blur gate rejects nothing. That
 readout is the single measurement the constant needs and the only one this corpus cannot produce.
+
+## Ninety-sixth: a better detector, researched, measured, and refused
+
+The seventy-sixth closed every rule-level fix for grouping by construction and ended: "Improving it
+means a different proposal source, which is a model change and not a configuration one." That was a
+research question, and it now has an answer.
+
+**MM Grounding DINO** (`openmmlab-community/*`) and **LLMDet** (`iSEE-Laboratory/*`) are open-weights
+successors that run through the same `AutoModelForZeroShotObjectDetection` class this project already
+calls, so they are a one-line swap. Their published gains sit where this corpus hurts: MM Grounding
+DINO reports **+11.8 to +12.6 AP on LVIS**, the long-tailed, many-small-objects benchmark, against
++2.2 on COCO. Small objects in cluttered scenes is exactly the yellow bag's problem.
+
+`KART_DETECTOR` swaps the model, `compare_detectors.py` scores one against the hand-labelled boxes,
+and `detect_carts.py` writes a region set the bag harnesses consume.
+
+### At the box level it is clearly better
+
+| | proposals | reached, readable | isolated, readable |
+|---|---|---|---|
+| Grounding DINO, as shipped, 0.23 | 19 | 19 of 20 | 11 of 20 |
+| MM Grounding DINO base_all, 0.23 | 15 | 16 of 20 | 11 of 20 |
+| **MM Grounding DINO base_all, 0.15** | 24 | **20 of 20** | **13 of 20** |
+| MM Grounding DINO base_all, 0.10 | 30 | 18 of 20 | 14 of 20 |
+
+At 0.15 it reaches everything and isolates two more products than the shipped detector. **It also
+isolates the first Muenster pack, which the shipped detector misses entirely** — one of the four
+products separating IMG_0254 from a perfect answer. The threshold has to move because the two models
+score differently; comparing them at 0.23 compares calibrations, not detectors.
+
+### End to end it is worse, on contents and not only on units
+
+`local-census-bag.ts` reported units alone, which cannot tell a detector that finds one more real
+product while inventing one more line from one that invents two. The still truth and its scorer are
+now lifted into `still-truth.ts` and shared, so both harnesses score contents. Same census model,
+same fusion, same truth, only the detector differs:
+
+| | units / 31 | exact | products found | lines matching nothing |
+|---|---|---|---|---|
+| **Grounding DINO, shipped** | **37** | **4 of 6** | 22 strict, **24** lenient of 31 | **13** |
+| MM Grounding DINO, 0.15 | 38 | 3 of 6 | 20 strict, 23 lenient of 31 | 15 |
+
+**One fewer product found and two more invented lines, from the detector that proposes strictly
+better boxes.** This is the seventh time in this file that a proposal improvement has failed to
+survive the census, and the mechanism is the one the eighty-eighth named: every proposal is a badge,
+every badge is a question, and every question can produce a line.
+
+The sparse trolleys show it plainly. At 0.15 MM Grounding DINO proposes 4, 4, 5 and 6 regions on
+trolleys holding 1, 1, 2 and 3 products, where the shipped detector proposes 2, 1, 3 and 3. That is
+the same failure that refused threshold 0.20 in the seventy-fourth, arriving through a different
+model.
+
+### What is worth keeping
+
+The refusal is of the swap, not of the finding. `KART_DETECTOR`, `compare_detectors.py` and
+`detect_carts.py` are committed, so the next candidate is an afternoon rather than a rebuild, and
+LLMDet — whose LVIS numbers are higher again — has not been tried.
+
+The caveat is the standing one: this is scored through a local 7B census, not gpt-5.4-mini, and a
+larger model may convert extra badges differently. It is the seventh measurement pointing one way,
+which is why it is believed and why it still deserves a credit-backed re-run.

@@ -21,6 +21,8 @@ import { applyCensus, bagLines, createFusionState } from '../../../src/engine/li
 import type { CensusMark, CensusResult } from '../../../src/engine/liveVision/fusion';
 
 const HERE = join(import.meta.dirname, '..');
+import { TRUTH, scoreContents } from './still-truth';
+
 const FRAMES = process.env.KART_FRAMES ?? '.cache/kart/frames.json';
 const frames = JSON.parse(readFileSync(join(HERE, FRAMES), 'utf8'));
 // `KART_CENSUS_IN`/`KART_FRAMES` pair with the same variables on `census_local.py`, so one
@@ -34,6 +36,10 @@ const isProduct = new Map<string, boolean>(
 const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'utf8'));
 const counted = new Map<string, any>(truth.counted.map((c: any) => [c.id, c]));
 
+let found = 0;
+let strictFound = 0;
+let truthTotal = 0;
+let spuriousTotal = 0;
 let units = 0;
 let real = 0;
 let exact = 0;
@@ -69,11 +75,30 @@ for (const [id, answers] of Object.entries<any>(local)) {
     inViewCounts: [...seen].map(([name, count]) => ({ productKey: `::${name}`, count })),
   };
   const state = applyCensus(createFusionState(), census, markToTrack, trackIds, false, liveBoxes);
-  const got = bagLines(state).reduce((s, l) => s + (l.qty ?? 1), 0);
+  const lines = bagLines(state);
+  const got = lines.reduce((s, l) => s + (l.qty ?? 1), 0);
   units += got; real += entry.products; n += 1;
   if (got === entry.products) exact += 1;
+
+  // Contents as well as units. A detector that finds one more real product while inventing one
+  // more line is indistinguishable from one that invents two, if only the total is reported.
+  const truth = TRUTH[id];
+  let note = '';
+  if (truth) {
+    const named = lines.map((l: any) => ({
+      name: `${l.brand ? `${l.brand} ` : ''}${l.name}`.toLowerCase(),
+      qty: l.qty ?? 1,
+    }));
+    const c = scoreContents(named, truth);
+    found += c.lenient; strictFound += c.strict; truthTotal += truth.length;
+    spuriousTotal += c.spurious.length;
+    note = `  found ${c.strict}/${c.lenient} of ${truth.length}`;
+  }
   console.log(`  ${id.padEnd(12)} ${String(entry.products).padStart(5)} ${String(got).padStart(11)} ` +
-    `${(got - entry.products >= 0 ? '+' : '') + (got - entry.products)}`.padStart(7));
+    `${(got - entry.products >= 0 ? '+' : '') + (got - entry.products)}`.padStart(7) + note);
 }
 console.log(`\n  units in the bag ${units} against ${real} real items`);
 console.log(`  photographs exact ${exact}/${n}`);
+console.log(`  products found ${strictFound}/${truthTotal} on an unambiguous word, ` +
+  `${found}/${truthTotal} allowing words a trolley shares between two products`);
+console.log(`  lines matching nothing real ${spuriousTotal}`);
