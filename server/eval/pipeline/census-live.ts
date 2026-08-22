@@ -80,7 +80,7 @@ for (const frame of frames.frames) {
   const markToTrack: Record<number, string> = {};
   const liveBoxes: Record<string, any> = {};
   trackIds.forEach((tid: string, i: number) => { markToTrack[i] = tid; liveBoxes[tid] = frame.boxes[i]; });
-  const state = applyCensus(createFusionState(), census as any, markToTrack, trackIds, false, liveBoxes);
+  const state = applyCensus(createFusionState(), census, markToTrack, trackIds, false, liveBoxes);
   const lines = bagLines(state) as any[];
   const units = lines.reduce((n, l) => n + (l.qty ?? 1), 0);
   bagUnits += units; realUnits += entry.products;
