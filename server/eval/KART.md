@@ -3905,3 +3905,49 @@ is the census reading a crop, and nothing measured here so far moves it.
 
 The prompt is not the lever it looked like one section ago. Recorded so the next person does not
 spend the same afternoon on `censusUserText`.
+
+## Eightieth: requirement 4 measured, and one command that runs all four
+
+`CLAUDE.md` names four measurable things. Three had numbers. The fourth, **items the system is
+unsure about are flagged as unsure, not asserted confidently**, had none, and it turned out to need
+no new model call at all: `census-live.ts` already saves every census response it receives,
+including each mark's `confidence` and `needsCloserLook`, beside the per-badge verdict of whether
+that mark named its badge correctly. Calibration is the join of those two.
+
+`score_confidence.py`, over the 18 photograph-passes of the last live run:
+
+| | n | mean confidence | `needsCloserLook` |
+|---|---|---|---|
+| named its badge **right** | 66 | 0.96 | 2 of 66 (3%) |
+| named its badge **wrong** | 9 | 0.89 | 2 of 9 (**22%**) |
+
+**The signal is real and it is weak.** A wrong answer is seven times more likely to be flagged than
+a right one, and confidence runs 0.06 lower when the census is wrong, so the amber path is not being
+driven by noise. But 0.89 is a confident number in absolute terms, and **seven of nine wrong answers
+were asserted with no flag at all.** For the shopper that is the difference between "check this one"
+and a wrong line they have to notice themselves.
+
+That is the first honest statement this file can make about requirement 4, and it is the one metric
+here that a change could move without touching detection or naming at all: nothing about being
+better calibrated requires being more accurate.
+
+### One entry point
+
+These measurements grew one per question and ended up scattered across a dozen files with different
+flags, which is how the four shelf photographs went unscored for weeks. `verify.py` runs them in
+order and prints a single report:
+
+    server/.venv/bin/python server/eval/verify.py            # local checks only
+    server/.venv/bin/python server/eval/verify.py --model    # add the ones that cost money
+
+Two rules it follows. Anything it cannot run prints **SKIPPED with the reason**, never nothing,
+because a check that quietly does not run reads exactly like a check that passed. And `ran` means
+the check produced numbers, not that the numbers are good: this file is still where the numbers are
+judged.
+
+It also pins the occlusion check to the 7B. The 2B and 3B answer "no" to every photograph in the
+corpus, which scores 4 of 6 on a set that is two thirds negative, and a default that reports a
+degenerate answer as a passing grade is worse than no default.
+
+With this, the local half of all four requirements runs in one command, and the two model checks
+name their own price.
