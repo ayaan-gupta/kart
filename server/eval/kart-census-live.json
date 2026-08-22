@@ -12,7 +12,7 @@
    {
     "badge": 1,
     "truth": "skip",
-    "said": "shopping cart handle cover",
+    "said": "shopping cart frame",
     "ok": true
    }
   ],
@@ -21,7 +21,7 @@
   "lines": [
    {
     "key": "sku:kart_cauliflower",
-    "name": "cauliflower",
+    "name": "Cauliflower",
     "brand": "Mr. Lucky",
     "size": null,
     "category": "produce",
@@ -29,11 +29,10 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
-     "name": "cauliflower",
+     "name": "Cauliflower",
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
@@ -44,7 +43,7 @@
     },
     {
      "id": 2,
-     "name": "shopping cart handle cover",
+     "name": "shopping cart frame",
      "brand": null,
      "size": null,
      "category": "other",
@@ -64,7 +63,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only one product is visible and it is not significantly covered."
+    "reason": "Only one product is visible and the cart is otherwise empty."
    }
   },
   "contents": {
@@ -98,7 +97,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -151,7 +149,7 @@
    {
     "badge": 2,
     "truth": "skip",
-    "said": "shopping cart frame",
+    "said": "shopping cart seat latch",
     "ok": true
    }
   ],
@@ -159,10 +157,10 @@
   "real": 2,
   "lines": [
    {
-    "key": "sku:Rice",
+    "key": "sku:kart_cauliflower",
     "name": "Cauliflower",
     "brand": "Mr. Lucky",
-    "size": "1 cauliflower",
+    "size": "1 count",
     "category": "produce",
     "qty": 1
    },
@@ -170,30 +168,29 @@
     "key": "sku:kart_brussels_sprouts",
     "name": "Brussels sprouts",
     "brand": null,
-    "size": "1 lb (454 g)",
+    "size": "16 oz (1 lb) 454g",
     "category": "produce",
     "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
      "name": "Cauliflower",
      "brand": "Mr. Lucky",
-     "size": "1 cauliflower",
+     "size": "1 count",
      "category": "produce",
      "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "Rice"
+     "catalogSku": "kart_cauliflower"
     },
     {
      "id": 2,
      "name": "Brussels sprouts",
      "brand": null,
-     "size": "1 lb (454 g)",
+     "size": "16 oz (1 lb) 454g",
      "category": "produce",
      "confidence": 0.97,
      "needsCloserLook": false,
@@ -202,7 +199,7 @@
     },
     {
      "id": 3,
-     "name": "shopping cart frame",
+     "name": "shopping cart seat latch",
      "brand": null,
      "size": null,
      "category": "other",
@@ -226,7 +223,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only two produce bags are visible and both are mostly exposed; the cart is otherwise empty."
+    "reason": "Only two grocery items are visible and they are fully visible on the cart floor; the rest is just the empty cart."
    }
   },
   "contents": {
@@ -288,7 +285,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -296,7 +292,7 @@
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.99,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
@@ -307,7 +303,7 @@
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.97,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -342,7 +338,7 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Three produce bags overlap near the bottom of the cart, but the visible contents are still identifiable."
+    "reason": "Several produce bags overlap in the bottom of the cart, so parts of the contents are covered."
    }
   },
   "contents": {
@@ -365,7 +361,7 @@
    {
     "badge": 1,
     "truth": "cauliflower",
-    "said": "mr. lucky cauliflower",
+    "said": "cauliflower",
     "ok": true
    },
    {
@@ -407,13 +403,13 @@
    {
     "badge": 8,
     "truth": "purple_produce_bag",
-    "said": "granny smith apple",
+    "said": "red produce bag",
     "ok": true
    },
    {
     "badge": 9,
     "truth": "purple_produce_bag",
-    "said": "granny smith apples",
+    "said": "green produce bag",
     "ok": true
    }
   ],
@@ -430,15 +426,15 @@
    },
    {
     "key": "sku:kart_cauliflower",
-    "name": "Cauliflower",
-    "brand": "Mr. Lucky",
+    "name": "cauliflower",
+    "brand": null,
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
     "key": "sku:kart_seedtastic_bread",
-    "name": "Seedtastic Bread",
+    "name": "seedtastic bread",
     "brand": null,
     "size": null,
     "category": "bread",
@@ -446,15 +442,15 @@
    },
    {
     "key": "sku:kart_granny_smith_apples",
-    "name": "Granny Smith apples",
+    "name": "granny smith apples",
     "brand": null,
     "size": null,
     "category": "produce",
-    "qty": 2
+    "qty": 1
    },
    {
     "key": "sku:kart_brussels_sprouts",
-    "name": "Brussels sprouts",
+    "name": "brussels sprouts",
     "brand": null,
     "size": null,
     "category": "produce",
@@ -483,10 +479,17 @@
     "size": null,
     "category": "other",
     "qty": 1
+   },
+   {
+    "key": "::red produce bag",
+    "name": "red produce bag",
+    "brand": null,
+    "size": null,
+    "category": "other",
+    "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -501,8 +504,8 @@
     },
     {
      "id": 2,
-     "name": "Cauliflower",
-     "brand": "Mr. Lucky",
+     "name": "cauliflower",
+     "brand": null,
      "size": null,
      "category": "produce",
      "confidence": 0.98,
@@ -512,33 +515,33 @@
     },
     {
      "id": 3,
-     "name": "Seedtastic Bread",
+     "name": "seedtastic bread",
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.97,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
     },
     {
      "id": 4,
-     "name": "Granny Smith apples",
+     "name": "granny smith apples",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.93,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
     },
     {
      "id": 5,
-     "name": "Brussels sprouts",
+     "name": "brussels sprouts",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.93,
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -549,7 +552,7 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.98,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
@@ -560,7 +563,7 @@
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.97,
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -571,32 +574,32 @@
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.95,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_purple_produce_bag"
     },
     {
      "id": 9,
-     "name": "granny smith apple",
+     "name": "red produce bag",
      "brand": null,
      "size": null,
-     "category": "produce",
-     "confidence": 0.84,
-     "needsCloserLook": false,
+     "category": "other",
+     "confidence": 0.8,
+     "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": "kart_granny_smith_apples"
+     "catalogSku": null
     },
     {
      "id": 10,
-     "name": "granny smith apples",
+     "name": "green produce bag",
      "brand": null,
      "size": null,
-     "category": "produce",
-     "confidence": 0.91,
-     "needsCloserLook": false,
+     "category": "other",
+     "confidence": 0.78,
+     "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": "kart_granny_smith_apples"
+     "catalogSku": null
     }
    ],
    "unmarkedItems": [],
@@ -606,7 +609,7 @@
      "count": 1
     },
     {
-     "productKey": "mr lucky::cauliflower",
+     "productKey": "::cauliflower",
      "count": 1
     },
     {
@@ -615,7 +618,7 @@
     },
     {
      "productKey": "::granny smith apple",
-     "count": 2
+     "count": 1
     },
     {
      "productKey": "::brussel sprout",
@@ -632,23 +635,27 @@
     {
      "productKey": "::purple produce bag",
      "count": 1
+    },
+    {
+     "productKey": "::red produce bag",
+     "count": 1
+    },
+    {
+     "productKey": "::green produce bag",
+     "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several bags overlap, and some produce is partly covered by other items."
+    "reason": "Several produce items overlap and are partly covered by bags and other packages, especially in the center and bottom of the cart."
    }
   },
   "contents": {
    "strict": 8,
-   "lenient": 8,
-   "missing": [
-    "yellow produce bag"
-   ],
-   "spurious": [
-    "granny smith apples"
-   ]
+   "lenient": 9,
+   "missing": [],
+   "spurious": []
   }
  },
  {
@@ -664,25 +671,25 @@
    {
     "badge": 1,
     "truth": "cauliflower",
-    "said": "mr. lucky cauliflower",
+    "said": "mmm... lucky cauliflower",
     "ok": true
    },
    {
     "badge": 2,
     "truth": "out_of_catalog",
-    "said": "eggs",
+    "said": "simply nature organic cage free large brown eggs",
     "ok": null
    },
    {
     "badge": 3,
     "truth": "out_of_catalog",
-    "said": "jarred sauce or spread",
+    "said": "sauce jar",
     "ok": null
    },
    {
     "badge": 4,
     "truth": "not_a_product",
-    "said": "baguette",
+    "said": "seedtastic bread",
     "ok": false
    },
    {
@@ -694,7 +701,7 @@
    {
     "badge": 6,
     "truth": "out_of_catalog",
-    "said": "eggs",
+    "said": "simply nature organic cage free large brown eggs",
     "ok": null
    },
    {
@@ -706,13 +713,13 @@
    {
     "badge": 8,
     "truth": "out_of_catalog",
-    "said": "trident alaskan salmon sockeye portion",
+    "said": "alaskan almaskan sockeye salmon",
     "ok": null
    },
    {
     "badge": 9,
     "truth": "out_of_catalog",
-    "said": "blue cheese",
+    "said": "kerry milk cheese",
     "ok": null
    },
    {
@@ -722,7 +729,7 @@
     "ok": false
    }
   ],
-  "units": 15,
+  "units": 11,
   "real": 15,
   "lines": [
    {
@@ -731,91 +738,74 @@
     "brand": null,
     "size": null,
     "category": "bread",
-    "qty": 1
+    "qty": 2
    },
    {
     "key": "sku:kart_cauliflower",
-    "name": "Cauliflower",
-    "brand": "Mr. Lucky",
+    "name": "cauliflower",
+    "brand": "Mmm... Lucky",
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "::egg",
-    "name": "Eggs",
-    "brand": null,
-    "size": "large brown",
+    "key": "simply nature::organic cage free large brown egg",
+    "name": "organic cage free large brown eggs",
+    "brand": "Simply Nature",
+    "size": null,
     "category": "dairy",
     "qty": 2
    },
    {
-    "key": "::jarred sauce or spread",
-    "name": "jarred sauce or spread",
+    "key": "sku:Veeba",
+    "name": "sauce jar",
     "brand": null,
     "size": null,
     "category": "other",
     "qty": 1
    },
    {
-    "key": "sku:kart_baguette",
-    "name": "Baguette",
-    "brand": null,
-    "size": null,
-    "category": "bread",
-    "qty": 2
-   },
-   {
     "key": "sku:kart_granny_smith_apples",
-    "name": "Granny Smith Apples",
+    "name": "Granny Smith apples",
     "brand": "West Grove",
     "size": null,
     "category": "produce",
-    "qty": 2
+    "qty": 1
    },
    {
-    "key": "trident::alaskan salmon sockeye portion",
-    "name": "Alaskan Salmon Sockeye Portion",
-    "brand": "Trident",
+    "key": "sku:kart_baguette",
+    "name": "baguette",
+    "brand": null,
+    "size": null,
+    "category": "bread",
+    "qty": 1
+   },
+   {
+    "key": "alaskan::almaskan sockeye salmon",
+    "name": "almaskan sockeye salmon",
+    "brand": "Alaskan",
     "size": null,
     "category": "seafood",
     "qty": 1
    },
    {
     "key": "sku:CheeseSlices",
-    "name": "Blue cheese",
-    "brand": null,
+    "name": "milk cheese",
+    "brand": "Kerry",
     "size": null,
     "category": "dairy",
-    "qty": 2
+    "qty": 1
    },
    {
     "key": "sku:kart_asparagus",
-    "name": "Asparagus",
+    "name": "asparagus",
     "brand": null,
     "size": null,
     "category": "produce",
     "qty": 1
-   },
-   {
-    "key": "::beef steak",
-    "name": "Beef steak",
-    "brand": null,
-    "size": null,
-    "category": "other",
-    "qty": 1
-   },
-   {
-    "key": "sku:kart_purple_produce_bag",
-    "name": "Produce bag with red peppers",
-    "brand": null,
-    "size": null,
-    "category": "other",
-    "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -823,15 +813,15 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.97,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
     },
     {
      "id": 2,
-     "name": "Cauliflower",
-     "brand": "Mr. Lucky",
+     "name": "cauliflower",
+     "brand": "Mmm... Lucky",
      "size": null,
      "category": "produce",
      "confidence": 0.96,
@@ -841,62 +831,62 @@
     },
     {
      "id": 3,
-     "name": "Eggs",
-     "brand": null,
-     "size": "large brown",
+     "name": "organic cage free large brown eggs",
+     "brand": "Simply Nature",
+     "size": null,
      "category": "dairy",
-     "confidence": 0.94,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": null
     },
     {
      "id": 4,
-     "name": "jarred sauce or spread",
+     "name": "sauce jar",
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.42,
+     "confidence": 0.72,
      "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "Veeba"
     },
     {
      "id": 5,
-     "name": "Baguette",
+     "name": "Seedtastic Bread",
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.98,
+     "confidence": 0.9,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "kart_baguette"
+     "catalogSku": "kart_seedtastic_bread"
     },
     {
      "id": 6,
-     "name": "Granny Smith Apples",
+     "name": "Granny Smith apples",
      "brand": "West Grove",
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
     },
     {
      "id": 7,
-     "name": "Eggs",
-     "brand": null,
-     "size": "large brown",
+     "name": "organic cage free large brown eggs",
+     "brand": "Simply Nature",
+     "size": null,
      "category": "dairy",
-     "confidence": 0.94,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": null
     },
     {
      "id": 8,
-     "name": "Baguette",
+     "name": "baguette",
      "brand": null,
      "size": null,
      "category": "bread",
@@ -907,114 +897,70 @@
     },
     {
      "id": 9,
-     "name": "Alaskan Salmon Sockeye Portion",
-     "brand": "Trident",
+     "name": "almaskan sockeye salmon",
+     "brand": "Alaskan",
      "size": null,
      "category": "seafood",
-     "confidence": 0.9,
-     "needsCloserLook": false,
+     "confidence": 0.77,
+     "needsCloserLook": true,
      "isProduct": true,
      "catalogSku": null
     },
     {
      "id": 10,
-     "name": "Blue cheese",
-     "brand": null,
+     "name": "milk cheese",
+     "brand": "Kerry",
      "size": null,
      "category": "dairy",
-     "confidence": 0.9,
-     "needsCloserLook": false,
+     "confidence": 0.79,
+     "needsCloserLook": true,
      "isProduct": true,
      "catalogSku": "CheeseSlices"
     },
     {
      "id": 11,
-     "name": "Asparagus",
+     "name": "asparagus",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.93,
+     "confidence": 0.94,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
     }
    ],
-   "unmarkedItems": [
-    {
-     "description": "Eggs",
-     "productKey": "::eggs",
-     "catalogSku": null,
-     "approxLocation": "upper left, partially under region 3",
-     "confidence": 0.9
-    },
-    {
-     "description": "Blue cheese",
-     "productKey": "::blue cheese",
-     "catalogSku": "CheeseSlices",
-     "approxLocation": "upper center-right, blue packet under region 7",
-     "confidence": 0.89
-    },
-    {
-     "description": "Beef steak",
-     "productKey": "::beef steak",
-     "catalogSku": null,
-     "approxLocation": "left-center under the egg cartons",
-     "confidence": 0.86
-    },
-    {
-     "description": "Green apples",
-     "productKey": "west grove::granny smith apples",
-     "catalogSku": "kart_granny_smith_apples",
-     "approxLocation": "right-center in green produce bag",
-     "confidence": 0.88
-    },
-    {
-     "description": "Produce bag with red peppers",
-     "productKey": "::produce bag",
-     "catalogSku": "kart_purple_produce_bag",
-     "approxLocation": "lower center, clear bag with red peppers and asparagus",
-     "confidence": 0.8
-    }
-   ],
+   "unmarkedItems": [],
    "inViewCounts": [
     {
-     "productKey": "::egg",
+     "productKey": "::seedtastic bread",
      "count": 2
     },
     {
-     "productKey": "::blue cheese",
+     "productKey": "mmm lucky::cauliflower",
+     "count": 1
+    },
+    {
+     "productKey": "simply nature::organic cage free large brown egg",
      "count": 2
     },
     {
-     "productKey": "::beef steak",
+     "productKey": "::sauce jar",
      "count": 1
     },
     {
      "productKey": "west grove::granny smith apple",
-     "count": 2
-    },
-    {
-     "productKey": "::produce bag",
-     "count": 1
-    },
-    {
-     "productKey": "kartseedtasticbread::seedtastic bread",
-     "count": 1
-    },
-    {
-     "productKey": "mr lucky::cauliflower",
-     "count": 1
-    },
-    {
-     "productKey": "::jarred sauce or spread",
      "count": 1
     },
     {
      "productKey": "::baguette",
-     "count": 2
+     "count": 1
     },
     {
-     "productKey": "trident::alaskan salmon sockeye portion",
+     "productKey": "alaskan::sockeye salmon",
+     "count": 1
+    },
+    {
+     "productKey": "kerry::milk cheese",
      "count": 1
     },
     {
@@ -1025,17 +971,21 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several items overlap in the cart, with produce bags and bread covering parts of other products."
+    "reason": "Several items overlap and are partly covered, including the bread, eggs, produce bags, and salmon tray."
    }
   },
   "contents": {
-   "strict": 10,
-   "lenient": 14,
+   "strict": 9,
+   "lenient": 10,
    "missing": [
+    "Muenster cheese (second)",
+    "beef pack",
+    "Fuji apple bag",
+    "yellow produce bag",
     "broccoli (a bagged green, label not legible)"
    ],
    "spurious": [
-    "baguette"
+    "seedtastic bread"
    ]
   }
  },
@@ -1046,13 +996,13 @@
    {
     "badge": 0,
     "truth": "cauliflower",
-    "said": "mr lucky cauliflower",
+    "said": "mr. lucky cauliflower",
     "ok": true
    },
    {
     "badge": 1,
     "truth": "skip",
-    "said": "cart cup holder",
+    "said": "shopping cart frame",
     "ok": true
    }
   ],
@@ -1062,20 +1012,19 @@
    {
     "key": "sku:kart_cauliflower",
     "name": "cauliflower",
-    "brand": "Mr Lucky",
-    "size": null,
+    "brand": "Mr. Lucky",
+    "size": "1 count",
     "category": "produce",
     "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
      "name": "cauliflower",
-     "brand": "Mr Lucky",
-     "size": null,
+     "brand": "Mr. Lucky",
+     "size": "1 count",
      "category": "produce",
      "confidence": 0.99,
      "needsCloserLook": false,
@@ -1084,11 +1033,11 @@
     },
     {
      "id": 2,
-     "name": "cart cup holder",
+     "name": "shopping cart frame",
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.96,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": false,
      "catalogSku": null
@@ -1104,7 +1053,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only one produce item is visible and the cart is otherwise empty."
+    "reason": "Only one product is visible and the cart is otherwise empty."
    }
   },
   "contents": {
@@ -1138,7 +1087,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -1146,7 +1094,7 @@
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.99,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
@@ -1162,7 +1110,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only one produce bag is visible and the cart is otherwise empty."
+    "reason": "Only one produce item is visible and the cart is otherwise empty."
    }
   },
   "contents": {
@@ -1202,7 +1150,7 @@
     "key": "sku:kart_cauliflower",
     "name": "Cauliflower",
     "brand": "Mr. Lucky",
-    "size": "1 cauliflower",
+    "size": "1 head",
     "category": "produce",
     "qty": 1
    },
@@ -1210,19 +1158,18 @@
     "key": "sku:kart_brussels_sprouts",
     "name": "Brussels sprouts",
     "brand": null,
-    "size": "16 oz (1 lb) 454 g",
+    "size": "1 bag",
     "category": "produce",
     "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
      "name": "Cauliflower",
      "brand": "Mr. Lucky",
-     "size": "1 cauliflower",
+     "size": "1 head",
      "category": "produce",
      "confidence": 0.98,
      "needsCloserLook": false,
@@ -1233,9 +1180,9 @@
      "id": 2,
      "name": "Brussels sprouts",
      "brand": null,
-     "size": "16 oz (1 lb) 454 g",
+     "size": "1 bag",
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -1266,7 +1213,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "The visible items are mostly unobstructed; no significant hidden products are apparent."
+    "reason": "Only two produce items are in the cart and both are clearly visible; the third marked region is the cart frame."
    }
   },
   "contents": {
@@ -1304,7 +1251,7 @@
   "lines": [
    {
     "key": "sku:kart_cauliflower",
-    "name": "cauliflower",
+    "name": "Cauliflower",
     "brand": "Mr. Lucky",
     "size": null,
     "category": "produce",
@@ -1312,7 +1259,7 @@
    },
    {
     "key": "sku:kart_brussels_sprouts",
-    "name": "brussels sprouts",
+    "name": "Brussels sprouts",
     "brand": null,
     "size": null,
     "category": "produce",
@@ -1320,7 +1267,7 @@
    },
    {
     "key": "sku:kart_asparagus",
-    "name": "asparagus",
+    "name": "Asparagus",
     "brand": null,
     "size": null,
     "category": "produce",
@@ -1328,37 +1275,36 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
-     "name": "cauliflower",
+     "name": "Cauliflower",
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.98,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
     },
     {
      "id": 2,
-     "name": "brussels sprouts",
+     "name": "Brussels sprouts",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
     },
     {
      "id": 3,
-     "name": "asparagus",
+     "name": "Asparagus",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.99,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -1382,7 +1328,7 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Three produce bags overlap at the bottom of the cart, with parts of the middle and left bags partially covered."
+    "reason": "Three produce items overlap in the bottom of the cart, with some bags partly covering others."
    }
   },
   "contents": {
@@ -1417,19 +1363,19 @@
    {
     "badge": 3,
     "truth": "granny_smith_apples",
-    "said": "cathy's grow granny smith apples",
+    "said": "best grown granny smith apples",
     "ok": true
    },
    {
     "badge": 4,
     "truth": "brussels_sprouts",
-    "said": "brussels sprouts",
+    "said": "best grown brussels sprouts",
     "ok": true
    },
    {
     "badge": 5,
     "truth": "baguette",
-    "said": "bakery fresh baguette",
+    "said": "baguette",
     "ok": true
    },
    {
@@ -1447,17 +1393,17 @@
    {
     "badge": 8,
     "truth": "purple_produce_bag",
-    "said": "truffle",
+    "said": "red peppers",
     "ok": false
    },
    {
     "badge": 9,
     "truth": "purple_produce_bag",
-    "said": "red produce bag",
-    "ok": true
+    "said": "red peppers",
+    "ok": false
    }
   ],
-  "units": 9,
+  "units": 10,
   "real": 9,
   "lines": [
    {
@@ -1470,7 +1416,7 @@
    },
    {
     "key": "sku:kart_cauliflower",
-    "name": "Cauliflower",
+    "name": "cauliflower",
     "brand": "Mr. Lucky",
     "size": null,
     "category": "produce",
@@ -1487,7 +1433,7 @@
    {
     "key": "sku:kart_granny_smith_apples",
     "name": "Granny Smith apples",
-    "brand": "Cathy's Grow",
+    "brand": "Best Grown",
     "size": null,
     "category": "produce",
     "qty": 1
@@ -1495,22 +1441,22 @@
    {
     "key": "sku:kart_brussels_sprouts",
     "name": "Brussels sprouts",
-    "brand": null,
+    "brand": "Best Grown",
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
     "key": "sku:kart_baguette",
-    "name": "Baguette",
-    "brand": "Bakery Fresh",
+    "name": "baguette",
+    "brand": null,
     "size": null,
     "category": "bread",
     "qty": 1
    },
    {
     "key": "sku:kart_asparagus",
-    "name": "Asparagus",
+    "name": "asparagus",
     "brand": null,
     "size": null,
     "category": "produce",
@@ -1518,23 +1464,22 @@
    },
    {
     "key": "sku:kart_purple_produce_bag",
-    "name": "Purple produce bag",
+    "name": "purple produce bag",
     "brand": null,
     "size": null,
     "category": "other",
     "qty": 1
    },
    {
-    "key": "sku:Truffle",
-    "name": "Truffle",
+    "key": "::red pepper",
+    "name": "red peppers",
     "brand": null,
     "size": null,
-    "category": "other",
-    "qty": 1
+    "category": "produce",
+    "qty": 2
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -1549,11 +1494,11 @@
     },
     {
      "id": 2,
-     "name": "Cauliflower",
+     "name": "cauliflower",
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
@@ -1572,10 +1517,10 @@
     {
      "id": 4,
      "name": "Granny Smith apples",
-     "brand": "Cathy's Grow",
+     "brand": "Best Grown",
      "size": null,
      "category": "produce",
-     "confidence": 0.93,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
@@ -1583,65 +1528,65 @@
     {
      "id": 5,
      "name": "Brussels sprouts",
-     "brand": null,
+     "brand": "Best Grown",
      "size": null,
      "category": "produce",
-     "confidence": 0.92,
+     "confidence": 0.93,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
     },
     {
      "id": 6,
-     "name": "Baguette",
-     "brand": "Bakery Fresh",
+     "name": "baguette",
+     "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.95,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
     },
     {
      "id": 7,
-     "name": "Asparagus",
+     "name": "asparagus",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.94,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
     },
     {
      "id": 8,
-     "name": "Purple produce bag",
+     "name": "purple produce bag",
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.97,
+     "confidence": 0.89,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_purple_produce_bag"
     },
     {
      "id": 9,
-     "name": "Truffle",
+     "name": "red peppers",
      "brand": null,
      "size": null,
-     "category": "other",
-     "confidence": 0.34,
+     "category": "produce",
+     "confidence": 0.61,
      "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": "Truffle"
+     "catalogSku": null
     },
     {
      "id": 10,
-     "name": "Red produce bag",
+     "name": "red peppers",
      "brand": null,
      "size": null,
-     "category": "other",
-     "confidence": 0.44,
+     "category": "produce",
+     "confidence": 0.61,
      "needsCloserLook": true,
      "isProduct": true,
      "catalogSku": null
@@ -1662,15 +1607,15 @@
      "count": 1
     },
     {
-     "productKey": "cathys grow::granny smith apple",
+     "productKey": "best grown::granny smith apple",
      "count": 1
     },
     {
-     "productKey": "::brussel sprout",
+     "productKey": "best grown::brussel sprout",
      "count": 1
     },
     {
-     "productKey": "bakery fresh::baguette",
+     "productKey": "::baguette",
      "count": 1
     },
     {
@@ -1682,18 +1627,14 @@
      "count": 1
     },
     {
-     "productKey": "::truffle",
-     "count": 1
-    },
-    {
-     "productKey": "::red produce bag",
-     "count": 1
+     "productKey": "::red pepper",
+     "count": 2
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several produce bags overlap and partially cover items in the bottom of the cart."
+    "reason": "Several bags overlap in the center and bottom of the cart, so a few items are partly covered."
    }
   },
   "contents": {
@@ -1703,7 +1644,7 @@
     "yellow produce bag"
    ],
    "spurious": [
-    "truffle"
+    "red peppers x2"
    ]
   }
  },
@@ -1720,19 +1661,19 @@
    {
     "badge": 1,
     "truth": "cauliflower",
-    "said": "m lucky cauliflower",
+    "said": "mr. lucky cauliflower",
     "ok": true
    },
    {
     "badge": 2,
     "truth": "out_of_catalog",
-    "said": "simply nature large brown eggs",
+    "said": "simply nature eggs",
     "ok": null
    },
    {
     "badge": 3,
     "truth": "out_of_catalog",
-    "said": "nescafe coffee sauce",
+    "said": "jar of sauce or spread",
     "ok": null
    },
    {
@@ -1744,13 +1685,13 @@
    {
     "badge": 5,
     "truth": "granny_smith_apples",
-    "said": "west grove granny smith apples",
+    "said": "westgro granny smith apples",
     "ok": true
    },
    {
     "badge": 6,
     "truth": "out_of_catalog",
-    "said": "simply nature large brown eggs",
+    "said": "simply nature eggs",
     "ok": null
    },
    {
@@ -1768,22 +1709,22 @@
    {
     "badge": 9,
     "truth": "out_of_catalog",
-    "said": "cheese slices",
+    "said": "happy valley milk",
     "ok": null
    },
    {
     "badge": 10,
     "truth": "purple_produce_bag",
-    "said": "asparagus",
+    "said": "green beans",
     "ok": false
    }
   ],
-  "units": 11,
+  "units": 13,
   "real": 15,
   "lines": [
    {
     "key": "sku:kart_seedtastic_bread",
-    "name": "Seedtastic bread",
+    "name": "Seedtastic Bread",
     "brand": null,
     "size": null,
     "category": "bread",
@@ -1792,23 +1733,23 @@
    {
     "key": "sku:kart_cauliflower",
     "name": "cauliflower",
-    "brand": "M Lucky",
+    "brand": "Mr. Lucky",
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "simply nature::large brown egg",
-    "name": "large brown eggs",
+    "key": "sku:kart_brussels_sprouts",
+    "name": "eggs",
     "brand": "Simply Nature",
-    "size": "12 ct",
+    "size": "large brown eggs",
     "category": "dairy",
     "qty": 2
    },
    {
-    "key": "sku:Nescafe",
-    "name": "coffee sauce",
-    "brand": "Nescafe",
+    "key": "sku:Veeba",
+    "name": "jar of sauce or spread",
+    "brand": null,
     "size": null,
     "category": "other",
     "qty": 1
@@ -1823,47 +1764,62 @@
    },
    {
     "key": "sku:kart_granny_smith_apples",
-    "name": "granny smith apples",
-    "brand": "West Grove",
+    "name": "Granny Smith apples",
+    "brand": "Westgro",
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "::alaskan sockeye salmon",
-    "name": "alaskan sockeye salmon",
+    "key": "sku:Tops",
+    "name": "Alaskan sockeye salmon",
     "brand": null,
     "size": null,
     "category": "seafood",
     "qty": 1
    },
    {
-    "key": "sku:CheeseSlices",
-    "name": "cheese slices",
-    "brand": null,
-    "size": null,
+    "key": "sku:Milk_Amul",
+    "name": "milk",
+    "brand": "Happy Valley",
+    "size": "family size",
     "category": "dairy",
     "qty": 1
    },
    {
     "key": "sku:kart_asparagus",
-    "name": "asparagus",
+    "name": "green beans",
     "brand": null,
     "size": null,
     "category": "produce",
     "qty": 1
+   },
+   {
+    "key": "sku:kart_purple_produce_bag",
+    "name": "purple produce bag",
+    "brand": null,
+    "size": null,
+    "category": "other",
+    "qty": 1
+   },
+   {
+    "key": "::red bell pepper",
+    "name": "red bell pepper",
+    "brand": null,
+    "size": null,
+    "category": "other",
+    "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
-     "name": "Seedtastic bread",
+     "name": "Seedtastic Bread",
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.94,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
@@ -1871,35 +1827,35 @@
     {
      "id": 2,
      "name": "cauliflower",
-     "brand": "M Lucky",
+     "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
     },
     {
      "id": 3,
-     "name": "large brown eggs",
+     "name": "eggs",
      "brand": "Simply Nature",
-     "size": "12 ct",
+     "size": "large brown eggs",
      "category": "dairy",
-     "confidence": 0.97,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "kart_brussels_sprouts"
     },
     {
      "id": 4,
-     "name": "coffee sauce",
-     "brand": "Nescafe",
+     "name": "jar of sauce or spread",
+     "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.42,
+     "confidence": 0.45,
      "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": "Nescafe"
+     "catalogSku": "Veeba"
     },
     {
      "id": 5,
@@ -1907,32 +1863,32 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.96,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
     },
     {
      "id": 6,
-     "name": "granny smith apples",
-     "brand": "West Grove",
+     "name": "Granny Smith apples",
+     "brand": "Westgro",
      "size": null,
      "category": "produce",
-     "confidence": 0.93,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
     },
     {
      "id": 7,
-     "name": "large brown eggs",
+     "name": "eggs",
      "brand": "Simply Nature",
-     "size": "12 ct",
+     "size": "large brown eggs",
      "category": "dairy",
-     "confidence": 0.97,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "kart_brussels_sprouts"
     },
     {
      "id": 8,
@@ -1940,61 +1896,83 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.91,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
     },
     {
      "id": 9,
-     "name": "alaskan sockeye salmon",
+     "name": "Alaskan sockeye salmon",
      "brand": null,
      "size": null,
      "category": "seafood",
      "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "Tops"
     },
     {
      "id": 10,
-     "name": "cheese slices",
-     "brand": null,
-     "size": null,
+     "name": "milk",
+     "brand": "Happy Valley",
+     "size": "family size",
      "category": "dairy",
-     "confidence": 0.96,
+     "confidence": 0.9,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "CheeseSlices"
+     "catalogSku": "Milk_Amul"
     },
     {
      "id": 11,
-     "name": "asparagus",
+     "name": "green beans",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.98,
+     "confidence": 0.85,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
     }
    ],
-   "unmarkedItems": [],
+   "unmarkedItems": [
+    {
+     "description": "purple produce bag",
+     "productKey": "::purple produce bag",
+     "catalogSku": "kart_purple_produce_bag",
+     "approxLocation": "lower left, beneath the baguette and bread",
+     "confidence": 0.9
+    },
+    {
+     "description": "red bell pepper",
+     "productKey": "::red bell pepper",
+     "catalogSku": null,
+     "approxLocation": "center-bottom, partly under the salmon tray",
+     "confidence": 0.91
+    },
+    {
+     "description": "jar of sauce or spread",
+     "productKey": "::jar of sauce or spread",
+     "catalogSku": "Veeba",
+     "approxLocation": "right-center, beside the apples and under badge 4",
+     "confidence": 0.46
+    }
+   ],
    "inViewCounts": [
     {
      "productKey": "::seedtastic bread",
      "count": 1
     },
     {
-     "productKey": "m lucky::cauliflower",
+     "productKey": "mr lucky::cauliflower",
      "count": 1
     },
     {
-     "productKey": "simply nature::large brown egg",
+     "productKey": "simply nature::egg",
      "count": 2
     },
     {
-     "productKey": "nescafe::coffee sauce",
+     "productKey": "::jar of sauce or spread",
      "count": 1
     },
     {
@@ -2002,7 +1980,7 @@
      "count": 2
     },
     {
-     "productKey": "west grove::granny smith apple",
+     "productKey": "westgro::granny smith apple",
      "count": 1
     },
     {
@@ -2010,32 +1988,42 @@
      "count": 1
     },
     {
-     "productKey": "::cheese slice",
+     "productKey": "happy valley::milk",
      "count": 1
     },
     {
-     "productKey": "::asparagu",
+     "productKey": "::green bean",
+     "count": 1
+    },
+    {
+     "productKey": "::purple produce bag",
+     "count": 1
+    },
+    {
+     "productKey": "::red bell pepper",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several items overlap and some are partly covered by bags and other packages, especially in the middle and top of the cart."
+    "reason": "Several items overlap heavily, with produce and bread partly covering each other and some products tucked under bags and trays."
    }
   },
   "contents": {
-   "strict": 8,
+   "strict": 9,
    "lenient": 10,
    "missing": [
+    "Muenster cheese",
     "Muenster cheese (second)",
     "beef pack",
-    "Fuji apple bag",
     "yellow produce bag",
     "broccoli (a bagged green, label not legible)"
    ],
    "spurious": [
-    "baguette"
+    "baguette",
+    "happy valley milk",
+    "red bell pepper"
    ]
   }
  },
@@ -2052,7 +2040,7 @@
    {
     "badge": 1,
     "truth": "skip",
-    "said": "shopping cart plastic wheel cover",
+    "said": "shopping cart frame",
     "ok": true
    }
   ],
@@ -2069,7 +2057,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -2077,14 +2064,14 @@
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.99,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
     },
     {
      "id": 2,
-     "name": "shopping cart plastic wheel cover",
+     "name": "shopping cart frame",
      "brand": null,
      "size": null,
      "category": "other",
@@ -2104,7 +2091,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only one produce item is visible and nothing appears buried or stacked."
+    "reason": "Only one grocery item is visible and it is not significantly covered."
    }
   },
   "contents": {
@@ -2130,7 +2117,7 @@
   "lines": [
    {
     "key": "sku:kart_cauliflower",
-    "name": "cauliflower",
+    "name": "Cauliflower",
     "brand": "Mr. Lucky",
     "size": null,
     "category": "produce",
@@ -2138,11 +2125,10 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
-     "name": "cauliflower",
+     "name": "Cauliflower",
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
@@ -2162,7 +2148,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Cart is nearly empty and the only visible product is fully visible in the bag."
+    "reason": "Only one produce bag is visible and nothing else in the cart appears to be merchandise."
    }
   },
   "contents": {
@@ -2216,7 +2202,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -2235,7 +2220,7 @@
      "brand": null,
      "size": "16 oz (1 lb) 454g",
      "category": "produce",
-     "confidence": 0.97,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -2246,7 +2231,7 @@
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.99,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": false,
      "catalogSku": null
@@ -2266,7 +2251,7 @@
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "Only two grocery items are visible and they are not heavily buried; the cart is otherwise empty."
+    "reason": "Only two produce bags are in the cart and both are clearly visible; the third marked region is just the cart frame."
    }
   },
   "contents": {
@@ -2312,7 +2297,7 @@
    },
    {
     "key": "sku:kart_brussels_sprouts",
-    "name": "Brussels sprouts",
+    "name": "brussels sprouts",
     "brand": null,
     "size": null,
     "category": "produce",
@@ -2328,7 +2313,6 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
@@ -2343,11 +2327,11 @@
     },
     {
      "id": 2,
-     "name": "Brussels sprouts",
+     "name": "brussels sprouts",
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -2358,7 +2342,7 @@
      "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.98,
+     "confidence": 0.99,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -2382,7 +2366,7 @@
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Three produce bags overlap near the bottom of the cart, so parts of the contents are covered."
+    "reason": "three produce bags overlap near the bottom of the cart, with parts of the middle and right bags partly covered"
    }
   },
   "contents": {
@@ -2417,25 +2401,25 @@
    {
     "badge": 3,
     "truth": "granny_smith_apples",
-    "said": "granny smith apples",
+    "said": "best grown granny smith apples",
     "ok": true
    },
    {
     "badge": 4,
     "truth": "brussels_sprouts",
-    "said": "brussels sprouts",
+    "said": "best grown brussels sprouts",
     "ok": true
    },
    {
     "badge": 5,
     "truth": "baguette",
-    "said": "baguette",
+    "said": "la brea bakery baguette",
     "ok": true
    },
    {
     "badge": 6,
     "truth": "asparagus",
-    "said": "asparagus",
+    "said": "best grown asparagus",
     "ok": true
    },
    {
@@ -2447,24 +2431,24 @@
    {
     "badge": 8,
     "truth": "purple_produce_bag",
-    "said": "produce bag with red produce",
-    "ok": true
+    "said": "truffle",
+    "ok": false
    },
    {
     "badge": 9,
     "truth": "purple_produce_bag",
-    "said": "green produce bag with red produce",
+    "said": "best grown granny smith apples",
     "ok": true
    }
   ],
-  "units": 9,
+  "units": 10,
   "real": 9,
   "lines": [
    {
     "key": "sku:kart_oreo",
     "name": "Oreo",
     "brand": "Cadbury",
-    "size": null,
+    "size": "family size",
     "category": "snacks",
     "qty": 1
    },
@@ -2487,15 +2471,15 @@
    {
     "key": "sku:kart_granny_smith_apples",
     "name": "Granny Smith apples",
-    "brand": null,
+    "brand": "Best Grown",
     "size": null,
     "category": "produce",
-    "qty": 1
+    "qty": 2
    },
    {
     "key": "sku:kart_brussels_sprouts",
     "name": "Brussels sprouts",
-    "brand": null,
+    "brand": "Best Grown",
     "size": null,
     "category": "produce",
     "qty": 1
@@ -2503,7 +2487,7 @@
    {
     "key": "sku:kart_baguette",
     "name": "baguette",
-    "brand": null,
+    "brand": "La Brea Bakery",
     "size": null,
     "category": "bread",
     "qty": 1
@@ -2511,7 +2495,7 @@
    {
     "key": "sku:kart_asparagus",
     "name": "asparagus",
-    "brand": null,
+    "brand": "Best Grown",
     "size": null,
     "category": "produce",
     "qty": 1
@@ -2525,22 +2509,21 @@
     "qty": 1
    },
    {
-    "key": "::produce bag with red produce",
-    "name": "produce bag with red produce",
+    "key": "sku:Truffle",
+    "name": "truffle",
     "brand": null,
     "size": null,
-    "category": "other",
+    "category": "produce",
     "qty": 1
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
      "name": "Oreo",
      "brand": "Cadbury",
-     "size": null,
+     "size": "family size",
      "category": "snacks",
      "confidence": 0.99,
      "needsCloserLook": false,
@@ -2553,7 +2536,7 @@
      "brand": "Mr. Lucky",
      "size": null,
      "category": "produce",
-     "confidence": 0.98,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
@@ -2564,7 +2547,7 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.98,
+     "confidence": 0.94,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_seedtastic_bread"
@@ -2572,10 +2555,10 @@
     {
      "id": 4,
      "name": "Granny Smith apples",
-     "brand": null,
+     "brand": "Best Grown",
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
@@ -2583,10 +2566,10 @@
     {
      "id": 5,
      "name": "Brussels sprouts",
-     "brand": null,
+     "brand": "Best Grown",
      "size": null,
      "category": "produce",
-     "confidence": 0.97,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_brussels_sprouts"
@@ -2594,10 +2577,10 @@
     {
      "id": 6,
      "name": "baguette",
-     "brand": null,
+     "brand": "La Brea Bakery",
      "size": null,
      "category": "bread",
-     "confidence": 0.99,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
@@ -2605,10 +2588,10 @@
     {
      "id": 7,
      "name": "asparagus",
-     "brand": null,
+     "brand": "Best Grown",
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_asparagus"
@@ -2619,32 +2602,32 @@
      "brand": null,
      "size": null,
      "category": "other",
-     "confidence": 0.96,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_purple_produce_bag"
     },
     {
      "id": 9,
-     "name": "produce bag with red produce",
+     "name": "truffle",
      "brand": null,
      "size": null,
-     "category": "other",
-     "confidence": 0.57,
+     "category": "produce",
+     "confidence": 0.83,
      "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "Truffle"
     },
     {
      "id": 10,
-     "name": "green produce bag with red produce",
-     "brand": null,
+     "name": "granny smith apples",
+     "brand": "Best Grown",
      "size": null,
-     "category": "other",
-     "confidence": 0.56,
-     "needsCloserLook": true,
+     "category": "produce",
+     "confidence": 0.93,
+     "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": null
+     "catalogSku": "kart_granny_smith_apples"
     }
    ],
    "unmarkedItems": [],
@@ -2662,19 +2645,19 @@
      "count": 1
     },
     {
-     "productKey": "::granny smith apple",
+     "productKey": "best grown::granny smith apple",
+     "count": 2
+    },
+    {
+     "productKey": "best grown::brussel sprout",
      "count": 1
     },
     {
-     "productKey": "::brussel sprout",
+     "productKey": "la brea bakery::baguette",
      "count": 1
     },
     {
-     "productKey": "::baguette",
-     "count": 1
-    },
-    {
-     "productKey": "::asparagu",
+     "productKey": "best grown::asparagu",
      "count": 1
     },
     {
@@ -2682,25 +2665,26 @@
      "count": 1
     },
     {
-     "productKey": "::produce bag with red produce",
-     "count": 1
-    },
-    {
-     "productKey": "::green produce bag with red produce",
+     "productKey": "::truffle",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
     "severity": "some",
-    "reason": "Several bags overlap in the bottom half of the cart, so some items are partly covered."
+    "reason": "Several produce bags overlap in the middle and lower cart, so a few items are partly covered."
    }
   },
   "contents": {
    "strict": 8,
-   "lenient": 9,
-   "missing": [],
-   "spurious": []
+   "lenient": 8,
+   "missing": [
+    "yellow produce bag"
+   ],
+   "spurious": [
+    "best grown granny smith apples",
+    "truffle"
+   ]
   }
  },
  {
@@ -2710,25 +2694,25 @@
    {
     "badge": 0,
     "truth": "seedtastic_bread",
-    "said": "seedtastic bread",
-    "ok": true
+    "said": "organic cage-free large brown eggs",
+    "ok": false
    },
    {
     "badge": 1,
     "truth": "cauliflower",
-    "said": "b. lucky cauliflower",
+    "said": "cauliflower",
     "ok": true
    },
    {
     "badge": 2,
     "truth": "out_of_catalog",
-    "said": "simply nature eggs",
+    "said": "organic cage-free large brown eggs",
     "ok": null
    },
    {
     "badge": 3,
     "truth": "out_of_catalog",
-    "said": "international delight coffee creamer",
+    "said": "jarred spread",
     "ok": null
    },
    {
@@ -2740,13 +2724,13 @@
    {
     "badge": 5,
     "truth": "granny_smith_apples",
-    "said": "west grocer granny smith apples",
+    "said": "west grove granny smith apples",
     "ok": true
    },
    {
     "badge": 6,
     "truth": "out_of_catalog",
-    "said": "simply nature eggs",
+    "said": "organic cage-free large brown eggs",
     "ok": null
    },
    {
@@ -2758,56 +2742,48 @@
    {
     "badge": 8,
     "truth": "out_of_catalog",
-    "said": "signature select alaskan salmon sockeye portion",
+    "said": "wild caught alaskan sockeye salmon",
     "ok": null
    },
    {
     "badge": 9,
     "truth": "out_of_catalog",
-    "said": "international delight coffee creamer",
+    "said": "murray's murray's cheese slices",
     "ok": null
    },
    {
     "badge": 10,
     "truth": "purple_produce_bag",
-    "said": "green onions",
+    "said": "green beans",
     "ok": false
    }
   ],
-  "units": 14,
+  "units": 13,
   "real": 15,
   "lines": [
    {
-    "key": "sku:kart_seedtastic_bread",
-    "name": "Seedtastic bread",
+    "key": "::organic cagefree large brown egg",
+    "name": "Organic cage-free large brown eggs",
     "brand": null,
-    "size": null,
-    "category": "bread",
-    "qty": 1
+    "size": "large brown",
+    "category": "dairy",
+    "qty": 3
    },
    {
     "key": "sku:kart_cauliflower",
     "name": "cauliflower",
-    "brand": "B. Lucky",
+    "brand": null,
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "sku:kart_brussels_sprouts",
-    "name": "eggs",
-    "brand": "Simply Nature",
-    "size": "large brown",
-    "category": "dairy",
-    "qty": 1
-   },
-   {
-    "key": "sku:Nescafe",
-    "name": "coffee creamer",
-    "brand": "International Delight",
+    "key": "sku:PeanutButter",
+    "name": "jarred spread",
+    "brand": null,
     "size": null,
-    "category": "dairy",
-    "qty": 2
+    "category": "other",
+    "qty": 1
    },
    {
     "key": "sku:kart_baguette",
@@ -2820,54 +2796,46 @@
    {
     "key": "sku:kart_granny_smith_apples",
     "name": "Granny Smith apples",
-    "brand": "West Grocer",
+    "brand": "West Grove",
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "sku:Milk_Amul",
-    "name": "eggs",
-    "brand": "Simply Nature",
-    "size": "large brown",
-    "category": "dairy",
-    "qty": 1
-   },
-   {
-    "key": "sku:Tops",
-    "name": "Alaskan salmon sockeye portion",
-    "brand": "Signature SELECT",
+    "key": "wild caught::alaskan sockeye salmon",
+    "name": "Alaskan sockeye salmon",
+    "brand": "Wild Caught",
     "size": null,
     "category": "seafood",
     "qty": 1
    },
    {
+    "key": "sku:CheeseSlices",
+    "name": "Murray's cheese slices",
+    "brand": "Murray's",
+    "size": null,
+    "category": "dairy",
+    "qty": 1
+   },
+   {
     "key": "sku:kart_asparagus",
-    "name": "green onions",
+    "name": "green beans",
     "brand": null,
     "size": null,
     "category": "produce",
     "qty": 1
    },
    {
-    "key": "::red packaged meat tray",
-    "name": "red packaged meat tray",
+    "key": "::red beef steak package",
+    "name": "red beef steak package",
     "brand": null,
     "size": null,
     "category": "other",
     "qty": 1
    },
    {
-    "key": "::purple produce bag",
+    "key": "sku:kart_purple_produce_bag",
     "name": "purple produce bag",
-    "brand": null,
-    "size": null,
-    "category": "other",
-    "qty": 1
-   },
-   {
-    "key": "::red bell pepper in tray",
-    "name": "red bell peppers in tray",
     "brand": null,
     "size": null,
     "category": "other",
@@ -2875,51 +2843,50 @@
    }
   ],
   "census": {
-   "subjectIsCart": true,
    "marks": [
     {
      "id": 1,
-     "name": "Seedtastic bread",
+     "name": "Organic cage-free large brown eggs",
      "brand": null,
-     "size": null,
-     "category": "bread",
-     "confidence": 0.97,
+     "size": "large brown",
+     "category": "dairy",
+     "confidence": 0.87,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "kart_seedtastic_bread"
+     "catalogSku": null
     },
     {
      "id": 2,
      "name": "cauliflower",
-     "brand": "B. Lucky",
+     "brand": null,
      "size": null,
      "category": "produce",
-     "confidence": 0.95,
+     "confidence": 0.98,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_cauliflower"
     },
     {
      "id": 3,
-     "name": "eggs",
-     "brand": "Simply Nature",
+     "name": "Organic cage-free large brown eggs",
+     "brand": null,
      "size": "large brown",
      "category": "dairy",
-     "confidence": 0.95,
+     "confidence": 0.88,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "kart_brussels_sprouts"
+     "catalogSku": null
     },
     {
      "id": 4,
-     "name": "coffee creamer",
-     "brand": "International Delight",
+     "name": "jarred spread",
+     "brand": null,
      "size": null,
-     "category": "dairy",
-     "confidence": 0.94,
-     "needsCloserLook": false,
+     "category": "other",
+     "confidence": 0.36,
+     "needsCloserLook": true,
      "isProduct": true,
-     "catalogSku": "Nescafe"
+     "catalogSku": "PeanutButter"
     },
     {
      "id": 5,
@@ -2927,7 +2894,7 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.95,
+     "confidence": 0.94,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
@@ -2935,24 +2902,24 @@
     {
      "id": 6,
      "name": "Granny Smith apples",
-     "brand": "West Grocer",
+     "brand": "West Grove",
      "size": null,
      "category": "produce",
-     "confidence": 0.96,
+     "confidence": 0.97,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_granny_smith_apples"
     },
     {
      "id": 7,
-     "name": "eggs",
-     "brand": "Simply Nature",
+     "name": "Organic cage-free large brown eggs",
+     "brand": null,
      "size": "large brown",
      "category": "dairy",
-     "confidence": 0.95,
+     "confidence": 0.89,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "Milk_Amul"
+     "catalogSku": null
     },
     {
      "id": 8,
@@ -2960,36 +2927,36 @@
      "brand": null,
      "size": null,
      "category": "bread",
-     "confidence": 0.99,
+     "confidence": 0.96,
      "needsCloserLook": false,
      "isProduct": true,
      "catalogSku": "kart_baguette"
     },
     {
      "id": 9,
-     "name": "Alaskan salmon sockeye portion",
-     "brand": "Signature SELECT",
+     "name": "Alaskan sockeye salmon",
+     "brand": "Wild Caught",
      "size": null,
      "category": "seafood",
-     "confidence": 0.92,
+     "confidence": 0.93,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "Tops"
+     "catalogSku": null
     },
     {
      "id": 10,
-     "name": "coffee creamer",
-     "brand": "International Delight",
+     "name": "Murray's cheese slices",
+     "brand": "Murray's",
      "size": null,
      "category": "dairy",
-     "confidence": 0.95,
+     "confidence": 0.88,
      "needsCloserLook": false,
      "isProduct": true,
-     "catalogSku": "Nescafe"
+     "catalogSku": "CheeseSlices"
     },
     {
      "id": 11,
-     "name": "green onions",
+     "name": "green beans",
      "brand": null,
      "size": null,
      "category": "produce",
@@ -3001,62 +2968,51 @@
    ],
    "unmarkedItems": [
     {
-     "description": "red packaged meat tray",
-     "productKey": "::red packaged meat tray",
+     "description": "red beef steak package",
+     "productKey": "::red beef steak package",
      "catalogSku": null,
-     "approxLocation": "center-left under the eggs",
-     "confidence": 0.78
+     "approxLocation": "left-center under the eggs",
+     "confidence": 0.77
     },
     {
      "description": "purple produce bag",
      "productKey": "::purple produce bag",
-     "catalogSku": null,
-     "approxLocation": "lower left under the bread",
-     "confidence": 0.83
-    },
-    {
-     "description": "red bell peppers in tray",
-     "productKey": "::red bell peppers in tray",
-     "catalogSku": null,
-     "approxLocation": "lower center",
-     "confidence": 0.91
+     "catalogSku": "kart_purple_produce_bag",
+     "approxLocation": "lower left under the baguette",
+     "confidence": 0.89
     }
    ],
    "inViewCounts": [
     {
-     "productKey": "::egg",
-     "count": 2
+     "productKey": "::organic cagefree large brown egg",
+     "count": 3
     },
     {
-     "productKey": "b lucky::cauliflower",
+     "productKey": "::cauliflower",
      "count": 1
-    },
-    {
-     "productKey": "international delight::coffee creamer",
-     "count": 2
     },
     {
      "productKey": "::baguette",
      "count": 2
     },
     {
-     "productKey": "west grocer::granny smith apple",
+     "productKey": "west grove::granny smith apple",
      "count": 1
     },
     {
-     "productKey": "signature select::alaskan salmon sockeye portion",
+     "productKey": "murrays::cheese slice",
      "count": 1
     },
     {
-     "productKey": "seedtastic::seedtastic bread",
+     "productKey": "::alaskan sockeye salmon",
      "count": 1
     },
     {
-     "productKey": "::green onion",
+     "productKey": "::green bean",
      "count": 1
     },
     {
-     "productKey": "::red packaged meat tray",
+     "productKey": "::red beef steak package",
      "count": 1
     },
     {
@@ -3064,32 +3020,28 @@
      "count": 1
     },
     {
-     "productKey": "::red bell pepper in tray",
+     "productKey": "wild caught::jarred spread",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": true,
-    "severity": "many",
-    "reason": "Several items overlap heavily, with bags and cartons covering parts of other products in the cart."
+    "severity": "some",
+    "reason": "Several items overlap, with eggs, produce, baguette, and bags partially covering each other."
    }
   },
   "contents": {
-   "strict": 8,
-   "lenient": 9,
+   "strict": 9,
+   "lenient": 11,
    "missing": [
-    "Muenster cheese",
     "Muenster cheese (second)",
-    "jar",
-    "asparagus bag",
+    "Seedtastic bread",
     "yellow produce bag",
     "broccoli (a bagged green, label not legible)"
    ],
    "spurious": [
-    "international delight coffee creamer x2",
-    "baguette",
-    "green onions",
-    "red bell peppers in tray"
+    "organic cage-free large brown eggs",
+    "baguette"
    ]
   }
  }

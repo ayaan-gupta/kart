@@ -2721,10 +2721,31 @@ first, and cut from five lines to four:
 | five lines, between rules 7 and 8 | 74, 75, 76, 77 | 75.5 | 67, 65 of 75 |
 | four lines, at the top | 72, 75, 79 | **75.3** | 67, 67, 68 of 75 |
 
-Identical, and discrimination stayed at ten of ten. **The three points are the cost of asking the
-question, not of how it is asked**, which is the same finding as every other prompt change in this
-file and this time it was worth confirming rather than assuming, because a cheaper version of a
-fix worth keeping would have been worth having.
+Identical, and discrimination stayed at ten of ten. **The cost is in asking the question, not in
+how it is asked**, which is the same finding as every other prompt change in this file and this
+time it was worth confirming rather than assuming, because a cheaper version of a fix worth
+keeping would have been worth having.
+
+### And the cost is larger than "about three points"
+
+Three rounds against three is the evidence this file has refused to act on all day, so the
+comparison was taken to six each, with the field actually removed for the baseline rather than
+assumed absent:
+
+| | products found, lenient, six rounds | mean |
+|---|---|---|
+| field removed | 79, 80, 77, 81, 81, 77 | **79.2** |
+| the cart question | 72, 75, 79, 72, 77, 75 | **75.0** |
+
+**4.2 points, about 3.3 standard errors.** Real, not noise, and larger than the earlier figure.
+The decision is unchanged and not close: four points of recall against a bag that can be filled
+with up to 41 items the shopper is not buying. But the price is now stated correctly.
+
+A near miss worth recording. The first attempt at this baseline ran `git stash push` on three
+files that were already committed, so nothing was stashed, the "baseline" rounds ran with the
+field still in place, and they returned 72, 77 and 75 — which would have made the cost look like
+zero and the fix look free. The stash pop failing with "No stash entries found" is the only reason
+it was checked.
 
 The tightened version stays anyway: the ordering is coherent, badge alignment is a shade better
 across three rounds rather than worse, and a rule labelled 0 sitting between 7 and 8 was a thing
