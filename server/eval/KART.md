@@ -598,11 +598,35 @@ item falls out. The instruction to reuse a name reads to it as permission to sto
 That is worth knowing for its own sake: the architecture is not what stands in the way here. The
 idea is.
 
-Six things have now been tried against the last one or two units and each is refused with a
+**A bigger census model splits the two corpora the same way the produce pairs did.** "Perception,
+not reasoning" is the assumption `MODELS.census` is built on, and it had only ever been tested
+against more reasoning effort on the same model, which does nothing. `KART_CENSUS_MODEL` exists
+now so it can be tested against a larger one.
+
+| gpt-5.4 in place of gpt-5.4-mini | |
+|---|---|
+| stills, units of 33 | **30, 32, 30**, against 26 to 32 |
+| stills, photographs exact | 4, 5, 4 of 6, unchanged |
+| stills, badge alignment | 20, 20, 22 of 23, unchanged |
+| scan, units against 10 | **12, 13, 14, 14, 14, 14** against 8 to 12 |
+
+Better on photographs and much worse on the scan, and the reason is the same property doing both:
+a larger model sweeps harder for unmarked items. On one call that is more of the trolley found. On
+four calls of a pan it is more descriptions that cannot be joined, so the bag fills with them.
+Perception was never the bottleneck on the scan.
+
+The shipped model stays mini. The product is a scan.
+
+Seven things have now been tried against the last one or two units and each is refused with a
 number: a lower produce threshold, produce prompts split into groups, produce prompts in pairs,
 corroboration before an unmarked sighting counts, the frame's catalog offered to the unmarked,
-and the census given its own session's answers. Four of the six made the scan worse, and two of
-those four made it worse by under-counting, which is the error a shopper cannot see.
+the census given its own session's answers, and a larger census model. Five of the seven made the
+scan worse, and two of those did it by under-counting, which is the error a shopper cannot see.
+
+Three of the seven point the same way. Anything that makes the census see or say more helps a
+photograph and hurts a scan, because a photograph asks once and a scan asks four times with no
+way to join the answers. That is the shape of what is left, and it is one mechanism rather than
+seven separate problems.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
