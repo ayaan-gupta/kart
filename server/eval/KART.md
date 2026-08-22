@@ -51,7 +51,11 @@ IMG_0252 holds nine products, not ten. IMG_0254 holds fifteen, not sixteen.
 
 **Any figure in this file with a denominator of 33, or "of 10 real products", or "of 16", was
 measured before 2026-08-22 and is against the old counts.** The corrected denominators are 31 for
-the six photographs, 9 for IMG_0252 and the scan, and 15 for IMG_0254. Those figures are left as
+the six photographs, 9 for IMG_0252 and the scan, and 15 for IMG_0254.
+**And any badge-alignment figure with a denominator of 23 is scored on an incomplete label set**:
+IMG_0252 carried ten boxes and eight labels, so two badges went unscored until they were labelled,
+and they are exactly the two the models most often get wrong. Alignment reads about three points
+lower once they are included; see the thirtieth section. Those figures are left as
 they were rather than rewritten, because each was taken at a particular time against a particular
 target and changing the numbers after the fact would misrepresent when they were measured. The
 two loaded trolleys are one and one closer to their targets than the old figures read.
@@ -1666,3 +1670,30 @@ Three folds have now been tried against this one product, each refused with a nu
 
 The bag is one product wearing two appearances, a purple plastic half and a clear half full of red
 apples, and the three channels that could join them are respectively silent, empty, and inverted.
+
+## Thirtieth: closing a measurement gap that was flattering the numbers
+
+`query-labels.json` carried eight labels for IMG_0252 while the frame carries ten boxes, so badge
+alignment silently skipped two badges on the second-hardest photograph in the corpus. Every "21 of
+23" in this file was scored on a set that excluded them.
+
+Both are the Fuji bag, established by cropping each box at native resolution: badge 10 reads
+`WEST GROWN / FUJI / Sure to core!` over `Net Wt 48 oz (3 lb) Extra Fancy`, and badge 9 is the same
+red apples through the clear half of that bag. They are labelled `purple_produce_bag`, the SKU the
+index is built on, which `census-live.ts`'s SAME map already reads as the Fuji bag.
+
+With those two scored, over the same four saved answer sets and no model called:
+
+| | alignment, as reported before | with all ten badges scored |
+|---|---|---|
+| gpt-5.4-mini | 21 of 23, 91.3% | 221 of 250, **88.4%** |
+| gpt-5.4 | 21 of 23, 91.3% | 218 of 250, **87.2%** |
+
+Three points lower for both, and the two badges were not a random sample: they are exactly where
+the models answer `Roma tomatoes` or `tomatoes on the vine` for red apples in a Fuji bag. The gap
+excluded the hardest badges in the corpus from the badge score.
+
+It also separates the two models where the old scorer could not. Both sat flat at 21 of 23 on
+every pass; scored properly, gpt-5.4 ranges 21 to 23 across passes while mini ranges 21 to 23 too,
+but their totals differ by three and one gpt-5.4 round sits four badges below the other. The old
+number's perfect stability across forty passes was the gap holding it still, not the pipeline.

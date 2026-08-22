@@ -1,5 +1,5 @@
 {
- "note": "What each detected box on the two query photographs is. These photographs contribute nothing to the catalog: their references come from the video and from the four earlier photographs, so a correct name here is recognition and not recall.",
+ "note": "What each detected box on the two query photographs is. These photographs contribute nothing to the catalog: their references come from the video and from the four earlier photographs, so a correct name here is recognition and not recall.  Badges 9 and 10 of IMG_0252 were unlabelled while the frame carried ten boxes, so badge alignment silently skipped two badges on the second-hardest photograph here. Both are the Fuji bag: badge 10's crop reads WEST GROWN / FUJI / Sure to core! over Net Wt 48 oz (3 lb) Extra Fancy, and badge 9 is the same red apples through the clear half of that bag. They are labelled purple_produce_bag because that is the SKU the index is built on, which the SAME map in census-live.ts already reads as the Fuji bag.",
  "out_of_catalog": "a real product the catalog does not contain. The right answer for these is to decline, and they are what makes the floor measurable at all.",
  "not_a_product": "the shopper's own tote bag, and boxes drawn across several items at once",
  "boxes": {
@@ -11,6 +11,8 @@
    "brussels_sprouts",
    "baguette",
    "asparagus",
+   "purple_produce_bag",
+   "purple_produce_bag",
    "purple_produce_bag"
   ],
   "IMG_0254": [
