@@ -5471,3 +5471,47 @@ What that leaves is narrow and, at last, complete: the yellow produce bag has be
 prompts, five detector thresholds, tiling, two proposal models, pacing, the keyframe gate rule, four
 fusion variants, a catalog entry built from dense frames, and now the single frame-and-threshold
 combination the whole investigation pointed at. It is not found by any of them.
+
+## Hundred-and-fourth: drawing the filter changes the recommendation
+
+`MIN_CATALOG_CONFIDENCE` was measured at 13 spurious lines down to 10, replicated on two census
+models, and written up as the one pending change that improves the bag. `render_filter.py` draws
+what it removes, and the picture is not what the number implied.
+
+On IMG_0254 the filter drops four proposals:
+
+| dropped | matcher confidence | what it is |
+|---|---|---|
+| top of the frame | 0.55 | the second **egg carton** with a Muenster pack |
+| centre right | 0.59 | the **jar** |
+| centre | 0.59 | the **Alaskan sockeye salmon** |
+| lower left | 0.55 | the **asparagus bag** |
+
+**All four are real products.** Not junk, not the trolley frame, not the shopper's tote: four things
+a shopper is buying, removed before the census is asked about them.
+
+The end-to-end figure said the filter costs one product, and that is true of the *outcome* — the
+unmarked sweep volunteers most of them back, so only one is finally lost. But the mechanism is not
+"drops what is not a product". It is **"drops four real products and is rescued by a channel this
+file has spent twenty sections calling unreliable"**, which is a materially worse thing to ship.
+
+Three of the four are `out_of_catalog`, so the matcher cannot place them by construction; the
+ninety-second showed IMG_0254 is 40% catalogued because the catalog is built from a different
+trolley. The asparagus is the exception and it *is* catalogued — its box holds asparagus and other
+goods together, so the matcher is unsure of a region that genuinely contains the product.
+
+### What this does to the recommendation
+
+It does not reverse it, and it sharpens the condition. `WHEN-CREDIT-RETURNS.md` already says not to
+ship the filter if the four sparse trolleys stop being exact. It should also say: **check what it
+drops, not only what the totals do.** A change whose benefit comes from removing real products and
+relying on a fallback to restore them is one bad fallback away from being a regression, and this
+file has measured that fallback failing before.
+
+The honest summary is now: on a corpus where 40% of a photograph's products have no catalog entry,
+this filter removes them and the sweep mostly covers for it. **In the closed world `CLAUDE.md`
+assumes, those four would have SKUs and none of this would happen** — which is an argument for the
+filter being safe in deployment and unsafe as a conclusion drawn here.
+
+**Numbers hid this and a picture showed it in one look.** That is the case for the visual output
+being part of the work rather than a report on it.
