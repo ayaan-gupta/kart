@@ -4644,3 +4644,54 @@ The corpus figure is not being restated as a better one. The truth stands, the c
 corpus measures one trolley in nearly-closed-world conditions and the other in nearly-open-world
 ones**, and the difference between their scores should not be read as the pipeline handling density
 badly, which is what the seventieth through eighty-eighth spent their effort assuming.
+
+## Ninety-third: the ninety-first was wrong, and the yellow bag has a catalog entry after all
+
+The ninety-first concluded the yellow produce bag cannot be catalogued because the video does not
+contain ten usable views of it and `MIN_REFERENCES` is 10. **That was true of `video-frames.json`
+and false of the video.**
+
+`score_video.py` samples at **3fps**. The bag is plainly visible for about 2.6 seconds, which at
+that rate is five frames, and five is what the ninety-first counted. The file is **262 frames at
+30fps**. Sampling that same window densely and detecting at 0.15 gives **eighteen to twenty boxes at
+or above 28% yellow, every one a clean view of the bag** — twice what `Index.build` requires.
+
+The mistake is worth naming: I measured a *derived artifact* and reported it as a property of the
+*source*. The 3fps sample exists because detection is expensive on 262 frames, which is a good
+reason for the eval loop and no reason at all for building a catalog offline.
+
+### With the entry, the matcher puts it first
+
+`build_yellow_reference.py` extracts the references. Querying the augmented IMG_0254 box, the one
+the eighty-ninth put on this item, against a catalog with and without them:
+
+| catalog | shortlist for that box |
+|---|---|
+| the corpus's 8 SKUs | `purple_produce_bag`, brussels_sprouts, asparagus, baguette, … |
+| **+ yellow_produce_bag** | **`yellow_produce_bag`**, purple_produce_bag, baguette, asparagus, … |
+
+**Rank 1, ahead of the purple bag it has been confused with all along.** The matcher recognises this
+object perfectly well from video references on a still; it had simply never been given any.
+
+### The chain that failed at five layers now works at four of them
+
+1. **Detection** — the eighty-ninth's new-ground augmentation puts a box on it.
+2. **Catalog** — dense sampling supplies 18 references against a floor of 10.
+3. **Shortlist** — the matcher ranks `yellow_produce_bag` first for that box.
+4. **Naming** — the ninetieth measured that with `yellow produce bag` in the shortlist, the model
+   answers `yellow produce bag`.
+
+Each link is measured, and none of the four needed API credit. **The fifth, whether gpt-5.4-mini
+converts it the way the local 7B does, is the only one still blocked.**
+
+### What is not yet claimed
+
+The index used here holds seven products, not the shipped 310, because `Index.build` also drops
+`granny_smith_apples` and `oreo` for having nine references each. Rank 1 against six competitors is
+not rank 1 against three hundred, and the honest next step is a full index rebuild followed by
+`score_shortlist.py`, which would show whether the other twenty-one badges keep their SKUs.
+
+And the eighty-eighth refused the augmented regions on an end-to-end unit count taken **with the
+catalog that had no yellow entry**, where the box became a spurious `purple cabbage` line. With the
+entry present that line may become a correct one, so **that refusal now rests on a measurement made
+under the wrong catalog and deserves re-running.**
