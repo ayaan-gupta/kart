@@ -188,7 +188,7 @@ describe("POST /api/census: marks validation", () => {
     });
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, true);
   });
 
   it("rejects marks that is not an array", async () => {
@@ -294,7 +294,7 @@ describe("POST /api/census: marks validation", () => {
     ];
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, false);
   });
 });
 
@@ -441,7 +441,7 @@ describe("POST /api/census: the capture path, where the server finds the regions
 
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), []);
+    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, true);
     const body = await res.json();
     expect(body.enumeration).toBe("degraded");
     expect(body.regions).toEqual([]);
@@ -504,5 +504,34 @@ describe("the catalog shortlist reaches the prompt", () => {
       { sku: "Froot Loops", confidence: 0.87 },
       { sku: "Apple Jacks", confidence: 0 },
     ]);
+  });
+});
+
+describe("POST /api/census: which census model the request reaches", () => {
+  // The route is the only place that knows which of the orchestrator's two call sites it is
+  // serving, and the two want different models (see MODELS.censusCapture). An empty marks array
+  // means the server is enumerating, which only the captured-still path asks for; marks on
+  // arrival came from a scan's on-device tracker. This is the whole contract, so it is pinned
+  // here rather than left implied by the argument lists asserted above.
+  const emptyAnswer = {
+    marks: [],
+    unmarkedItems: [],
+    inViewCounts: [],
+    occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+  };
+
+  it("flags a request with no marks as a capture", async () => {
+    runCensusMock.mockResolvedValueOnce(emptyAnswer);
+    await handler(post({ image: validImage }));
+    expect(runCensusMock.mock.calls[0][3]).toBe(true);
+  });
+
+  it("does not flag a request that arrives with tracker marks", async () => {
+    runCensusMock.mockResolvedValueOnce(emptyAnswer);
+    await handler(post({
+      image: validImage,
+      marks: [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+    }));
+    expect(runCensusMock.mock.calls[0][3]).toBe(false);
   });
 });

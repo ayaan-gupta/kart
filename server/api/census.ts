@@ -82,6 +82,7 @@ export default async function handler(req: Request): Promise<Response> {
     // measured dead (docs/detector-decision.md), so finding the regions is the server's job now.
     // A client that does send marks keeps the old behaviour exactly, which is what lets the
     // on-device path and the captured path coexist while the transition lands.
+    const capture = marks.length === 0;
     let regions: EnumeratedRegion[] = [];
     let degraded: string | null = null;
     let enumeratedHere = false;
@@ -97,7 +98,11 @@ export default async function handler(req: Request): Promise<Response> {
       marks = marksFromRegions(regions);
     }
 
-    const result = await withTimeout(runCensus(image, marks));
+    // `capture` is the path, not a heuristic: the orchestrator's two call sites are exactly
+    // "no marks, server please find them" for a captured still and "here are the tracker's
+    // marks" for a scan frame, so an empty list on arrival is the still path. The models differ
+    // because the two paths fail differently; see MODELS.censusCapture.
+    const result = await withTimeout(runCensus(image, marks, undefined, capture));
 
     // The geometry goes back with the identifications. The device no longer has it: it never ran
     // a detector, so without this there is nothing to draw an outline around and nothing for the

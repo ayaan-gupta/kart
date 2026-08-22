@@ -1252,3 +1252,59 @@ So the corpus now says: **four photographs solved and stable, one scan improved 
 within two, and two dense trolleys whose answer is correct on some passes and not others.** The
 gap is consistency on dense scenes, not capability, and the evidence that it is consistency is
 that the perfect answer has already been produced for both of them.
+
+## Twenty-second: the two paths want different models, and now get them
+
+The twenty-first left one thing open: the residual on the photographs is the census's unmarked
+channel, where it volunteers products no badge landed on, and that channel is inconsistent on a
+dense trolley. A bigger model sweeps that channel harder. This file already measured that and
+rejected it, in "The census, run", on the grounds that it wrecked the scan.
+
+**That rejection predates the fold.** The stated reason it wrecked the scan was "more descriptions
+that cannot be joined", and the nineteenth investigation shipped a join. So it was worth asking
+again.
+
+### Photographs, two independent rounds of five passes
+
+| photograph | real | mini exact | gpt-5.4 exact | mini MAE | gpt-5.4 MAE |
+|---|---|---|---|---|---|
+| IMG_0244 | 1 | 10 of 10 | 10 of 10 | 0.00 | 0.00 |
+| IMG_0245 | 1 | 10 of 10 | 10 of 10 | 0.00 | 0.00 |
+| IMG_0246 | 2 | 10 of 10 | 10 of 10 | 0.00 | 0.00 |
+| IMG_0249 | 3 | 10 of 10 | 9 of 10 | 0.00 | 0.10 |
+| IMG_0252 | 9 | 3 of 10 | **7 of 10** | 0.90 | 0.30 |
+| IMG_0254 | 15 | 1 of 10 | **3 of 10** | 2.40 | 1.30 |
+| **all six** | | **44 of 60** | **49 of 60** | **0.55** | **0.28** |
+
+Badge alignment is 21 of 23 on all twenty passes of both. The sparse four are untouched, which is
+the important safety property: the model only changes what was already wrong. IMG_0252 is the
+clearest case, its spread collapsing from 7 to 11 units down to 8 or 9.
+
+### The scan, asked again with the fold in place
+
+| | units against 9 real |
+|---|---|
+| mini, with the fold | 9, 11, 11, 11, 9, 10 (mean 10.2) |
+| gpt-5.4, with the fold | 15, 13, 14, 13, 13, 13 (mean 13.5) |
+
+**The fold does not rescue it, and the reason is structural rather than disappointing.** The fold
+joins two lines with the same name. A model that sweeps harder does not produce the same name
+twice; it produces more different descriptions of the same goods, which is precisely what a name
+fold cannot touch. The original rejection stands on the scan.
+
+### So the choice is per path, not per product
+
+The two corpora disagreed because they are two different calls, and the service already knows
+which it is making. The orchestrator has exactly two census call sites: one sends no marks and
+asks the server to find the regions, which is a still the shopper captured, and one sends the
+marks its on-device tracker already has, which is a scan frame. An empty marks array arriving at
+`/api/census` is therefore the capture path, structurally and not by guesswork.
+
+`MODELS.censusCapture` is `gpt-5.4`, `MODELS.census` stays `gpt-5.4-mini`, and the route passes
+which one it is. Nothing else about the request changes: same prompt, same effort, same strict
+schema, pinned by tests. The eval harnesses keep the scan model by default, because they hand in
+cached marks to avoid re-running detection, so `marks.length` cannot stand in for the path there
+the way it can at the door.
+
+The one cost, stated because it is real: IMG_0249 went from 10 of 10 to 9 of 10, one pass in ten
+on a photograph that mini never missed.

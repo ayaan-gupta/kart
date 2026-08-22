@@ -212,6 +212,7 @@ Defined in `src/openai.ts`:
 | Purpose | Model | Reasoning effort | Used by |
 |---|---|---|---|
 | Census: label every marked region in a full frame | `gpt-5.4-mini` | `"none"` | `runCensus` (`src/recognize.ts`) |
+| Census on a captured still, where the server finds the regions | `gpt-5.4` | `"none"` | `runCensus(..., capture)` (`src/recognize.ts`) |
 | Identify: resolve one tight crop of an uncertain item | `gpt-5.4` | `"low"` | `runIdentify` (`src/recognize.ts`) |
 | Escalation for items identify still cannot resolve | `gpt-5.5` | (not applicable) | defined in `MODELS.escalate`, not called by any code path yet |
 
