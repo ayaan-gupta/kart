@@ -2407,3 +2407,40 @@ nothing worth cropping. And the shipped path's bags are not merely larger but fl
 **The correction to make explicitly**: the figures in the thirty-sixth section, 19, 15, 15 against
 11, 11, 12, were measured on the flawed harness. They pointed the right way and the decision they
 supported was right, but the numbers themselves are superseded by the table above.
+
+## Forty-eighth: how much of the photograph result survives to the app
+
+The photographs are 5712 by 4284 and sharp. The app never has such an image. `KartImageTools`
+takes a 1080 by 1920 video frame, resizes to 1536 and encodes at JPEG quality 0.85, so the service
+composites something already compressed once, from a source with motion blur in it. That makes
+every photograph figure in this file an upper bound rather than a description of the app, and
+`census-live.ts --as-keyframe` measures how much of the gap the encoding alone accounts for.
+
+Same model, same three passes, the only difference being the encode:
+
+| | full-resolution source | encoded as the app sends |
+|---|---|---|
+| badge alignment | 65 of 75 (86.7%) | 65 of 75 (86.7%) |
+| photographs exact | 15 of 18 | 13 of 18 |
+| products found, strict | 70 of 93 | 68 of 93 |
+| products found, lenient | **79 of 93** | **72 of 93** |
+| lines matching nothing real | 10 | 6 |
+
+**Eight points of recall, for the encode alone.** Badge alignment is untouched, which fits: a badge
+is a large drawn numeral and survives compression, while the small print that separates one brand
+from another does not. Note also that spurious lines fall from 10 to 6: the model is not confused
+by the compressed image, it simply finds less in it, real and invented alike.
+
+And this is only half the degradation. The app's source is a video frame with motion blur, not a
+still, and that is on top of the encoding measured here. So the honest reading of the photograph
+figures elsewhere in this file is: they bound what the census can do on a good image of this
+trolley, and the app gets meaningfully less than that.
+
+### A note on how this was found
+
+The first run of `--as-keyframe` reported badge alignment collapsing from 86.7% to **20%**. That
+was not the encoding: `sharp` does not apply EXIF orientation unless asked, so the re-encode left
+an orientation-6 photograph unrotated while stripping the tag, and `compositeMarks` then drew
+badges on an image a quarter turn from the one the marks described. The same EXIF fault this
+corpus opened with, reintroduced by the tool built to measure it. A 20% result was too large to be
+the thing under test, which is the only reason it was caught.

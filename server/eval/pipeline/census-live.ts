@@ -17,6 +17,7 @@
  *     node --env-file=server/.env node_modules/.bin/tsx server/eval/pipeline/census-live.ts
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import sharp from 'sharp';
 import { join } from 'node:path';
 import type { Mark } from '../../src/compositor';
 import { MAX_CANDIDATES } from '../../src/enumerate';
@@ -168,6 +169,33 @@ function scoreContents(lines: { name: string; qty: number }[], truth: Truth[]) {
   };
 }
 
+/**
+ * `--as-keyframe` sends each photograph the way the app would send a frame of the same scene.
+ *
+ * These photographs are 5712 by 4284 and sharp, and `compositeMarks` downscales that to
+ * `CENSUS_LONG_EDGE`. The app never has such an image: `KartImageTools.encodeKeyframe` takes a
+ * 1080 by 1920 video frame, resizes to 1536 and encodes at JPEG quality 0.85, so the service
+ * composites something already compressed once, from a source with motion blur in it. Every
+ * photograph figure in this file is therefore an upper bound on the app rather than a description
+ * of it, and this flag measures how much of the gap is the encoding alone.
+ */
+const AS_KEYFRAME = process.argv.includes('--as-keyframe');
+async function sendable(file: Buffer): Promise<Buffer> {
+  if (!AS_KEYFRAME) return file;
+  // `.rotate()` with no argument applies the EXIF orientation and drops the tag, which is what
+  // the device produces: `KartImageTools.encodeKeyframe` encodes from an already-upright pixel
+  // buffer, so its JPEG carries no orientation to apply. Without this the re-encode leaves an
+  // orientation-6 photograph unrotated but strips the tag, `compositeMarks` then draws badges on
+  // an image a quarter turn from the one the marks describe, and badge alignment collapses from
+  // 88% to 20%. That is the same EXIF fault this corpus found in the shipped compositor, arrived
+  // at from the other direction.
+  return sharp(file)
+    .rotate()
+    .resize({ width: 1536, height: 1536, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+}
+
 const results: any[] = [];
 const passes: { aligned: number; scorable: number; units: number; real: number; exact: number }[] = [];
 let alignedRight = 0;
@@ -212,7 +240,7 @@ for (const frame of frames.frames) {
     if (!saved) throw new Error(`replay file has no entry for ${frame.id} pass ${pass}`);
     census = saved;
   } else {
-    census = await runCensus(image, marks);
+    census = await runCensus(await sendable(image), marks);
   }
 
   // Alignment: did the answer for badge i land on badge i?
