@@ -910,8 +910,19 @@ answer is worst:
 
 Three of the five are the same two regions across passes, so this is two objects the model is
 reliably and confidently wrong about rather than noise. Both are the shopper's woven tote and the
-bag beside it, which is the hardest thing in the corpus: a bag that is not a product, sitting on
-top of bags that are.
+bag beside it, which looks like the hardest thing in the corpus: a bag that is not a product,
+sitting on top of bags that are.
+
+That reading is wrong, and the fix built on it fails. Rule 8 lists what is not a product and does
+not name the shopper's own bag, which on a trolley full of produce bags looks like the gap. Naming
+it, with the distinction spelled out between packaging and an object with handles and a strap,
+changes nothing: the tote is still called "baguette" in all three passes, and the photographs go
+from five, four, four exact to four, four, four with alignment from a flat 21 to 21, 20, 21.
+
+It fails because the model is not deciding whether a bag is a product. It is reading a tan woven
+texture as a baguette in plastic, which on that trolley is also true of the actual baguette two
+inches away. The error is naming, so a rule about what counts as a product cannot reach it, and
+`isProduct` is being answered correctly for the thing the model thinks it is looking at.
 
 ## What this corpus still cannot answer
 
