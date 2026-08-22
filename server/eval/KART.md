@@ -294,6 +294,12 @@ differently; a SKU copied from a shortlist does not drift.
 kale and a cucumber. None is in the trolley. One call can invent one of those; four calls invent
 four, and nothing later removes them because `unmarkedItems` is trusted by design.
 
+Requiring a sighting to repeat before it enters the bag, the way `pendingAlias` already makes a
+barcode wait for a VLM guess to repeat, does not work here. Counted across the four calls, the
+leek appears twice while cauliflower, apples, bread and asparagus each appear once. The rule
+would drop four real products to remove one invented one, and on a single photograph, which is
+one census call, nothing could ever corroborate and the bag would empty.
+
 So the census being wrong costs more in a scan than in a photograph, and the pacing that limits
 cost also limits exposure: four calls here rather than the eight allowed. This says nothing about
 the shipped model, which is what the design assumes and what has never answered. It says the
