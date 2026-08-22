@@ -44,7 +44,11 @@ if (PATHNAME !== 'shipped' && PATHNAME !== 'capture') {
 const deviceArg = process.argv.find((a) => a.startsWith('--device-regions='));
 const DEVICE_REGIONS = deviceArg ? Math.max(1, Number(deviceArg.split('=')[1])) : 1;
 
-const video = JSON.parse(readFileSync(join(HERE, 'video-frames-catalog.json'), 'utf8'));
+/** `--frames=<name>` reads a different region set from `server/eval/`, so a detection change can
+ * be put through the same loop without a second copy of this file. */
+const framesArg = process.argv.find((a) => a.startsWith('--frames='));
+const video = JSON.parse(readFileSync(
+  join(HERE, framesArg ? framesArg.split('=')[1] : 'video-frames-catalog.json'), 'utf8'));
 const truth = JSON.parse(readFileSync(join(HERE, 'corpus/kart/counts.json'), 'utf8'));
 const cart = truth.counted.find((c: any) => c.id === 'IMG_0252');
 

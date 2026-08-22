@@ -2147,3 +2147,28 @@ one costing more than it buys. The spurious lines are the familiar unjoined desc
 
 For comparison, the same loop this morning returned 19, 15 and 15 units on 18, 15 and 15 lines,
 with five separate descriptions of the same greens among them.
+
+## Thirty-ninth: re-testing a refusal on the path that actually ships
+
+Most of the refusals in this file were measured on `video-census-live.ts`, which badges the census
+from the server's whole region set. The app does not do that, so those refusals deserved
+re-checking on `scan-loop.ts`. The one worth re-checking first is the paired produce prompts,
+because the twenty-seventh section showed they contain the only proposal that isolates the yellow
+produce bag, which is the residual's one repeatable miss.
+
+Four runs each through the app's real loop:
+
+| | products found, lenient | units against 9 |
+|---|---|---|
+| shipped regions | 8, 8, 8, 9 (**8.25**) | 13, 11, 11, 9 (**11.0**) |
+| paired produce | 7, 9, 7, 7 (**7.5**) | 13, 16, 12, 15 (**14.0**) |
+
+Worse on both, and it does not even recover what it was tried for: the yellow bag is still missing
+in three of four. It now loses the Granny Smith apple bag as well, in two runs, and the Fuji bag in
+a third. `PAIRED_PRODUCE_SHARPNESS` is confirmed a second time, on a different path, against a
+better metric.
+
+That is the pattern for the whole file, restated once: **more regions, more prompts, more model,
+more pixels, more rules — every one of them measured worse.** What helped was the opposite kind of
+change: fixing an orientation bug, giving two descriptions a key to join on, and pointing the app
+at the regions it was already paying a service to compute.
