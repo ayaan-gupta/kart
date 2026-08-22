@@ -132,17 +132,20 @@
     "w": 0.142,
     "h": 0.122
    },
-   "judged": true
+   "judged": true,
+   "uncertain": true,
+   "note": "MISPLACED, and left in place rather than moved on a guess. This box is on a Reduced Waste bag of tomatoes and greens, not Fuji apples. On IMG_0252 the Fuji apple bag is the purple bag carrying a FUJI label, and IMG_0254 has a purple bag too, so the Fuji is most likely that. Moving it needs a reading of the photograph at full size, not an inference from the other one. Any reached/isolated figure for this item is unreliable."
   },
   {
    "name": "yellow produce bag",
    "box": {
     "x": 0.128,
-    "y": 0.458,
-    "w": 0.115,
-    "h": 0.095
+    "y": 0.481,
+    "w": 0.113,
+    "h": 0.06
    },
-   "judged": true
+   "judged": true,
+   "note": "Tightened to exclude the purple bag above it, which the earlier box included. Isolation figures for this item taken before that are optimistic."
   },
   {
    "name": "broccoli",
@@ -154,5 +157,9 @@
    },
    "judged": true
   }
+ ],
+ "known_faults": [
+  "The Fuji apple bag box is misplaced; see its note. Figures for it are unreliable.",
+  "IMG_0254 contains a purple produce bag that counts.json does not list, so a box overlapping it can score as isolated when it is not. The yellow produce bag box was tightened for exactly this reason; other boxes near the trolley's middle may be flattered the same way."
  ]
 }

@@ -5565,3 +5565,45 @@ at all.
 **Three passes over the same change — totals, then a picture, then the labels — and each one made it
 look worse.** The first was not wrong, it was incomplete, and the incompleteness all pointed the
 same way.
+
+## Hundred-and-sixth: my own labels were wrong, and they had been flattering two measurements
+
+Scoring the augmentation's added boxes against the hand labels returned "clean" for the one on the
+yellow produce bag. The picture of that same box, two sections earlier, plainly shows a purple bag
+in it. A verdict and a photograph disagreeing means the instrument is wrong, so I looked at what the
+labels actually point at:
+
+| label | what is in the box |
+|---|---|
+| `yellow produce bag` | the yellow `ORGANIC` bag **and the purple bag above it** |
+| `Fuji apple bag` | a *Reduced Waste* bag of tomatoes and greens — **not Fuji apples** |
+
+Both are mine, written in the seventieth, and both have been in every isolation figure since.
+
+**Why the "clean" verdict was possible.** `score_boxes.py` calls a box isolated when it covers its
+item without covering *another labelled item*. IMG_0254's truth lists fifteen products and a purple
+produce bag is not among them, though one is plainly in the photograph. So a box full of purple
+dirties nothing, and reads as clean. The ninetieth already recorded that the label set is incomplete;
+this is that incompleteness producing a specific wrong answer rather than a general caveat.
+
+### What is fixed and what is flagged
+
+The yellow bag's box is **tightened** to the yellow portion, which is defensible from the crop alone.
+The Fuji label is **left in place and marked `uncertain`** with a note saying why: on IMG_0252 the
+Fuji apple bag is the purple bag carrying a FUJI label, and IMG_0254 has a purple bag too, so the
+Fuji is most likely that — but moving a truth box on an inference from another photograph is exactly
+how a corpus stops being trustworthy. It needs someone to read the photograph at full size.
+
+`boxes-IMG_0254.json` now carries a `known_faults` list saying both things outright, so the next
+reader of any figure derived from it knows what it rests on.
+
+### What this costs
+
+Every "isolated" figure in this file that involves the yellow produce bag or the Fuji apple bag on
+IMG_0254 is optimistic, and that includes the seventieth's headline (11 of 20), the eighty-ninth's
+(12 of 20) and the ninety-sixth's detector comparison. The **reached** figures are unaffected: they
+ask only whether an item is covered, which does not depend on the other labels being complete.
+
+**A hand-made truth set is a measuring instrument and it was never calibrated.** It took a
+disagreement between a number and a picture to notice, which is the fourth time today that looking at
+something beat computing it.
