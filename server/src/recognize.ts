@@ -154,6 +154,37 @@ function toSafeError(context: string, err: unknown): Error {
  * `openai.responses.create`, so it is also the only place that needs to guard against a
  * leaking error message.
  */
+/**
+ * Sampling temperature for the census call, for the eval harnesses only.
+ *
+ * The shipped call sends no temperature, so the API default applies. This override exists to
+ * answer one question, and the answer is recorded here so it is not asked twice: pinning the
+ * sampling does NOT reduce the run-to-run spread, and does not improve the counts.
+ *
+ * The API offers exactly two determinism handles and neither works here. `seed` is rejected
+ * outright by this model on the Responses API (400, "Unknown parameter: 'seed'"). `temperature`
+ * is accepted, and at 0 the model is still not deterministic: fifteen passes over the six
+ * photographs returned 26 to 33 units for the same fixed inputs.
+ *
+ * Measured over three independent rounds of five passes, temperature 0 against the default:
+ *   photographs exact  22, 21, 22 of 30   ->  24, 23, 22 of 30   (65/90 -> 69/90)
+ *   units in the bag   29.0 mean          ->  30.0 mean          (31 real)
+ *   badge alignment    21 of 23, every pass, in both arms
+ * The first two rounds favoured temperature 0 and the third tied, with the two arms' unit
+ * means converging as passes accumulated. Four counts in ninety is 0.7 standard errors. That
+ * is the corpus's own noise, not an effect, so the shipped call is left as it was.
+ *
+ * The consequence is the useful part: the spread on this corpus is irreducible through
+ * sampling controls, so a change worth one or two units cannot be told from noise here. That
+ * is a property of the measurement, not of any particular fix.
+ */
+const CENSUS_TEMPERATURE = (() => {
+  const raw = process.env.KART_CENSUS_TEMPERATURE?.trim();
+  if (!raw) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
+})();
+
 async function requestOutputText(
   context: string,
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
@@ -407,6 +438,7 @@ export async function runCensus(
   const outputText = await requestOutputText("runCensus", {
     model: MODELS.census,
     reasoning: { effort: "none" },
+    ...(CENSUS_TEMPERATURE === undefined ? {} : { temperature: CENSUS_TEMPERATURE }),
     input: [
       { role: "system", content: CENSUS_SYSTEM_PROMPT },
       {

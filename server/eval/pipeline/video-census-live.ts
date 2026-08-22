@@ -7,7 +7,9 @@
  * against `MAX_CENSUS_CALLS_PER_SESSION`, `runCensus` asks the model, and `applyCensus` folds
  * the answer into one bag.
  *
- * The trolley in the video is the one in IMG_0252, so its hand count is the truth: ten products.
+ * The trolley in the video is the one in IMG_0252, so its hand count is the truth: nine products.
+ * (It read as ten until the purple bag and the "tomatoes on the vine" beside it were found to be
+ * one Fuji apple bag. The scored number below comes from counts.json, which carries the fix.)
  *
  * The catalog shortlist is attached, from `video-frames-catalog.json`. The column in
  * `video-frames.json` is stale: `score_video.py` ran before `build_kart_catalog.py` cut this

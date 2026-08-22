@@ -934,9 +934,12 @@ inches away. The error is naming, so a rule about what counts as a product canno
 
 ## What this corpus still cannot answer
 
-**The shipped census has never run.** It needs an OpenAI key, and the one supplied was already
-revoked, so every number above that involves a census comes either from an oracle or from a 2B
-open model standing in.
+**The shipped census had never run when the sections above were written.** It needs an OpenAI
+key, and the one first supplied was already revoked, so the numbers in those sections come
+either from an oracle or from a 2B open model standing in. A working key arrived later and the
+shipped census has since been run many times against this corpus; the runs are reported in "The
+census, run" and "The scan, run" above, and in the section below. Read the paragraphs that
+follow this one as the state of the corpus, not as the state of the key.
 
 Grounding DINO cannot stand in for its `isProduct` judgement, in either direction. Measured on
 the three non-product boxes here, the trolley's moulded plastic disc and the shopper's tote:
@@ -950,8 +953,56 @@ It cannot be thresholded into the judgement and it cannot be asked for it. A mod
 gets 24 of 28 and refuses both discs. What remains unmeasured is the shipped model's own answers,
 and the part of them most at risk is badge alignment, which the section above says why.
 
-**Sixteen items is the largest trolley here.** **Sixteen items is the largest trolley here.** A full weekly shop is several times that, and the
+**Sixteen items is the largest trolley here.** A full weekly shop is several times that, and the
 misses already concentrate on items lying under other items.
 
 **One video, nine seconds, one trolley.** Enough to find a gate that rejected everything. Not
 enough to tune one.
+
+## Seventeenth investigation: the spread itself
+
+Every earlier investigation tried to fix an answer. This one tried to fix the *measurement*, on
+the theory that a corpus whose run-to-run spread is three units cannot adjudicate a one-unit
+change, so narrowing the spread would unblock everything behind it.
+
+The census sends no sampling parameters, so it runs at the API default. Two handles exist:
+
+| handle | result |
+|---|---|
+| `seed: 7` | rejected, 400 `Unknown parameter: 'seed'` |
+| `temperature: 0` | accepted |
+
+Temperature 0 is not a fitted parameter and there is nothing to tune about it, so it was run
+straight against the six photographs, three independent rounds of five passes per arm:
+
+| round | baseline exact | temp 0 exact | baseline units | temp 0 units |
+|---|---|---|---|---|
+| 1 | 22 of 30 | 24 of 30 | 29, 24, 29, 29, 26 | 31, 30, 33, 32, 32 |
+| 2 | 21 of 30 | 23 of 30 | 27, 28, 31, 32, 30 | 30, 27, 31, 28, 31 |
+| 3 | 22 of 30 | 22 of 30 | 27, 32, 30, 30, 31 | 28, 29, 26, 30, 32 |
+| pooled | **65 of 90** | **69 of 90** | **mean 29.0** | **mean 30.0** |
+
+Against 31 real units. Badge alignment was 21 of 23 on all thirty passes in both arms.
+
+**This is a null result, and the first two rounds are why it needs saying twice.** After round 1
+the gain looked real: four units of undercounting removed, and the first six-of-six pass this
+corpus has ever produced. Round 2 reproduced the direction. Round 3 tied, and across the three
+rounds the two arms' unit means converged rather than separated. Four counts in ninety is 0.7
+standard errors; the unit difference is 1.3. Neither clears noise. The earlier video claim in
+this file was overstated in exactly this way, on exactly this much evidence, so the shipped
+census keeps the default and `KART_CENSUS_TEMPERATURE` stays an eval-only override that defaults
+to changing nothing.
+
+The scan was measured too, four passes per arm: 9, 11, 10, 10 at the default against 11, 9, 11,
+10 at temperature 0, on nine real products. No effect, and here the reason is structural rather
+than statistical. A scan's bag is fused from four census calls on four *different* frames.
+Pinning the sampling makes one call repeatable on one input; it cannot make two calls agree about
+what to name a product they each saw differently. That is the unmarked-description fault this
+file already names, and it is untouched by anything done here.
+
+**What this closes.** The spread on this corpus is irreducible through sampling controls: one
+handle is unavailable and the other is measurably inert, and at temperature 0 the same fixed six
+photographs still returned anywhere from 26 to 33 units across fifteen passes. So the standing
+conclusion in this file, that a one-to-two-unit change cannot be verified here, is no longer an
+observation about investigations that happened to fail. It is a property of the instrument. More
+captures raise the denominator and lower the noise floor; nothing in the request shape will.
