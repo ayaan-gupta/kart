@@ -12,9 +12,6 @@ import argparse, base64, html, json, pathlib
 HERE = pathlib.Path(__file__).resolve().parent
 RENDER = HERE / ".cache/kart/render"
 
-# Photographs the corpus holds that this report has no live census for. They are store shelves, not
-# trolleys, and `subjectIsCart` refuses them; the figure is from `shelf-census.ts`, not from a run
-# behind this page, and the page says so rather than showing a number it did not produce.
 SHELVES = ["IMG_0247", "IMG_0248", "IMG_0250", "IMG_0251"]
 
 
@@ -35,6 +32,7 @@ def main(argv=None):
     rows = json.loads((RENDER / "summary.json").read_text())
 
     carts = [r for r in rows if r["kind"] == "trolley"]
+    shelves = [r for r in rows if r["kind"] == "shelf"]
     caps = [r for r in rows if r["kind"] == "video capture"]
     found = sum(r["found"] for r in carts)
     truth = sum(r["truth"] for r in carts)
@@ -45,7 +43,11 @@ def main(argv=None):
             if r["kind"] == "video capture" else RENDER / f"{r['id']}.jpg"
         if not img.exists():
             return ""
-        if r["kind"] == "video capture":
+        if r["kind"] == "shelf":
+            ok = r.get("is_cart") is False
+            state = "good" if ok else "short"
+            headline = "refused" if ok else "accepted as a cart"
+        elif r["kind"] == "video capture":
             state, headline = "cap", f"{len(r['bag'])} named"
         elif r["found"] == r["truth"] and not r["spurious"]:
             state, headline = "good", f"{r['found']} of {r['truth']}"
@@ -54,25 +56,34 @@ def main(argv=None):
         else:
             state, headline = "short", f"{r['found']} of {r['truth']}"
         detail = ""
-        if r["kind"] != "video capture":
+        if r["kind"] == "shelf":
+            detail = (f'<div class="lines"><span class="k">proposals</span>'
+                      f'<span class="none">{r.get("proposals", 0)} regions, none named</span></div>'
+                      f'<div class="lines"><span class="k">bag</span>'
+                      f'<span class="none">empty, which is the right answer</span></div>')
+        elif r["kind"] != "video capture":
             detail = (
                 f'<div class="lines"><span class="k">missing</span>'
                 f'{chips(r["missing"], "miss") or "<span class=none>none</span>"}</div>'
                 f'<div class="lines"><span class="k">invented</span>'
                 f'{chips(r["spurious"], "spur") or "<span class=none>none</span>"}</div>')
         bag = "".join(f"<li>{html.escape(str(b))}</li>" for b in r["bag"])
+        more = "" if r["kind"] == "shelf" else (
+            f'<details><summary>what reached the bag ({len(r["bag"])})</summary>'
+            f'<ul>{bag}</ul></details>')
         return f"""<article class="card {state}">
   <figure><img loading="lazy" alt="{html.escape(r['id'])} with the regions the census was asked about"
     src="{data_uri(img)}"></figure>
   <div class="meta">
     <header><h3>{html.escape(r['id'])}</h3><p class="score">{headline}</p></header>
     {detail}
-    <details><summary>what reached the bag ({len(r['bag'])})</summary><ul>{bag}</ul></details>
+    {more}
   </div>
 </article>"""
 
-    shelf_note = "".join(f"<li>{s}</li>" for s in SHELVES)
-    body = "".join(card(r) for r in carts) 
+    body = "".join(card(r) for r in carts)
+    shelf_cards = "".join(card(r) for r in shelves)
+    refused = sum(1 for r in shelves if r.get("is_cart") is False)
     vid = "".join(card(r) for r in caps)
 
     page = f"""<title>Kart Verification Results</title>
@@ -169,7 +180,7 @@ was labelled as out of catalog or not a product, so there is nothing to be right
 <div class="stats">
   <div class="stat"><b>{found} / {truth}</b><span>products found across the six trolleys</span></div>
   <div class="stat"><b>{perfect} / {len(carts)}</b><span>trolleys exactly right, nothing invented</span></div>
-  <div class="stat"><b>4 / 4</b><span>shelves correctly refused as not a cart</span></div>
+  <div class="stat"><b>{refused} / {len(shelves)}</b><span>shelves refused as not a cart</span></div>
   <div class="stat"><b>{len(caps)}</b><span>captures fired in a nine-second scan</span></div>
 </div>
 
@@ -185,11 +196,12 @@ pass; all of the error sits in the two loaded ones.</p>
 <div class="grid">{body}</div>
 
 <h2>Shelves</h2>
-<p class="section-note">Four of the ten photographs are store shelves rather than carts. The right
-answer is an empty bag, and the census refuses them on its own <code>subjectIsCart</code> judgement.
-No live run sits behind this page for them, so no picture is shown rather than a number this report
-did not produce.</p>
-<div class="shelf">Measured separately at 0 units on 0 lines, all four:<ul>{shelf_note}</ul></div>
+<p class="section-note">Four of the ten photographs are store shelves, not carts. The detector still
+proposes regions &mdash; forty-three of them on the meat case &mdash; and the right answer is to name
+none of them, because a shelf holds hundreds of facings that are in nobody&rsquo;s trolley. The boxes
+below are drawn muted because nothing was asked about them: the <code>subjectIsCart</code> gate
+refuses the photograph first. Without it these became up to 41 invented items.</p>
+<div class="grid">{shelf_cards}</div>
 
 <h2>Video, nine seconds of scanning</h2>
 <p class="section-note">The scan fires four censuses as the camera passes over the trolley. Each

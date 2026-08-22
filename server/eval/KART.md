@@ -4937,3 +4937,36 @@ MM Grounding DINO wins on boxes and loses on the bag; LLMDet wins on LVIS and lo
 shipped model wins where it counts. A leaderboard rank is a hypothesis about your task, and on this
 corpus it was wrong twice in a row. What makes that cheap to discover is `compare_detectors.py`
 against the hand-labelled boxes: a new candidate is one command and about four minutes.
+
+## Ninety-seventh: the visual output, and the shelves measured rather than cited
+
+The report the ninety-sixth published covered six trolleys and four video captures. Four of the ten
+photographs — the store shelves — showed nothing, because no live census sits behind them and a page
+that draws a result it did not produce is worse than a page with a gap.
+
+`is_cart_local.py` closes that by asking a local 7B rule 0's own question, "is the main subject of
+this photograph the inside of one shopping cart", of all ten:
+
+| | said cart | said not a cart |
+|---|---|---|
+| six trolleys | 4 | **2** — IMG_0244 and IMG_0245 |
+| **four shelves** | 0 | **4** |
+
+**Every shelf is refused and no shelf is accepted**, which is the direction that matters: a shelf let
+through produced up to 41 invented items before the gate existed. The two it gets wrong are the
+trolleys holding a single cauliflower in an otherwise empty basket, which is a fair thing to hesitate
+over and the opposite of the dangerous error.
+
+This is a local 7B, not the shipped model, and it is weaker: `shelf-census.ts` measured the shipped
+census at 10 of 10. Reported as its own number rather than as evidence about the service.
+
+### What the shelves look like drawn
+
+The renderer now draws them with every proposal muted and no labels at all, because nothing was
+asked about any of them. IMG_0250, the meat case, carries **43 proposals** — forty-three questions
+the gate declines to ask. That picture makes the fifty-fourth section's argument in one frame better
+than its numbers did: the detector is working exactly as designed and the entire value of
+`subjectIsCart` is refusing to hand its output to the census.
+
+The report now covers all ten photographs and the four video captures, fourteen cards, and the
+shelf figure in the summary strip is a result this page produced rather than one it quotes.

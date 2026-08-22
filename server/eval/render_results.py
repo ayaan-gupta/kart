@@ -49,6 +49,10 @@ def draw(img, boxes, rows, width=1100):
         x0, y0 = b["x"] * W, b["y"] * H
         x1, y1 = (b["x"] + b["w"]) * W, (b["y"] + b["h"]) * H
         d.rectangle([x0, y0, x1, y1], outline=colour, width=3)
+        # With no answers at all -- a photograph the gate refused -- the boxes are the whole story
+        # and forty-three copies of "(no answer)" only obscure them.
+        if not rows:
+            continue
         said = (r or {}).get("said") or "(no answer)"
         label = f"{i}  {said}"[:38]
         tw = d.textlength(label, font=f)
@@ -111,6 +115,22 @@ def main(argv=None):
     # frame set the run was given and the answers are joined to it by the mark's one-based id.
     vframes = {f["order"]: f for f in
                json.loads((HERE / "video-frames-catalog.json").read_text())["frames"]}
+    # The four shelves. No census answers exist for them, and that is the point: the gate refuses
+    # the photograph before any region is named, so every box is drawn muted and the verdict comes
+    # from `is_cart_local.py` rather than from a naming run.
+    verdicts_path = CACHE / "is-cart-local.json"
+    verdicts = json.loads(verdicts_path.read_text()) if verdicts_path.exists() else {}
+    for pid in ("IMG_0247", "IMG_0248", "IMG_0250", "IMG_0251"):
+        if pid not in frames:
+            continue
+        img = ImageOps.exif_transpose(Image.open(CACHE / f"images/{pid}.jpg")).convert("RGB")
+        draw(img, frames[pid]["boxes"], []).save(out / f"{pid}.jpg", quality=86)
+        summary.append({
+            "id": pid, "kind": "shelf", "units": 0, "real": 0,
+            "proposals": len(frames[pid]["boxes"]),
+            "is_cart": verdicts.get(pid), "bag": [],
+        })
+
     video = json.loads((HERE / "kart-video-census-live.json").read_text())
     for cap in video:
         fp = CACHE / f"video/frame-{cap['order'] + 1:03d}.jpg"
