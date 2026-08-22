@@ -75,4 +75,26 @@ describe('scan.tsx census wiring', () => {
     const { source } = scanSource();
     expect(source).toMatch(/tracker:\s*captured\.tracker/);
   });
+
+  it('reads the capture\'s tracks after a capture, not the frame\'s blob', () => {
+    // The defect this exists for, found by reading the diff rather than by any measurement.
+    // After a capture landed, setTracks showed the tracks onCapture built from the service's
+    // regions while publish() and refreshNextRequest() still read `result.tracks`, the per-frame
+    // tracks from the device detector, which is one outline around the whole pile. So
+    // tracksNeedingThumbnail would ask for a crop of the blob and never of the products, and
+    // thumbnails would stop being made for everything a capture found; persistentAmber would
+    // compute the overlay state from one track instead of eight.
+    //
+    // Invisible to every other check here: the eval harnesses never request a thumbnail and a
+    // simulator has no camera to make one with.
+    const { source } = scanSource();
+
+    // A per-frame binding that starts as the frame's tracks and becomes the capture's.
+    expect(source).toMatch(/let current = result\.tracks;/);
+    expect(source).toMatch(/current = captured\.tracks;/);
+
+    // And the two readers must go through it rather than back to result.tracks.
+    expect(source).toMatch(/tracksNeedingThumbnail\(session\.state, current\)/);
+    expect(source).toMatch(/persistentAmber\(session\.state, current,/);
+  });
 });
