@@ -56,6 +56,21 @@ const framesArg = process.argv.find((a) => a.startsWith('--frames='));
  * every extra call up to four, which makes "spend the rest" the obvious question.
  */
 /** `--max-motion=<v>` overrides the keyframe gate's motion ceiling, which ships at 0.15. */
+/**
+ * `--loops=N` runs the frame sequence N times, offset in time, as one continuous session.
+ *
+ * Nine seconds fires 4 censuses against a budget of 8, because `minIntervalMs` spaces them two
+ * seconds apart, so this corpus can never spend a whole session. A shopper scanning a trolley for
+ * longer pans over it more than once, and replaying the sequence is a fair stand-in for that: the
+ * same views in the same order, arriving later. It is the one way to ask what the other half of
+ * the budget buys with captures *spread* across a pan rather than crowded together, which
+ * `--interval` could only do by crowding them.
+ *
+ * The tracker is not reset between loops, exactly as it would not be mid-session.
+ */
+const loopsArg = process.argv.find((a) => a.startsWith('--loops='));
+const LOOPS = loopsArg ? Math.max(1, Number(loopsArg.split('=')[1])) : 1;
+
 const motionArg = process.argv.find((a) => a.startsWith('--max-motion='));
 const MAX_MOTION = motionArg ? Number(motionArg.split('=')[1]) : undefined;
 
@@ -163,7 +178,13 @@ const deps: SessionDeps = {
 const session = new RecognitionSession(deps);
 let pipeline = createPipelineState();
 
-for (const frame of video.frames) {
+const sequence: any[] = [];
+for (let loop = 0; loop < LOOPS; loop += 1) {
+  const span = video.frames[video.frames.length - 1].t - video.frames[0].t + 1;
+  for (const f of video.frames) sequence.push(loop === 0 ? f : { ...f, t: f.t + loop * span });
+}
+
+for (const frame of sequence) {
   currentFrame = frame;
   // The device's supply, not the server's: the highest-scoring regions only.
   const order = frame.boxes

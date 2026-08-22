@@ -2591,13 +2591,21 @@ its most reliable channel switched off, not by a bug but because a trolley is a 
 face the sides, the bottom and each other. A shopper who lifts an item toward the camera gets a
 certain answer, and nothing here measures that path in either direction.
 
-**Nine seconds is half a session.** `MAX_CENSUS_CALLS_PER_SESSION` is 8 and this video fires 4,
-because `minIntervalMs` spaces them two seconds apart. A real scan of a trolley runs longer and
-would spend the whole budget. The fifty-first section measured 1, 2, 3 and 4 calls at 6.2, 7.5,
-6.7 and 8.2 products found, which trends upward, and the forty-first showed that crowding captures
-closer together is not the same thing as having more of them: captures spread across a pan see
-different parts of the trolley. **So a longer scan probably does better than anything measured
-here, and this corpus cannot show by how much.**
+**Nine seconds is half a session, and that turns out not to matter.**
+`MAX_CENSUS_CALLS_PER_SESSION` is 8 and this video fires 4, because `minIntervalMs` spaces them two
+seconds apart. This section first claimed a longer scan would probably do better and that the
+corpus could not show by how much. That was a guess, and it was wrong. Replaying the sequence as
+one continuous session (`--loops=2`) is a fair stand-in for a shopper panning over the trolley
+twice, and it spends more of the budget with captures spread rather than crowded:
+
+| | censuses fired | products found, lenient | units against 9 |
+|---|---|---|---|
+| one pass, nine seconds | 4 | 9, 8 of 9 | 13, 9 |
+| two passes, eighteen seconds | 6 | 9, 8 of 9 | **15, 10** |
+
+The same products, and more lines. The trolley is static: a second pass sees what the first saw
+and describes it in new words, which do not join. So the unspent half of the budget is not
+withheld value, and the pattern this file keeps finding holds here too.
 
 **The photographs are an upper bound, not a description.** They are 5712 across and sharp; the app
 composites a 1536-pixel JPEG re-encoded from a motion-blurred video frame. The encode alone costs
