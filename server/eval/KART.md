@@ -2871,3 +2871,31 @@ is currently *visible*, not what is newly *present*. A shopper adding an item wh
 looks elsewhere would not raise it, and panning back over goods already counted would. Whatever
 settles this needs a scan of a cart being loaded, not a cleverer reading of the signals in a scan
 of one that is not.
+
+## Sixtieth: corroboration, and why every lexical approach here fails
+
+`--sweep-once` works and carries an untestable risk. The safe-looking alternative is the rule
+`applyCensus` already applies to a barcode and to an identify-verified identity: admit an unmarked
+description only once a second census repeats it. One misread leaves no permanent trace, a
+paraphrase is a one-off by nature, and unlike suppression it does not stop later calls sweeping, so
+an item added mid-scan is still found one census later. It should be the best of both.
+
+| | units against 9 | products found | spurious lines |
+|---|---|---|---|
+| as it ships | 10.0 | 8.33 of 9 | about 1.7 |
+| `--sweep-once` | 8.17 | **8.0 of 9** | 0 |
+| `--corroborate-unmarked` | 7.67 | **7.67 of 9** | 0 |
+
+It removes the spurious lines and takes real products with them. Run 3 lost the Granny Smith apple
+bag, a product plainly in the trolley and named on an earlier call.
+
+**The reason is the whole paraphrase problem in one sentence: a real product's description varies
+as much as an invented one's.** The same bag arrives as `packaged apples`, then `red apples`, then
+`bag of apples`. Requiring a repeat cannot tell that from `bag of green vegetables` appearing once,
+because neither repeats. Every lexical test in this file has now failed on the same rock: the name
+fold, the SKU fold, the overlap fold, the substring fold, exact-duplicate dropping, and now
+corroboration. Six approaches, one cause.
+
+Which is why the only thing that worked does not look at the descriptions at all. `--sweep-once`
+never asks whether two descriptions mean one product; it stops the second one being produced.
+That is a different kind of answer, and its cost is the risk it carries rather than a wrong merge.

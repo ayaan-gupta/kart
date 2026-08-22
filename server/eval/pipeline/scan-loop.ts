@@ -79,6 +79,21 @@ const framesArg = process.argv.find((a) => a.startsWith('--frames='));
  */
 const SWEEP_ONCE = process.argv.includes('--sweep-once');
 
+/**
+ * `--corroborate-unmarked` admits an unmarked description only once a second census repeats it.
+ *
+ * The same rule `applyCensus` already applies to a barcode and to an identify-verified identity:
+ * one misread must leave no permanent trace. A paraphrase is a one-off by nature, the trolley
+ * being described in fresh words each call, while a product really in the cart is still there on
+ * the next look. Unlike `--sweep-once` this does not stop later calls sweeping, so an item added
+ * mid-scan is still found, one census later than it would have been.
+ */
+const CORROBORATE = process.argv.includes('--corroborate-unmarked');
+const seenUnmarked = new Set<string>();
+const foldName = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+  .filter(Boolean).map((w) => (w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w))
+  .join(' ');
+
 const loopsArg = process.argv.find((a) => a.startsWith('--loops='));
 const LOOPS = loopsArg ? Math.max(1, Number(loopsArg.split('=')[1])) : 1;
 
@@ -153,7 +168,16 @@ const deps: SessionDeps = {
       : req.marks!.map((m) => ({ id: m.id, box: m.box }));
     if (marks.length === 0) return { ok: false, failure: 'server' } as any;
     const census: any = await runCensus(image, marks);
-    const unmarked = SWEEP_ONCE && calls > 1 ? [] : (census.unmarkedItems ?? []);
+    let unmarked = SWEEP_ONCE && calls > 1 ? [] : (census.unmarkedItems ?? []);
+    if (CORROBORATE) {
+      const kept: any[] = [];
+      for (const u of unmarked) {
+        const key = foldName(u.description ?? '');
+        if (seenUnmarked.has(key)) kept.push(u);
+        else seenUnmarked.add(key);
+      }
+      unmarked = kept;
+    }
     return {
       ok: true,
       value: {
