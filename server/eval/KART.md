@@ -525,11 +525,33 @@ them changed, the fifteen readings are:
 Five of fifteen exact, median eleven, and the spread is one over to three over rather than under.
 The first three being ten each was a streak, and reporting it as "exact and stable" was wrong.
 
-What moves is the unmarked channel across calls. A badged product keys by SKU and merges every
-time; an unmarked sighting keys by SKU only when the model offers one, and on a blurry frame it
-often cannot, so the same bag of apples described three ways across four calls is one line on a
-good run and three on a bad one. Every reading over ten is that, and every reading under ten is a
-product no call ever named.
+Two things in that spread turned out to be fixable, and one did not.
+
+**One product badged twice opened two lines.** `markKey` takes the catalogSku when there is one
+and brand-and-name when there is not, and across a session the same product gets both: the
+shortlist for a sharp frame carries `kart_oreo` and the one four seconds later, on a blurred
+frame, does not. "Oreo" was badged at one second and again at seven and the bag held two packets.
+A mark that matches the catalog now records that its brand and name are that SKU, as an alias, so
+the SKU survives and the accumulated quantity moves across.
+
+**"red apples" at five seconds and "red apple" at seven were two products.** `productKey` now
+folds an English plural in the name segment. Not the brand: a brand is a proper noun and does not
+arrive singular one call and plural the next. The key is opaque, so a fold that mangles a word
+costs nothing as long as it is deterministic, and "asparagus" becomes "asparagu" on both sides.
+
+| | exact | mean units | spread |
+|---|---|---|---|
+| neither, 15 runs | 5 of 15 | 10.93 | 9 to 13 |
+| both, 14 runs | **6 of 14** | **10.36** | 8 to 12 |
+
+Modest, and it brings one new failure mode: a run of 8, where the fold brought two produce bags
+together. The stills are unmoved, alignment 20 and 21 of 23 and four and five of six exact.
+
+**What is left does not have a rule.** A census that says "green produce item in bag" on one call
+and "brussels sprouts" on the next has given two descriptions that share nothing, and no
+normalisation reaches them. An unmarked sighting keys by SKU only when the model offers one, and
+on a motion-blurred frame it often cannot. Every remaining reading over ten is that, and every
+reading under ten is a product no call ever named.
 
 The last row is the one that closes it. A badge that matched the catalog keys by SKU; the same
 product listed as unmarked on a later keyframe could only key by the words the model chose, and
