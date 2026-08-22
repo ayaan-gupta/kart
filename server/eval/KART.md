@@ -163,6 +163,25 @@ Loosening the containment test is the 0.12 threshold sweep in another form, and 
 already measured: it shatters the cart corpus's net bags into 27 proposals. So the products are
 visible, they are proposed, and the rule that refuses them is protecting something real.
 
+There is one structural distinction that would separate the two cases, and it does not hold here.
+A clementine inside a net of clementines is a part because the container is one product; a bag of
+asparagus inside a box that also holds two other separately-detected products would be a unit,
+because that container is not one product. `degroup` only fires at five members, so a container of
+two to four survives and is treated as a single item, which is where such a case would hide.
+
+Checked on IMG_0254. Of the seven refused produce boxes, six sit inside a kept box that contains
+**zero** other kept boxes, and the seventh inside one that contains one:
+
+    broccoli 0.50  inside #3, which contains 0 others
+    broccoli 0.34  inside #9, which contains 0 others
+    cheese   0.37  inside #7, which contains 1 other
+    a pack   0.41  inside #5, which contains 0 others
+
+So the containers are single-product boxes by every test available, and the refusals are correct
+by every one of them. What is actually happening is that one grocery box covers two adjacent
+products whose own boxes overlap rather than nest, so no containment count can see the second.
+There is no safe rule here, and this is where the corpus stops being able to answer.
+
 Resolution is not it either, and this is the one that settles it. The detector receives a 1333
 thumbnail; the census was raised to 1536 today because it could not read labels, and the detector
 was never re-checked. Run at 1333, 2000 and 2666:
