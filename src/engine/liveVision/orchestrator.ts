@@ -36,6 +36,9 @@ export interface SessionState {
   /** trackId -> when it first went amber, for the dwell. */
   amberSince: Record<string, number>;
   censusCalls: number;
+  /** Census calls that failed. Non-zero means the bag is short for a reason the shopper
+   * should be told, rather than because the cart is empty. */
+  censusFailures: number;
   identifyCalls: number;
   /** Plain-string message from the most recent rejecting dependency, or null. Never a native
    * error object, matching `FrameScan.error`: a session that throws every call is otherwise
@@ -78,6 +81,7 @@ export function createSessionState(): SessionState {
     thumbnails: {},
     amberSince: {},
     censusCalls: 0,
+    censusFailures: 0,
     identifyCalls: 0,
     lastError: null,
   };
@@ -236,7 +240,24 @@ export class RecognitionSession {
    */
   private recordError(error: unknown): void {
     const message = error instanceof Error ? error.message : 'recognition step failed';
-    this.state = { ...this.state, lastError: message };
+    this.state = { ...this.state, lastError: message, censusFailures: this.state.censusFailures + 1 };
+  }
+
+  /**
+   * A call that came back `ok: false` rather than throwing.
+   *
+   * These used to return null and leave no trace, which is the difference between a scan that
+   * found nothing and a scan that never ran, and from the bag those are the same empty list. A
+   * shopper whose service is down, out of credit or unreachable saw an empty cart and no reason
+   * for it. `server/eval/pipeline/scan-loop.ts` had the identical fault and printed "0 of 9" with
+   * a zero exit code; see KART.md's eighty-fourth section.
+   */
+  private recordFailure(failure: string): void {
+    this.state = {
+      ...this.state,
+      lastError: `recognition unavailable (${failure})`,
+      censusFailures: this.state.censusFailures + 1,
+    };
   }
 
   /**
@@ -310,6 +331,7 @@ export class RecognitionSession {
       if (this.disposed) return null;
       if (!result.ok) {
         if (result.failure === 'unconfigured') this.permanentlyUnavailable = true;
+        this.recordFailure(result.failure);
         return null;
       }
 
@@ -400,6 +422,7 @@ export class RecognitionSession {
         // An unset base URL cannot start working mid-session, so stop asking. Every other
         // failure is transient and the next keyframe may well succeed.
         if (result.failure === 'unconfigured') this.permanentlyUnavailable = true;
+        this.recordFailure(result.failure);
         return;
       }
 

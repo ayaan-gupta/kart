@@ -4156,3 +4156,42 @@ instead of one FAILED and one silent lie.
 **The lesson is the one this file keeps relearning, applied to itself.** Every measurement here is
 only as good as its ability to tell "nothing happened" from "nothing was found", and that
 distinction has to be built deliberately, because both look like zero.
+
+## Eighty-fifth: the same fault in the app, where it matters more
+
+The eighty-fourth fixed a harness that reported total failure as a measured zero. The fault is a
+class, not an instance, and the place worth checking is the product.
+
+`RecognitionSession` had it, twice. Both census call sites do this on a failed request:
+
+    if (!result.ok) {
+      if (result.failure === 'unconfigured') this.permanentlyUnavailable = true;
+      return null;                       // and nothing else
+    }
+
+A `server`, `offline` or timeout failure returned null and left **no trace at all**. `recordError`
+exists and sets `lastError`, but it is only reached from the `catch`, so a call that comes back
+`ok: false` rather than throwing never touched it. And `lastError` has **no consumers**: its own
+comment says "files it on state so the UI can surface it", and nothing in `src/app` reads it.
+
+So a shopper whose service is down, out of credit or unreachable scans a full trolley, watches it
+find nothing, and is told nothing. **An empty bag and a broken scan are the same screen.** That is
+the harness bug with a person on the other end of it.
+
+### Fixed at the state layer, and honest about what is left
+
+Both sites now call `recordFailure`, which sets `lastError` to `recognition unavailable (<failure>)`
+and increments a new `censusFailures` counter on session state. Three tests cover it: a failure from
+`onKeyframe`, a failure from `onCapture`, which is the path the app actually uses, and a healthy
+session that must leave the counter at zero.
+
+**The UI half is not done and should not be guessed at.** Surfacing this needs a real decision about
+what a shopper sees mid-scan and it needs verifying on a device, which the simulator cannot do
+because it has no camera. What the state layer can now support, and could not before, is any of
+those choices: the session knows how many censuses failed and why.
+
+This is the fourth appearance in this file of one shape: **something that produces nothing and
+something that finds nothing are indistinguishable unless the distinction is built on purpose.**
+The shelf photographs were skipped for having no count. Two constants are inert and behave as though
+absent. A harness printed zero and exited zero. And the app, where it costs a shopper their trust
+rather than an afternoon, did the same and said nothing.

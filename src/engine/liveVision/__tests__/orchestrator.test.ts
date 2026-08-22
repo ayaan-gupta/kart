@@ -245,6 +245,32 @@ describe('RecognitionSession', () => {
     expect(Object.keys(s.state.fusion.identities)).toHaveLength(0);
   });
 
+  it('records a failed census so an empty bag can be told from a broken scan', async () => {
+    // The bag is the same empty list either way, so without this the shopper sees an empty cart
+    // and no reason for it. server/eval/pipeline/scan-loop.ts had the identical fault and printed
+    // "0 of 9" with a zero exit code (KART.md, eighty-fourth).
+    const d = deps({ requestCensus: jest.fn().mockResolvedValue({ ok: false, failure: 'server' }) });
+    const s = new RecognitionSession(d);
+    await s.onKeyframe('AAAA', [track('a')], 0);
+    expect(s.state.censusFailures).toBe(1);
+    expect(s.state.lastError).toContain('server');
+  });
+
+  it('counts a failure from the capture path too, not only from onKeyframe', async () => {
+    const d = deps({ requestCensus: jest.fn().mockResolvedValue({ ok: false, failure: 'offline' }) });
+    const s = new RecognitionSession(d);
+    await s.onCapture('AAAA', createTrackerState(), 0);
+    expect(s.state.censusFailures).toBe(1);
+  });
+
+  it('leaves the failure count at zero on a healthy session', async () => {
+    const d = deps();
+    const s = new RecognitionSession(d);
+    await s.onKeyframe('AAAA', [track('a')], 0);
+    expect(s.state.censusFailures).toBe(0);
+    expect(s.state.lastError).toBeNull();
+  });
+
   it('does not spend the budget on a permanently unconfigured endpoint', async () => {
     const d = deps({ requestCensus: jest.fn().mockResolvedValue({ ok: false, failure: 'unconfigured' }) });
     const s = new RecognitionSession(d);
