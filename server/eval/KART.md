@@ -1744,3 +1744,61 @@ All three named faults are now closed, each with the fixes tried and refused by 
 bag counted twice (name, SKU and overlap folds all refused), the yellow produce bag unseen (five
 prompt sets, three detector settings, and server-side enumeration all refused), and the tote
 counted as a product (rule 8 extended and reverted).
+
+## Thirty-second: a real fusion bug, reproduced, fixed, and refused
+
+Every fix this file has tried adds something, and each failed the same way. The harness itself
+records the untried opposite: *"the trolley is static, each call re-describes it in fresh words,
+and nothing joins the descriptions but the words themselves. If the fourth look costs more than it
+finds, the cap is the fix and it is free."* Replay makes that free to test.
+
+| census calls | units against 9 | products found, lenient |
+|---|---|---|
+| 1 | 6.2 | 6.2 of 9 |
+| 2 | 7.8 | 7.5 of 9 |
+| **3** | 7.3 | **6.7 of 9** |
+| 4, as shipped | 9.8 | **8.2 of 9** |
+
+**The cap is not the fix: the fourth look finds more than it costs.** But three is worse than two,
+and a call that loses products is not something a bag builder should be able to do at all.
+
+### What the third call does
+
+Tracing `track_3` through one run:
+
+| call | what the census says | |
+|---|---|---|
+| 0, t=1s | `brussels sprouts`, sku `kart_brussels_sprouts` | |
+| 1, t=3s | `Brussels sprouts`, same sku | agrees |
+| 2, t=5s | **`asparagus`**, sku `kart_asparagus` | **overwrites both** |
+
+The brussels sprouts leave the bag, in **all six captured runs**. A single wide-shot guess replaces
+two that agreed with it. `applyCensus` already forbids exactly this for a resolved barcode and for
+an identify-verified identity, for the reason stated in both branches: one misread on a
+glare-washed frame must leave no permanent trace. A plain census identity had no such protection,
+and a scan asks several times, so the last call always won.
+
+### The fix works, and is still refused
+
+`Identity` gained an `agreed` counter, and an identity two censuses had confirmed required the
+same `pendingAlias` corroboration the other two branches use. At three calls it does exactly what
+it claims: brussels sprouts is recovered in **all six runs**, products found 40 to **44** of 54.
+
+At four calls, which is what ships, it does not pay:
+
+| | without | with |
+|---|---|---|
+| products found, lenient | 49 of 54 | 50 of 54 |
+| lines matching nothing real | 10 | **13** |
+| units against 9 | 9.8 | **10.7** |
+
+One real product gained for three spurious lines. The fourth call already re-names that track
+correctly, so the protection's benefit is mostly spent by the time the shipped configuration
+finishes, while its cost is not. By the standard every other candidate in this file was held
+to — a fix must not trade a reliable gain for an unreliable one — it is refused, and reverted.
+
+**The bug is real and stays recorded.** It is reproduced deterministically, its mechanism is
+understood, and the protection is written and known to work. What this corpus cannot show is the
+case where it matters: `MAX_CENSUS_CALLS_PER_SESSION` is 8 and this nine-second video only ever
+reaches 4, so a late misread never has a long-established identity to destroy here. A longer scan
+would settle it, and that is a capture question rather than a code one.
