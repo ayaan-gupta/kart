@@ -1190,3 +1190,65 @@ it, and on the five certain photographs detection is 15 of 16.
 Recovering them needs a different detector or a second viewpoint, which is what a scan is for and
 what the capability-3 occlusion flag is for: this trolley reports "some" hidden, every pass. It
 is not reachable by tuning the three constants measured above.
+
+## Twenty-first: four of the six photographs are already finished
+
+Reading the thirty recorded passes per photograph rather than in aggregate changes what the
+remaining work is:
+
+| photograph | real | units per pass | exact |
+|---|---|---|---|
+| IMG_0244 | 1 | 1, 1, 1, 1, 1 | **5 of 5** |
+| IMG_0245 | 1 | 1, 1, 1, 1, 1 | **5 of 5** |
+| IMG_0246 | 2 | 2, 2, 2, 2, 2 | **5 of 5** |
+| IMG_0249 | 3 | 3, 3, 3, 3, 3 | **5 of 5** |
+| IMG_0252 | 9 | 9, 11, 8, 10, 10 | 1 of 5 |
+| IMG_0254 | 15 | 12, 11, 11, 13, 15 | 1 of 5 |
+
+Four of the six are exact on every pass, with no spread at all. The whole 22-of-30 figure is two
+loaded trolleys, and every earlier statement in this file about "photographs" was averaging four
+solved cases together with two open ones.
+
+### The variance is one channel, and it is not detection or naming
+
+Badges are perfectly stable on both hard photographs: IMG_0252 returns 10 marks and 10 products
+on all five passes, IMG_0254 returns 11 and 11 on all five. Detection does not move, and the
+census names the badges it is given consistently. **Everything that moves is `unmarkedItems`**,
+the channel where the census volunteers products no badge landed on: 3, 0, 9, 4, 4 on IMG_0254,
+for the same fixed photograph.
+
+That also retires "ten of fifteen is the ceiling", written one section up. It is the ceiling for
+*detection*. The bag is not bounded by it: on pass 4 the census volunteered exactly the four
+missing items, red meat, purple bag, yellow bag, peppers, and the bag came to **15 of 15**. The
+system has already produced a perfect answer for the hardest photograph in the corpus. It just
+does not do it reliably.
+
+### The paraphrase fix, measured and abandoned
+
+The obvious next fix is to fold an unmarked description onto a badge it paraphrases. Classifying
+all 25 unmarked descriptions across the thirty passes says not to bother:
+
+| how the description relates to a badge in the same call | count | today |
+|---|---|---|
+| exact name match | 14 (56%) | already folded, costs nothing |
+| shares a word, different name | 2 (8%) | counted as new |
+| shares nothing | 9 (36%) | genuinely new, correctly counted |
+
+Eight per cent, two occurrences in thirty passes, and one of the two is `green produce bag`
+against `red produce bag` and `purple produce bag`, where folding would be wrong: this corpus
+really does hold produce bags of different colours holding different things. So the fix would buy
+at most one unit across thirty passes and risk a wrong merge doing it. Not worth building, and
+that is now measured rather than assumed.
+
+### What is actually left
+
+One thing: the census's discretionary channel is inconsistent on a dense trolley. Given the same
+photograph five times it volunteers nine already-badged items once, nothing once, and the right
+four once. That is model-level variance on a free-text decision, which the seventeenth
+investigation measured as unreachable through sampling controls, both handles being unavailable
+or inert.
+
+So the corpus now says: **four photographs solved and stable, one scan improved and stable to
+within two, and two dense trolleys whose answer is correct on some passes and not others.** The
+gap is consistency on dense scenes, not capability, and the evidence that it is consistency is
+that the perfect answer has already been produced for both of them.
