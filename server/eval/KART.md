@@ -44,6 +44,46 @@ scorer would be inventing the answer it exists to check.
 | lines matching nothing real | 10 |
 | the one repeatable miss | the yellow produce bag, in five runs of six |
 
+### A gap between what this measures and what the app runs
+
+**Every scan number in this file is measured on regions the shipped app does not produce.** Both
+harnesses feed the census regions from Grounding DINO, the server's enumerator, at a median of 5.1
+per frame. The app's scan screen does not use the server's enumerator. `scan.tsx` drives
+`RecognitionSession.onKeyframe`, which badges the census with marks from the on-device tracker,
+and those tracks are built from `AppleInstanceMaskDetector`, which is
+`VNGenerateForegroundInstanceMaskRequest`.
+
+Run over these exact video frames with `npm run bench:detector`, that detector returns **1 to 2
+instances per frame, mean 1.1**. `docs/detector-decision.md` already measured it as dead for
+enumeration, "1 instance every photo, 0 of roughly 100 items", and installed the remedy:
+`onCapture`, which sends no marks so the server enumerates. **`onCapture` is called only from
+tests. No screen calls it.**
+
+Simulating the shipped supply by keeping one region per frame, three runs:
+
+| | regions per frame | units, 9 real | products found |
+|---|---|---|---|
+| what this file measures | 5.1 | 9.8 | 8 to 9 of 9 |
+| what the app has | **1.1** | **15, 18, 18** | 7 to 8 of 9 |
+
+It finds roughly the same products and doubles the bag. With one badge almost everything arrives
+through `unmarkedItems`, which the twenty-fourth section measured as carrying no joining SKU half
+the time, so the descriptions multiply into separate lines. A shopper would see fifteen to
+eighteen lines for nine products.
+
+That simulation is optimistic twice over: it keeps the *best-scoring* Grounding DINO box rather
+than whatever blob Apple's segmenter returns, and it leaves the tracker the full region set for
+continuity. The real path is unlikely to be better than this and may be worse.
+
+**One consequence lands on work done today.** The census model chosen by path, shipped in the
+twenty-second section, keys on an empty marks array. `onKeyframe` returns early when
+`marks.length === 0`, so the app never sends one, and `MODELS.censusCapture` is unreachable from
+any screen as things stand. It is correct and tested, and nothing routes to it.
+
+Fixing this is wiring, not tuning: either point a screen at `onCapture`, or give `onKeyframe` the
+server's regions. Both change what the shopper does with the camera, which is a product decision
+rather than an accuracy one, so it is reported here rather than made.
+
 ### What ships
 
 The EXIF fixes, without which `runIdentify` had never once run on a real phone photograph; the
@@ -1897,3 +1937,58 @@ That makes six independent attempts sharing one shape: produce prompts in pairs,
 offered to the unmarked channel, the session's own answers fed back, a larger model on the scan, a
 fuller non-product rule, and now a larger image. Whatever is limiting this census, it is not what
 it can see.
+
+## Thirty-fourth: what the app runs is not what this file measures
+
+Thirty-three investigations tuned the census, the folds, the prompts and the models against a
+region supply the shipped app does not have. That is the most important thing this corpus has
+shown today and it was found by checking the app rather than the pipeline.
+
+### The chain, read from the screen down
+
+`FloatingNav` routes to `/scan`, so the live scan is the primary user action. `scan.tsx` runs a
+native frame processor, `scanCart`, per frame. `KartVisionFrameProcessorPlugin` wires
+`private let detector: KartDetector = AppleInstanceMaskDetector()`, which is
+`VNGenerateForegroundInstanceMaskRequest`. Its instances become tracks, and `scan.tsx` calls
+`session.onKeyframe(...)`, which does `marksFor(tracks)` and sends those marks to `/api/census`.
+
+So the census is badged from Apple's segmenter. Measured on these exact frames with
+`npm run bench:detector`: **1 to 2 instances per frame, mean 1.1, across all 30 images.**
+
+`docs/detector-decision.md` measured that same request as dead for enumeration a week ago, "1
+instance every photo, 0 of roughly 100 items", and installed the remedy in the orchestrator:
+`onCapture`, which deliberately sends **no** marks so the server enumerates. Searching the app for
+callers finds `onCapture` in `orchestrator.test.ts` and **nowhere else**. The decision was
+implemented and never routed to.
+
+### What it costs
+
+| | regions per frame | units against 9 real | products found |
+|---|---|---|---|
+| this file's scan measurements | 5.1 | 9.8 | 8 or 9 of 9 |
+| **one region per frame, as shipped** | **1.1** | **15, 18, 18** | 7 or 8 of 9 |
+
+Roughly the same products, roughly double the bag. With a single badge nearly every product
+arrives through `unmarkedItems`, and the twenty-fourth section measured that channel as carrying
+no joining SKU on 53% of its entries, so one product becomes several lines. Fifteen to eighteen
+lines for nine products is what a shopper would see.
+
+The simulation is optimistic in two ways and should be read as a bound rather than a figure: it
+keeps the best-scoring Grounding DINO box rather than Apple's blob, and it still gives the tracker
+every region for continuity.
+
+### What follows
+
+The four sparse photographs being exact on every pass, the model split, the SKU fold, the
+sharpness rule: all of those were measured on the server's regions and all of them remain true of
+that path. What is not established is that any of it describes what the app does today, because
+the app does not use that path.
+
+`MODELS.censusCapture`, shipped in the twenty-second section, is the sharpest illustration.
+It selects on an empty marks array, `onKeyframe` returns early when the marks are empty, so no
+screen can reach it. It is correct, tested, and routed to nothing.
+
+**This is wiring rather than tuning.** Either a screen calls `onCapture`, or `onKeyframe` stops
+trusting the device detector and lets the server enumerate its keyframes. Both change what the
+shopper does with the camera, so both are product decisions and neither is mine to make. It is
+reported here with the numbers instead.
