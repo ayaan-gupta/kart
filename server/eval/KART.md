@@ -185,6 +185,34 @@ None of this shows the shipped census failing: a 2B model is not its model, and 
 do set-of-mark far better. What it gives is a first diagnostic and a fallback with a number
 behind it.
 
+## What a census that over-lists costs, measured
+
+`applyCensus` trusts `unmarkedItems`. Every entry not already carried by a live track becomes a
+bag line, with no cap and no cross-check against the catalog. That is deliberate and the code
+argues for it: enumeration recall is 38%, so a tracker used as a ceiling on quantity is wrong far
+more often than it is right, and the model looking at the whole frame is the better witness.
+
+The cost of that trust had never been measured, because no model had ever answered. Running a
+2B model as the census puts a number on it. On the fullest trolley it listed 24 products for a
+16-product basket, and the bag came out at 20:
+
+| photograph | real | bag with a local census | error |
+|---|---|---|---|
+| the three sparse trolleys | 1, 1, 2 | 1, 1, 2 | **0, 0, 0** |
+| three items | 3 | 4 | +1 |
+| loaded | 10 | 9 | -1 |
+| full | 16 | 20 | +4 |
+
+Three of six exact, against two of six for detection alone and six of six for a census that
+answers correctly. All three sparse trolleys become exact, which is the plastic disc finally
+leaving the bag and is exactly what `isProduct` is for.
+
+The failure is one-for-one: a product listed that is not there is a unit in the bag that is not
+there. There is no bound on it in the code, deliberately, and the guard that does exist protects
+only against a count arriving with no listing to back it. Whether that trade is right depends on
+a model good enough to be trusted, which is the assumption the design already makes and which
+this corpus cannot test without one.
+
 ## What this corpus still cannot answer
 
 **The census has never run**, and nothing local can stand in for it. Two attempts were
