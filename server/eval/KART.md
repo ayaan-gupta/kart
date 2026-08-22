@@ -2578,3 +2578,40 @@ at the value it had:
 
 One of ten is wrong, and it is the one this corpus cannot fix, because setting it needs a reading
 from a real camera rather than from JPEG frames decoded to grey.
+
+## Fifty-third: what this corpus cannot answer, collected
+
+Scattered through this file are limits found one at a time, several of them only today. Together
+they bound every figure here, and they are worth reading before any of the numbers.
+
+**No barcode decodes anywhere in it.** Not one, in 26 video frames or 10 photographs, by OpenCV or
+by Apple's own `VNDetectBarcodesRequest`, which is the request the app makes. A barcode identity is
+ground truth and `applyCensus` protects it outright. So every figure here measures the system with
+its most reliable channel switched off, not by a bug but because a trolley is a pile and labels
+face the sides, the bottom and each other. A shopper who lifts an item toward the camera gets a
+certain answer, and nothing here measures that path in either direction.
+
+**Nine seconds is half a session.** `MAX_CENSUS_CALLS_PER_SESSION` is 8 and this video fires 4,
+because `minIntervalMs` spaces them two seconds apart. A real scan of a trolley runs longer and
+would spend the whole budget. The fifty-first section measured 1, 2, 3 and 4 calls at 6.2, 7.5,
+6.7 and 8.2 products found, which trends upward, and the forty-first showed that crowding captures
+closer together is not the same thing as having more of them: captures spread across a pan see
+different parts of the trolley. **So a longer scan probably does better than anything measured
+here, and this corpus cannot show by how much.**
+
+**The photographs are an upper bound, not a description.** They are 5712 across and sharp; the app
+composites a 1536-pixel JPEG re-encoded from a motion-blurred video frame. The encode alone costs
+five to seven points of recall (forty-eighth), and the video source costs more on top.
+
+**Nothing has faced a live camera.** The frame loop is verified in Node and the app is verified to
+build, launch and render, on a simulator that has no camera device. Untested: the camera driving
+the loop, outlines redrawing from a capture's tracks, and whether coverage, amber and thumbnails
+read sensibly when tracks refresh on captures rather than every frame.
+
+**One trolley, one shop, one phone, one lighting.** Sixteen items is the largest cart here and a
+weekly shop is several times that. The misses already concentrate on items lying under other
+items, which is the thing that gets worse with volume.
+
+None of this makes the numbers wrong. It makes them narrow, and the direction of the narrowness is
+knowable: the barcode channel and the longer session both point the same way, so the app in a shop
+is more likely to be better than these figures than worse.
