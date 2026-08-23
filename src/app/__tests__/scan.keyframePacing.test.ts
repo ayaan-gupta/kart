@@ -21,11 +21,22 @@ import traverse from '@babel/traverse';
  * argument through, rather than discarding the pipeline's verdict again.
  */
 
+// `session.wantsKeyframe` is called from `scanStep.ts` now, which both scan.tsx and the Frame Lab
+// harness route through; scan.tsx's job is to hand it the real verdict. Both halves are checked
+// below, because either one alone can discard the pacing decision.
 const SCAN_PATH = path.join(__dirname, '../scan.tsx');
+const STEP_PATH = path.join(__dirname, '../../engine/liveVision/scanStep.ts');
 
 describe('scan.tsx keyframe pacing wiring', () => {
-  it('passes the pipeline keyframe verdict as wantsKeyframe\'s second argument', () => {
+  it('hands the pipeline verdict to the shared step rather than a constant', () => {
+    // The scan.tsx half. `scanStep.ts` threading its third parameter through is worth nothing if
+    // the caller passes `true`, which would typecheck and silently unpace every keyframe.
     const source = fs.readFileSync(SCAN_PATH, 'utf8');
+    expect(source).toMatch(/nextScanRequest\(session, current, result\.keyframe\.fire\)/);
+  });
+
+  it('passes the pipeline keyframe verdict as wantsKeyframe\'s second argument', () => {
+    const source = fs.readFileSync(STEP_PATH, 'utf8');
     const ast = parse(source, { sourceType: 'module', plugins: ['typescript', 'jsx'] });
 
     let call: { argCount: number; secondArgSource: string } | null = null;
@@ -46,7 +57,7 @@ describe('scan.tsx keyframe pacing wiring', () => {
       },
     });
 
-    if (call === null) throw new Error('session.wantsKeyframe(...) call not found in scan.tsx');
+    if (call === null) throw new Error('session.wantsKeyframe(...) call not found in scanStep.ts');
     const found = call as { argCount: number; secondArgSource: string };
 
     // A single-argument call is exactly the pre-fix bug: the pipeline's pacing verdict is
@@ -55,8 +66,11 @@ describe('scan.tsx keyframe pacing wiring', () => {
     // A literal `true` would pass the argCount check while still discarding the real verdict.
     // The second argument must read from the keyframe verdict pipeline.ts's processFrame
     // returns, not a constant.
-    expect(found.secondArgSource).toMatch(/keyframe/);
-    expect(found.secondArgSource).toMatch(/fire/);
+    // Case-insensitive because the parameter this arrives as in `scanStep.ts` is `keyframeFire`.
+    // What it must not be is a constant; that the *real* verdict reaches the shared step is
+    // pinned by the scan.tsx case above, which requires `result.keyframe.fire` literally.
+    expect(found.secondArgSource).toMatch(/keyframe/i);
+    expect(found.secondArgSource).toMatch(/fire/i);
     expect(found.secondArgSource).not.toBe('true');
   });
 });

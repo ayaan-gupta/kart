@@ -6136,3 +6136,57 @@ Frame Lab now runs the same `publish` sequence, and keeps `scan.tsx`'s `current`
 and the thumbnail request are computed from the captured tracks rather than the device's single
 blob. `frameLab.capturePath.test.ts` pins all of it, including the `occluded: false` literal,
 which is the sort of regression that typechecks, renders, and quietly deletes a requirement.
+
+---
+
+## The hundred-and-seventeenth: two divergences in two checks is a design problem, not two bugs
+
+The hundred-and-sixteenth found the harness calling `onKeyframe` where the product calls
+`onCapture`, and then found `occluded: false` hardcoded next to it. Both were fixed and both were
+pinned with a static test. That is the right response to one of them and the wrong response to
+two: **a second instance means the mechanism produces them**, and pinning call sites only catches
+the next one after it has already been written.
+
+`scan.tsx` and `dev/frame-lab.tsx` each hand-wrote the same two readings of session state. The
+harness exists because the real screen cannot run without a camera, so its whole value is that it
+does what the real screen does, and nothing made that true beyond care.
+
+`src/engine/liveVision/scanStep.ts` now holds both readings and both screens apply them:
+
+- `publishedScanState(session, tracks, now, wasOccluded)` returns identities, the occlusion
+  verdict, whether this is a fresh episode, amber, unavailable, the bag and the thumbnails.
+- `nextScanRequest(session, tracks, keyframeFire)` returns what to ask the next frame for.
+
+The divergence surface is gone rather than policed. Three existing pins had to move with the code
+and were rewritten to follow it rather than relaxed: the pacing pin now checks `scanStep.ts`
+threads the verdict **and** that `scan.tsx` hands it `result.keyframe.fire` literally, which is
+strictly more than it checked before.
+
+### What this bought that the pins could not
+
+**The occlusion logic is now unit-testable, and it never was.** It lived inline in a screen Jest
+cannot render and was mirrored in a harness where it was a constant, so requirement 3 had no test
+that ran it, only static tests that read it as text.
+
+`scanStep.test.ts` runs it, and the cases are the ones that actually matter:
+
+| | |
+|---|---|
+| nothing attempted | not unavailable, an idle scan is not a broken one |
+| 1 failure of 4 | not unavailable, one bad frame is not an outage |
+| 3 of 3 | unavailable |
+| occlusion starts | fresh episode |
+| occlusion continues | **not** a fresh episode, or the guide restarts every frame and never completes |
+| occlusion clears, then returns | fresh episode again |
+
+The last three are the edge-versus-level distinction that made this worth extracting, and no test
+anywhere had ever exercised them.
+
+One caveat recorded honestly: the first draft of that test hand-wrote the session state, omitted
+`fusion.aliases`, and `bagLines` threw from inside the function under test. It now builds on the
+real `createSessionState()`, because a hand-written fixture drifts from the real shape in silence
+and then reads as a bug in the code rather than in the test. That is this file's own recurring
+lesson arriving in a new place.
+
+**425 app tests, 293 server, both typechecks clean.** The phone remains the one thing not
+verified, and nothing here changes that.

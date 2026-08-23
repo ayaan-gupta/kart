@@ -37,6 +37,7 @@ import {
   tracksNeedingThumbnail,
 } from '../engine/liveVision/orchestrator';
 import { createPipelineState, processFrame } from '../engine/liveVision/pipeline';
+import { nextScanRequest, publishedScanState } from '../engine/liveVision/scanStep';
 import { requestCensus, requestIdentify } from '../engine/liveVision/recognitionClient';
 import { useDeviceYaw } from '../engine/liveVision/useDeviceYaw';
 import type { FrameScan, Identity, ScanRequest, Track } from '../engine/liveVision/types';
@@ -266,38 +267,26 @@ export default function ScanScreen() {
         // compute the amber state from one track instead of eight.
         let current = result.tracks;
         const refreshNextRequest = () => {
-          nextRequestRef.current = {
-            wantKeyframe: session.wantsKeyframe(current, result.keyframe.fire),
-            cropTrackIds: tracksNeedingThumbnail(session.state, current),
-          };
+          nextRequestRef.current = nextScanRequest(session, current, result.keyframe.fire);
         };
         refreshNextRequest();
 
         // Everything below is fire and forget. Nothing on the path from a frame arriving to an
         // outline being drawn is allowed to await the network.
         const publish = () => {
-          setIdentities({ ...session.state.fusion.identities });
-
-          const nowOccluded = session.state.occlusion.hidden;
-          if (nowOccluded && !wasOccludedRef.current) {
-            // A fresh occlusion episode. `orchestrator.ts` only writes `state.occlusion` from a
-            // successful census, so once the census budget is spent it never changes again (see
-            // I3 in the branch review): with nothing else to go on, coachKind and guideVisible
-            // both key their exit on `coverage` completing instead. But coverage may already be
-            // complete from an earlier episode, which would leave this one's guide and notice
-            // unable to open at all. Starting a fresh episode over a fresh coverage requirement
-            // is what keeps that exit meaningful the second time occlusion is detected, not just
-            // the first.
+          // `scanStep.ts` holds this reading because `dev/frame-lab.tsx` must publish exactly the
+          // same things and twice did not. See that file for the two divergences.
+          const next = publishedScanState(session, current, Date.now(), wasOccludedRef.current);
+          setIdentities(next.identities);
+          if (next.freshOcclusionEpisode) {
             setCoverage(createCoverageState());
             setObservedYaw(null);
           }
-          wasOccludedRef.current = nowOccluded;
-          setOccluded(nowOccluded);
-
-          setAmberPersists(persistentAmber(session.state, current, Date.now()));
-          setUnavailable(session.state.censusFailures > 0
-            && session.state.censusFailures === session.state.censusCalls);
-          useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
+          wasOccludedRef.current = next.occluded;
+          setOccluded(next.occluded);
+          setAmberPersists(next.amberPersists);
+          setUnavailable(next.unavailable);
+          useScanline.getState().setBag(next.bag, next.thumbnails);
           refreshNextRequest();
         };
 

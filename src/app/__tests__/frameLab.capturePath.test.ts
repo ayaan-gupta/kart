@@ -72,14 +72,17 @@ describe('frame-lab.tsx census wiring', () => {
     // regression: it typechecks, renders, and silently removes a requirement from the harness.
     const { source } = labSource();
     expect(source).not.toContain('occluded: false');
-    expect(source).toContain('session.state.occlusion.hidden');
+    // The verdict itself is read in `scanStep.ts` now; what this screen must do is apply it.
+    expect(source).toMatch(/publishedScanState\(session, current,/);
+    expect(source).toMatch(/setOccluded\(next\.occluded\)/);
   });
 
   it('publishes the same things scan.tsx publishes', () => {
     // A publish that sets identities and the bag only leaves the two screens agreeing about the
     // bag and about nothing else, which is what made the occlusion gap invisible for so long.
     const { source } = labSource();
-    for (const call of ['setOccluded', 'setAmberPersists', 'setUnavailable', 'setBag']) {
+    for (const call of ['setOccluded', 'setAmberPersists', 'setUnavailable', 'setBag',
+                        'freshOcclusionEpisode']) {
       expect(source).toContain(call);
     }
   });

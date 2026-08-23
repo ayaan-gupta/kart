@@ -27,6 +27,7 @@ import { CAPTURED_FRAME_LAB_INSTANCES } from '../../engine/liveVision/__fixtures
 import { bagLines } from '../../engine/liveVision/fusion';
 import { persistentAmber, RecognitionSession, tracksNeedingThumbnail } from '../../engine/liveVision/orchestrator';
 import { createPipelineState, processFrame } from '../../engine/liveVision/pipeline';
+import { nextScanRequest, publishedScanState } from '../../engine/liveVision/scanStep';
 import { saveThumbnail } from '../../engine/thumbnails';
 import { useScanline } from '../../engine/store';
 import type { FrameScan, Identity, ScanRequest, Track } from '../../engine/liveVision/types';
@@ -222,30 +223,24 @@ export default function FrameLabScreen() {
         let current = result.tracks;
 
         const refreshNextRequest = () => {
-          nextRequest = {
-            wantKeyframe: session.wantsKeyframe(current, result.keyframe.fire),
-            cropTrackIds: tracksNeedingThumbnail(session.state, current),
-          };
+          nextRequest = nextScanRequest(session, current, result.keyframe.fire);
         };
         refreshNextRequest();
 
         // Deliberately the same sequence as scan.tsx's `publish`, occlusion included. It used to
         // set identities and the bag only, so the two screens agreed about the bag and about
         // nothing else.
+        // Identical to scan.tsx's, because both now apply one reading from `scanStep.ts`.
+        // Hand-mirroring it is what failed twice; see that file for both divergences.
         const publish = () => {
-          setIdentities({ ...session.state.fusion.identities });
-
-          const nowOccluded = session.state.occlusion.hidden;
-          if (nowOccluded && !wasOccludedRef.current) {
-            setCoverage(createCoverageState());
-          }
-          wasOccludedRef.current = nowOccluded;
-          setOccluded(nowOccluded);
-
-          setAmberPersists(persistentAmber(session.state, current, Date.now()));
-          setUnavailable(session.state.censusFailures > 0
-            && session.state.censusFailures === session.state.censusCalls);
-          useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
+          const next = publishedScanState(session, current, Date.now(), wasOccludedRef.current);
+          setIdentities(next.identities);
+          if (next.freshOcclusionEpisode) setCoverage(createCoverageState());
+          wasOccludedRef.current = next.occluded;
+          setOccluded(next.occluded);
+          setAmberPersists(next.amberPersists);
+          setUnavailable(next.unavailable);
+          useScanline.getState().setBag(next.bag, next.thumbnails);
           refreshNextRequest();
         };
 

@@ -93,8 +93,11 @@ describe('scan.tsx census wiring', () => {
     expect(source).toMatch(/let current = result\.tracks;/);
     expect(source).toMatch(/current = captured\.tracks;/);
 
-    // And the two readers must go through it rather than back to result.tracks.
-    expect(source).toMatch(/tracksNeedingThumbnail\(session\.state, current\)/);
-    expect(source).toMatch(/persistentAmber\(session\.state, current,/);
+    // And both readers must receive it. `tracksNeedingThumbnail` and `persistentAmber` moved
+    // into `scanStep.ts` so frame-lab.tsx cannot hand-mirror them wrongly a third time, so what
+    // scan.tsx has to get right is which tracks it hands over. Passing `result.tracks` here is
+    // the same defect wearing a different shape, and still typechecks.
+    expect(source).toMatch(/publishedScanState\(session, current,/);
+    expect(source).toMatch(/nextScanRequest\(session, current,/);
   });
 });
