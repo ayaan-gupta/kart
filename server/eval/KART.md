@@ -6190,3 +6190,44 @@ lesson arriving in a new place.
 
 **425 app tests, 293 server, both typechecks clean.** The phone remains the one thing not
 verified, and nothing here changes that.
+
+---
+
+## The hundred-and-eighteenth: a comment is not a guard
+
+Verifying that a device build now carries the endpoint turned up something next to it in `.env`:
+
+```
+# Do not ship a build carrying this.
+EXPO_PUBLIC_KART_REQUEST_TIMEOUT_MS=900000
+```
+
+Fifteen minutes, against a product default of twenty seconds, raised because the local stand-in
+model answers one region at a time. **The comment was the entire protection**, and `.env` is
+consumed at build time by whoever runs the build. `requestTimeoutMs()` accepted any positive
+number with no ceiling and no build guard.
+
+It would fail in the worst available direction rather than the obvious one. A hung request holds
+the scan for fifteen minutes instead of failing at twenty seconds; `censusFailures` never rises;
+and the unavailable notice keys off that count, so **the notice added in the eighty-fifth could
+not appear either**. The shopper watches a live camera quietly adding nothing, with no error.
+Two safety mechanisms, and one silently disables the other.
+
+A Release build now ignores the override. Verified in the artifact, not only in a test: the string
+`900000` does not occur anywhere in a Release `main.jsbundle` for device, because Metro inlines
+`__DEV__` to false and eliminates the branch. The one apparent hit is `#999999` followed by
+`00000.76ba7b81` inside an unrelated string table, which is worth writing down because grepping a
+bundle for a number is exactly how one would wrongly conclude the opposite.
+
+### And the endpoint is there now
+
+The same build answers the other half. The hundred-and-ninth found no recognition endpoint in the
+bundle at all, which is why the app named nothing. With `.env` present, `main.jsbundle` for
+`Release-iphoneos` contains `http://<lan>:4310`. So the configuration mechanism is verified in
+both directions on real hardware: absent without `.env`, present with it.
+
+`config.test.ts` is new and pins all four cases, including that zero and negative values fall back
+to the default rather than being passed to `setTimeout`, where they would fire immediately and
+abort every request before it started.
+
+**429 app tests, 293 server.** The phone install is still the one thing outstanding.

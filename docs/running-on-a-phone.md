@@ -12,7 +12,7 @@ configuration rather than recognition. There are three gaps, and only one of the
 
 | | what is missing | what the app does without it | verified |
 |---|---|---|---|
-| 1 | `EXPO_PUBLIC_KART_API_URL` | never names anything: every request returns `unconfigured` | yes, the shipped bundle contains no recognition endpoint |
+| 1 | `EXPO_PUBLIC_KART_API_URL` | never names anything: every request returns `unconfigured` | yes, both ways: a build with no `.env` has no endpoint in its bundle, and a build with one has it |
 | 2 | `ENUMERATOR_URL` | degraded mode: no outlines, no catalog shortlist, 72% of units | yes, the server logged `enumeration degraded: no enumerator configured` |
 | 3 | OpenAI credit | nothing is recognized at all, unless the local fallback below is used | yes, `429 credit_balance_exhausted` |
 
@@ -64,6 +64,21 @@ free-account build runs for seven days before it needs re-signing.
 
 **The app has never been run on a physical phone.** Everything up to signing is verified; the
 install is not, and nothing in this repository can substitute for the two steps above.
+
+## The development timeout cannot reach a shipped build
+
+`.env` here carries `EXPO_PUBLIC_KART_REQUEST_TIMEOUT_MS=900000`, fifteen minutes, because the
+local stand-in vision model answers one region at a time. The product default is twenty seconds.
+
+Shipping that value would fail in the worst available direction: a hung request would hold the
+scan for fifteen minutes instead of failing at twenty seconds, `censusFailures` would never rise,
+and the "scanning isn't working" notice keys off that count, so it could not appear either. A
+shopper would watch a live camera quietly adding nothing.
+
+`requestTimeoutMs()` in `src/engine/liveVision/config.ts` now ignores the override entirely when
+`__DEV__` is false. Verified in the built artifact rather than only in a test: the string
+`900000` does not appear anywhere in a Release `main.jsbundle` for device, because Metro inlines
+`__DEV__` as false and eliminates the branch.
 
 ## Running the whole pipeline from this machine
 
