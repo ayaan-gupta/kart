@@ -13,6 +13,21 @@
  */
 export const ENABLE_BARCODE_FAST_PATH = true;
 
+/**
+ * `__DEV__` is Metro's build-mode global, declared here rather than relied on from ambient types.
+ *
+ * The app's typecheck sees it through react-native's globals, so nothing in the app needed this.
+ * The eval does not: `server/eval/pipeline/*.ts` imports this module's neighbours so the
+ * verification set runs the same code the phone runs, and `server/tsconfig.json` carries only
+ * `types: ["node"]`. Without this line `npm run typecheck --prefix server` fails on the one
+ * reference below, which is how the guard reached a commit unnoticed.
+ *
+ * Declaring it costs nothing at runtime: `declare` emits no JavaScript, so `__DEV__` stays a free
+ * identifier and Metro still substitutes the literal and eliminates the dead branch in a Release
+ * build, which is the only reason the guard works.
+ */
+declare const __DEV__: boolean;
+
 /** How many times a second the detector runs. Rendering stays at 60fps via Kalman prediction. */
 export const DETECT_TARGET_FPS = 3;
 
