@@ -6069,3 +6069,50 @@ start."
 
 That is the same class as the eighty-fifth's silent census failure: a state the code could
 describe and did not, so the user is told something false rather than nothing.
+
+---
+
+## The hundred-and-sixteenth: the harness was testing the path that does not ship
+
+Asked whether any of this works with the real frontend, the answer was no, and checking why turned
+up something worse than "untested".
+
+`scan.tsx` sends a keyframe through **`session.onCapture`**: no marks, the service enumerates the
+frame itself. `frame-lab.tsx` sent it through **`session.onKeyframe`**: marks built from the
+device's own tracks, service does not enumerate. Two different code paths, and **every end-to-end
+claim made through Frame Lab was a claim about the one that does not ship.**
+
+This is the same drift `scan.capturePath.test.ts` was written for. Its header records that
+`onCapture` was once "called from nothing but its own tests for a week". That test pins the
+shipping caller; nothing pinned the harness, so the harness drifted the other way and kept
+producing confident results about dead code.
+
+Frame Lab's `server` mode now calls `onCapture`, and the proof is in the enumerator's log rather
+than in the diff. A run before the change never touched the enumerator at all. A run after it:
+
+```
+[enumerator] 5 regions in 7.3s
+[census]     5 marks, 5 unmarked
+```
+
+The enumerator ran, which can only happen when the app sends **no** marks and the service
+enumerates. The five marks the census answered are the ones the service built from its own
+regions, not the device's.
+
+### And the run correctly produced nothing
+
+The bag stayed at zero, which is right. `recognize.ts` empties `marks`, `unmarkedItems` and
+`inViewCounts` when the census answers `subjectIsCart: false`, and Frame Lab's test asset is a
+grid of coloured shapes rather than a trolley. The gate refusing to fill a bag from a non-cart is
+the gate working.
+
+That is worth stating plainly because the same screen used to show **nine items** for this same
+image, back when nothing asked whether the subject was a cart. The number went down and the
+product got better, which is the second time in this file that has happened.
+
+### What is still not known
+
+The real scan screen has still never run. `useCameraDevice('back')` returns null in the Simulator,
+so the `<Camera>` branch never renders and no work on this machine reaches it. Frame Lab now
+exercises the same session path `scan.tsx` uses, which narrows the gap to the camera and the
+screen's own wiring, and does not close it.

@@ -223,7 +223,24 @@ export default function FrameLabScreen() {
         };
 
         if (scan.keyframe !== null) {
-          await session.onKeyframe(scan.keyframe, result.tracks, now);
+          // `onCapture`, not `onKeyframe`, because `scan.tsx` uses `onCapture` and this harness is
+          // only worth anything if it exercises the path that ships. It sends the frame with no
+          // marks so the service enumerates it, and hands back a tracker built from the regions
+          // the service found; `scan.tsx` writes that back the same way.
+          //
+          // This screen used `onKeyframe` for its whole life, which meant every end-to-end claim
+          // made through it was a claim about the older marks-from-the-device path.
+          // `scan.capturePath.test.ts` exists because `onCapture` was once "called from nothing
+          // but its own tests for a week", and this was the same drift from the other side.
+          const captured = await session.onCapture(
+            scan.keyframe, pipelineStateRef.current.tracker, now);
+          if (captured !== null) {
+            pipelineStateRef.current = {
+              ...pipelineStateRef.current,
+              tracker: captured.tracker,
+            };
+            setTracks(captured.tracks);
+          }
           publish();
         }
         if (scan.crops.length > 0) {
