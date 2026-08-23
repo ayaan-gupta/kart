@@ -307,8 +307,12 @@ non-generic word. The four shelf photographs hold no trolley and score 0 of 0 by
 8 of 9, in about four seconds a frame. This is a 2B model with no catalog shortlist and box-shaped
 outlines, at 55 to 290 seconds a photograph. It is worse, except on the four sparse trolleys, where
 it finds every item every time. IMG_0252 misses exactly one thing and it is the yellow produce bag.
-Two faults stated rather than buried: the local census hardcodes <code>subjectIsCart</code> true, so
-it will report a shelf as a cart, and the shelf photographs draw 27, 21, 42 and 14 answers.</p>
+One fault found here and since fixed: the local census hardcoded <code>subjectIsCart</code> true, so
+it reported all four shelf photographs as trolleys. It asks now, and the wording mattered more than
+the model did. Offered a choice between two words it narrates instead of answering, and a keyword
+test over that narration returns whichever word it was looking for; asked one closed question about
+a concrete visual fact, it separates every photograph. Verified on all seven the corpus can answer:
+three trolleys true, four shelves false.</p>
 <p class="section-note">The right-hand bag is filled with no OpenAI account. Read it as plumbing and not as recognition: the bundled test asset is a synthetic picture of coloured shapes, which is why four lines are "Orange square", "Blue oval", "Green square" and "Yellow rectangle". The recognition figures on this page are the corpus ones above.</p>
 <p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
 reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
