@@ -61,6 +61,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
+    "typecheck": "tsc --noEmit && npm run typecheck --prefix server",
     "test:swift": "swiftc -O ios/Kart/KartDetector.swift ios/Kart/MaskContour.swift ios/Kart/FrameMetrics.swift ios/Kart/KartImageTools.swift scripts/swift-tests/main.swift -o /tmp/kart-swift-tests && /tmp/kart-swift-tests",
     "bench:detector": "swiftc -O ios/Kart/KartDetector.swift ios/Kart/MaskContour.swift ios/Kart/FrameMetrics.swift ios/Kart/AppleInstanceMaskDetector.swift scripts/detector-bench/main.swift -o /tmp/kart-detector-bench && /tmp/kart-detector-bench",
     "xcode:register": "node scripts/register-xcode-file.js"
