@@ -420,7 +420,13 @@ export default function ScanScreen() {
           <Sub color={color.onFeedSub} style={styles.permissionText}>
             {hasPermission === false && permissionAsked
               ? 'Kart needs camera access to scan your cart. Enable it in Settings to continue.'
-              : 'Requesting camera access…'}
+              : hasPermission && device == null
+                // Access was granted and there is still no camera to open. On a phone this does
+                // not happen; in the Simulator it always does, and the screen used to sit on
+                // "Requesting camera access" forever, which says the opposite of what is true and
+                // sends whoever is looking at it to check permissions that are already fine.
+                ? 'No camera is available on this device, so scanning cannot start.'
+                : 'Requesting camera access…'}
           </Sub>
           {hasPermission === false && permissionAsked ? (
             <Button label="Open Settings" onPress={() => Linking.openSettings()} />

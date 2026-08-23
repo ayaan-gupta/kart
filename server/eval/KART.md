@@ -6036,3 +6036,36 @@ Verified on all seven photographs the corpus can answer: three trolleys true, fo
 
 This is the seventh time in this file a measured question has beaten a written one, and the first
 where the losing version was written in the same commit as the comment warning about it.
+
+---
+
+## The hundred-and-fifteenth: the real scan screen has never run, and cannot here
+
+Asked directly whether the pipeline works with the actual frontend, the answer is no, and the
+answer should not have needed asking. **Every app-side result in this file came through Frame Lab,
+which is a developer harness reached by a long press on a logo, not the screen a shopper uses.**
+
+The real screen is `src/app/scan.tsx`. Two things are now known about it:
+
+**It is wired correctly.** It imports `requestCensus` and `requestIdentify` from
+`recognitionClient` directly, with no fixtures anywhere, so it needs no change to reach a
+recognition service.
+
+**It cannot run in the Simulator at all.** `useCameraDevice('back')` returns null there, so the
+`<Camera>` branch never renders. The file already said so at line 226, in a comment about a block
+that "never runs there". No amount of work on this machine exercises this screen.
+
+So the state of the frontend question is: the harness is verified end to end against a real server
+and a real model, the screen a shopper actually uses is verified only by construction, and the gap
+between those two is a phone.
+
+### One real defect, found by looking
+
+With camera permission granted and no camera present, the screen sat on **"Requesting camera
+access…"** indefinitely. Permission had been granted; the message said the opposite of what was
+true, and would send anyone debugging it to check a setting that was already correct. It now
+distinguishes the two states and says "No camera is available on this device, so scanning cannot
+start."
+
+That is the same class as the eighty-fifth's silent census failure: a state the code could
+describe and did not, so the user is told something false rather than nothing.
