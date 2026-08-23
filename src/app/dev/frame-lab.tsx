@@ -133,7 +133,15 @@ export default function FrameLabScreen() {
   const [probing, setProbing] = useState(false);
 
   const runTokenRef = useRef(0);
-  const [coverage] = useState<CoverageState>(createCoverageState());
+  // `occluded` and `coverage` were a hardcoded `false` and a setter-less `useState` here, which
+  // meant the occluded notice and the capture guide could not appear on this screen at all.
+  // Requirement 3 in CLAUDE.md ("items hidden under other items are flagged as hidden") therefore
+  // had no exercise anywhere in the app, only in the orchestrator's own unit tests.
+  const [coverage, setCoverage] = useState<CoverageState>(createCoverageState());
+  const [occluded, setOccluded] = useState(false);
+  // Tracks the previous episode the way scan.tsx does, so a fresh occlusion starts over a fresh
+  // coverage requirement rather than inheriting a completed one.
+  const wasOccludedRef = useRef(false);
 
   const pluginAvailable = isScanCartPluginAvailable();
   const nativeAvailable = isFrameLabNativeAvailable();
@@ -208,16 +216,35 @@ export default function FrameLabScreen() {
         if (scan.width > 0 && scan.height > 0) setFrameSize({ width: scan.width, height: scan.height });
         setIteration(i);
 
+        // The same handle scan.tsx keeps: the frame's tracks until a capture lands, the capture's
+        // afterwards. Reading the frame's after a capture would ask for thumbnails of the device
+        // detector's single blob and compute amber from one track instead of the real items.
+        let current = result.tracks;
+
         const refreshNextRequest = () => {
           nextRequest = {
-            wantKeyframe: session.wantsKeyframe(result.tracks, result.keyframe.fire),
-            cropTrackIds: tracksNeedingThumbnail(session.state, result.tracks),
+            wantKeyframe: session.wantsKeyframe(current, result.keyframe.fire),
+            cropTrackIds: tracksNeedingThumbnail(session.state, current),
           };
         };
         refreshNextRequest();
 
+        // Deliberately the same sequence as scan.tsx's `publish`, occlusion included. It used to
+        // set identities and the bag only, so the two screens agreed about the bag and about
+        // nothing else.
         const publish = () => {
           setIdentities({ ...session.state.fusion.identities });
+
+          const nowOccluded = session.state.occlusion.hidden;
+          if (nowOccluded && !wasOccludedRef.current) {
+            setCoverage(createCoverageState());
+          }
+          wasOccludedRef.current = nowOccluded;
+          setOccluded(nowOccluded);
+
+          setAmberPersists(persistentAmber(session.state, current, Date.now()));
+          setUnavailable(session.state.censusFailures > 0
+            && session.state.censusFailures === session.state.censusCalls);
           useScanline.getState().setBag(bagLines(session.state.fusion), session.state.thumbnails);
           refreshNextRequest();
         };
@@ -239,6 +266,7 @@ export default function FrameLabScreen() {
               ...pipelineStateRef.current,
               tracker: captured.tracker,
             };
+            current = captured.tracks;
             setTracks(captured.tracks);
           }
           publish();
@@ -254,10 +282,6 @@ export default function FrameLabScreen() {
           await session.onBarcodes(hits);
           publish();
         }
-
-        setAmberPersists(persistentAmber(session.state, result.tracks, Date.now()));
-        setUnavailable(session.state.censusFailures > 0
-          && session.state.censusFailures === session.state.censusCalls);
 
         if (i < RUN_ITERATIONS) await new Promise((resolve) => setTimeout(resolve, ITERATION_DELAY_MS));
       }
@@ -298,7 +322,7 @@ export default function FrameLabScreen() {
     }
   }, []);
 
-  const guide = guideVisible({ occluded: false, coverage });
+  const guide = guideVisible({ occluded, coverage });
   const close = () => router.back();
 
   return (

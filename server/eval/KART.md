@@ -6116,3 +6116,23 @@ The real scan screen has still never run. `useCameraDevice('back')` returns null
 so the `<Camera>` branch never renders and no work on this machine reaches it. Frame Lab now
 exercises the same session path `scan.tsx` uses, which narrows the gap to the camera and the
 screen's own wiring, and does not close it.
+
+### And a second divergence, in the same screen
+
+Having found one, I compared every session call and state write the two screens make rather than
+assuming the rest agreed. They did not.
+
+`frame-lab.tsx` read `guideVisible({ occluded: false, coverage })` against a `useState` with no
+setter. **The occluded notice and the capture guide could not appear on that screen at all**, so
+CLAUDE.md's requirement 3, "items hidden under other items are flagged as hidden", had no exercise
+anywhere in the app. It was covered by the orchestrator's unit tests and by nothing that draws.
+
+Its `publish` also set identities and the bag only, where `scan.tsx` additionally starts a fresh
+coverage requirement on a new occlusion episode, sets `occluded`, and recomputes amber and
+unavailable. So the two screens agreed about the bag and about nothing else, which is exactly why
+the gap survived: the thing everyone looks at was correct.
+
+Frame Lab now runs the same `publish` sequence, and keeps `scan.tsx`'s `current` handle so amber
+and the thumbnail request are computed from the captured tracks rather than the device's single
+blob. `frameLab.capturePath.test.ts` pins all of it, including the `occluded: false` literal,
+which is the sort of regression that typechecks, renders, and quietly deletes a requirement.

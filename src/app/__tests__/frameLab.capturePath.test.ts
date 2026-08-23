@@ -65,6 +65,25 @@ describe('frame-lab.tsx census wiring', () => {
     expect(callsNamed('onKeyframe').count).toBe(0);
   });
 
+  it('drives occlusion from the session, not a hardcoded false', () => {
+    // This screen read `guideVisible({ occluded: false, coverage })` against a setter-less
+    // coverage state, so the occluded notice and the capture guide could never appear on it and
+    // CLAUDE.md's requirement 3 had no exercise anywhere in the app. The literal is the whole
+    // regression: it typechecks, renders, and silently removes a requirement from the harness.
+    const { source } = labSource();
+    expect(source).not.toContain('occluded: false');
+    expect(source).toContain('session.state.occlusion.hidden');
+  });
+
+  it('publishes the same things scan.tsx publishes', () => {
+    // A publish that sets identities and the bag only leaves the two screens agreeing about the
+    // bag and about nothing else, which is what made the occlusion gap invisible for so long.
+    const { source } = labSource();
+    for (const call of ['setOccluded', 'setAmberPersists', 'setUnavailable', 'setBag']) {
+      expect(source).toContain(call);
+    }
+  });
+
   it('hands onCapture the tracker rather than the frame tracks', () => {
     // Same contract `scan.tsx` honours: onCapture builds tracks from the service's regions and
     // returns an advanced tracker. Passing `result.tracks` instead would typecheck and quietly
