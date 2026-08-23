@@ -52,7 +52,22 @@ export function apiBaseUrl(): string {
  */
 export function requestTimeoutMs(): number {
   const raw = Number((process.env.EXPO_PUBLIC_KART_REQUEST_TIMEOUT_MS ?? '').trim());
-  return Number.isFinite(raw) && raw > 0 ? raw : 20_000;
+  if (!Number.isFinite(raw) || raw <= 0) return REQUEST_TIMEOUT_MS;
+
+  // A Release build ignores the override entirely, rather than trusting whoever set it.
+  //
+  // The override exists so a local run against a slow stand-in model can finish; the local VLM
+  // fallback answers one region at a time and needs minutes where the shipped model needs
+  // seconds. `.env` on this machine therefore carries 900000, fifteen minutes, under a comment
+  // saying not to ship a build with it. That comment is the entire protection, and `.env` is
+  // read at build time by whoever happens to run the build.
+  //
+  // Shipping it would be a bad failure rather than a slow one: a request that hangs would hold
+  // the scan for fifteen minutes instead of failing at twenty seconds, and `censusFailures`
+  // would never rise, so the "scanning isn't working" notice could not appear either. The
+  // shopper would watch a live camera that silently never adds anything.
+  if (!__DEV__) return REQUEST_TIMEOUT_MS;
+  return raw;
 }
 
 /** The product default, kept as a named constant so tests and callers can refer to it. */
