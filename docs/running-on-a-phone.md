@@ -59,8 +59,19 @@ So the install is blocked on two specific things, not on anything about the pipe
    attached once by cable, which is what registers its identifier and lets Xcode issue the
    profile. After the first cable pairing, later installs can go over wifi.
 
-With both done, `xcodebuild ... -destination 'platform=iOS,name=<your iPhone>'` installs it, and a
-free-account build runs for seven days before it needs re-signing.
+With both done, `./scripts/install-on-device.sh` does the rest in one command. It checks both
+prerequisites first and names whichever is missing, because the two failures look alike from the
+outside and neither error mentions the real cause.
+
+One trap worth recording, since checking for the account is the obvious thing to get wrong: the
+Xcode preference key exists even when no account is signed in, holding an empty list. On this
+machine `defaults read com.apple.dt.Xcode DVTDeveloperAccountManagerAppleIDLists` succeeds and
+prints `IDE.Identifiers.Prod = ( )` while a signing build still fails with "No Accounts". The
+first version of that script tested for the key and reported an Apple ID that was not there. A
+codesigning identity in the keychain is not a substitute either, and there is one here: the
+identity signs the binary, the profile names the device, and only an account can make a profile.
+
+A free-account build runs for seven days before it needs re-signing.
 
 **The app has never been run on a physical phone.** Everything up to signing is verified; the
 install is not, and nothing in this repository can substitute for the two steps above.
