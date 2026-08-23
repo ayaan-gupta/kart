@@ -314,6 +314,13 @@ test over that narration returns whichever word it was looking for; asked one cl
 a concrete visual fact, it separates every photograph. Verified on all seven the corpus can answer:
 three trolleys true, four shelves false.</p>
 <p class="section-note">The right-hand bag is filled with no OpenAI account. Read it as plumbing and not as recognition: the bundled test asset is a synthetic picture of coloured shapes, which is why four lines are "Orange square", "Blue oval", "Green square" and "Yellow rectangle". The recognition figures on this page are the corpus ones above.</p>
+<p class="section-note">A separate hazard found while checking that build, and fixed. The
+development <code>.env</code> raised the request timeout to fifteen minutes for the slow local
+stand-in model, guarded by nothing but a comment asking nobody to ship it. Shipped, it would hold a
+scan for fifteen minutes rather than failing at twenty seconds, and because the unavailable notice
+keys off the failure count, the notice could not have appeared either: a live camera quietly adding
+nothing. A Release build now ignores the override, verified in the artifact rather than only in a
+test, since the value does not appear in a device bundle at all.</p>
 <p class="section-note">The second gap now has a local host that runs the same detector on a Mac. It
 reproduces the measured region set exactly: 10 regions against 10 on IMG_0252, 11 against 11 on
 IMG_0254, and 21 of 21 matching at IoU 0.7 or better. A scan keyframe takes 3.9s on MPS. A real
