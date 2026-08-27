@@ -36,6 +36,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# CocoaPods calls String#unicode_normalize on the repository path and dies with
+# "Unicode Normalization not appropriate for ASCII-8BIT" when the locale is not UTF-8. A login
+# shell usually sets one; a script run from another program inherits whatever it was given, which
+# on a fresh clone here was nothing. Found by running this script in a clean clone, which is the
+# only way it shows up: the machine that wrote it has LANG set in its profile.
+case "${LANG:-}" in
+  *UTF-8|*utf8) : ;;
+  *) export LANG=en_US.UTF-8 ;;
+esac
+
 RC="$ROOT/.kartrc"
 STEP=0
 
@@ -175,27 +185,27 @@ if [ "$CHECK" = 1 ]; then
   [ -d node_modules ]        && ok "app dependencies present"     || warn "app dependencies not installed yet"
   [ -d server/node_modules ] && ok "service dependencies present" || warn "service dependencies not installed yet"
   [ -d ios/Pods ]            && ok "pods present"                 || warn "pods not installed yet"
-elif [ ! -d node_modules ]; then
-  ok "npm install, in the app. First time takes a couple of minutes."
-  npm install --silent || fail "npm install failed in the app. The output above says why."
 else
-  ok "app dependencies already present"
-fi
+  if [ ! -d node_modules ]; then
+    ok "npm install, in the app. First time takes a couple of minutes."
+    npm install --silent || fail "npm install failed in the app. The output above says why."
+  else
+    ok "app dependencies already present"
+  fi
 
-if [ ! -d server/node_modules ]; then
-  ok "npm install, in the recognition service."
-  (cd server && npm install --silent) || fail "npm install failed in server/. The output above says why."
-else
-  ok "service dependencies already present"
-fi
+  if [ ! -d server/node_modules ]; then
+    ok "npm install, in the recognition service."
+    (cd server && npm install --silent) || fail "npm install failed in server/. The output above says why."
+  else
+    ok "service dependencies already present"
+  fi
 
-if [ ! -d ios/Pods ]; then
-  ok "pod install. First time takes a few minutes and downloads the CocoaPods spec repo."
-  (cd ios && pod install) >/dev/null 2>&1 || {
+  if [ ! -d ios/Pods ]; then
+    ok "pod install. First time takes a few minutes and downloads the CocoaPods spec repo."
     (cd ios && pod install) || fail "pod install failed. The output above says why."
-  }
-else
-  ok "pods already installed"
+  else
+    ok "pods already installed"
+  fi
 fi
 
 # ---------------------------------------------------------------------------------------------
