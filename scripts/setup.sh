@@ -2,7 +2,8 @@
 #
 # One command that takes a fresh clone to Kart running on an attached iPhone.
 #
-#   ./scripts/setup.sh
+#   ./scripts/setup.sh            set everything up and install on the attached phone
+#   ./scripts/setup.sh --check    say what is missing and change nothing
 #
 # Written for someone who has never seen this repository, on a Mac that has never built it, with
 # their own Apple ID and their own phone. Everything that can be derived from the machine is
@@ -37,6 +38,12 @@ cd "$ROOT"
 
 RC="$ROOT/.kartrc"
 STEP=0
+
+# `--check` answers "will this work on my machine" without spending the ten minutes that finding
+# out the slow way costs. It reads the machine and reports; it installs nothing, writes nothing,
+# and builds nothing.
+CHECK=0
+if [ "${1:-}" = "--check" ]; then CHECK=1; shift; fi
 
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
 step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/8] %s\033[0m\n' "$STEP" "$*"; }
@@ -164,7 +171,11 @@ fi
 # ---------------------------------------------------------------------------------------------
 step "Installing dependencies"
 
-if [ ! -d node_modules ]; then
+if [ "$CHECK" = 1 ]; then
+  [ -d node_modules ]        && ok "app dependencies present"     || warn "app dependencies not installed yet"
+  [ -d server/node_modules ] && ok "service dependencies present" || warn "service dependencies not installed yet"
+  [ -d ios/Pods ]            && ok "pods present"                 || warn "pods not installed yet"
+elif [ ! -d node_modules ]; then
   ok "npm install, in the app. First time takes a couple of minutes."
   npm install --silent || fail "npm install failed in the app. The output above says why."
 else
@@ -216,12 +227,14 @@ fi
 # EXPO_PUBLIC_ is the only prefix Expo inlines into the client bundle, which is exactly why
 # nothing secret goes in this file. It holds a hostname and nothing else.
 if [ -n "$API_URL" ]; then
-  if [ -f .env ] && grep -q '^EXPO_PUBLIC_KART_API_URL=' .env; then
+  if [ "$CHECK" = 1 ]; then
+    ok "would write EXPO_PUBLIC_KART_API_URL=$API_URL to .env"
+  elif [ -f .env ] && grep -q '^EXPO_PUBLIC_KART_API_URL=' .env; then
     sed -i '' "s|^EXPO_PUBLIC_KART_API_URL=.*|EXPO_PUBLIC_KART_API_URL=$API_URL|" .env
   else
     printf 'EXPO_PUBLIC_KART_API_URL=%s\n' "$API_URL" >> .env
   fi
-  ok "written to .env"
+  [ "$CHECK" = 1 ] || ok "written to .env"
 fi
 
 # ---------------------------------------------------------------------------------------------
@@ -235,7 +248,11 @@ for port in 4310 4330; do
   fi
 done
 
-if [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.local; then
+if [ "$CHECK" = 1 ]; then
+  grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
+    && ok "OpenAI key configured" \
+    || warn "no OpenAI key yet. The app runs and names nothing until there is one."
+elif [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.local; then
   cat <<'MSG'
 
       The recognition service needs an OpenAI API key. Without one the app still installs,
@@ -269,6 +286,9 @@ fi
 # ---------------------------------------------------------------------------------------------
 step "Remembering this machine's answers"
 
+if [ "$CHECK" = 1 ]; then
+  ok "would write $RC with the two values above"
+else
 cat > "$RC" <<RC_EOF
 # Written by scripts/setup.sh. Git ignored: this names an Apple team and is specific to this Mac.
 # Delete it to have setup work everything out again from scratch.
@@ -276,11 +296,14 @@ KART_TEAM_ID=$KART_TEAM_ID
 KART_BUNDLE_ID=$KART_BUNDLE_ID
 RC_EOF
 ok "$RC"
+fi
 
 # ---------------------------------------------------------------------------------------------
 step "Checking the tree is sound before building it"
 
-if npm run --silent typecheck >/dev/null 2>&1; then
+if [ "$CHECK" = 1 ]; then
+  ok "skipped in --check"
+elif npm run --silent typecheck >/dev/null 2>&1; then
   ok "typecheck clean"
 else
   warn "typecheck failed. Building anyway; run \`npm run typecheck\` to see it."
@@ -307,6 +330,12 @@ if ! xcrun xctrace list devices 2>/dev/null \
       ./scripts/install-on-device.sh
 
 MSG
+  exit 0
+fi
+
+if [ "$CHECK" = 1 ]; then
+  ok "a phone is attached and ready to be built for"
+  printf '\n\033[1mNothing is missing. Run ./scripts/setup.sh to build and install.\033[0m\n\n'
   exit 0
 fi
 
