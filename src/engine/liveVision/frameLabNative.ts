@@ -96,6 +96,78 @@ export interface WorkletBoundaryProbeResult {
  * class of error the worklet-boundary defect produced. Reaching that specific failure, rather
  * than the generic one, is what "the boundary itself is healthy" looks like without a camera.
  */
+export interface RequestPropagationProbeResult {
+  /** What the worklet read back after the JS thread wrote a new request. */
+  sawWantKeyframe: boolean;
+  /** The blur floor the worklet read back, or null if the field never arrived. */
+  sawMinSharpness: number | null;
+  /** True when the worklet observed the JS thread's write. This is the whole question. */
+  propagated: boolean;
+  error: string | null;
+}
+
+/**
+ * Proves that a request written on the JS thread is visible to a worklet runtime.
+ *
+ * This is the regression probe for the defect that stopped this app ever uploading a frame from a
+ * phone. `scan.tsx` held the next scan request in a `useRef`, and the frame processor worklet
+ * captured that object once, when the worklet was created. Every later write from `handleScan`
+ * landed on the JS thread's copy, which the worklet could not see, so the worklet read the initial
+ * `wantKeyframe: false` on every frame forever. Nothing errored: the gate simply never fired, and
+ * that is indistinguishable from a user who cannot hold the phone still.
+ *
+ * The measurement that exposed it was `minSharpness`. JavaScript computed 64.5 and the native side
+ * reported having been handed 12.0, the fallback for an absent field, and the only request in the
+ * app lacking that field is the initial one.
+ *
+ * The order below is the point, and it is what `probeWorkletBoundary` cannot do: the shared value
+ * and the runtime are both created *first*, and the write happens *after*, so a mechanism that
+ * only copies at creation time fails here exactly as it failed on device. Reading it back inside a
+ * real worklet is then a direct test of the fix.
+ */
+export async function probeRequestPropagation(): Promise<RequestPropagationProbeResult> {
+  const shared = Worklets.createSharedValue<ScanRequest>({
+    wantKeyframe: false,
+    cropTrackIds: [],
+  });
+  const context = Worklets.createContext('KartRequestPropagation');
+
+  // Warm the runtime before the write, so the shared value has already been shared into it. A
+  // probe that wrote first would let a copy-at-share-time mechanism pass by accident.
+  await context.runAsync(() => {
+    'worklet';
+    return shared.value.wantKeyframe;
+  });
+
+  // The write `handleScan` performs on the JS thread, with the same shape and a floor that cannot
+  // be confused with `MIN_KEYFRAME_SHARPNESS`.
+  shared.value = { wantKeyframe: true, cropTrackIds: [], minSharpness: 64.5 };
+
+  try {
+    const seen = await context.runAsync(() => {
+      'worklet';
+      const request = shared.value;
+      return {
+        wantKeyframe: request.wantKeyframe,
+        minSharpness: request.minSharpness ?? null,
+      };
+    });
+    return {
+      sawWantKeyframe: seen.wantKeyframe,
+      sawMinSharpness: seen.minSharpness,
+      propagated: seen.wantKeyframe === true && seen.minSharpness === 64.5,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      sawWantKeyframe: false,
+      sawMinSharpness: null,
+      propagated: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export async function probeWorkletBoundary(): Promise<WorkletBoundaryProbeResult> {
   const context = Worklets.createContext('KartFrameLabProbe');
 

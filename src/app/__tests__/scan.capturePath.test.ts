@@ -98,6 +98,6 @@ describe('scan.tsx census wiring', () => {
     // scan.tsx has to get right is which tracks it hands over. Passing `result.tracks` here is
     // the same defect wearing a different shape, and still typechecks.
     expect(source).toMatch(/publishedScanState\(session, current,/);
-    expect(source).toMatch(/nextScanRequest\(session, current,/);
+    expect(source).toMatch(/nextScanRequest\(\s*session,\s*current,/);
   });
 });

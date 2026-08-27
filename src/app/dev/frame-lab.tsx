@@ -19,6 +19,7 @@ import { requestCensus, requestIdentify } from '../../engine/liveVision/recognit
 import { buildScanCartArgs, isScanCartPluginAvailable, toFrameScan } from '../../engine/liveVision/frameProcessor';
 import {
   isFrameLabNativeAvailable,
+  probeRequestPropagation,
   probeWorkletBoundary,
   scanBundledTestImage,
   type WorkletBoundaryProbeResult,
@@ -132,6 +133,7 @@ export default function FrameLabScreen() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [probe, setProbe] = useState<WorkletBoundaryProbeResult | null>(null);
   const [probing, setProbing] = useState(false);
+  const [propagation, setPropagation] = useState<string | null>(null);
 
   const runTokenRef = useRef(0);
   // `occluded` and `coverage` were a hardcoded `false` and a setter-less `useState` here, which
@@ -196,7 +198,10 @@ export default function FrameLabScreen() {
         const session = sessionRef.current;
         if (session === null) return;
 
-        const args = buildScanCartArgs(nextRequest);
+        // Pinned before the await. `nextRequest` is reassigned further down this same
+        // iteration, and what the resulting scan has to record is the request this call sent.
+        const sent = nextRequest;
+        const args = buildScanCartArgs(sent);
         const raw = await scanBundledTestImage(path, args);
         // Always the real native reply. In "replay" mode only `instances` (the one piece the
         // Simulator cannot produce; see the module doc above) is swapped for real, previously
@@ -206,8 +211,8 @@ export default function FrameLabScreen() {
         // fires, and no census is attempted, so the failure it exists to show could never happen.
         const scan: FrameScan =
           runMode === 'replay' || runMode === 'offline' || runMode === 'server'
-            ? { ...toFrameScan(raw), instances: CAPTURED_FRAME_LAB_INSTANCES }
-            : toFrameScan(raw);
+            ? { ...toFrameScan(raw, sent.wantKeyframe), instances: CAPTURED_FRAME_LAB_INSTANCES }
+            : toFrameScan(raw, sent.wantKeyframe);
         setLastScan(scan);
 
         const now = Date.now();
@@ -223,7 +228,9 @@ export default function FrameLabScreen() {
         let current = result.tracks;
 
         const refreshNextRequest = () => {
-          nextRequest = nextScanRequest(session, current, result.keyframe.fire);
+          nextRequest = nextScanRequest(
+            session, current, result.keyframe.fire, result.keyframe.minSharpness,
+          );
         };
         refreshNextRequest();
 
@@ -315,6 +322,20 @@ export default function FrameLabScreen() {
     } finally {
       setProbing(false);
     }
+  }, []);
+
+  /**
+   * Runs the regression probe for the worklet-boundary defect that stopped this app ever
+   * uploading a frame from a phone. Reported as one line so it can be read off a screenshot.
+   */
+  const runPropagationProbe = useCallback(async () => {
+    setPropagation('running…');
+    const r = await probeRequestPropagation();
+    setPropagation(
+      r.error !== null
+        ? `error: ${r.error}`
+        : `${r.propagated ? 'PROPAGATED' : 'STALE'} want=${r.sawWantKeyframe} min=${r.sawMinSharpness ?? 'absent'}`,
+    );
   }, []);
 
   const guide = guideVisible({ occluded, coverage });
@@ -433,6 +454,12 @@ export default function FrameLabScreen() {
             ) : null}
             <View style={styles.buttonRow}>
               <Button label={probing ? 'Probing…' : 'Probe worklet boundary'} onPress={() => void runProbe()} />
+              <StatusLine
+                label="request propagation"
+                value={propagation ?? 'not run'}
+                good={propagation === null ? null : propagation.startsWith('PROPAGATED')}
+              />
+              <Button label="Probe request propagation" onPress={() => void runPropagationProbe()} />
             </View>
           </View>
         </GlassSurface>

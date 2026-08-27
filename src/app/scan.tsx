@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
 import { Camera, runAtTargetFps, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
 import { Worklets } from 'react-native-worklets-core';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +27,7 @@ import { ItemHighlights } from '../components/ItemHighlights';
 import { color, motion, radius, space } from '../design/tokens';
 import { Caption, Sub } from '../design/type';
 import { createLookupCache, lookupBarcode } from '../engine/liveVision/barcodeLookup';
-import { DETECT_TARGET_FPS, MIN_KEYFRAME_SHARPNESS } from '../engine/liveVision/config';
+import { DETECT_TARGET_FPS, MAX_KEYFRAME_MOTION, MIN_KEYFRAME_SHARPNESS } from '../engine/liveVision/config';
 import { createCoverageState, observeYaw, type CoverageState } from '../engine/liveVision/coverage';
 import { scanCart } from '../engine/liveVision/frameProcessor';
 import { bagLines } from '../engine/liveVision/fusion';
@@ -132,7 +132,30 @@ export default function ScanScreen() {
   // either function from inside the frame processor would throw on every single frame on a
   // real device. So the decision is made here, on the JS thread, and the worklet only ever
   // reads the plain-data result below.
-  const nextRequestRef = useRef<ScanRequest>({ wantKeyframe: false, cropTrackIds: [] });
+  /**
+   * What the next frame should be asked for, in a box the frame processor can actually read.
+   *
+   * This was a `useRef`, and that is why this app had never once uploaded a frame from a phone.
+   * A React ref lives on the JS thread. The frame processor is a worklet on its own runtime, and
+   * it captured that object when the worklet was created, so every write from `handleScan` landed
+   * somewhere the worklet could not see. The worklet read the *initial* value on every frame for
+   * the life of the session: `wantKeyframe: false`, forever.
+   *
+   * It was invisible because the failure is silent and looks like a user problem. The gate would
+   * fire correctly on the JavaScript side, the native side would be told nothing was wanted, no
+   * keyframe would be encoded, no request would be sent, and no error would exist anywhere. The
+   * measurement that exposed it: JavaScript computed a blur floor of 64.5 while native reported
+   * having received 12.0, which is the fallback for an absent field, and the only request lacking
+   * that field is the one this line used to construct.
+   *
+   * `Worklets.createSharedValue` is the supported way to hand mutable state across that boundary;
+   * writes on the JS thread are visible to the worklet runtime. Built through `useMemo` so it is
+   * created exactly once, like the session and the frame processor that reads it.
+   */
+  const nextRequest = useMemo(
+    () => Worklets.createSharedValue<ScanRequest>({ wantKeyframe: false, cropTrackIds: [] }),
+    [],
+  );
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [identities, setIdentities] = useState<Record<string, Identity>>({});
@@ -158,13 +181,41 @@ export default function ScanScreen() {
    * eighty-fifth).
    */
   const detectorErrorsRef = useRef(0);
+
+  /**
+   * Development only: the gate's own numbers, drawn over the camera.
+   *
+   * This exists because the Metro log could not be relied on. Three separate sessions of this
+   * diagnostic reached the phone and produced no output on this machine, while the app itself was
+   * plainly running, so every question about why a scan sent nothing cost another round trip and
+   * still came back empty. On screen, one screenshot answers all of them at once.
+   */
+  const [gateDebug, setGateDebug] = useState<string | null>(null);
+  const debugTickRef = useRef(0);
+  /**
+   * Cumulative gate outcomes. A single frame's reason cannot distinguish "the gate never fires"
+   * from "the gate fires and native then refuses the following frame", and those have completely
+   * different causes. Counting both separates them at a glance.
+   */
+  const gateStatsRef = useRef({ fired: 0, encoded: 0, frames: 0 });
   const [permissionAsked, setPermissionAsked] = useState(false);
   // Whether the last-published occlusion verdict was true, read (not set) outside render so
   // `publish` can detect the false-to-true edge that starts a new episode. A ref, not state:
   // nothing needs to re-render when this changes on its own.
   const wasOccludedRef = useRef(false);
-  /** Development only: the device's own sharpness readings, for MIN_KEYFRAME_SHARPNESS. */
-  const sharpnessSeenRef = useRef<number[]>([]);
+  /**
+   * Development only: one sample per processed frame carrying every input the keyframe gate
+   * reads, not just sharpness.
+   *
+   * Sharpness alone could not explain a session that sent nothing: it reported a median of 2
+   * against a threshold of 12 but a max of 487, so some frames plainly cleared the bar and a
+   * request should still have gone out. Motion was never recorded at all, and `instances` is what
+   * decides the gate's first condition, so both are sampled here too. `keyframe` closes the loop
+   * by saying whether the native half agreed on the same frame the JavaScript half asked about.
+   */
+  const sharpnessSeenRef = useRef<
+    { sharpness: number; motion: number; instances: number; encoded: boolean }[]
+  >([]);
 
   const guide = guideVisible({ occluded, coverage });
   // The gyroscope only runs while the guide is on screen. Leaving it subscribed for a whole
@@ -227,13 +278,41 @@ export default function ScanScreen() {
         // simulator cannot give: it has no camera device, so this block never runs there.
         if (__DEV__) {
           const seen = sharpnessSeenRef.current;
-          seen.push(scan.sharpness);
+          seen.push({
+            sharpness: scan.sharpness,
+            motion: scan.motion,
+            instances: scan.instances.length,
+            encoded: scan.keyframe !== null,
+          });
           if (seen.length % 30 === 0) {
-            const sorted = [...seen].sort((a, b) => a - b);
+            // Counts, not just percentiles. A percentile says how bad the typical frame is; the
+            // pass counts say whether ANY frame cleared each condition, which is the question when
+            // a whole session sent nothing. `both` is the one that matters: sharpness and motion
+            // have to hold on the same frame, and a session can pass each separately and never
+            // once pass them together.
+            const at = (xs: number[], q: number) =>
+              xs[Math.min(xs.length - 1, Math.floor(xs.length * q))];
+            const sharp = seen.map((f) => f.sharpness).sort((a, b) => a - b);
+            const motion = seen.map((f) => f.motion).sort((a, b) => a - b);
+            const passSharp = seen.filter((f) => f.sharpness >= MIN_KEYFRAME_SHARPNESS).length;
+            const passMotion = seen.filter((f) => f.motion <= MAX_KEYFRAME_MOTION).length;
+            const passBoth = seen.filter(
+              (f) => f.sharpness >= MIN_KEYFRAME_SHARPNESS && f.motion <= MAX_KEYFRAME_MOTION,
+            ).length;
             console.log(
-              `[kart] device sharpness over ${seen.length} frames: ` +
-              `min ${sorted[0].toFixed(0)}, median ${sorted[Math.floor(sorted.length / 2)].toFixed(0)}, ` +
-              `max ${sorted[sorted.length - 1].toFixed(0)} (MIN_KEYFRAME_SHARPNESS is ${MIN_KEYFRAME_SHARPNESS})`,
+              `[kart] ${seen.length} frames | ` +
+              `sharp p50 ${at(sharp, 0.5).toFixed(0)} p90 ${at(sharp, 0.9).toFixed(0)} ` +
+              `max ${sharp[sharp.length - 1].toFixed(0)} need>=${MIN_KEYFRAME_SHARPNESS} pass ${passSharp} | ` +
+              `motion min ${motion[0].toFixed(3)} p50 ${at(motion, 0.5).toFixed(3)} ` +
+              `need<=${MAX_KEYFRAME_MOTION} pass ${passMotion} | ` +
+              `both ${passBoth} | ` +
+              `instances>0 ${seen.filter((f) => f.instances > 0).length} | ` +
+              `encoded ${seen.filter((f) => f.encoded).length} | ` +
+              // Decisive for the rotation bug. The phone is held portrait, so a correct
+              // orientation handoff swaps dimensions and this reads tall (1080x1920). Reading
+              // wide (1920x1080) means Vision was handed .up/.down where .left/.right was
+              // needed, which is exactly the 180-degree error the overlay shows.
+              `frame ${scan.width}x${scan.height} orientation ${scan.orientation ?? 'unknown'}`,
             );
           }
         }
@@ -251,8 +330,37 @@ export default function ScanScreen() {
         pipelineStateRef.current = result.state;
         setTracks(result.tracks);
 
+        if (__DEV__) {
+          // Every tenth frame, not every frame: this drives React state, and re-rendering the
+          // camera screen at the detector's full rate to update a debug label would cost more
+          // than the thing being measured.
+          const stats = gateStatsRef.current;
+          stats.frames += 1;
+          if (result.keyframe.fire) stats.fired += 1;
+          if (scan.keyframe !== null) stats.encoded += 1;
+
+          debugTickRef.current += 1;
+          if (debugTickRef.current % 10 === 0) {
+            const st = session.state;
+            setGateDebug(
+              `gate ${result.keyframe.reason}` +
+              `  sharp ${scan.sharpness.toFixed(1)}/${result.keyframe.minSharpness.toFixed(1)}` +
+              `  motion ${scan.motion.toFixed(3)}/${MAX_KEYFRAME_MOTION}` +
+              `\ninst ${scan.instances.length}  tracks ${result.tracks.length}` +
+              `  conf ${result.tracks.filter((t) => t.state === 'confirmed').length}` +
+              `  key ${scan.keyframe !== null ? 'yes' : 'no'}` +
+              `\nfired ${stats.fired}/${stats.frames}  enc ${stats.encoded}` +
+              `  native min ${scan.gateMinSharpness?.toFixed(1) ?? '?'}` +
+              `\ncensus ${st.censusCalls} fail ${st.censusFailures}` +
+              `  ident ${st.identifyCalls}` +
+              `\n${scan.width}x${scan.height} ${scan.orientation ?? '?'}` +
+              `  err ${scan.error ?? 'none'}`,
+            );
+          }
+        }
+
         // Both of these read `session.state` and must run on the JS thread, never inside the
-        // frame processor worklet (see the comment on `nextRequestRef`). Refreshed here and
+        // frame processor worklet (see the comment on `nextRequest`). Refreshed here and
         // again after each async result lands in `publish`, so the request the next frame reads
         // is never more than one detection cycle stale.
         //
@@ -267,7 +375,15 @@ export default function ScanScreen() {
         // compute the amber state from one track instead of eight.
         let current = result.tracks;
         const refreshNextRequest = () => {
-          nextRequestRef.current = nextScanRequest(session, current, result.keyframe.fire);
+          // `nextRequest` is an `ISharedValue`, not React state. Assigning `.value` is the
+          // supported and only way to publish across the worklet boundary (see the comment where
+          // it is created); `react-hooks/immutability` sees a property write inside a callback
+          // and cannot tell the two apart. Writing to a ref here instead, which is what the rule
+          // would accept, is the exact defect this line was written to fix.
+          // eslint-disable-next-line react-hooks/immutability
+          nextRequest.value = nextScanRequest(
+            session, current, result.keyframe.fire, result.keyframe.minSharpness,
+          );
         };
         refreshNextRequest();
 
@@ -348,15 +464,19 @@ export default function ScanScreen() {
       // because the tracker predicts between detections.
       runAtTargetFps(DETECT_TARGET_FPS, () => {
         'worklet';
-        // `nextRequestRef.current` is plain data (booleans, strings, numbers) computed on the
+        // `nextRequest.value` is plain data (booleans, strings, numbers) computed on the
         // JS thread in `handleScan`. Do not replace this with a call to `wantsKeyframe` or
         // `tracksNeedingThumbnail`: neither carries a 'worklet' directive, and calling a
         // non-worklet function from inside a frame processor throws on every frame on device.
-        // See the comment on `nextRequestRef` above for the evidence.
-        handleScan(scanCart(frame, nextRequestRef.current));
+        // See the comment on `nextRequest` above for the evidence.
+        const scan = scanCart(frame, nextRequest.value);
+        // Assigned rather than spread: this runs in a worklet, and a plain property write is the
+        // cheapest thing that crosses that boundary safely.
+        scan.orientation = frame.orientation;
+        handleScan(scan);
       });
     },
-    [handleScan],
+    [handleScan, nextRequest],
   );
 
   useEffect(() => {
@@ -433,6 +553,11 @@ export default function ScanScreen() {
           orchestrator.ts can stop updating for the rest of the session once the census budget is
           spent (I3 in the branch review) and would otherwise have no way to clear. */}
       <CoachNotice kind={coachKind({ amberPersists, occluded: guide, unavailable })} topInset={insets.top} />
+      {__DEV__ && gateDebug !== null ? (
+        <View style={[styles.gateDebug, { top: insets.top + 64 }]} pointerEvents="none">
+          <Text style={styles.gateDebugText}>{gateDebug}</Text>
+        </View>
+      ) : null}
       <CaptureGuide coverage={coverage} visible={guide} />
 
       <View
@@ -457,6 +582,21 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Development only, and deliberately plain: this is a readout, not part of the product's look.
+  gateDebug: {
+    position: 'absolute',
+    left: 12,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  gateDebugText: {
+    color: '#FFFFFF',
+    fontFamily: 'Menlo',
+    fontSize: 11,
+    lineHeight: 15,
+  },
   screen: { flex: 1, backgroundColor: color.feed },
   topBar: {
     position: 'absolute',

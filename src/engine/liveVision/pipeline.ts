@@ -1,5 +1,5 @@
 import { createTrackerState, updateTracks } from './byteTrack';
-import { createKeyframeState, evaluateKeyframe } from './keyframe';
+import { createKeyframeState, evaluateKeyframe, settleKeyframeRequest } from './keyframe';
 import type {
   BarcodeHit, Box, ByteTrackConfig, FrameScan, KeyframeConfig, KeyframeReason,
   PipelineState, Track,
@@ -106,18 +106,34 @@ export function processFrame(
   now: number,
   keyframeOverrides: Partial<KeyframeConfig> = {},
   trackerOverrides: Partial<ByteTrackConfig> = {},
-): { state: PipelineState; tracks: Track[]; keyframe: { fire: boolean; reason: KeyframeReason } } {
+): {
+  state: PipelineState;
+  tracks: Track[];
+  keyframe: { fire: boolean; reason: KeyframeReason; minSharpness: number };
+} {
   const tracker = updateTracks(state.tracker, scan.instances, now, trackerOverrides);
   const tracks = attachBarcodes(tracker.tracks, scan.barcodes);
 
   // The gate counts confirmed tracks, not raw detections. A frame whose only content is
   // unconfirmed noise is not worth an upload.
   const confirmed = tracks.filter((track) => track.state === 'confirmed').length;
+
+  // Settle whatever the previous frame decided, before this frame's gate reads the clock, so a
+  // keyframe that just arrived reads `too-soon` against its own delivery instead of immediately
+  // asking for another. `wantedKeyframe` is what that frame's request actually asked native for,
+  // and it is the difference between a request native refused (free, ask again at once) and a
+  // decision the session never sent (still a spent window). See `settleKeyframeRequest`.
+  const keyframeState = settleKeyframeRequest(
+    state.keyframe,
+    { requested: scan.wantedKeyframe, delivered: scan.keyframe !== null },
+    now,
+    confirmed,
+  );
   // `keyframeOverrides` exists so the gate's thresholds can be measured rather than asserted.
   // Nothing in the app passes it; `server/eval/pipeline/video-states.ts` sweeps the motion
   // ceiling with it, which is how the shipped value was found to reject 25 of 26 frames of a
   // real handheld scan.
-  const keyframe = evaluateKeyframe(state.keyframe, {
+  const keyframe = evaluateKeyframe(keyframeState, {
     sharpness: scan.sharpness,
     motion: scan.motion,
     trackCount: confirmed,
@@ -127,6 +143,10 @@ export function processFrame(
   return {
     state: { tracker: { ...tracker, tracks }, keyframe: keyframe.state },
     tracks,
-    keyframe: { fire: keyframe.fire, reason: keyframe.reason },
+    // `minSharpness` rides along because the native half of the gate re-tests the next frame and
+    // has to apply the same floor this one did. See `ScanRequest.minSharpness`.
+    keyframe: {
+      fire: keyframe.fire, reason: keyframe.reason, minSharpness: keyframe.minSharpness,
+    },
   };
 }

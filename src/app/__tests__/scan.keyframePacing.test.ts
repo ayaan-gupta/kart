@@ -32,7 +32,10 @@ describe('scan.tsx keyframe pacing wiring', () => {
     // The scan.tsx half. `scanStep.ts` threading its third parameter through is worth nothing if
     // the caller passes `true`, which would typecheck and silently unpace every keyframe.
     const source = fs.readFileSync(SCAN_PATH, 'utf8');
-    expect(source).toMatch(/nextScanRequest\(session, current, result\.keyframe\.fire\)/);
+    // `\s*` rather than literal spaces: the call is now wrapped across lines to carry the
+    // adaptive blur floor as well, and this test is about which verdict is passed, not about
+    // where the formatter chose to break the line.
+    expect(source).toMatch(/nextScanRequest\(\s*session,\s*current,\s*result\.keyframe\.fire\s*,/);
   });
 
   it('passes the pipeline keyframe verdict as wantsKeyframe\'s second argument', () => {

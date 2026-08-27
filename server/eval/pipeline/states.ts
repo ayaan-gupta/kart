@@ -70,7 +70,8 @@ function run(frame: Frame) {
       width: frame.width,
       height: frame.height,
       error: null,
-      keyframe: null,
+      wantedKeyframe: false,
+    keyframe: null,
       crops: [],
     };
     const stepped = processFrame(pipeline, scan, tick * FRAME_MS);

@@ -16,6 +16,7 @@ function scan(overrides: Partial<FrameScan> = {}): FrameScan {
     width: 1080,
     height: 1920,
     error: null,
+    wantedKeyframe: false,
     keyframe: null,
     crops: [],
     ...overrides,
@@ -51,9 +52,15 @@ describe('processFrame', () => {
     // Confirmation needs three good hits first; only the last frame needs to be the blurry one,
     // so the gate holds for the right reason ('blurry') rather than the wrong one
     // ('nothing-to-see', which would pass even if the sharpness check were never reached).
-    let result = processFrame(createPipelineState(), scan(), 3000);
-    result = processFrame(result.state, scan(), 3333);
-    result = processFrame(result.state, scan({ sharpness: 5 }), 3666);
+    //
+    // The floor is passed explicitly because it is otherwise adaptive, and three frames is too
+    // short a history for it to have decided anything. What this test is about is that a blurry
+    // frame holds the gate and still updates the tracker, not how the floor is chosen; the floor
+    // itself is covered in `keyframe.test.ts`.
+    const floor = { minSharpness: 12 };
+    let result = processFrame(createPipelineState(), scan(), 3000, floor);
+    result = processFrame(result.state, scan(), 3333, floor);
+    result = processFrame(result.state, scan({ sharpness: 5 }), 3666, floor);
 
     expect(result.keyframe.fire).toBe(false);
     expect(result.keyframe.reason).toBe('blurry');
@@ -268,9 +275,15 @@ describe('processFrame', () => {
   });
 
   it('carries tracker and keyframe state forward', () => {
-    // Build confirmation, let the gate fire once, then confirm the next frame is blocked by
-    // the minimum interval rather than by having forgotten it already fired. This is the thing
-    // the test is named for: state threaded from one call into the next.
+    // Build confirmation, let the gate fire once, deliver the keyframe it asked for, then confirm
+    // the next frame is blocked by the minimum interval rather than by having forgotten it
+    // already fired. This is the thing the test is named for: state threaded from one call into
+    // the next.
+    //
+    // The delivery on the fourth frame is not decoration. The pacing clock starts when a keyframe
+    // comes back, not when the gate decides to ask for one, so a sequence that never delivers one
+    // never starts the interval either. That is the point of the change: a frame native refuses
+    // no longer costs a capture window.
     let result = processFrame(createPipelineState(), scan(), 3000);
     result = processFrame(result.state, scan(), 3333);
     result = processFrame(result.state, scan(), 3666);
@@ -278,9 +291,85 @@ describe('processFrame', () => {
     expect(result.tracks[0].hits).toBe(3);
     expect(result.keyframe.fire).toBe(true);
 
-    result = processFrame(result.state, scan(), 3966);
+    // Native honoured the request made on the previous frame.
+    result = processFrame(result.state, scan({ keyframe: 'aGVsbG8=' }), 3966);
     expect(result.tracks[0].hits).toBe(4);
     expect(result.keyframe.fire).toBe(false);
     expect(result.keyframe.reason).toBe('too-soon');
+
+    // And the interval it started is measured from the delivery, not from the decision.
+    result = processFrame(result.state, scan(), 5900);
+    expect(result.keyframe.reason).toBe('too-soon');
+    result = processFrame(result.state, scan(), 5967);
+    expect(result.keyframe.fire).toBe(true);
+  });
+
+  it('does not start the pacing interval on a keyframe that never arrived', () => {
+    // The regression this whole change exists for. The gate asks on frame N and native re-tests
+    // frame N+1 against the same blur floor; roughly 40 per cent of frames clear that floor, so
+    // most requests are correctly refused. Measured over 1440 frames of `server/eval/replay`
+    // before the fix: 22 decisions, 4 uploads, and one census per twelve-second clip against a
+    // budget of eight, because every refusal had already spent two seconds.
+    let result = processFrame(createPipelineState(), scan(), 3000);
+    result = processFrame(result.state, scan(), 3333);
+    result = processFrame(result.state, scan(), 3666);
+    expect(result.keyframe.fire).toBe(true);
+
+    // A request that went out and came back empty: `wantedKeyframe` says native was asked,
+    // `keyframe: null` says it looked at the next frame and refused. Both halves are needed to
+    // mean "refused" - a frame that asked for nothing also comes back with no keyframe, and that
+    // is a spent window rather than a free one.
+    result = processFrame(result.state, scan({ wantedKeyframe: true }), 3966);
+    expect(result.keyframe.fire).toBe(true);
+    expect(result.keyframe.reason).toBe('fire');
+  });
+});
+
+/**
+ * What the pacing interval is actually paying for.
+ *
+ * The gate is a handshake with a one-frame lag: JavaScript decides on frame N, native re-tests
+ * frame N+1 against the same blur floor, and only then is a keyframe encoded. So a decision is
+ * not a delivery, and `minIntervalMs` must be charged for the second rather than the first -
+ * measured over 1440 frames of `server/eval/replay`, charging the decision turned 22 of them
+ * into 4 uploads and one census per twelve-second clip against a budget of eight.
+ *
+ * The other half of that rule, and the one these two tests exist for: a decision the session
+ * never turned into a request is still a spent window. `RecognitionSession.wantsKeyframe`
+ * returns false for the whole duration of a census, and for the rest of the session once the
+ * budget is gone, so nothing reaches native and nothing can ever come back. Keying the clock on
+ * delivery alone leaves nothing to advance it, and the gate then fires on every frame for as
+ * long as the session keeps saying no. Free in itself, but it means `minIntervalMs` stops
+ * spacing censuses altogether: the next one starts the instant the previous one lands.
+ */
+describe('the pacing clock charges for a capture window actually spent', () => {
+  it('retries on the very next frame when native refuses a keyframe it asked for', () => {
+    let state = createPipelineState();
+    for (let i = 0; i < 3; i += 1) state = processFrame(state, scan(), 3000 + i * 333).state;
+
+    // Asked for on the frame before, and declined: `keyframe` came back null even though the
+    // request went out. Nothing was encoded, so no window was spent and the gate may ask again
+    // immediately rather than waiting out another two seconds for a frame it never got.
+    const refused = processFrame(state, scan({ wantedKeyframe: true }), 4000);
+    expect(refused.keyframe.fire).toBe(true);
+
+    const again = processFrame(refused.state, scan({ wantedKeyframe: true }), 4033);
+    expect(again.keyframe.fire).toBe(true);
+  });
+
+  it('still paces the gate while the session is declining to ask at all', () => {
+    let state = createPipelineState();
+    let fired = 0;
+    // Three seconds at 30fps, with every frame reporting that no keyframe was requested of
+    // native, which is exactly what a census in flight looks like from here.
+    for (let i = 0; i < 90; i += 1) {
+      const result = processFrame(state, scan({ wantedKeyframe: false }), 3000 + i * 33);
+      state = result.state;
+      if (result.keyframe.fire) fired += 1;
+    }
+
+    // One once the item confirms, one when the two-second interval comes round, and nothing
+    // else. Unpaced, this is 80-odd.
+    expect(fired).toBeLessThanOrEqual(2);
   });
 });

@@ -96,9 +96,11 @@ export function nextScanRequest(
   session: RecognitionSession,
   tracks: Track[],
   keyframeFire: boolean,
+  minSharpness?: number,
 ): ScanRequest {
   return {
     wantKeyframe: session.wantsKeyframe(tracks, keyframeFire),
     cropTrackIds: tracksNeedingThumbnail(session.state, tracks),
+    minSharpness,
   };
 }

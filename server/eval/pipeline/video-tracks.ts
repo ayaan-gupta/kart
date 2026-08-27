@@ -73,6 +73,7 @@ for (const frame of frames) {
     width: frame.width,
     height: frame.height,
     error: null,
+    wantedKeyframe: false,
     keyframe: null,
   };
   const stepped = processFrame(pipeline, scan, frame.t * 1000, {}, TRACKER_OVERRIDES);

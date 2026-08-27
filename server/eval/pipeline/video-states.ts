@@ -125,7 +125,8 @@ function runSession(frames: Frame[], label: string) {
       width: frame.width,
       height: frame.height,
       error: null,
-      keyframe: null,
+      wantedKeyframe: false,
+    keyframe: null,
       crops: [],
     };
     const stepped = processFrame(pipeline, scan, frame.t * 1000, KEYFRAME_OVERRIDES, TRACKER_OVERRIDES);
