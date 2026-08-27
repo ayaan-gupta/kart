@@ -1,0 +1,64 @@
+{
+ "clip": "server/eval/corpus/replay/ov-a098628b-048.mov",
+ "api": "http://127.0.0.1:4310",
+ "frames": 360,
+ "nativeErrors": 0,
+ "meanInstancesPerFrame": 0.89,
+ "keyframesRequested": 6,
+ "keyframesEncoded": 1,
+ "gateReasons": {
+  "too-soon": 171,
+  "blurry": 143,
+  "nothing-to-see": 40,
+  "fire": 6
+ },
+ "byRegime": {
+  "sweep": {
+   "frames": 73,
+   "fired": 1,
+   "medianSharpness": 16.6
+  },
+  "settle": {
+   "frames": 36,
+   "fired": 0,
+   "medianSharpness": 108.5
+  },
+  "hold": {
+   "frames": 251,
+   "fired": 5,
+   "medianSharpness": 113.5
+  }
+ },
+ "gateDisagreements": [],
+ "censusCalls": 1,
+ "censusFailures": 0,
+ "sessionCensusFailures": 0,
+ "transportErrors": [],
+ "identifyCalls": 0,
+ "bag": [
+  {
+   "name": "Canned goods",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Bread",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Chips",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Drinks",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  }
+ ]
+}

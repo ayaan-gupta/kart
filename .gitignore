@@ -77,3 +77,11 @@ server/eval/video-states.json
 server/eval/grocer-detection.json
 server/eval/grocer-endtoend.json
 server/eval/.cache/kart/
+
+# Compiled replay driver (scripts/replay-driver), rebuilt by npm run replay
+/build/
+
+# Replay clips: derived from server/eval/corpus/carts by scripts/make-replay-clip.py,
+# 50-70 MB each. The script and the cart manifest are the committed source of truth.
+server/eval/corpus/replay/*.mov
+server/eval/corpus/replay/*.frames.json

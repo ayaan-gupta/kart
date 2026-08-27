@@ -1,0 +1,76 @@
+{
+ "clip": "server/eval/corpus/replay/ov-a1c7f353-1d8.mov",
+ "api": "http://127.0.0.1:4310",
+ "frames": 360,
+ "nativeErrors": 0,
+ "meanInstancesPerFrame": 0.99,
+ "keyframesRequested": 6,
+ "keyframesEncoded": 1,
+ "gateReasons": {
+  "blurry": 172,
+  "too-soon": 165,
+  "nothing-to-see": 17,
+  "fire": 6
+ },
+ "byRegime": {
+  "sweep": {
+   "frames": 73,
+   "fired": 1,
+   "medianSharpness": 79.8
+  },
+  "settle": {
+   "frames": 36,
+   "fired": 1,
+   "medianSharpness": 324.8
+  },
+  "hold": {
+   "frames": 251,
+   "fired": 4,
+   "medianSharpness": 339.2
+  }
+ },
+ "gateDisagreements": [],
+ "censusCalls": 1,
+ "censusFailures": 0,
+ "sessionCensusFailures": 0,
+ "transportErrors": [],
+ "identifyCalls": 0,
+ "bag": [
+  {
+   "name": "Saint Archer White Ale",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Beer bottles",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Carrots",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Chips",
+   "brand": null,
+   "size": null,
+   "qty": 4
+  },
+  {
+   "name": "Wine bottles",
+   "brand": null,
+   "size": null,
+   "qty": 4
+  },
+  {
+   "name": "Snack bars",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  }
+ ]
+}

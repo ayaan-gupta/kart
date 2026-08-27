@@ -1,0 +1,100 @@
+{
+ "clip": "server/eval/corpus/replay/ov-1fd5fc9a-747.mov",
+ "api": "http://127.0.0.1:4310",
+ "frames": 360,
+ "nativeErrors": 0,
+ "meanInstancesPerFrame": 0.45,
+ "keyframesRequested": 4,
+ "keyframesEncoded": 1,
+ "gateReasons": {
+  "nothing-to-see": 202,
+  "too-soon": 94,
+  "blurry": 60,
+  "fire": 4
+ },
+ "byRegime": {
+  "sweep": {
+   "frames": 73,
+   "fired": 1,
+   "medianSharpness": 7.3
+  },
+  "settle": {
+   "frames": 36,
+   "fired": 1,
+   "medianSharpness": 27.4
+  },
+  "hold": {
+   "frames": 251,
+   "fired": 2,
+   "medianSharpness": 34.9
+  }
+ },
+ "gateDisagreements": [],
+ "censusCalls": 1,
+ "censusFailures": 0,
+ "sessionCensusFailures": 0,
+ "transportErrors": [],
+ "identifyCalls": 0,
+ "bag": [
+  {
+   "name": "Milk",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Eggs",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Bread",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Juice",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Chips",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Canned goods",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Snacks",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Frozen vegetables",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Frozen fruits",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Frozen meals",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  }
+ ]
+}

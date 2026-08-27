@@ -1,0 +1,100 @@
+{
+ "clip": "server/eval/corpus/replay/ov-16dca705-1c1.mov",
+ "api": "http://127.0.0.1:4310",
+ "frames": 360,
+ "nativeErrors": 0,
+ "meanInstancesPerFrame": 1,
+ "keyframesRequested": 6,
+ "keyframesEncoded": 1,
+ "gateReasons": {
+  "blurry": 179,
+  "too-soon": 160,
+  "nothing-to-see": 15,
+  "fire": 6
+ },
+ "byRegime": {
+  "sweep": {
+   "frames": 73,
+   "fired": 1,
+   "medianSharpness": 61.7
+  },
+  "settle": {
+   "frames": 36,
+   "fired": 1,
+   "medianSharpness": 233.5
+  },
+  "hold": {
+   "frames": 251,
+   "fired": 4,
+   "medianSharpness": 239.1
+  }
+ },
+ "gateDisagreements": [],
+ "censusCalls": 1,
+ "censusFailures": 0,
+ "sessionCensusFailures": 0,
+ "transportErrors": [],
+ "identifyCalls": 0,
+ "bag": [
+  {
+   "name": "Celery",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Grapes",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Apples",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Onions",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Broccoli",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Bread",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Bottled water",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Condiments",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Jars",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  },
+  {
+   "name": "Bottles",
+   "brand": null,
+   "size": null,
+   "qty": 1
+  }
+ ]
+}
