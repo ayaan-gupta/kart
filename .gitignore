@@ -85,3 +85,8 @@ server/eval/.cache/kart/
 # 50-70 MB each. The script and the cart manifest are the committed source of truth.
 server/eval/corpus/replay/*.mov
 server/eval/corpus/replay/*.frames.json
+
+# This machine's Apple team and bundle identifier, written by scripts/setup.sh.
+# Every clone works one out for itself; committing one would hand everybody the same
+# App ID, which Apple allows exactly one team to register.
+/.kartrc

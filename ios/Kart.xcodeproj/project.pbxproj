@@ -434,8 +434,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9H4C3NF3SZ;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.ayaangupta.kart;
+				DEVELOPMENT_TEAM = "$(KART_TEAM_ID:default=9H4C3NF3SZ)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KART_BUNDLE_ID:default=dev.ayaangupta.kart)";
 				PRODUCT_NAME = Kart;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kart/Kart-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -469,8 +469,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 9H4C3NF3SZ;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.ayaangupta.kart;
+				DEVELOPMENT_TEAM = "$(KART_TEAM_ID:default=9H4C3NF3SZ)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(KART_BUNDLE_ID:default=dev.ayaangupta.kart)";
 				PRODUCT_NAME = Kart;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kart/Kart-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

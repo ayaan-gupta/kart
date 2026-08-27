@@ -54,6 +54,7 @@
   },
   "scripts": {
     "postinstall": "patch-package",
+    "setup": "./scripts/setup.sh",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",

@@ -59,14 +59,59 @@ key lives only in its own server environment and never reaches the app or a clie
 
 ## Getting started
 
+Clone it, plug an iPhone in with a cable, unlock the phone, and run:
+
 ```bash
-npm install
-npx expo run:ios
+./scripts/setup.sh
 ```
 
-Requires a custom dev build, not Expo Go, and a physical iOS device. The Simulator has no
-camera, so live recognition can only be verified on real hardware; everything else runs fine in
-the Simulator. Best on iOS 26, where the floating chrome uses genuine Liquid Glass.
+That is the whole thing. It works out your Apple team and gives this clone its own bundle
+identifier, installs the app and service dependencies and the pods, points the app at this
+Mac's address on your network, asks once for an OpenAI key, and builds and installs on the
+attached phone. Re-running it is safe, and is how you pick up a changed network, a different
+phone, or a re-signed build after a free Apple ID's seven days run out.
+
+It needs Xcode, not just the Command Line Tools, because the app carries its own Swift modules.
+Expo Go cannot load them, so there is no way around a real build.
+
+Four things it cannot do for you, because Apple does not allow it. The script checks for each
+one and stops with the exact thing to click rather than a build error:
+
+| | what you do | when |
+|---|---|---|
+| 1 | Install Xcode from the App Store, open it once | if only the Command Line Tools are present |
+| 2 | Xcode, Settings, Accounts, add your Apple ID, then pick your Team on the Kart target once | first clone on a Mac |
+| 3 | On the phone: Settings, Privacy & Security, Developer Mode, on, then reboot | first iPhone |
+| 4 | On the phone: Settings, General, VPN & Device Management, trust the certificate | first install |
+
+A free Apple ID is enough. It signs a build that runs for seven days, then re-run the script.
+
+Then start the recognition service, and keep the phone on the same wifi:
+
+```bash
+npm run serve --prefix server
+```
+
+Nothing above depends on this being the machine the app was written on. The one App ID that
+Apple lets exactly one team register, and the LAN address that differs on every machine, are
+both worked out per clone; `project.pbxproj` is never edited locally, so a pull never conflicts
+on it. See `docs/running-on-a-phone.md` for what each part was verified against.
+
+The Simulator has no camera, so live recognition can only be verified on real hardware;
+everything else runs fine in the Simulator. Best on iOS 26, where the floating chrome uses
+genuine Liquid Glass.
+
+### Without a phone
+
+The camera path can be replayed on the Mac, with no phone and no Simulator, against real
+Vision segmentation and the real recognition pipeline:
+
+```bash
+python3 scripts/make-replay-clip.py --all
+npm run replay -- --clip=server/eval/corpus/replay/ov-a1c7f353-1d8.mov
+```
+
+See `server/eval/replay/README.md` for what that does and does not cover.
 
 ## Project structure
 
