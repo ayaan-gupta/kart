@@ -73,8 +73,24 @@ identity signs the binary, the profile names the device, and only an account can
 
 A free-account build runs for seven days before it needs re-signing.
 
-**The app has never been run on a physical phone.** Everything up to signing is verified; the
-install is not, and nothing in this repository can substitute for the two steps above.
+**The app is now installed on a physical phone.** `./scripts/setup.sh` signed a Release build and
+`xcrun devicectl` copied it across, on 2026-08-27: `** BUILD SUCCEEDED **`, then `App installed`
+with `bundleID: dev.kart.9h4c3nf3sz`. Xcode issued a fresh provisioning profile for that
+identifier on its own through `-allowProvisioningUpdates`, so both prerequisites above are now
+met on this machine and the install path is verified rather than assumed.
+
+What that run does **not** establish is that recognition works on the phone. It proves the build
+signs, installs and launches. The camera path, meaning `AVCaptureSession` and VisionCamera's JSI
+marshalling of a `Frame` into a worklet runtime, is still the one hop nothing in this repository
+covers: `server/eval/replay/` replays everything either side of it on the Mac, and
+`probeWorkletBoundary` covers part of the boundary itself. A scan on the phone is still the only
+thing that closes it.
+
+The identifier in that run is not the committed default, and that is the mechanism working as
+intended rather than a mistake. App IDs are unique across the whole developer program, so
+`scripts/setup.sh` derives one per Apple team; the team that owns `dev.ayaangupta.kart` keeps it,
+because a changed identifier installs a second copy of the app beside the first rather than
+replacing it.
 
 ## The development timeout cannot reach a shipped build
 
