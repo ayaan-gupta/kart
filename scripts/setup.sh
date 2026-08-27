@@ -58,7 +58,8 @@ if [ "${1:-}" = "--check" ]; then CHECK=1; shift; fi
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
 step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/8] %s\033[0m\n' "$STEP" "$*"; }
 ok()    { printf '      %s\n' "$*"; }
-warn()  { printf '      warning: %s\n' "$*"; }
+WARNINGS=0
+warn()  { WARNINGS=$((WARNINGS + 1)); printf '      warning: %s\n' "$*"; }
 fail()  { printf '\n\033[1mStopped.\033[0m %s\n\n' "$1" >&2; exit 1; }
 
 # `.kartrc` holds this machine's answers so a re-run does not ask again. Git ignored: it names an
@@ -345,7 +346,13 @@ fi
 
 if [ "$CHECK" = 1 ]; then
   ok "a phone is attached and ready to be built for"
-  printf '\n\033[1mNothing is missing. Run ./scripts/setup.sh to build and install.\033[0m\n\n'
+  if [ "$WARNINGS" -eq 0 ]; then
+    printf '\n\033[1mNothing is missing. Run ./scripts/setup.sh to build and install.\033[0m\n\n'
+  else
+    printf '\n\033[1m%d thing(s) above need attention.\033[0m\n' "$WARNINGS"
+    printf 'Anything described as "not installed yet" is installed for you by a real run.\n'
+    printf 'Run ./scripts/setup.sh when you have dealt with the rest.\n\n'
+  fi
   exit 0
 fi
 
