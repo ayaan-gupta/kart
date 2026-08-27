@@ -103,7 +103,8 @@ fi
 
 NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
 [ -n "$NODE_MAJOR" ] || fail "Node is not installed. Install it with \`brew install node\`, or from nodejs.org, then run this again."
-[ "$NODE_MAJOR" -ge 20 ] || fail "Node $(node --version) is too old. This needs Node 20 or newer: \`brew install node\`."
+# 22, not 20: `npm run serve` reads the key with --env-file-if-exists, which landed in Node 22.
+[ "$NODE_MAJOR" -ge 22 ] || fail "Node $(node --version) is too old. This needs Node 22 or newer: \`brew install node\`."
 ok "Node: $(node --version)"
 
 if ! command -v pod >/dev/null 2>&1; then

@@ -7,7 +7,7 @@
     "eval": "tsx eval/run-eval.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "serve": "tsx scripts/serve.ts"
+    "serve": "node --env-file-if-exists=.env.local node_modules/.bin/tsx scripts/serve.ts"
   },
   "dependencies": {
     "openai": "^6.10.0",
