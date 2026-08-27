@@ -18,6 +18,25 @@ It is the honest fallback, not the product.
 
 Speed: one call per region on an M-series Mac, so a fifteen-region photograph is not instant. The
 2B model is the default because it is the fastest of the three cached here.
+
+That default is now questionable, and `KART_VLM` is how to go around it. Measured on this machine
+against `assets/dev/cart-lab-sample.png` with no marks, so two questions, one run each:
+
+    Qwen/Qwen2-VL-2B-Instruct (transformers on MPS)      150.0s, 169.7s    load 24.4s
+    mlx-community/Qwen2.5-VL-7B-Instruct-4bit (MLX)       28.1s            load  7.9s
+
+The larger, quantised model on MLX is 5.4x faster than the smaller one on transformers, which is
+the opposite of what parameter count alone predicts, and is why the default was chosen wrong. It
+was also more accurate on that image: the sample is synthetic coloured shapes, and the 7B said so
+("None of the items in the image are grocery products"), while the 2B reported "Red square" and
+"Blue oval" as products a shopper was buying.
+
+The default is left alone regardless, because one synthetic image is not a corpus and the shipped
+18-of-22 figure was measured on real trolleys (the ninety-sixth section of KART.md). Moving the
+default needs that same measurement re-run, not this one. Until then, to select it:
+
+    KART_VLM=mlx-community/Qwen2.5-VL-7B-Instruct-4bit server/.venv/bin/python \
+      server/localvlm/serve.py
 """
 
 import base64
@@ -176,11 +195,29 @@ class Census:
         # Anything that is not a clear yes is treated as not a cart. The census is allowed to be
         # unsure and say so; what it must not do is assert a shelf is a trolley, which is the
         # direction the hardcoded value used to fail in.
+        # Asked, reported in the log, and deliberately NOT returned as a verdict.
+        #
+        # Measured on this machine against five real trolley photographs from
+        # `server/eval/corpus/carts/` (ov-04303310-e76, ov-0721fe53-858, ov-093ace7c-003,
+        # ov-16dca705-1c1, ov-1902e7db-eaa) on mlx-community/Qwen2.5-VL-7B-Instruct-4bit: this
+        # question answered YES on 2 of 5. Three real, loaded trolleys were called not-a-trolley.
+        #
+        # `subjectIsCart: false` is not advisory downstream, it is fatal: `normalizeCensusResponse`
+        # empties marks, unmarkedItems and inViewCounts outright. So shipping a 2-of-5 signal into
+        # that field would hand back an empty bag for most real carts, which is a worse failure
+        # than the shelf case the field exists to prevent, and a silent one.
+        #
+        # The field is optional in the schema and its absent case reads as a cart, which is
+        # exactly the right default for a judgment this model cannot make. The shipped OpenAI
+        # census keeps the guard, where the same question measured 10 of 10.
+        #
+        # Restoring this to a real verdict needs the question re-measured to something like that
+        # standard first, not a rewording that looks better on one photograph.
         subject = self.backend.ask(pil, CART_Q, tokens=8).strip().upper()
-        is_cart = subject.startswith("YES")
+        print(f"[census] cart question answered {subject[:12]!r} (not reported, see the comment)",
+              flush=True)
 
         return {
-            "subjectIsCart": is_cart,
             "marks": results,
             "unmarkedItems": unmarked,
             "inViewCounts": [{"productKey": k, "count": v} for k, v in counts.items()],

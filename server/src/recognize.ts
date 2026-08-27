@@ -11,6 +11,7 @@ import {
 } from "./schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
+import { installUsageReporter, recordUsage } from "./usage.js";
 
 /**
  * The badged frame is sent at this long edge. 1024 was chosen before there was a photograph to
@@ -211,12 +212,35 @@ const CENSUS_TEMPERATURE = (() => {
   return Number.isFinite(value) && value >= 0 && value <= 2 ? value : undefined;
 })();
 
+/**
+ * Reasoning effort for `runIdentify`, overridable for the eval harnesses only.
+ *
+ * Bounded to the values the API accepts, for the same reason as the census temperature above: an
+ * unrecognised value would fail every identify call with a 400 rather than fall back to the
+ * default. Unset is the shipped behaviour and leaves the call exactly as it was.
+ */
+const IDENTIFY_EFFORT: "none" | "low" | "medium" | "high" = (() => {
+  const raw = process.env.KART_IDENTIFY_EFFORT?.trim();
+  return raw === "none" || raw === "low" || raw === "medium" || raw === "high" ? raw : "low";
+})();
+
 async function requestOutputText(
   context: string,
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ): Promise<string> {
+  // Every OpenAI call in this project comes through here, which is the whole reason the token
+  // count is taken here and not in the callers. See `usage.ts` for what went wrong without it.
+  installUsageReporter();
   try {
     const response = await openai.responses.create(params);
+    // After the await, so a failed call is not counted as spend. A 429 or a 400 bills nothing,
+    // and counting it would inflate the total in exactly the situation someone is reading it.
+    recordUsage(
+      typeof params.model === "string" ? params.model : "unknown",
+      response.usage?.input_tokens,
+      response.usage?.output_tokens,
+      response.usage?.input_tokens_details?.cached_tokens,
+    );
     return response.output_text;
   } catch (err) {
     throw toSafeError(context, err);
@@ -484,13 +508,40 @@ export async function runCensus(
   // localCensus.ts for what it costs in accuracy, which is real and measured.
   const localUrl = localCensusUrl();
   if (localUrl.length > 0) {
-    return await runCensusLocally(image, marks, alreadyCounted, localUrl);
+    // Normalized like every other census, not returned raw. This branch used to return early and
+    // so skipped `normalizeCensusResponse` entirely, which meant brand normalization, canonical
+    // productKey re-derivation, same-key merging and the not-a-cart guard all applied to the
+    // OpenAI census and to nothing else. That guard's own comment says it lives there "so that
+    // every client is covered by one check"; one census answering by a different set of rules
+    // than the other is exactly what it was written to prevent.
+    //
+    // Measured consequence of the gap, on a real trolley photograph through the local model:
+    // `subjectIsCart` came back false and twelve named products came back with it, when the
+    // shipped path would have emptied all twelve. Two censuses, same field, opposite meanings.
+    //
+    // Safe to apply now only because `localvlm/serve.py` no longer reports a cart verdict it
+    // cannot make; see the measurement recorded there before changing that back.
+    return normalizeCensusResponse(
+      await runCensusLocally(image, marks, alreadyCounted, localUrl),
+      diagnostics,
+    );
   }
 
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
 
   const outputText = await requestOutputText("runCensus", {
     model: MODELS.census,
+    // Routes calls sharing this prefix to the same cache. CENSUS_SYSTEM_PROMPT is 2,177 tokens
+    // and sits first in `input`, comfortably over the 1,024-token minimum, so the discount is
+    // available with or without this; the key raises the hit rate by keeping these requests on
+    // one cache rather than scattering them. Caching is what makes the prompt nearly free on
+    // every call after the first, and the retention window is far longer than one scan, so the
+    // saving carries across sessions and across shoppers rather than resetting each time.
+    //
+    // One key per task, not per user: the prefix is identical for everyone, so splitting by user
+    // would fragment the cache and lose the thing it is for. At high volume this needs sharding
+    // instead, since a single key is only reliable to roughly 15 requests per minute.
+    prompt_cache_key: "kart-census",
     reasoning: { effort: "none" },
     ...(CENSUS_TEMPERATURE === undefined ? {} : { temperature: CENSUS_TEMPERATURE }),
     input: [
@@ -539,7 +590,17 @@ export async function runIdentify(
 
   const outputText = await requestOutputText("runIdentify", {
     model: MODELS.identify,
-    reasoning: { effort: "low" },
+    prompt_cache_key: "kart-identify",
+    // IDENTIFY_SYSTEM_PROMPT is 260 tokens, well under the 1,024-token cache minimum, so unlike
+    // the census nothing here is cacheable and the whole input is billed at full rate every call.
+    //
+    // Which puts the weight on output, and reasoning tokens bill at the output rate. That rate is
+    // the expensive one: at six calls a scan, identify's output is roughly half of what identify
+    // costs. The census next door runs at effort "none"; this has always run at "low", and the
+    // difference was never measured. The task is one tight crop of one product, closer to reading
+    // a label than to reasoning about a scene, so "none" is plausible and untested rather than
+    // known to be wrong. `KART_IDENTIFY_EFFORT` exists to put a number on it before changing it.
+    reasoning: { effort: IDENTIFY_EFFORT },
     input: [
       { role: "system", content: IDENTIFY_SYSTEM_PROMPT },
       {

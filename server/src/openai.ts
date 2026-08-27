@@ -63,8 +63,30 @@ export const MODELS = {
    * The split had nothing left to select on and was removed rather than left choosing wrongly.
    */
   census: process.env.KART_CENSUS_MODEL?.trim() || "gpt-5.4-mini",
-  /** Identify: one tight crop of an uncertain item. */
-  identify: "gpt-5.4",
+  /**
+   * Identify: one tight crop of an uncertain item.
+   *
+   * `KART_IDENTIFY_MODEL` overrides it, for the eval harnesses only, exactly as
+   * `KART_CENSUS_MODEL` does above.
+   *
+   * The override exists because this tier has never been measured, and it is the expensive one:
+   * census runs on mini and identify runs on the full model, up to six times per scan
+   * (`MAX_IDENTIFY_CALLS_PER_SESSION`), so these calls dominate what a scan costs. The choice
+   * was made by assumption -- a hard case deserves the better model -- and `identify-brand.ts`,
+   * the only harness that exercises it, is single-arm: it calls `runIdentify` and therefore
+   * whatever this constant already says, so no cheaper tier was ever in the comparison.
+   *
+   * What that harness did measure argues the task is easier than the tier implies: six of six
+   * brands read correctly at confidence 0.97 to 0.99. Reading MR. LUCKY off a sharp,
+   * full-resolution crop is closer to OCR than to the whole-trolley reasoning the census does,
+   * and the census's own bakeoff showed the bigger model actively worse at that harder task
+   * (it over-counts, 11.7 units against a truth of 9). Neither result predicts the other; both
+   * say this is worth an arm rather than an assumption.
+   *
+   * `gpt-5.4-nano` is available on the account and used nowhere in this project. It is the
+   * obvious third arm.
+   */
+  identify: process.env.KART_IDENTIFY_MODEL?.trim() || "gpt-5.4",
   /** Escalation for items identify still cannot resolve. Used sparingly. */
   escalate: "gpt-5.5",
 } as const;
