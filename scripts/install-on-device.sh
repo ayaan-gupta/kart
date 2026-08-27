@@ -83,6 +83,21 @@ fi
 
 echo "Device: $DEVICE_NAME ($DEVICE_ID)"
 
+# ---- 1b. The phone has to be new enough to run the build at all.
+# app.json pins a deployment target of iOS 17.0, so an older phone is refused by xcodebuild with
+# a message about the destination rather than about the phone, which sends the reader to the
+# signing settings. Read from the same line the UDID came from, so it costs nothing.
+DEVICE_OS="$(printf '%s' "$DEVICE_LINE" | sed -E 's/.*\(([0-9]+)\.([0-9.]+)\) \([0-9A-Fa-f-]+\)$/\1/')"
+if printf '%s' "$DEVICE_OS" | grep -qE '^[0-9]+$' && [ "$DEVICE_OS" -lt 17 ]; then
+  fail "$DEVICE_NAME is on iOS $DEVICE_OS, and Kart needs iOS 17 or newer.
+
+The deployment target is set in app.json, under expo.plugins, expo-build-properties,
+ios, deploymentTarget. It is 17.0 because the app uses Vision instance mask
+segmentation, which does not exist before then.
+
+Update the phone, or use a different one."
+fi
+
 # ---- 2. Xcode has to have an Apple ID, or it cannot issue a provisioning profile.
 # A development certificate in the keychain is not enough on its own: the profile is what names
 # the device, and only an account can create one.
