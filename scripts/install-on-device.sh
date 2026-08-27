@@ -245,7 +245,8 @@ if [ "$CONFIG" = "Debug" ]; then
   echo "phone on this Mac's wifi, or the app opens on \"No script URL provided\"."
   echo
 fi
-echo "Recognition needs the service running: \`node --env-file=server/.env.local \\"
-echo "  server/node_modules/.bin/tsx server/scripts/serve.ts\`, with the phone on the same wifi."
+echo "Recognition needs the service running, with the phone on this Mac's wifi:"
+echo
+echo "    npm run serve --prefix server"
 echo
 echo "A free Apple ID signs this for seven days. Re-run this script to re-sign it."

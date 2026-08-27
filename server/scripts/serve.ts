@@ -23,9 +23,12 @@ const DEFAULT_PORT = 4310;
  */
 if ((process.env.OPENAI_API_KEY ?? "") === "") {
   console.error("[serve] OPENAI_API_KEY is not set, so nothing could be recognized.");
-  console.error("[serve] Run with an env file, for example:");
-  console.error("[serve]   node --env-file=server/.env.local server/node_modules/.bin/tsx \\");
-  console.error("[serve]     server/scripts/serve.ts");
+  console.error("[serve] Put a key in server/.env.local, which git ignores, then start it with:");
+  console.error("[serve]");
+  console.error("[serve]   npm run serve --prefix server");
+  console.error("[serve]");
+  console.error("[serve] `npm run serve` reads that file itself. ./scripts/setup.sh writes it for");
+  console.error("[serve] you, or: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local");
   process.exit(1);
 }
 
