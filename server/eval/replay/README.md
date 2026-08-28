@@ -145,15 +145,73 @@ refused it. Only that third case was ever the defect. `FrameScan` carries `wante
 `scanCart` from the request it actually used, so "was native asked" comes from the one place that
 cannot disagree with what crossed the worklet boundary.
 
-Measured after-numbers for that fix are not in this file yet, and no delivery-rate claim should be
-made from it until they are.
+### Measured after the fix, 2026-08-27
 
-The cost implication, which is a decision rather than a fact: on the shipped model a census
-answers in seconds, so `censusInFlight` is brief and the gate really does pace the scan. More
-captures delivered means a session reaches `MAX_CENSUS_CALLS_PER_SESSION` sooner. The cap is
-unchanged and still bounds spend per scan; what changes is that a short scan spends more of its
-budget than it used to, and fills the bag more. That is real money against a paid model and is
-the user's call, not the harness's.
+All four clips re-run against the shipped configuration: the three-outcome rule with
+`minIntervalMs` at 6000. Census latency on this run was 46.7s, 22.2s, 22.8s and 26.4s, against
+clips of twelve seconds.
+
+| clip | asked | encoded | disagreements | censuses | bag lines |
+|---|---|---|---|---|---|
+| ov-16dca705-1c1 | 6 -> 2 | 1 -> 1 | 0 -> 0 | 1 -> 1 | 10 -> 10 |
+| ov-1fd5fc9a-747 | 4 -> 2 | 1 -> 1 | 0 -> 0 | 1 -> 1 | 10 -> 10 |
+| ov-a098628b-048 | 6 -> 2 | 1 -> 1 | 0 -> 0 | 1 -> 1 | 4 -> 4 |
+| ov-a1c7f353-1d8 | 6 -> 2 | 1 -> 1 | 0 -> 0 | 1 -> 1 | 6 -> 6 |
+| **total** | **22 -> 8** | **4 -> 4** | **0 -> 0** | **4 -> 4** | |
+
+Zero gate disagreements and zero native errors on both sides. Encodes, censuses and bag are
+unchanged; the decision count falls because the interval tripled, so the same four captures now
+cost eight decisions instead of twenty-two. Read that as fewer wasted decisions, not as more
+captures: the ratio moves from 4-in-22 to 4-in-8 without a single extra keyframe reaching the
+service. An earlier draft of this section reported the two runs as identical field for field.
+They are identical on encodes, censuses, disagreements and bag, and they are not identical on
+`byRegime.fired`, which shifts by one between regimes on two clips.
+
+That is the honest result and it is not a null one. **This harness cannot measure a change to
+keyframe pacing at all.** A census outlasts the clip that started it, so `censusInFlight` is true
+for roughly 95 per cent of every clip, and one census per clip is the only reachable outcome
+whatever the gate does. Two materially different pacing rules produce byte-identical reports here.
+Do not read a pacing result out of this file; read `gateDisagreements`, native errors, per-regime
+sharpness and the bag, which it does measure soundly.
+
+What does answer it is `census-rate.ts` beside this file, which drives the same real modules -
+`processFrame`, `settleKeyframeRequest`, a real `RecognitionSession`, `nextScanRequest` - on a
+simulated clock with a census latency you choose, and no native half, server or model.
+
+```bash
+npm run census-rate
+```
+
+The three rules are reachable without touching the source, by varying only what the frame reports
+as `wantedKeyframe`: always false is the old decision-keyed rule, always true is the delivery-only
+one, and the session's real answer is the shipped rule. Sixty-second scan, two-second census, the
+budget of eight, at the old `minIntervalMs` of 2000:
+
+| rule | fires | asked | delivered | censuses | budget gone |
+|---|---|---|---|---|---|
+| decision-keyed | 29 | 24 | 8 | 8 | 48.9s |
+| delivery-only | 498 | 17 | 8 | 8 | 16.3s |
+| three outcomes | 37 | 17 | 8 | 8 | 16.3s |
+
+The ceiling does not move: `MAX_CENSUS_CALLS_PER_SESSION` binds first and every rule spends eight.
+What moves is the rate. Fixing the defect made a scan reach its budget three times sooner, so a
+twenty-second scan in a checkout queue would spend eight calls where it used to spend about three.
+
+So `minIntervalMs` went from 2000 to 6000 in the same change. The dial is close to linear -
+2000/16.3s, 3000/23.0s, 4000/29.3s, 5000/37.1s, 6000/45.1s, 8000/57.7s - and 6000 puts the spend
+back where the old rule had it while keeping the correctness fix. The standing constraint is to
+minimise paid-model usage, so it starts at the conservative end and can be lowered once there are
+real per-scan cost figures from a phone rather than from a stand-in.
+
+At the 6000 that ships, the same run gives the fixed rule its eight calls in 45.1s while the old
+decision-keyed rule manages only three in the whole minute. The fix is doing the work; the
+interval only sets the rate.
+
+Two caveats on those tables, both of which make them an upper bound. The frame stream is
+synthetic: lognormal sharpness in the range the clips measure, constant low motion, one stable
+item. And the census stand-in never names anything, so `worthACensus` never goes false and the
+budget is spent as fast as pacing permits. They are a measurement of the pacing ceiling, not a
+prediction of a real shopper's session.
 
 ### Not a pipeline finding
 

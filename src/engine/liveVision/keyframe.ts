@@ -11,11 +11,24 @@ import type { KeyframeConfig, KeyframeReason, KeyframeSignals, KeyframeState } f
  *
  * `minIntervalMs`, `sceneChangeCount` and `sceneChangeIntervalMs` have no native counterpart;
  * they govern only the pacing decision this module makes, so they stay local.
+ *
+ * `minIntervalMs` is 6000 rather than the 2000 it was while the clock started at the decision.
+ * It is the rate at which a scan spends `MAX_CENSUS_CALLS_PER_SESSION`, and charging the window
+ * on delivery rather than on the decision (see `settleKeyframeRequest`) roughly tripled that
+ * rate. Driving the real pipeline and a real `RecognitionSession` on a simulated clock, against
+ * a two-second census latency over a sixty-second scan: the old rule spent all eight calls in
+ * 48.9s, the fixed rule spent them in 16.3s, and 6000 puts it back to 45.1s. Every arm still
+ * reaches eight inside the minute, so this moves when the budget goes, not how large it is.
+ *
+ * The dial is close to linear - 2000/16.3s, 3000/23.0s, 4000/29.3s, 5000/37.1s, 6000/45.1s,
+ * 8000/57.7s - so it can be lowered once there are real per-scan cost figures from a phone
+ * rather than a stand-in. The standing constraint is to minimise paid-model usage, which is why
+ * it starts at the conservative end.
  */
 const DEFAULT_CONFIG: KeyframeConfig = {
   minSharpness: MIN_KEYFRAME_SHARPNESS,
   maxMotion: MAX_KEYFRAME_MOTION,
-  minIntervalMs: 2000,
+  minIntervalMs: 6000,
   sceneChangeCount: 4,
   sceneChangeIntervalMs: 800,
 };

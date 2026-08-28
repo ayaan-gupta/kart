@@ -67,6 +67,7 @@
     "bench:detector": "swiftc -O ios/Kart/KartDetector.swift ios/Kart/MaskContour.swift ios/Kart/FrameMetrics.swift ios/Kart/AppleInstanceMaskDetector.swift scripts/detector-bench/main.swift -o /tmp/kart-detector-bench && /tmp/kart-detector-bench",
     "xcode:register": "node scripts/register-xcode-file.js",
     "build:replay-driver": "mkdir -p build && swiftc -O ios/Kart/KartDetector.swift ios/Kart/MaskContour.swift ios/Kart/FrameMetrics.swift ios/Kart/KartImageTools.swift ios/Kart/AppleInstanceMaskDetector.swift ios/Kart/KartFrameAnalysis.swift scripts/replay-driver/main.swift -o build/kart-replay-driver",
+    "census-rate": "server/node_modules/.bin/tsx server/eval/replay/census-rate.ts",
     "replay": "npm run build:replay-driver && server/node_modules/.bin/tsx server/eval/replay/run.ts"
   },
   "jest": {

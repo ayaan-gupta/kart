@@ -94,7 +94,14 @@ describe('evaluateKeyframe', () => {
 
   it('fires again once the interval has passed', () => {
     const delivered = fireAndDeliver(createKeyframeState());
-    const second = evaluateKeyframe(delivered, { ...GOOD, now: GOOD.now + 2500 });
+    // Six seconds, not two. Keying the clock on delivery instead of on the decision roughly
+    // tripled how fast a scan spends its census budget - simulated against a two-second census
+    // latency over a sixty-second scan, all eight calls went in 16.3s where the old rule took
+    // 48.9s - and against a paid model that is real money. The interval is the dial that puts
+    // the spend back where it was (45.1s) without giving up the fix. Still eight calls inside a
+    // minute, so nothing about the ceiling changes.
+    expect(evaluateKeyframe(delivered, { ...GOOD, now: GOOD.now + 2500 }).reason).toBe('too-soon');
+    const second = evaluateKeyframe(delivered, { ...GOOD, now: GOOD.now + 6500 });
     expect(second.fire).toBe(true);
   });
 
