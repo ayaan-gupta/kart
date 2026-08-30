@@ -92,6 +92,12 @@ Then start the recognition service, and keep the phone on the same wifi:
 npm run serve --prefix server
 ```
 
+Outlines are the one thing this does not set up. They come from a grounded detector too large
+for a phone or a serverless function, so it runs behind `ENUMERATOR_URL` on a GPU host. With that
+unset the app still names what it sees and still fills a bag, it just draws no outlines, and
+`setup.sh` says so rather than leaving you to notice. Gap 2 in `docs/running-on-a-phone.md` has a
+local host to run instead.
+
 Nothing above depends on this being the machine the app was written on. The one App ID that
 Apple lets exactly one team register, and the LAN address that differs on every machine, are
 both worked out per clone; `project.pbxproj` is never edited locally, so a pull never conflicts

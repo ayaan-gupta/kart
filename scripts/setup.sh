@@ -252,9 +252,17 @@ fi
 # ---------------------------------------------------------------------------------------------
 step "Checking the recognition service can start"
 
+# Both of this project's own services answer GET / with a JSON body carrying "ok": the
+# recognition service on 4310 (server/scripts/serve.ts) and the local vision model on 4330
+# (server/localvlm/serve.py). Ask before warning, because the machine this is usually run on is
+# one with those two already running, and reporting a developer's own service back to them as a
+# stranger holding their port is the wrong answer to the right question.
 for port in 4310 4330; do
-  if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
-    holder="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1" (pid "$2")"}')"
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1 || continue
+  holder="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1" (pid "$2")"}')"
+  if curl -fsS -m 2 "http://127.0.0.1:$port/" 2>/dev/null | grep -q '"ok"'; then
+    ok "port $port is this project's own service, already running ($holder)"
+  else
     warn "port $port is already taken by $holder"
     warn "the service picks these two; stop that process or the service will not bind"
   fi
@@ -293,6 +301,23 @@ MSG
   fi
 else
   ok "OpenAI key already configured"
+fi
+
+# ---------------------------------------------------------------------------------------------
+step "Checking the grounded enumerator"
+
+# Reported rather than prompted for, because unlike the OpenAI key this is not a value anyone has
+# lying around: it is the address of a GPU host running the grounded detector, and most clones
+# will not have one. It is here because leaving it out is silent. Everything still works, the
+# camera and the tracker and the naming, so the only visible symptom is that the shopper never
+# sees an outline on anything, which reads as a broken overlay rather than as a service that was
+# never pointed anywhere. docs/running-on-a-phone.md gap 2 has the local host to run instead.
+if grep -q '^ENUMERATOR_URL=http' server/.env.local 2>/dev/null; then
+  ok "enumerator configured"
+else
+  warn "no ENUMERATOR_URL. The app names items and draws no outlines around them."
+  warn "That is the supported degraded mode, not a fault. To close it, see gap 2 in"
+  warn "docs/running-on-a-phone.md, then: echo 'ENUMERATOR_URL=http://...' >> server/.env.local"
 fi
 
 # ---------------------------------------------------------------------------------------------

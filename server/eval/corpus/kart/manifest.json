@@ -98,5 +98,32 @@
   "content": "a scan session over the loaded trolley of IMG_0252"
  },
  "verified_complete": "Checked against ~/Downloads/kart-images:video on 2026-08-22: the folder holds exactly ten HEIC stills, IMG_0244 to IMG_0252 and IMG_0254, and one MOV. There is no unused material, so the corpus is not a subset of what was supplied and cannot be grown from what is here.",
- "conversion_is_lossless": "The cached JPEGs are the full 5712 by 4284 with a luma quantization table starting at 1, and are nearly twice the size of the HEIC originals. The conversion was done at maximum quality, so no measurement in KART.md is reading a degraded copy. Worth recording because the failures that remain are small-text and small-object ones, where a lossy re-encode would have been a plausible cause and is now ruled out."
+ "conversion_is_lossless": "The cached JPEGs are the full 5712 by 4284 with a luma quantization table starting at 1, and are nearly twice the size of the HEIC originals. The conversion was done at maximum quality, so no measurement in KART.md is reading a degraded copy. Worth recording because the failures that remain are small-text and small-object ones, where a lossy re-encode would have been a plausible cause and is now ruled out.",
+ "practice_stills": {
+  "note": "Two products the user photographed with the app's own camera on 2026-08-28 and offered as further practice images, in the session where the scan screen was reporting a frame processor that had failed to load. They arrived as full phone screenshots, so each is cropped to the camera feed alone: the debug HUD above and the bag tray below are removed, and nothing else is altered. They are stills of single products on a table rather than loaded trolleys, so they exercise naming and not counting, and they belong to no scored split until they are labelled.",
+  "source": "photographed by the user, supplied directly for this purpose",
+  "licence": "not redistributable; used with the owner's explicit permission",
+  "capture": "iPhone through the app's camera, screenshot at 924x2000, cropped to 924x1150",
+  "images": [
+   {
+    "id": "PRACTICE_0001",
+    "digest": "c55de08a7b4c",
+    "pixels": [
+     924,
+     1150
+    ],
+    "content": "two identical yellow cartons standing side by side on a table, label text small and motion blurred, a bookshelf behind"
+   },
+   {
+    "id": "PRACTICE_0002",
+    "digest": "f98688b4b0f3",
+    "pixels": [
+     924,
+     1150
+    ],
+    "content": "one Southern Grove Shelled Walnuts bag standing on a table, brand and product name both legible, a bookshelf behind"
+   }
+  ],
+  "labelled": false
+ }
 }
