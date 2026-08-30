@@ -51,6 +51,51 @@ export function apiBaseUrl(): string {
 }
 
 /**
+ * Every address the recognition service might be answering on, most likely first.
+ *
+ * The base URL is inlined at build time, so it freezes whatever address the laptop happened to
+ * hold when the build ran. That address is a DHCP lease on a home network, or a tethering
+ * address on a phone hotspot, and it changes without anyone touching the app. When it does, the
+ * built app points at nothing: every request fails as `offline`, the shopper sees a live camera
+ * that never names anything, and the only cure is a full native rebuild. That is the wrong
+ * amount of work for a laptop moving between two networks.
+ *
+ * So the build carries a list instead of a single address, and the client probes it once to see
+ * which one answers. The first entry should be the laptop's Bonjour name, which survives any
+ * address change on a network that passes mDNS; the rest are literal addresses, which work on
+ * the networks that do not.
+ *
+ * Order is preserved and duplicates are dropped, so listing the primary again in the fallbacks
+ * costs nothing.
+ */
+export function apiBaseUrlCandidates(): string[] {
+  const raw = [
+    process.env.EXPO_PUBLIC_KART_API_URL ?? '',
+    ...(process.env.EXPO_PUBLIC_KART_API_FALLBACKS ?? '').split(','),
+  ];
+
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+  for (const entry of raw) {
+    const url = entry.trim().replace(/\/+$/, '');
+    if (url === '' || seen.has(url)) continue;
+    seen.add(url);
+    candidates.push(url);
+  }
+  return candidates;
+}
+
+/**
+ * How long a single reachability probe may take.
+ *
+ * Short on purpose. This runs against addresses that are expected to be wrong, and a wrong
+ * address on a local network fails fast anyway; the budget only has to cover a right one that
+ * is answering slowly. Two seconds times a handful of candidates is a bounded, one-time cost
+ * paid before the first census, not on every request.
+ */
+export const HEALTH_PROBE_TIMEOUT_MS = 2_000;
+
+/**
  * How long any single recognition request may take before it is abandoned.
  *
  * 20 seconds is the product value and the default, chosen against the shipped model, which

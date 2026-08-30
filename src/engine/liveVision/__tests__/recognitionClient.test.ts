@@ -1,4 +1,4 @@
-import { requestCensus, requestIdentify } from '../recognitionClient';
+import { requestCensus, requestIdentify, resetRecognitionEndpoint } from '../recognitionClient';
 
 const okCensus = {
   ok: true,
@@ -166,5 +166,100 @@ describe('requestIdentify', () => {
     await requestIdentify({ imageBase64: 'AAAA', box: null, hint: null });
     const body = JSON.parse(f.mock.calls[0][1].body);
     expect(body.box).toBeUndefined();
+  });
+});
+
+/**
+ * The address is inlined at build time, so it freezes the lease the laptop held when the build
+ * ran. These cover the list that replaced it: the app is expected to find the service after the
+ * laptop moves networks, without a native rebuild.
+ */
+describe('choosing between candidate addresses', () => {
+  const health = (ok: boolean) => ({ ok, status: ok ? 200 : 500, json: async () => ({ ok }) });
+
+  beforeEach(() => {
+    resetRecognitionEndpoint();
+    process.env.EXPO_PUBLIC_KART_API_URL = 'http://first.test:4310';
+    process.env.EXPO_PUBLIC_KART_API_FALLBACKS = 'http://second.test:4310,http://third.test:4310';
+  });
+
+  afterEach(() => {
+    resetRecognitionEndpoint();
+    delete process.env.EXPO_PUBLIC_KART_API_FALLBACKS;
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('posts to the first candidate that answers, not the first that is listed', async () => {
+    const f = mockFetch(
+      jest.fn(async (url: string, init?: { method?: string }) => {
+        if (init?.method !== 'POST') return health(url.startsWith('http://second.test'));
+        return { ok: true, status: 200, json: async () => okCensus };
+      }),
+    );
+    const res = await requestCensus(req);
+    expect(res.ok).toBe(true);
+    const posted = f.mock.calls.find((c) => c[1]?.method === 'POST');
+    expect(posted?.[0]).toBe('http://second.test:4310/api/census');
+  });
+
+  it('probes once and reuses the answer, rather than paying for it on every census', async () => {
+    const f = mockFetch(
+      jest.fn(async (url: string, init?: { method?: string }) => {
+        if (init?.method !== 'POST') return health(url.startsWith('http://third.test'));
+        return { ok: true, status: 200, json: async () => okCensus };
+      }),
+    );
+    await requestCensus(req);
+    await requestCensus(req);
+    expect(f.mock.calls.filter((c) => c[1]?.method !== 'POST')).toHaveLength(3);
+  });
+
+  it('rejects a 200 that is not this service, so a captive portal is not mistaken for it', async () => {
+    const f = mockFetch(
+      jest.fn(async (url: string, init?: { method?: string }) => {
+        if (init?.method !== 'POST') {
+          // The portal answers everything with a login page; only the real service sends ok.
+          if (url.startsWith('http://first.test')) return { ok: true, status: 200, json: async () => ({ login: true }) };
+          return health(url.startsWith('http://third.test'));
+        }
+        return { ok: true, status: 200, json: async () => okCensus };
+      }),
+    );
+    await requestCensus(req);
+    const posted = f.mock.calls.find((c) => c[1]?.method === 'POST');
+    expect(posted?.[0]).toBe('http://third.test:4310/api/census');
+  });
+
+  it('re-probes after the chosen address stops answering, instead of failing there all session', async () => {
+    let live = 'http://second.test';
+    mockFetch(
+      jest.fn(async (url: string, init?: { method?: string }) => {
+        if (init?.method !== 'POST') return health(url.startsWith(live));
+        if (!url.startsWith(live)) throw new TypeError('Network request failed');
+        return { ok: true, status: 200, json: async () => okCensus };
+      }),
+    );
+
+    expect((await requestCensus(req)).ok).toBe(true);
+
+    // The laptop moves networks: the address that was answering goes away and another appears.
+    live = 'http://third.test';
+    expect(await requestCensus(req)).toEqual({ ok: false, failure: 'offline' });
+
+    const recovered = await requestCensus(req);
+    expect(recovered.ok).toBe(true);
+  });
+
+  it('still sends the request when no candidate answers the probe', async () => {
+    const f = mockFetch(
+      jest.fn(async (_url: string, init?: { method?: string }) => {
+        if (init?.method !== 'POST') return health(false);
+        return { ok: true, status: 200, json: async () => okCensus };
+      }),
+    );
+    const res = await requestCensus(req);
+    expect(res.ok).toBe(true);
+    const posted = f.mock.calls.find((c) => c[1]?.method === 'POST');
+    expect(posted?.[0]).toBe('http://first.test:4310/api/census');
   });
 });

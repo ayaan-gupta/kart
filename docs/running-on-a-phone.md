@@ -167,7 +167,24 @@ bound a socket, which is why this exists. It prints the exact line to put in the
 ```
 
 `GET /` on that address from the phone's browser separates "wrong address or firewall" from
-"recognition failed" before any scanning is attempted.
+"recognition failed" before any scanning is attempted. The service also logs one line per
+request with the caller's address, so a launch that reaches the laptop shows up there without
+anyone reading anything off the phone.
+
+That printed address is a DHCP lease, and it dies the moment the laptop joins a different
+network or tethers to a phone. Because the value is inlined at build time, a dead address means
+a full native rebuild, which is a bad trade for walking into a different room. So prefer the
+laptop's Bonjour name, `scutil --get LocalHostName` plus `.local`, and list the literal
+addresses under `EXPO_PUBLIC_KART_API_FALLBACKS` for networks that block mDNS. The app probes
+the list once at launch, uses the first that answers, and re-probes if that one later stops
+answering mid-session.
+
+Reaching a local address at all needs `NSLocalNetworkUsageDescription` in the app's
+`Info.plist`, which iOS requires before it will even ask the shopper for permission. Without
+it there is no prompt and no access, and every request fails as `offline` while the camera
+keeps running, which looks exactly like recognition being broken. It is set in `app.json` under
+`ios.infoPlist`; if a scan names nothing on a device but works in the simulator, check that the
+permission was granted in Settings before suspecting the model.
 
 ### 3. The app
 

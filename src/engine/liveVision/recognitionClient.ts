@@ -1,4 +1,4 @@
-import { apiBaseUrl, requestTimeoutMs } from './config';
+import { apiBaseUrlCandidates, HEALTH_PROBE_TIMEOUT_MS, requestTimeoutMs } from './config';
 import type { CensusMark, CensusResult } from './fusion';
 import type { Box } from './types';
 
@@ -109,13 +109,93 @@ export interface IdentifyResult {
  * and drawing outlines whether or not the endpoint exists, and an unhandled rejection inside a
  * frame handler would take that down.
  */
+/**
+ * The candidate that last answered, or null if none has been tried since the last failure.
+ *
+ * Cached because probing is only worth doing when the answer might have changed. It is cleared
+ * on the first `offline` result, which is exactly the signal that the laptop moved networks or
+ * went away, so the next call re-probes rather than retrying a dead address forever.
+ */
+let resolvedBase: string | null = null;
+
+/** True when this address answers the health route with the envelope the service sends. */
+async function answers(base: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HEALTH_PROBE_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${base}/`, { method: 'GET', signal: controller.signal });
+    if (!response.ok) return false;
+    // Not just a 200: a hotel portal, a router admin page, and a stale deployment all answer
+    // 200 to anything. Only the service sends this envelope.
+    const payload = (await response.json()) as { ok?: unknown } | null;
+    return payload?.ok === true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Picks the address to talk to, probing only when there is a choice to make and no cached answer.
+ *
+ * A single candidate is used without probing, so the common case costs nothing and a service
+ * that is merely slow to start is not written off before the first real request.
+ *
+ * Returns '' when nothing is configured, which `post` reports as `unconfigured`. When every
+ * candidate fails to answer it returns the first anyway, uncached: the probe can be wrong (a
+ * network that blocks the health route but passes POSTs), so the request still gets made and
+ * the next call probes again.
+ */
+async function resolveBase(): Promise<string> {
+  if (resolvedBase !== null) return resolvedBase;
+
+  const candidates = apiBaseUrlCandidates();
+  if (candidates.length === 0) return '';
+
+  // A single candidate is used as-is and deliberately not cached, which keeps the environment
+  // read at call time the way `apiBaseUrl` documents. There is nothing to choose between, so
+  // caching would buy nothing and would freeze the value against a test that changes it.
+  if (candidates.length === 1) return candidates[0];
+
+  for (const candidate of candidates) {
+    if (await answers(candidate)) {
+      resolvedBase = candidate;
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
+/**
+ * Resolves the address ahead of the first scan, and reports what happened.
+ *
+ * Called at app start so the probe cost is paid while the shopper is still on the home screen
+ * rather than in front of a trolley, and so a launch on its own proves whether the phone can
+ * reach the service. Never throws.
+ */
+export async function warmUpRecognitionEndpoint(): Promise<string> {
+  try {
+    const base = await resolveBase();
+    console.log(base === '' ? '[kart] no recognition endpoint configured' : `[kart] recognition endpoint ${base}`);
+    return base;
+  } catch {
+    return '';
+  }
+}
+
+/** Test seam. Drops the cached address so the next call probes again. */
+export function resetRecognitionEndpoint(): void {
+  resolvedBase = null;
+}
+
 async function post<T>(
   path: string,
   body: unknown,
   parse: (value: unknown, envelope: Record<string, unknown>) => T | null,
   signal?: AbortSignal,
 ): Promise<ClientResult<T>> {
-  const base = apiBaseUrl();
+  const base = await resolveBase();
   if (base === '') return { ok: false, failure: 'unconfigured' };
 
   // A signal that is already aborted when we're called (a session torn down while this request
@@ -160,6 +240,10 @@ async function post<T>(
     return parsed === null ? { ok: false, failure: 'malformed' } : { ok: true, value: parsed };
   } catch (error) {
     const name = (error as { name?: string } | null)?.name;
+    // A request that never reached a server is the signal that this address died: the laptop
+    // changed networks, or went to sleep. Forget it so the next call probes the others rather
+    // than spending the whole session failing against one dead host.
+    if (name !== 'AbortError') resolvedBase = null;
     return { ok: false, failure: name === 'AbortError' ? 'timeout' : 'offline' };
   } finally {
     clearTimeout(timer);

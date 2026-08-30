@@ -45,8 +45,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Kart needs your camera to scan items as you shop.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Kart finds the recognition service running on your computer over the local network. Without this, scanning cannot name anything.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Kart uses motion to guide you around your cart so nothing is missed.</string>
 	<key>NSUserActivityTypes</key>

@@ -12,7 +12,11 @@
       "icon": "./assets/expo.icon",
       "infoPlist": {
         "NSCameraUsageDescription": "Kart needs your camera to scan items as you shop.",
-        "NSMotionUsageDescription": "Kart uses motion to guide you around your cart so nothing is missed."
+        "NSMotionUsageDescription": "Kart uses motion to guide you around your cart so nothing is missed.",
+        "NSLocalNetworkUsageDescription": "Kart finds the recognition service running on your computer over the local network. Without this, scanning cannot name anything.",
+        "NSBonjourServices": [
+          "_http._tcp"
+        ]
       },
       "bundleIdentifier": "dev.ayaangupta.kart"
     },
