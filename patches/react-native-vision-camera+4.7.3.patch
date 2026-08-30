@@ -1,0 +1,62 @@
+diff --git a/node_modules/react-native-vision-camera/ios/FrameProcessors/VisionCameraInstaller.mm b/node_modules/react-native-vision-camera/ios/FrameProcessors/VisionCameraInstaller.mm
+index f27c043..7aa1adc 100644
+--- a/node_modules/react-native-vision-camera/ios/FrameProcessors/VisionCameraInstaller.mm
++++ b/node_modules/react-native-vision-camera/ios/FrameProcessors/VisionCameraInstaller.mm
+@@ -13,20 +13,51 @@
+ #import <React/RCTBridge.h>
+ #import <ReactCommon/RCTTurboModuleManager.h>
+ 
++// React Native 0.74 and newer run bridgeless, where `RCTCxxBridge.runtime` is always null. The
++// original implementation below read the runtime off the bridge and returned NO when it could not,
++// which is every launch on the new architecture: the proxy never lands on `global`, so
++// `initFrameProcessorPlugin` throws and every frame processor plugin looks like it failed to
++// register natively when in fact it registered fine and had nowhere to be called from.
++//
++// react-native-worklets-core is handed the real runtime and CallInvoker by RCTTurboModuleManager's
++// `installJSIBindingsWithRuntime:callInvoker:` hook, and keeps them. Frame processors must install
++// into that same runtime anyway, because the worklet context they run on was initialized with it,
++// so take them from there. Declared here rather than through a shared header because both pods
++// link into one binary, and the declaration is `extern "C"` so the two sides cannot disagree about
++// a mangled name.
++extern "C" facebook::jsi::Runtime* WKTGetInstalledJsRuntime(void);
++extern "C" void WKTCopyInstalledCallInvoker(std::shared_ptr<facebook::react::CallInvoker>* outCallInvoker);
++
+ @implementation VisionCameraInstaller
+ 
+ + (BOOL)installWithDelegate:(id<VisionCameraProxyDelegate>)delegate {
+-  // TODO: Migrate away from RCTBridge to support new arch.
+-  RCTBridge* bridge = delegate.getBridge;
+-  RCTCxxBridge* cxxBridge = (RCTCxxBridge*)bridge;
+-  if (!cxxBridge.runtime) {
++  jsi::Runtime* runtimePtr = WKTGetInstalledJsRuntime();
++  std::shared_ptr<react::CallInvoker> callInvoker;
++  WKTCopyInstalledCallInvoker(&callInvoker);
++
++  NSLog(@"[VisionCamera] installWithDelegate: worklets runtime=%p callInvoker=%d", (void*)runtimePtr,
++        callInvoker != nullptr);
++
++  if (runtimePtr == nullptr || callInvoker == nullptr) {
++    // Old architecture, where the bridge does still carry a runtime.
++    RCTBridge* bridge = delegate.getBridge;
++    RCTCxxBridge* cxxBridge = (RCTCxxBridge*)bridge;
++    if (!cxxBridge.runtime) {
++      return NO;
++    }
++    runtimePtr = (jsi::Runtime*)cxxBridge.runtime;
++    callInvoker = bridge.jsCallInvoker;
++  }
++
++  if (runtimePtr == nullptr || callInvoker == nullptr) {
++    NSLog(@"[VisionCamera] installWithDelegate: no runtime available, frame processors are off");
+     return NO;
+   }
+ 
+-  jsi::Runtime& runtime = *(jsi::Runtime*)cxxBridge.runtime;
++  jsi::Runtime& runtime = *runtimePtr;
+ 
+   // global.VisionCameraProxy
+-  auto visionCameraProxy = std::make_shared<VisionCameraProxy>(runtime, bridge.jsCallInvoker, delegate);
++  auto visionCameraProxy = std::make_shared<VisionCameraProxy>(runtime, callInvoker, delegate);
+   runtime.global().setProperty(runtime, "VisionCameraProxy", jsi::Object::createFromHostObject(runtime, visionCameraProxy));
+ 
+   return YES;

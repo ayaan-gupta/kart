@@ -16,7 +16,12 @@ import { Caption, Headline, Sub } from '../../design/type';
 import { createCoverageState, type CoverageState } from '../../engine/liveVision/coverage';
 import { devRequestCensus, devRequestIdentify } from '../../engine/liveVision/devFixtures';
 import { requestCensus, requestIdentify } from '../../engine/liveVision/recognitionClient';
-import { buildScanCartArgs, isScanCartPluginAvailable, toFrameScan } from '../../engine/liveVision/frameProcessor';
+import {
+  buildScanCartArgs,
+  getScanCartPluginError,
+  isScanCartPluginAvailable,
+  toFrameScan,
+} from '../../engine/liveVision/frameProcessor';
 import {
   isFrameLabNativeAvailable,
   probeRequestPropagation,
@@ -147,6 +152,9 @@ export default function FrameLabScreen() {
   const wasOccludedRef = useRef(false);
 
   const pluginAvailable = isScanCartPluginAvailable();
+  // The reason, not a guess at one. "unavailable" alone sent the reader to the native build for
+  // days over a plugin that had registered fine and had no runtime to be called from.
+  const pluginError = getScanCartPluginError();
   const nativeAvailable = isFrameLabNativeAvailable();
 
   useEffect(() => {
@@ -364,7 +372,11 @@ export default function FrameLabScreen() {
         <GlassSurface radius={radius.card} scheme="dark" floating={false}>
           <View style={styles.panel}>
             <Headline color={color.onFeed}>Diagnostics</Headline>
-            <StatusLine label="scanCart plugin" value={pluginAvailable ? 'resolved' : 'unavailable'} good={pluginAvailable} />
+            <StatusLine
+              label="scanCart plugin"
+              value={pluginAvailable ? 'resolved' : (pluginError ?? 'unavailable')}
+              good={pluginAvailable}
+            />
             <StatusLine
               label="KartFrameLab native"
               value={nativeAvailable ? 'linked' : 'unavailable (Release build?)'}

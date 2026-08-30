@@ -1,0 +1,110 @@
+diff --git a/node_modules/react-native-worklets-core/ios/Worklets.mm b/node_modules/react-native-worklets-core/ios/Worklets.mm
+index 403d88b..a26b544 100644
+--- a/node_modules/react-native-worklets-core/ios/Worklets.mm
++++ b/node_modules/react-native-worklets-core/ios/Worklets.mm
+@@ -3,6 +3,7 @@
+ #import <React/RCTBridge+Private.h>
+ #import <React/RCTBridge.h>
+ #import <React/RCTUtils.h>
++#import <ReactCommon/CallInvoker.h>
+ #import <ReactCommon/RCTTurboModule.h>
+ 
+ @implementation Worklets
+@@ -11,9 +12,37 @@
+ 
+ RCT_EXPORT_MODULE()
+ 
++// React Native 0.74 and newer run bridgeless, and there `RCTCxxBridge.runtime` is always null, so
++// the `install` method below can never reach a jsi::Runtime through the bridge. The supported
++// replacement is `installJSIBindingsWithRuntime:callInvoker:`: RCTTurboModuleManager calls it with
++// the real runtime and CallInvoker right after it builds this TurboModule, which is before any
++// JavaScript reads `global.Worklets`.
++//
++// These two hold what that hook was handed. Libraries layered on worklets-core, specifically
++// react-native-vision-camera's frame processors, have the same dead bridge problem and need to
++// install into the same runtime this context was initialized with, so they read them back through
++// the two accessors below rather than reaching for a bridge that no longer carries a runtime.
++static facebook::jsi::Runtime *gWorkletsRuntime = nullptr;
++static std::shared_ptr<facebook::react::CallInvoker> gWorkletsCallInvoker = nullptr;
++
++extern "C" facebook::jsi::Runtime *WKTGetInstalledJsRuntime(void) {
++  return gWorkletsRuntime;
++}
++
++// Writes through an out parameter rather than returning: a C-linkage function may not return a
++// std::shared_ptr, and -Wreturn-type-c-linkage is an error in this build.
++extern "C" void WKTCopyInstalledCallInvoker(
++    std::shared_ptr<facebook::react::CallInvoker> *outCallInvoker) {
++  if (outCallInvoker != nullptr) {
++    *outCallInvoker = gWorkletsCallInvoker;
++  }
++}
++
+ - (void)invalidate {
+   RNWorklet::JsiWorkletContext::invalidateDefaultInstance();
+   RNWorklet::JsiWorkletApi::invalidateInstance();
++  gWorkletsRuntime = nullptr;
++  gWorkletsCallInvoker = nullptr;
+   _bridge = nil;
+ }
+ 
+@@ -27,6 +56,18 @@ RCT_EXPORT_MODULE()
+ 
+ void installApi(std::shared_ptr<facebook::react::CallInvoker> callInvoker,
+                 facebook::jsi::Runtime *runtime) {
++  // Guarded because on a bridgeless build the old bridge-reading callers arrive here with a null
++  // runtime, and installing against one dereferences it inside JsiWorkletApi::installApi.
++  if (runtime == nullptr || callInvoker == nullptr) {
++    NSLog(@"[worklets-core] installApi skipped: runtime=%p callInvoker=%d", (void *)runtime,
++          callInvoker != nullptr);
++    return;
++  }
++
++  NSLog(@"[worklets-core] installApi installing against runtime=%p", (void *)runtime);
++  gWorkletsRuntime = runtime;
++  gWorkletsCallInvoker = callInvoker;
++
+   // Initialize the default worklet context
+   RNWorklet::JsiWorkletContext::getDefaultInstance()->initialize(
+       "default", runtime, [=](std::function<void()> &&f) {
+@@ -37,7 +78,22 @@ void installApi(std::shared_ptr<facebook::react::CallInvoker> callInvoker,
+   RNWorklet::JsiWorkletApi::installApi(*runtime);
+ }
+ 
++// The bridgeless install path. Not declared in Worklets.h on purpose: that header is imported
++// from plain Objective-C too, and this signature is C++. RCTTurboModuleManager dispatches on
++// `respondsToSelector:`, so implementing it here is enough.
++- (void)installJSIBindingsWithRuntime:(facebook::jsi::Runtime &)runtime
++                          callInvoker:
++                              (const std::shared_ptr<facebook::react::CallInvoker> &)callInvoker {
++  installApi(callInvoker, &runtime);
++}
++
+ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
++  // Bridgeless: installJSIBindingsWithRuntime:callInvoker: already ran, so report success rather
++  // than falling through to the bridge and answering false for an API that is installed.
++  if (gWorkletsRuntime != nullptr) {
++    return @true;
++  }
++
+   RCTCxxBridge *cxxBridge = (RCTCxxBridge *)_bridge;
+   if (cxxBridge.runtime != nullptr) {
+     auto callInvoker = cxxBridge.jsCallInvoker;
+@@ -54,14 +110,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
+ #ifdef RCT_NEW_ARCH_ENABLED
+ - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+     (const facebook::react::ObjCTurboModule::InitParams &)params {
+-  // Call installApi with c++ brigde or something similar.
+-  RCTCxxBridge *cxxBridge = (RCTCxxBridge *)_bridge;
+-  auto callInvoker = cxxBridge.jsCallInvoker;
+-  facebook::jsi::Runtime *jsRuntime =
+-      (facebook::jsi::Runtime *)cxxBridge.runtime;
+-
+-  installApi(callInvoker, jsRuntime);
+-
++  // This used to install here off `_bridge`. It cannot: bridgeless leaves no runtime on the
++  // bridge, and this runs before installJSIBindingsWithRuntime:callInvoker:, which is the call
++  // that installs with the real one.
+   return std::make_shared<facebook::react::NativeWorkletsSpecJSI>(params);
+ }
+ #endif

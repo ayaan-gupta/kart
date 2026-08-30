@@ -15,10 +15,27 @@ export { buildScanCartArgs, toFrameScan };
 // exactly. It is resolved by name at runtime, so a mismatch is not a build error, it is a
 // plugin that silently fails to load on a device.
 let plugin: ReturnType<typeof VisionCameraProxy.initFrameProcessorPlugin> | null = null;
+let pluginLoadError: string | null = null;
 try {
   plugin = VisionCameraProxy.initFrameProcessorPlugin('scanCart', {});
-} catch {
+  if (plugin == null) {
+    // Resolved without throwing and still found nothing: the frame processor runtime is up and
+    // no native plugin answers to this name.
+    pluginLoadError =
+      'initFrameProcessorPlugin("scanCart") returned null. Frame processors are installed, but no ' +
+      'native plugin is registered under that name. Check VISION_EXPORT_SWIFT_FRAME_PROCESSOR in ' +
+      'ios/Kart/KartVisionFrameProcessorPlugin.m.';
+  }
+} catch (error) {
+  // The thrown message is the only thing that separates "the native plugin is missing" from "the
+  // frame processor runtime itself never installed", and those have completely different fixes.
+  // Swallowing it and reporting the first cost days of chasing a plugin that was registered the
+  // whole time, so whatever react-native-vision-camera actually said gets carried through to the
+  // on-device HUD verbatim.
   plugin = null;
+  pluginLoadError = `initFrameProcessorPlugin("scanCart") threw: ${
+    error instanceof Error ? error.message : String(error)
+  }`;
 }
 
 /**
@@ -39,12 +56,20 @@ export function isScanCartPluginAvailable(): boolean {
 // empty cart both produce zero instances. FrameScan.error exists to keep those apart, and on a
 // device there is no report to check afterwards, so this is the one case scanCart must never
 // let fall through to a silent, error-less empty scan.
-const PLUGIN_LOAD_ERROR =
-  'Failed to load Frame Processor Plugin "scanCart". Did the native build include KartVisionFrameProcessorPlugin?';
+const PLUGIN_LOAD_ERROR = 'Frame Processor Plugin "scanCart" is unavailable, with no reason reported.';
+
+/**
+ * Why `scanCart` is unavailable, or null when it loaded.
+ *
+ * Exported so `src/app/dev/frame-lab.tsx` can show the real reason rather than a guess at one.
+ */
+export function getScanCartPluginError(): string | null {
+  return plugin === null ? (pluginLoadError ?? PLUGIN_LOAD_ERROR) : null;
+}
 
 export function scanCart(frame: Frame, request: ScanRequest): FrameScan {
   'worklet';
-  if (plugin == null) return toFrameScan({ error: PLUGIN_LOAD_ERROR }, false);
+  if (plugin == null) return toFrameScan({ error: pluginLoadError ?? PLUGIN_LOAD_ERROR }, false);
 
   const args = buildScanCartArgs(request);
   // The installed react-native-vision-camera types only allow flat parameter values (string,
