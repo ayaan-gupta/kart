@@ -85,6 +85,12 @@ const port = Number(process.env.PORT ?? DEFAULT_PORT);
 const server = createServer((req, res) => {
   const path = (req.url ?? "").split("?")[0];
 
+  // One line per request, with the caller's address. This is the only way to tell, from this
+  // side, whether a phone reached the laptop at all: a scan that produces nothing looks
+  // identical whether the request never arrived or the model returned nothing, and the phone
+  // cannot be asked. Nothing from the body is logged, so no image and no key can land here.
+  console.log(`[serve] ${req.socket.remoteAddress ?? "?"} ${req.method ?? "?"} ${path}`);
+
   // A plain GET on the root is how you check from the phone's browser that the laptop is
   // reachable at all, which separates "wrong address or firewall" from "recognition failed"
   // before any scanning is attempted.

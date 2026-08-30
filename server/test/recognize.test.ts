@@ -405,6 +405,47 @@ describe("inViewCounts productKey is re-derived server-side, not trusted from th
   });
 });
 
+describe("a census that means \"nothing here\" does not reach the shopper as an item", () => {
+  it("drops the exact rows a real photograph produced: description \"None.\" and a ::none count", async () => {
+    // Verbatim from a live census on a user photograph of two cartons whose labels were too
+    // blurred to read (server/eval/corpus/kart/manifest.json, PRACTICE_0001). Rule 10 pushes the
+    // model to be complete rather than to answer with an empty list, and this is what that
+    // pressure produces on a picture it cannot read. Unfiltered, the shopper's bag gets an item
+    // called none.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockOutput({
+      marks: [],
+      unmarkedItems: [
+        { description: "None.", productKey: "::none.", catalogSku: null, approxLocation: "in the trolley", confidence: 0.6 },
+      ],
+      inViewCounts: [{ productKey: "::none", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), []);
+
+    expect(result.unmarkedItems).toEqual([]);
+    expect(result.inViewCounts).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("keeps a real product whose name merely begins with one of those words", async () => {
+    // The filter is whole-name only. "no bake cheesecake" starts with "no" and is a product.
+    mockOutput({
+      marks: [],
+      unmarkedItems: [
+        { description: "No Bake Cheesecake", productKey: "::no bake cheesecake", catalogSku: null, approxLocation: "in the trolley", confidence: 0.6 },
+      ],
+      inViewCounts: [{ productKey: "::No Bake Cheesecake", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), []);
+
+    expect(result.unmarkedItems).toHaveLength(1);
+    expect(result.inViewCounts).toEqual([{ productKey: "::no bake cheesecake", count: 1 }]);
+  });
+});
+
 describe("malformed raw productKey shapes are repaired, not naively re-derived", () => {
   it("a key with no separator is matched to the mark by name, not defaulted to no-brand", async () => {
     // Before this fix: naive re-derivation of "Froot Loops" (no "::") assumed no brand and
@@ -541,6 +582,42 @@ describe("CensusDiagnostics: distinguishing a legitimate case from a real failur
     ]);
     expect(diagnostics.plausiblyUnmarked).toEqual([]);
     expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("matches an unmarkedItems key whose plural the fold removes, rather than reporting it unresolvable", async () => {
+    // productKey folds English plurals, so "hummus" keys as "hummu". unmarkedItems[].productKey
+    // used to be compared exactly as the model wrote it, unfolded, while the inViewCounts key it
+    // had to meet was re-derived and therefore folded. Two halves of one response that agreed
+    // about the product could not match: the count was logged as matching nothing and landed in
+    // `unrepaired`. The description here deliberately does not name the product the same way, so
+    // the productKey path is the only thing that can produce the match.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockOutput({
+      marks: [wellFormedMark],
+      unmarkedItems: [
+        { description: "tubs on the lower rack", productKey: "::pita pal hummus", catalogSku: null, approxLocation: "lower rack", confidence: 0.6 },
+      ],
+      inViewCounts: [{ productKey: "::Pita Pal Hummus", count: 2 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const diagnostics: CensusDiagnostics = {
+      repaired: [],
+      plausiblyUnmarked: [],
+      unrepaired: [],
+      merged: [],
+    };
+    await runCensus(
+      await blankJpeg(),
+      [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }],
+      diagnostics,
+    );
+
+    expect(diagnostics.plausiblyUnmarked).toEqual([
+      { raw: "::Pita Pal Hummus", canonical: "::pita pal hummu" },
+    ]);
+    expect(diagnostics.unrepaired).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 

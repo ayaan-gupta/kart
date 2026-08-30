@@ -367,6 +367,45 @@ export type CensusDiagnostics = {
  * raw phrasings of the same product) are merged into one, their counts summed, so a
  * downstream reduction that assumes at most one entry per key is not silently short a count.
  */
+/**
+ * Name segments that mean "nothing here", which the model reports as a product rather than by
+ * leaving the arrays empty.
+ *
+ * Rule 10 tells the model to be as complete in unmarkedItems as it is with the badges and warns
+ * it off an empty list, which is right for a loaded cart and is exactly the pressure that makes
+ * it answer a photograph it cannot read with one item whose description is the word "None."
+ * Measured on a user photograph of two cartons whose labels were too blurred to read, the census
+ * returned unmarkedItems `[{ description: "None." }]` and inViewCounts `[{ "::none", 1 }]`, so a
+ * shopper would have been handed a bag containing an item called none.
+ *
+ * Filtered here rather than prompted away because no prompt makes this never happen, and one
+ * such row is worse than the honest empty answer it is standing in for. The list is only exact
+ * whole-name matches. A real product whose entire name is one of these words does not exist,
+ * and nothing here can shorten a real name: "no bake cheesecake" and "nothing bundt cakes" both
+ * keep every word they have.
+ */
+const NULL_ANSWER_NAMES = new Set([
+  "none",
+  "nothing",
+  "no item",
+  "no items",
+  "no product",
+  "no products",
+  "na",
+  "n a",
+  "unknown",
+  "empty",
+  "not visible",
+  "nothing visible",
+  "no visible product",
+  "unidentifiable",
+]);
+
+/** Whether a canonical productKey names nothing, per NULL_ANSWER_NAMES. */
+function isNullAnswerKey(canonical: string): boolean {
+  return NULL_ANSWER_NAMES.has(canonical.slice(canonical.indexOf("::") + 2));
+}
+
 function normalizeCensusResponse(
   response: CensusResponse,
   diagnostics?: CensusDiagnostics,
@@ -389,6 +428,18 @@ function normalizeCensusResponse(
     return { ...response, marks: [], unmarkedItems: [], inViewCounts: [] };
   }
 
+  // Dropped before anything else reads them, so no later stage has to know about this case and
+  // no caller can reach a null answer that this one skipped. Both arrays are filtered, because
+  // the model reports the same non-answer in both and dropping one leaves the other counting it.
+  const unmarkedItems = response.unmarkedItems.filter(
+    (u) =>
+      !isNullAnswerKey(reDeriveFromRawKey(u.productKey)) &&
+      !isNullAnswerKey(productKey(u.description, null)),
+  );
+  const counted = response.inViewCounts.filter(
+    (c) => !isNullAnswerKey(reDeriveFromRawKey(c.productKey)),
+  );
+
   const marks = response.marks.map((m) => ({ ...m, brand: normalizeBrand(m.brand) }));
   const markKeys = new Set(marks.map((m) => productKey(m.name, m.brand)));
 
@@ -406,11 +457,22 @@ function normalizeCensusResponse(
   // Match on the name segment either way: the model's own key is the reliable one now that
   // unmarkedItems carries it, but a key derived from the description still catches the case
   // where the model reports a name-only key alongside a branded count for the same product.
+  //
+  // The model's own key is re-derived through reDeriveFromRawKey rather than sliced as it
+  // arrived. Both sides of this comparison have to be folded by the same rules or they cannot
+  // meet: productKey folds English plurals, so a census whose unmarkedItems said
+  // "::pita pal hummus" and whose inViewCounts said the same thing had the count re-derived to
+  // "::pita pal hummu" and then compared against the unfolded "pita pal hummus", which never
+  // matches. The entry was reported as unresolvable while both halves of the response agreed
+  // about it. "::bananas" against "banana" failed the same way.
   const unmarkedNameSegments = new Set(
-    response.unmarkedItems.flatMap((u) => [
-      u.productKey.slice(u.productKey.indexOf("::") + 2),
-      productKey(u.description, null).slice(2),
-    ]),
+    unmarkedItems.flatMap((u) => {
+      const canonical = reDeriveFromRawKey(u.productKey);
+      return [
+        canonical.slice(canonical.indexOf("::") + 2),
+        productKey(u.description, null).slice(2),
+      ];
+    }),
   );
 
   const repaired: CensusKeyOutcome[] = [];
@@ -418,7 +480,7 @@ function normalizeCensusResponse(
   const unrepaired: CensusKeyOutcome[] = [];
   const merged = new Map<string, { count: number; rawKeys: string[] }>();
 
-  for (const entry of response.inViewCounts) {
+  for (const entry of counted) {
     const hasSeparator = entry.productKey.includes("::");
     let canonical = reDeriveFromRawKey(entry.productKey);
     let matchedMark = markKeys.has(canonical);
@@ -482,7 +544,7 @@ function normalizeCensusResponse(
     itemsLikelyHidden: response.occlusion.severity !== "none",
   };
 
-  return { ...response, marks, inViewCounts, occlusion };
+  return { ...response, marks, unmarkedItems, inViewCounts, occlusion };
 }
 
 // ---------------------------------------------------------------------------
