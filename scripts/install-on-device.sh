@@ -45,10 +45,16 @@ fail() { printf '\n%s\n' "$*" >&2; exit 1; }
 # ---- 1. A device has to be attached, and paired.
 # `xctrace list devices` prints simulators too, so the physical ones are the entries that are
 # neither a Simulator nor this Mac.
+# `-F`, not `-E`: this is a machine name, not a pattern. A Mac called "MacBook Pro (2)" made
+# the old `-E` read parentheses as a capture group, and the empty fallback would have matched
+# every line and hidden every phone.
+THIS_MAC="$(scutil --get ComputerName 2>/dev/null)"
+[ -n "$THIS_MAC" ] || THIS_MAC='___no-such-machine___'
+
 DEVICE_LINE="$(xcrun xctrace list devices 2>/dev/null \
   | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
   | grep -viE 'simulator|^== |^$' \
-  | grep -viE "$(scutil --get ComputerName 2>/dev/null || echo '___nope___')" \
+  | grep -viF "$THIS_MAC" \
   | head -1)"
 
 if [ -z "$DEVICE_LINE" ]; then
@@ -141,6 +147,34 @@ MSG
   [ "$reply" = "y" ] || [ "$reply" = "Y" ] || exit 1
 fi
 
+# ---- 3b. A free Apple ID's profile lasts seven days, and a stale one is used in preference
+# to minting a new one, so a build made after it lapses is signed with the dead profile and the
+# install is refused with `0xe8008011 This provisioning profile has expired`. That error arrives
+# at the install, long after the build reports success, which reads as the phone rejecting the
+# app rather than as the seven days being up. Deleting the expired ones first is what makes
+# `-allowProvisioningUpdates` actually update anything.
+#
+# Only expired ones are removed, and only for this bundle identifier's team, so a valid profile
+# for another project on this Mac is left alone.
+PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+[ -d "$PROFILE_DIR" ] || PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+PRUNED=0
+if [ -d "$PROFILE_DIR" ]; then
+  for prof in "$PROFILE_DIR"/*.mobileprovision; do
+    [ -e "$prof" ] || continue
+    plist="$(security cms -D -i "$prof" 2>/dev/null)" || continue
+    exp="$(printf '%s' "$plist" | plutil -extract ExpirationDate raw - 2>/dev/null)" || continue
+    [ -n "$exp" ] || continue
+    # String comparison is correct here: both sides are ISO 8601 in UTC, which sorts lexically.
+    if [ "$exp" \< "$NOW" ]; then
+      rm -f "$prof"
+      PRUNED=$((PRUNED + 1))
+    fi
+  done
+fi
+[ "$PRUNED" -gt 0 ] && echo "Removed $PRUNED expired provisioning profile(s); Xcode will issue new ones."
+
 # ---- 4. Build and install.
 #
 # The output goes to a log rather than the terminal so a failure can be classified. The previous
@@ -173,10 +207,34 @@ Then run this again."
 fi
 
 if grep -qi 'not available\|Failed to register bundle identifier' "$LOG"; then
-  fail "The bundle identifier this build asked for belongs to somebody else's Apple team.
+  # Retry once under a bundle identifier derived from this team, then give up.
+  #
+  # The obvious reading of this error is "that App ID belongs to someone else", and that is what
+  # a fresh clone hits. It is not the only cause: a free Apple ID may also be refused an App ID
+  # it held until recently, because free provisioning recycles registrations and caps how many a
+  # team may register in a week. That happened here to the identifier this repository ships as
+  # its default, on the very team that owns it, and the message is identical. Since the remedy is
+  # the same either way, take it automatically rather than printing instructions to run a second
+  # script that would work the same thing out.
+  DERIVED="dev.kart.$(printf '%s' "${KART_TEAM_ID:-}" | tr '[:upper:]' '[:lower:]')"
+  if [ -n "${KART_TEAM_ID:-}" ] && [ "$DERIVED" != "${KART_BUNDLE_ID:-}" ]; then
+    echo
+    echo "The identifier $KART_BUNDLE_ID cannot be registered to team $KART_TEAM_ID."
+    echo "Retrying as $DERIVED, which is derived from the team and is yours alone."
+    export KART_BUNDLE_ID="$DERIVED"
+    if ! grep -q '^KART_BUNDLE_ID=' "$ROOT/.kartrc" 2>/dev/null; then
+      printf 'KART_BUNDLE_ID=%s\n' "$DERIVED" >> "$ROOT/.kartrc"
+    else
+      sed -i '' "s|^KART_BUNDLE_ID=.*|KART_BUNDLE_ID=$DERIVED|" "$ROOT/.kartrc"
+    fi
+    echo "Recorded in .kartrc, so later runs use it without asking."
+    exec "$0" "$CONFIG"
+  fi
+
+  fail "The bundle identifier this build asked for cannot be registered to your Apple team.
 
 App IDs are unique across the whole Apple developer program, so two teams cannot both
-register one. This is what a fresh clone hits before it has an identifier of its own.
+register one, and a free team is additionally capped on how many it may register per week.
 
   ./scripts/setup.sh
 
@@ -230,10 +288,39 @@ Nothing was installed."
 fi
 
 echo "Installing $APP_DIR"
-if ! xcrun devicectl device install app --device "$DEVICE_ID" "$APP_DIR"; then
+INSTALL_LOG="$(mktemp -t kart-device-install)"
+if ! xcrun devicectl device install app --device "$DEVICE_ID" "$APP_DIR" 2>&1 | tee "$INSTALL_LOG"; then :; fi
+
+if ! grep -q 'App installed' "$INSTALL_LOG"; then
+  # The expired profile deserves its own message because it is the one failure here that is not
+  # a mistake: a free Apple ID signs for seven days, and on the eighth every install stops with
+  # `0xe8008011`, reported as an integrity failure. Read literally, "its integrity could not be
+  # verified" says the app is corrupt, so the week this went unclassified was spent looking at
+  # the build rather than at the calendar. Step 3b already prunes expired profiles before the
+  # build, so reaching this means the fresh one was expired too, which only happens if the
+  # system clock is wrong or the account lost its certificate.
+  if grep -qi 'profile has expired\|0xe8008011' "$INSTALL_LOG"; then
+    fail "The signing profile for this build has already expired.
+
+A free Apple ID signs a build for seven days. This script deletes expired profiles before
+building so Xcode issues a new one, and the new one is expired too, which means either
+this Mac's clock is wrong or the Apple ID in Xcode no longer has a valid certificate.
+
+Check the date, then Xcode -> Settings -> Accounts -> your Apple ID -> Manage Certificates,
+and confirm there is an Apple Development certificate. Then run this again.
+
+$(grep -m3 -i 'expired\|error' "$INSTALL_LOG")"
+  fi
+
+  if grep -qi 'device is locked\|passcode' "$INSTALL_LOG"; then
+    fail "The phone was locked during the install. Unlock it, keep it unlocked, and run this again."
+  fi
+
   fail "The build succeeded and the install did not. Nothing is on the phone.
 
-If this says the device is locked, unlock it and run this again."
+$(tail -15 "$INSTALL_LOG")
+
+Full log: $INSTALL_LOG"
 fi
 
 echo

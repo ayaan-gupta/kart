@@ -56,7 +56,9 @@ CHECK=0
 if [ "${1:-}" = "--check" ]; then CHECK=1; shift; fi
 
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
-step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/8] %s\033[0m\n' "$STEP" "$*"; }
+# Nine, not eight. The count was wrong from the first version and the last step printed
+# "[9/8]", which is a small thing that reads like the script has lost its place.
+step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/9] %s\033[0m\n' "$STEP" "$*"; }
 ok()    { printf '      %s\n' "$*"; }
 WARNINGS=0
 warn()  { WARNINGS=$((WARNINGS + 1)); printf '      warning: %s\n' "$*"; }
@@ -351,9 +353,18 @@ step "Building and installing on the phone"
 
 export KART_TEAM_ID KART_BUNDLE_ID
 
+# `-F` for the machine's own name, and its own grep. Interpolating it into the alternation
+# above made it a pattern: a Mac called "MacBook Pro (2)" contributes a capture group, and one
+# called "Ayaan's MacBook Pro [work]" a character class, so the filter either drops the wrong
+# lines or fails outright. The fallback string matters too, because `grep -vF ""` matches every
+# line and would report every phone as this Mac.
+THIS_MAC="$(scutil --get ComputerName 2>/dev/null)"
+[ -n "$THIS_MAC" ] || THIS_MAC='___no-such-machine___'
+
 if ! xcrun xctrace list devices 2>/dev/null \
   | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
-  | grep -viE "simulator|^== |^$|$(scutil --get ComputerName 2>/dev/null || echo '___nope___')" \
+  | grep -viE "simulator|^== |^$" \
+  | grep -viF "$THIS_MAC" \
   | grep -q .; then
   bold ""
   bold "Everything on this Mac is ready. The phone is not attached yet."
