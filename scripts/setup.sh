@@ -192,14 +192,14 @@ if [ "$CHECK" = 1 ]; then
 else
   if [ ! -d node_modules ]; then
     ok "npm install, in the app. First time takes a couple of minutes."
-    npm install --silent || fail "npm install failed in the app. The output above says why."
+    npm install --no-audit --no-fund || fail "npm install failed in the app. The output above says why."
   else
     ok "app dependencies already present"
   fi
 
   if [ ! -d server/node_modules ]; then
     ok "npm install, in the recognition service."
-    (cd server && npm install --silent) || fail "npm install failed in server/. The output above says why."
+    (cd server && npm install --no-audit --no-fund) || fail "npm install failed in server/. The output above says why."
   else
     ok "service dependencies already present"
   fi
@@ -215,9 +215,21 @@ fi
 # ---------------------------------------------------------------------------------------------
 step "Pointing the app at this Mac"
 
-# The phone talks to the recognition service over wifi, by this machine's address on the local
-# network. Taken from whichever interface actually carries the default route, so this is right on
-# a Mac on ethernet, on a dock, or on any interface that is not en0.
+# The phone talks to the recognition service over wifi. Both ways of reaching this Mac are
+# written, because neither survives on its own and the cost of the wrong one going stale is not a
+# setting to change: EXPO_PUBLIC_ values are inlined into the JS bundle at build time, so a dead
+# address means a full native rebuild.
+#
+#   - The Bonjour name is stable. It does not change when the laptop moves between wifi and a
+#     phone hotspot, so it goes first.
+#   - The address is not stable, being a DHCP lease, but it works on the networks that block
+#     mDNS and leave the name unresolvable. It goes in the fallbacks.
+#
+# Writing only the address, which is what this did, is the case .env.example warns about in so
+# many words. It produced a build that worked on the network it was made on and was dead on
+# every other one, and the only working .env on the machine that wrote this script was a
+# hand-written file that did it the way described here. So the script had never once produced
+# the configuration the project actually runs on.
 lan_address() {
   local iface addr
   iface="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')"
@@ -229,26 +241,57 @@ lan_address() {
 }
 
 LAN="$(lan_address)"
-if [ -z "$LAN" ]; then
+# `scutil --get LocalHostName`, not ComputerName: this is the sanitised form Bonjour actually
+# publishes, so "Ayaan's MacBook Pro" is "Ayaans-MacBook-Pro" here and .local resolves it.
+BONJOUR="$(scutil --get LocalHostName 2>/dev/null)"
+
+API_URL=""
+# 192.0.0.2 is the address this Mac takes when it is tethered to an iPhone's hotspot, which is
+# the one network where the laptop has no lease worth writing down. A fallback that does not
+# answer costs a probe and nothing else, so it is always worth carrying.
+FALLBACKS="http://192.0.0.2:4310"
+
+if [ -n "$BONJOUR" ]; then
+  API_URL="http://$BONJOUR.local:4310"
+  [ -n "$LAN" ] && FALLBACKS="http://$LAN:4310,$FALLBACKS"
+elif [ -n "$LAN" ]; then
+  warn "This Mac publishes no Bonjour name, so the phone has to use the address instead."
+  warn "That works until this Mac's lease changes, and fixing it then needs a full rebuild."
+  API_URL="http://$LAN:4310"
+fi
+
+if [ -z "$API_URL" ]; then
   warn "This Mac has no address on a local network, so the phone will have nothing to reach."
   warn "Join a wifi network and run this again. Continuing, but recognition will not work."
-  API_URL=""
 else
-  API_URL="http://$LAN:4310"
   ok "Service address for the phone: $API_URL"
+  ok "Fallbacks, probed in order if that one does not answer: $FALLBACKS"
 fi
 
 # EXPO_PUBLIC_ is the only prefix Expo inlines into the client bundle, which is exactly why
 # nothing secret goes in this file. It holds a hostname and nothing else.
+#
+# Both keys are rewritten rather than merged. Re-running is documented as the way to pick up a
+# changed network, and a merge would keep the stale lease that made the re-run necessary.
+set_env() {
+  local key="$1" value="$2"
+  if [ -f .env ] && grep -q "^$key=" .env; then
+    # `|` as the delimiter, because every value here is a URL and contains slashes.
+    sed -i '' "s|^$key=.*|$key=$value|" .env
+  else
+    printf '%s=%s\n' "$key" "$value" >> .env
+  fi
+}
+
 if [ -n "$API_URL" ]; then
   if [ "$CHECK" = 1 ]; then
     ok "would write EXPO_PUBLIC_KART_API_URL=$API_URL to .env"
-  elif [ -f .env ] && grep -q '^EXPO_PUBLIC_KART_API_URL=' .env; then
-    sed -i '' "s|^EXPO_PUBLIC_KART_API_URL=.*|EXPO_PUBLIC_KART_API_URL=$API_URL|" .env
+    ok "would write EXPO_PUBLIC_KART_API_FALLBACKS=$FALLBACKS to .env"
   else
-    printf 'EXPO_PUBLIC_KART_API_URL=%s\n' "$API_URL" >> .env
+    set_env EXPO_PUBLIC_KART_API_URL "$API_URL"
+    set_env EXPO_PUBLIC_KART_API_FALLBACKS "$FALLBACKS"
+    ok "written to .env"
   fi
-  [ "$CHECK" = 1 ] || ok "written to .env"
 fi
 
 # ---------------------------------------------------------------------------------------------
@@ -353,19 +396,32 @@ step "Building and installing on the phone"
 
 export KART_TEAM_ID KART_BUNDLE_ID
 
-# `-F` for the machine's own name, and its own grep. Interpolating it into the alternation
-# above made it a pattern: a Mac called "MacBook Pro (2)" contributes a capture group, and one
-# called "Ayaan's MacBook Pro [work]" a character class, so the filter either drops the wrong
-# lines or fails outright. The fallback string matters too, because `grep -vF ""` matches every
-# line and would report every phone as this Mac.
-THIS_MAC="$(scutil --get ComputerName 2>/dev/null)"
-[ -n "$THIS_MAC" ] || THIS_MAC='___no-such-machine___'
+# A phone's line is `Name (26.6.1) (00008120-...)`: an OS version, then a UDID. This Mac's own
+# line is `Name (8053D28D-...)`, one group and no version. The shape tells them apart, and unlike
+# a name it is the same on every machine.
+#
+# Matching this Mac by `scutil --get ComputerName`, which is what this did, had two ways to be
+# wrong and no way to say so. If the name did not match the line, the Mac stayed in the list and
+# `head -1` below pointed the entire build at the laptop; that line carries no version, so the
+# iOS 17 check reads a non-number and skips itself, and the first honest error arrives much later
+# from xcodebuild. If this Mac's name was a substring of the phone's, which is one rename away on
+# a machine where both are named after their owner, the phone was filtered out instead and the
+# script reported no phone attached while one was plugged in.
+#
+# The hardware UUID is exact, has no characters that need quoting, and is what this Mac's own
+# line ends with, so it also covers a Mac whose name happens to end in something version shaped.
+HOST_UUID="$(ioreg -rd1 -c IOPlatformExpertDevice 2>/dev/null | awk -F'"' '/IOPlatformUUID/{print $4}')"
+[ -n "$HOST_UUID" ] || HOST_UUID='___no-such-machine___'
 
-if ! xcrun xctrace list devices 2>/dev/null \
-  | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
-  | grep -viE "simulator|^== |^$" \
-  | grep -viF "$THIS_MAC" \
-  | grep -q .; then
+attached_devices() {
+  xcrun xctrace list devices 2>/dev/null \
+    | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
+    | grep -E '\([0-9]+\.[0-9.]+\) \([0-9A-Fa-f-]+\)$' \
+    | grep -v 'Simulator' \
+    | grep -vF "$HOST_UUID"
+}
+
+if ! attached_devices | grep -q .; then
   bold ""
   bold "Everything on this Mac is ready. The phone is not attached yet."
   cat <<'MSG'

@@ -43,19 +43,32 @@ export KART_TEAM_ID="${KART_TEAM_ID:-}" KART_BUNDLE_ID="${KART_BUNDLE_ID:-}"
 fail() { printf '\n%s\n' "$*" >&2; exit 1; }
 
 # ---- 1. A device has to be attached, and paired.
-# `xctrace list devices` prints simulators too, so the physical ones are the entries that are
-# neither a Simulator nor this Mac.
-# `-F`, not `-E`: this is a machine name, not a pattern. A Mac called "MacBook Pro (2)" made
-# the old `-E` read parentheses as a capture group, and the empty fallback would have matched
-# every line and hidden every phone.
-THIS_MAC="$(scutil --get ComputerName 2>/dev/null)"
-[ -n "$THIS_MAC" ] || THIS_MAC='___no-such-machine___'
+# A phone's line is `Name (26.6.1) (00008120-...)`: an OS version, then a UDID. This Mac's own
+# line is `Name (8053D28D-...)`, one group and no version. The shape tells them apart, and unlike
+# a name it is the same on every machine.
+#
+# Matching this Mac by `scutil --get ComputerName`, which is what this did, had two ways to be
+# wrong and no way to say so. If the name did not match the line, the Mac stayed in the list and
+# `head -1` below pointed the entire build at the laptop; that line carries no version, so the
+# iOS 17 check reads a non-number and skips itself, and the first honest error arrives much later
+# from xcodebuild. If this Mac's name was a substring of the phone's, which is one rename away on
+# a machine where both are named after their owner, the phone was filtered out instead and the
+# script reported no phone attached while one was plugged in.
+#
+# The hardware UUID is exact, has no characters that need quoting, and is what this Mac's own
+# line ends with, so it also covers a Mac whose name happens to end in something version shaped.
+HOST_UUID="$(ioreg -rd1 -c IOPlatformExpertDevice 2>/dev/null | awk -F'"' '/IOPlatformUUID/{print $4}')"
+[ -n "$HOST_UUID" ] || HOST_UUID='___no-such-machine___'
 
-DEVICE_LINE="$(xcrun xctrace list devices 2>/dev/null \
-  | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
-  | grep -viE 'simulator|^== |^$' \
-  | grep -viF "$THIS_MAC" \
-  | head -1)"
+attached_devices() {
+  xcrun xctrace list devices 2>/dev/null \
+    | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
+    | grep -E '\([0-9]+\.[0-9.]+\) \([0-9A-Fa-f-]+\)$' \
+    | grep -v 'Simulator' \
+    | grep -vF "$HOST_UUID"
+}
+
+DEVICE_LINE="$(attached_devices | head -1)"
 
 if [ -z "$DEVICE_LINE" ]; then
   fail "No iPhone is attached.
