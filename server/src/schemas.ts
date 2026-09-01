@@ -85,6 +85,21 @@ export const CensusResponse = z.object({
    * is what every caller before this field assumed.
    */
   subjectIsCart: z.boolean().optional(),
+  /**
+   * What the camera is pointed at, which decides whether this census may reach the bag.
+   *
+   * `subjectIsCart` could not carry this question. It has two values and there are three cases:
+   * the shopper's own trolley, a shop's shelves, and a shopper holding one product up to the
+   * camera. The first and third must both reach the bag and the second must never reach it, so a
+   * boolean that means "cart" has to answer false for the third and empty a bag the shopper was
+   * deliberately filling. See `server/eval/pipeline/scene-gate.ts`, which scores all three.
+   *
+   * Optional here and required in `censusJsonSchema`, for the same reason `subjectIsCart` is:
+   * strict mode makes the model answer on every call, while a response from an older deployment,
+   * or from `localvlm/serve.py`, which does not answer this at all, still parses. Absent falls
+   * back to `subjectIsCart`, which preserves exactly the old behaviour.
+   */
+  subjectKind: z.enum(["cart", "product", "shelf"]).optional(),
   marks: z.array(MarkIdentification),
   unmarkedItems: z.array(UnmarkedItem),
   inViewCounts: z.array(InViewCount),
@@ -170,6 +185,7 @@ export const censusJsonSchema = {
   type: "object",
   properties: {
     subjectIsCart: { type: "boolean" },
+    subjectKind: { type: "string", enum: ["cart", "product", "shelf"] },
     marks: {
       type: "array",
       items: {
@@ -231,7 +247,7 @@ export const censusJsonSchema = {
       additionalProperties: false,
     },
   },
-  required: ["subjectIsCart", "marks", "unmarkedItems", "inViewCounts", "occlusion"],
+  required: ["subjectIsCart", "subjectKind", "marks", "unmarkedItems", "inViewCounts", "occlusion"],
   additionalProperties: false,
 } as const;
 

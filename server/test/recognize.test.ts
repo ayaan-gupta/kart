@@ -971,3 +971,58 @@ describe("a photograph that is not a cart cannot fill a bag", () => {
     expect(result.marks).toHaveLength(1);
   });
 });
+
+describe("a product held up to the camera fills a bag, a shop's shelf does not", () => {
+  // The gate above was a boolean and could not tell those two apart: both answer false to "is
+  // this a cart", so a shopper presenting one product to the camera had their bag emptied along
+  // with the shelf photographs. Measured on server/eval/corpus/kart/scene-labels.json through
+  // scene-gate.ts, three runs of each of twelve photographs: the boolean scored cart 6/6,
+  // shelf 4/4, product 0/2, and the three-way field scores 18/18, 12/12 and 6/6.
+  const scene = (subjectKind: string | undefined, subjectIsCart: boolean) => ({
+    subjectIsCart,
+    ...(subjectKind === undefined ? {} : { subjectKind }),
+    marks: [wellFormedMark],
+    unmarkedItems: [{
+      description: "shelled walnuts", productKey: "southern grove::shelled walnuts",
+      catalogSku: null, approxLocation: "centre of the table", confidence: 0.97,
+    }],
+    inViewCounts: [{ productKey: "kelloggs::froot loop", count: 1 }],
+    occlusion: wellFormedOcclusion,
+  });
+  const marks: Mark[] = [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }];
+
+  it("keeps a product scene, even though it is not a cart", async () => {
+    mockOutput(scene("product", false));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toHaveLength(1);
+    expect(result.unmarkedItems).toHaveLength(1);
+    expect(result.inViewCounts).toHaveLength(1);
+  });
+
+  it("keeps a cart scene", async () => {
+    mockOutput(scene("cart", true));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toHaveLength(1);
+  });
+
+  it("still empties a shelf scene", async () => {
+    mockOutput(scene("shelf", false));
+    const result = await runCensus(await blankJpeg(), marks);
+    expect(result.marks).toEqual([]);
+    expect(result.unmarkedItems).toEqual([]);
+    expect(result.inViewCounts).toEqual([]);
+  });
+
+  // subjectKind is what decides, so a stale or disagreeing boolean beside it must not empty a bag
+  // the kind says to keep. The prompt asks for them to agree; this pins what happens when they do
+  // not, rather than leaving it to the order the two are read in.
+  it("lets the kind decide when the boolean disagrees with it", async () => {
+    mockOutput(scene("product", false));
+    const kept = await runCensus(await blankJpeg(), marks);
+    expect(kept.unmarkedItems).toHaveLength(1);
+
+    mockOutput(scene("shelf", true));
+    const emptied = await runCensus(await blankJpeg(), marks);
+    expect(emptied.unmarkedItems).toEqual([]);
+  });
+});

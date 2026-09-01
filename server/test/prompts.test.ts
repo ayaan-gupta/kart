@@ -220,24 +220,41 @@ describe("censusUserText carries what the session already counted", () => {
   });
 });
 
-describe("CENSUS_SYSTEM_PROMPT asks whether the photograph is even a cart", () => {
+describe("CENSUS_SYSTEM_PROMPT asks what kind of scene the photograph is", () => {
   // Measured on the four shelf photographs in the kart corpus: without this the census called 102
   // of 102 badges products and refused none, which would put up to 41 items a shopper is not buying
   // into their bag. The schema requires the field, so removing only the rule would leave the model
   // answering a question it has not been told how to answer.
-  it("names the field and what makes something a cart", () => {
+  it("names both fields and what makes something a cart", () => {
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/subjectKind/);
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/subjectIsCart/);
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/mesh|basket/i);
   });
 
-  it("names the cases it must be false for", () => {
+  it("offers all three kinds", () => {
+    for (const kind of ["cart", "product", "shelf"]) {
+      expect(CENSUS_SYSTEM_PROMPT).toMatch(new RegExp(`"${kind}"`));
+    }
+  });
+
+  it("names the cases that must be shelf", () => {
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/shelves/i);
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/chiller|display/i);
+  });
+
+  // The product case is the one a boolean could not express, and the wording that makes it work
+  // is specifically that the goods decide it and not the furniture behind them. Measured on
+  // PRACTICE_0001, two cartons standing on a table in front of a bookcase: worded as "no shelving
+  // behind them" the model called it shelf on 2 of 3 runs and the shopper's bag stayed empty.
+  // See server/eval/pipeline/scene-gate.ts.
+  it("tells it to read the goods rather than the background", () => {
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/bookcase|furniture/i);
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/background/i);
   });
 
   it("asks it about the photograph rather than about the badges", () => {
     // Whitespace-tolerant: the prompt is wrapped, so this phrase spans a line break. Asserting
     // the literal string would make the test hostage to the wrap column.
-    expect(CENSUS_SYSTEM_PROMPT).toMatch(/judge\s+the\s+photograph,\s+not\s+the\s+badges/i);
+    expect(CENSUS_SYSTEM_PROMPT).toMatch(/judge\s+the\s+photograph\s+as\s+a\s+whole,\s+not\s+the\s+badges/i);
   });
 });

@@ -410,8 +410,8 @@ function normalizeCensusResponse(
   response: CensusResponse,
   diagnostics?: CensusDiagnostics,
 ): CensusResponse {
-  // A photograph of a shop's shelves is not a cart, and nothing that comes back about one may
-  // reach a bag.
+  // A photograph of a shop's shelves is not the shopper's, and nothing that comes back about one
+  // may reach a bag.
   //
   // Rule 13 already forbids counting "shelves, displays, other shoppers' carts, the floor and
   // anything held in a hand", and the model ignores it per badge: measured on the four shelf
@@ -424,7 +424,21 @@ function normalizeCensusResponse(
   // one too old to know the field exists. `occlusion` is kept because it describes the photograph
   // rather than the goods, and the absent case reads as a cart, which is what every caller
   // assumed before this field existed.
-  if (response.subjectIsCart === false) {
+  //
+  // The test is "is this the shop's", not "is this a cart". Those came apart on 2026-09-01: the
+  // gate was a boolean and a shopper holding one product up to the camera answers false to
+  // "is this a cart", so their bag was emptied along with the shelf photographs. Measured on
+  // `scene-labels.json` through `scene-gate.ts`, the boolean scored cart 6/6, shelf 4/4 and
+  // product 0/2, and the two it missed are the interaction the product owner asked for. The
+  // model named both correctly and this line deleted the answer; PRACTICE_0002 came back as
+  // "southern grove::shelled walnuts" at 0.97 and reached the shopper as nothing at all.
+  //
+  // So only "shelf" empties the response now. `subjectKind` absent falls back to the old boolean,
+  // which keeps an older deployment and `localvlm/serve.py`, which does not answer this at all,
+  // behaving exactly as before.
+  const subjectKind =
+    response.subjectKind ?? (response.subjectIsCart === false ? "shelf" : "cart");
+  if (subjectKind === "shelf") {
     return { ...response, marks: [], unmarkedItems: [], inViewCounts: [] };
   }
 

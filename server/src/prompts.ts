@@ -15,10 +15,28 @@ detector found. Your job is to say what product is in each numbered region.
 
 Rules:
 
-0. subjectIsCart: is the inside of one shopping cart the subject of this photograph? A cart has
-   its own wire mesh or moulded basket around the goods. False for a shop's shelves, a chiller, a
-   display stand, a table or a floor, however full of products. Judge the photograph, not the
-   badges.
+0. subjectKind: what is the camera pointed at? Judge the photograph as a whole, not the badges.
+   Exactly one of:
+     "cart"    the inside of the shopper's own trolley or basket, with its wire mesh or moulded
+               basket around the goods.
+     "product" one or a few products the shopper is showing the camera, held up in a hand or
+               standing on a table, counter, worktop or floor in front of them. A handful of
+               items at most, each one separately visible, filling much of the frame.
+     "shelf"   goods that are still the shop's: a shop's shelves, a chiller, a display stand, an
+               aisle end, or another shopper's trolley. The signs are in the goods themselves,
+               not in the furniture. Look for many products in rows, the same product repeated
+               across several facings, stock stacked deep, and price labels along a shelf edge.
+   Decide by whose goods they are, and read that from the goods rather than from what is behind
+   them. Furniture in the background does not make a photograph "shelf": a bookcase, a cupboard
+   or a kitchen shelf behind two boxes standing on a table is background, and the subject is the
+   two boxes, so that is "product". A shelf photograph has the goods themselves arranged as
+   stock for sale.
+   When "cart" and "product" both seem to fit, choose "cart" if a trolley or basket encloses the
+   goods and "product" if nothing does. When "shelf" and "product" both seem to fit, choose
+   "shelf" only if the goods are laid out as stock for sale, several facings deep or with price
+   labels; a few loose items in front of a piece of furniture are "product".
+   Also set subjectIsCart, true when subjectKind is "cart" and false otherwise, so the two never
+   disagree.
 1. Identify at brand level whenever the packaging is legible. Split what you see into three
    separate fields: name is the product name alone, without the brand ("Froot Loops"); brand
    is the manufacturer or brand name alone ("Kellogg's"); size is the package size or quantity
@@ -86,11 +104,15 @@ Rules:
 13. inViewCounts is how many distinct physical units of each product are in the cart in this
     one image. One bunch of bananas is 1, not the number of bananas in it. Two identical bags
     of chips is 2. Count only what is visible in this image, and do not speculate about the
-    rest of the cart. Count only what is inside the cart: shelves, displays, other shoppers'
-    carts, the floor and anything held in a hand are not in this cart and must not be counted,
-    marked, or listed as unmarked. This count is now what sets the quantity in the shopper's
-    bag, so both directions of error show up: too high invents items they are not buying, too
-    low drops items they are. Report this quantity in the count field of inViewCounts.
+    rest of the cart. Count only what the shopper is buying, which depends on subjectKind. When
+    it is "cart", that is what is inside their cart: shelves, displays, other shoppers' carts,
+    the floor and anything held in a hand are not in this cart and must not be counted, marked,
+    or listed as unmarked. When it is "product", it is the goods they are presenting, which are
+    usually held in a hand or standing on a surface, and those are exactly what to count; a
+    bookshelf, a worktop or anything else behind them is not. This count is now what sets the
+    quantity in the shopper's bag, so both directions of error show up: too high invents items
+    they are not buying, too low drops items they are. Report this quantity in the count field
+    of inViewCounts.
 14. productKey in inViewCounts is lowercase "brand::name" with punctuation removed and accents
     folded to plain ASCII letters, for example "kelloggs::froot loops". A brand like "Café
     Bustelo" folds to "cafe bustelo", not "café bustelo". Use "" for the brand of unbranded

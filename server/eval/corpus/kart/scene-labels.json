@@ -1,0 +1,42 @@
+{
+ "note": "What kind of scene each photograph is, and therefore what the census is allowed to put in the shopper's bag. This is the label set for the subject gate in `normalizeCensusResponse`, which decides whether a census reaches the bag at all. Scored by `server/eval/pipeline/scene-gate.ts`.",
+ "why": "The gate was written to stop a photograph of a shop's shelves from filling the bag with goods the shopper is not buying, and it does that correctly. It was written as one boolean, cart or not, so it also empties the bag for a shopper who holds a single product up to the camera, which is the interaction the product owner asked for on 2026-09-01: point the phone at a grocery item and have it added to the cart. Those are two different scenes and one boolean cannot separate them, so the label has three values.",
+ "kinds": {
+  "cart": "the inside of the shopper's own trolley or basket. Census everything, this is the original use case.",
+  "product": "one or a few products the shopper is presenting to the camera, held up or set down on a surface. Census them: this is the shopper showing the app what they are buying.",
+  "shelf": "retail shelving, a chiller, a display stand, another shopper's trolley, the floor. Name nothing. The goods are not theirs and must never reach the bag."
+ },
+ "provenance": "cart and shelf assignments are taken verbatim from `counts.json` in this folder, which states that IMG_0247, IMG_0248, IMG_0250 and IMG_0251 are store shelves and the other six are one trolley being loaded. The two practice stills are labelled here for the first time; `manifest.json` recorded them as unlabelled and described their contents, and those descriptions match what is in the files.",
+ "images": [
+  { "id": "IMG_0244", "kind": "cart", "expect_items": true, "note": "one cauliflower in an otherwise empty trolley" },
+  { "id": "IMG_0245", "kind": "cart", "expect_items": true, "note": "the same cauliflower, closer" },
+  { "id": "IMG_0246", "kind": "cart", "expect_items": true, "note": "cauliflower and a brussels sprouts bag" },
+  { "id": "IMG_0249", "kind": "cart", "expect_items": true, "note": "cauliflower, sprouts, asparagus" },
+  { "id": "IMG_0252", "kind": "cart", "expect_items": true, "note": "the loaded trolley, and the subject of the scan video" },
+  { "id": "IMG_0254", "kind": "cart", "expect_items": true, "note": "the loaded trolley from a second angle" },
+
+  { "id": "IMG_0247", "kind": "shelf", "expect_items": false, "note": "produce display with price tags. 24 badges, all 24 called products before the gate existed" },
+  { "id": "IMG_0248", "kind": "shelf", "expect_items": false, "note": "shelving. 20 badges, all 20 called products" },
+  { "id": "IMG_0250", "kind": "shelf", "expect_items": false, "note": "refrigerated display. 43 badges, all 43 called products, and the model's own occlusion note called it 'the cart shelves'" },
+  { "id": "IMG_0251", "kind": "shelf", "expect_items": false, "note": "shelving. 15 badges, all 15 called products" },
+
+  {
+   "id": "PRACTICE_0001",
+   "kind": "product",
+   "expect_items": true,
+   "expect_units": 2,
+   "expect_legible": false,
+   "note": "two identical yellow cartons side by side on a table, shot through the app's own camera. Motion blurred and the label text is not readable, so the honest answer names the form and not a brand, with needsCloserLook set. Two of one product, which is the quantity case CLAUDE.md names."
+  },
+  {
+   "id": "PRACTICE_0002",
+   "kind": "product",
+   "expect_items": true,
+   "expect_units": 1,
+   "expect_legible": true,
+   "expect_name_contains": ["walnut"],
+   "expect_brand_contains": ["southern grove"],
+   "note": "one Southern Grove Shelled Walnuts bag on a table, shot through the app's own camera. Brand and product name are both legible, so this one is scored on naming as well as on reaching the bag."
+  }
+ ]
+}
