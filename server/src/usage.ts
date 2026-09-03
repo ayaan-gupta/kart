@@ -42,6 +42,50 @@ interface ModelUsage {
 const totals = new Map<string, ModelUsage>();
 
 /**
+ * USD per million tokens, from OpenAI's published standard-tier pricing.
+ *
+ * Token counts alone could not answer the question this file exists for. A model that halves the
+ * tokens and quadruples the rate is worse, and the table above reported it as better; comparing
+ * two tiers meant looking the rates up by hand every time, which is exactly the friction that let
+ * the original bill go unnoticed.
+ *
+ * A model missing from this table is reported in tokens with no cost rather than at zero, because
+ * a new tier silently costing nothing is the same invisibility in a new coat. Prices move: this is
+ * a development aid for comparing arms of a sweep, not an invoice.
+ */
+const PRICES_PER_MTOK: Record<string, { input: number; cached: number; output: number }> = {
+  "gpt-5.6-luna": { input: 0.2, cached: 0.02, output: 1.2 },
+  "gpt-5.6-terra": { input: 2, cached: 0.2, output: 12 },
+  "gpt-5.6-sol": { input: 4, cached: 0.4, output: 20 },
+  "gpt-5.5": { input: 5, cached: 0.5, output: 30 },
+  "gpt-5.4": { input: 2.5, cached: 0.25, output: 15 },
+  "gpt-5.4-mini": { input: 0.75, cached: 0.075, output: 4.5 },
+  "gpt-5.4-nano": { input: 0.2, cached: 0.02, output: 1.25 },
+};
+
+/**
+ * What one model's usage cost, or null when the tier is not in the table.
+ *
+ * Cached input is billed at its own lower rate and is a subset of `inputTokens`, not an addition
+ * to it, so the uncached remainder is what the full rate applies to. Getting that wrong overstates
+ * a cached-heavy run by roughly the discount it is trying to measure.
+ */
+function costUsd(model: string, u: ModelUsage): number | null {
+  const price = PRICES_PER_MTOK[model];
+  if (price === undefined) return null;
+  const uncached = Math.max(0, u.inputTokens - u.cachedInputTokens);
+  return (
+    (uncached * price.input + u.cachedInputTokens * price.cached + u.outputTokens * price.output) /
+    1_000_000
+  );
+}
+
+/** Cents, to four decimals, because a census call costs a small fraction of one. */
+function formatUsd(usd: number): string {
+  return `$${usd.toFixed(4)}`;
+}
+
+/**
  * Records one call.
  *
  * Both token counts are optional because the Responses API's `usage` is not guaranteed to be
@@ -79,22 +123,38 @@ export function formatUsage(): string {
   if (totals.size === 0) return "";
   const rows = [...totals]
     .sort((a, b) => b[1].inputTokens - a[1].inputTokens)
-    .map(([model, u]) =>
-      `[usage]   ${model.padEnd(18)} ${String(u.calls).padStart(5)} calls  ` +
-      `${u.inputTokens.toLocaleString().padStart(12)} in  ` +
-      `${u.cachedInputTokens.toLocaleString().padStart(12)} cached  ` +
-      `${u.outputTokens.toLocaleString().padStart(10)} out`);
+    .map(([model, u]) => {
+      const usd = costUsd(model, u);
+      return (
+        `[usage]   ${model.padEnd(18)} ${String(u.calls).padStart(5)} calls  ` +
+        `${u.inputTokens.toLocaleString().padStart(12)} in  ` +
+        `${u.cachedInputTokens.toLocaleString().padStart(12)} cached  ` +
+        `${u.outputTokens.toLocaleString().padStart(10)} out  ` +
+        (usd === null
+          ? "  (no price on file)"
+          : `${formatUsd(usd).padStart(10)}  ${formatUsd(usd / u.calls)}/call`)
+      );
+    });
   const calls = [...totals.values()].reduce((n, u) => n + u.calls, 0);
   const input = [...totals.values()].reduce((n, u) => n + u.inputTokens, 0);
   const cached = [...totals.values()].reduce((n, u) => n + u.cachedInputTokens, 0);
   const output = [...totals.values()].reduce((n, u) => n + u.outputTokens, 0);
+  // null if any model in the run has no price on file, rather than a total that silently omits
+  // one arm of a sweep and reads as if it were the whole spend.
+  const costs = [...totals].map(([model, u]) => costUsd(model, u));
+  const priced = costs.some((c) => c === null)
+    ? null
+    : costs.reduce((n: number, c) => n + (c ?? 0), 0);
   return [
     `[usage] ${calls} OpenAI call${calls === 1 ? "" : "s"} this run`,
     ...rows,
     `[usage]   ${"total".padEnd(18)} ${String(calls).padStart(5)} calls  ` +
     `${input.toLocaleString().padStart(12)} in  ` +
     `${cached.toLocaleString().padStart(12)} cached  ` +
-    `${output.toLocaleString().padStart(10)} out`,
+    `${output.toLocaleString().padStart(10)} out  ` +
+    (priced === null
+      ? "  (no price on file)"
+      : `${formatUsd(priced).padStart(10)}  ${formatUsd(priced / calls)}/call`),
     // Silence here is the failure mode worth naming. Caching needs no parameter and reports no
     // error, so a lost discount looks exactly like a working system that costs 18% more.
     cached === 0 && input > 0

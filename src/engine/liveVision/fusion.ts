@@ -202,6 +202,34 @@ function foldPlural(word: string): string {
   return word;
 }
 
+/**
+ * The brand an unmarked sighting carries, read back out of its canonical key.
+ *
+ * `unmarkedItems` has no brand field: a marked badge reports name, brand and size separately, and
+ * an unmarked one reports a free-text description plus the "brand::name" key. So the brand is
+ * there on every unmarked product, just not anywhere a caller was reading. With no detector
+ * configured every product in a scan is unmarked, which meant `itemSubtitle` had a brand to show
+ * for no item at all.
+ *
+ * Title-cased because the key is deliberately lowercased and accent-folded for joining, and is not
+ * a display string. That is lossy and knowingly so: "cafe bustelo" cannot be turned back into
+ * "Café Bustelo" from the key alone. It is still much better than showing nothing, and a marked
+ * badge, which reports the brand properly cased, is unaffected by any of this.
+ *
+ * Empty brand segment means unbranded produce, per rule 14's "::bananas", and stays null rather
+ * than becoming an empty string the subtitle would render as a stray separator.
+ */
+export function brandFromKey(key: string): string | null {
+  const separator = key.indexOf('::');
+  if (separator <= 0) return null;
+  const brand = key.slice(0, separator).trim();
+  if (brand.length === 0) return null;
+  return brand
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export function productKey(name: string, brand: string | null): string {
   const norm = (s: string) =>
     s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
@@ -725,7 +753,7 @@ export function applyCensus(
       working.identities[`${CENSUS_IDENTITY_PREFIX}${key}`] = {
         key,
         name,
-        brand: null,
+        brand: brandFromKey(key),
         size: null,
         category: 'other',
         // The model's own confidence, passed through rather than invented. needsCloserLook is

@@ -62,7 +62,27 @@ export const MODELS = {
    * no screen that captures a single still, so every census it makes is one that will be fused.
    * The split had nothing left to select on and was removed rather than left choosing wrongly.
    */
-  census: process.env.KART_CENSUS_MODEL?.trim() || "gpt-5.4-mini",
+  /**
+   * Moved from gpt-5.4-mini to gpt-5.6-luna on 2026-09-03, for cost, measured rather than assumed.
+   *
+   * `server/eval/pipeline/scene-gate.ts --repeat 3`, the same twelve labelled photographs three
+   * times each, one arm per model:
+   *
+   *                      gate        cart      product    shelf     cache   cost/call
+   *     gpt-5.4-mini     36 of 36    18 of 18  6 of 6     12 of 12   73%    $0.0027
+   *     gpt-5.6-luna     36 of 36    18 of 18  6 of 6     12 of 12  100%    $0.0005
+   *
+   * Identical on every accuracy axis measured, including quantity on both product stills (3 of 3
+   * each), and 5.4x cheaper. Latency is a wash: 1.5 to 1.8 seconds a call either way.
+   *
+   * The one difference is wording, not reading. mini tends to repeat the brand inside the
+   * free-text description ("Southern Grove shelled walnuts"), luna does not ("Shelled walnuts").
+   * Both read the brand correctly: luna put "southern grove::shelled walnuts" in the productKey on
+   * 5 of 5 runs. That difference used to be invisible in the bag, because the bag hardcoded a null
+   * brand for every unmarked product; `brandFromKey` in fusion.ts now reads it back out, so the
+   * subtitle shows the brand on either model.
+   */
+  census: process.env.KART_CENSUS_MODEL?.trim() || "gpt-5.6-luna",
   /**
    * Identify: one tight crop of an uncertain item.
    *
@@ -86,7 +106,27 @@ export const MODELS = {
    * `gpt-5.4-nano` is available on the account and used nowhere in this project. It is the
    * obvious third arm.
    */
-  identify: process.env.KART_IDENTIFY_MODEL?.trim() || "gpt-5.4",
+  /**
+   * Moved from gpt-5.4 to gpt-5.6-luna on 2026-09-03, and this tier is finally measured.
+   *
+   * The comment above is right that the choice was an assumption and that `identify-brand.ts` was
+   * single-arm. It is now two-armed, `KART_IDENTIFY_MODEL` selecting the arm, over the six crops
+   * this corpus can score against a wrapper that legibly reads MR. LUCKY:
+   *
+   *     gpt-5.4         6 of 6 brands right, confidence 0.96 to 0.98, $0.0069 a call
+   *     gpt-5.6-luna    6 of 6 brands right, confidence 0.99,         $0.0005 a call
+   *
+   * Same answer on every crop, slightly higher confidence, 13x cheaper. The assumption that a
+   * hard case deserves the better tier did not survive being measured: this task is reading large
+   * text off a sharp crop, which is not where the expensive tiers earn their price.
+   *
+   * Neither arm gets any prompt cache discount and neither can. IDENTIFY_SYSTEM_PROMPT is about
+   * 260 tokens and OpenAI's cache needs a stable prefix of at least 1,024, so the only thing long
+   * enough to matter here is the crop, which is different every call by construction. The
+   * `prompt_cache_key` on the call is correct and simply has nothing to bite on; the "no prompt
+   * cache hits" warning is expected on this path and is not a fault to chase.
+   */
+  identify: process.env.KART_IDENTIFY_MODEL?.trim() || "gpt-5.6-luna",
   /** Escalation for items identify still cannot resolve. Used sparingly. */
   escalate: "gpt-5.5",
 } as const;

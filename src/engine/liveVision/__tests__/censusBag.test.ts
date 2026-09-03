@@ -282,3 +282,48 @@ describe('the closer look and the census keying differently', () => {
     expect(bagLines(later)).toHaveLength(1);
   });
 });
+
+/**
+ * The brand of a product no badge landed on.
+ *
+ * With no detector configured every product arrives through `unmarkedItems`, which carries no
+ * brand field: the model reports the brand inside `productKey`, as the segment before "::". The
+ * bag used to hardcode `brand: null` for these, so `itemSubtitle` had a brand to show for no item
+ * in a whole scan. Which is more visible on some models than others: gpt-5.4-mini tends to repeat
+ * the brand inside the free-text description, gpt-5.6-luna does not, and on luna the shopper saw
+ * "Shelled walnuts" where the model had read "southern grove::shelled walnuts" perfectly.
+ */
+describe('the brand of an unmarked product', () => {
+  const unmarked = (description: string, productKey: string) => ({
+    marks: [],
+    inViewCounts: [{ productKey, count: 1 }],
+    unmarkedItems: [{ description, productKey, catalogSku: null, confidence: 0.9 }],
+  });
+
+  it('comes from the productKey when the description leaves it out', () => {
+    const state = applyCensus(
+      createFusionState(),
+      unmarked('Shelled walnuts', 'southern grove::shelled walnuts'),
+      {}, [], false, {},
+    );
+    expect(bagLines(state)[0].brand).toBe('Southern Grove');
+  });
+
+  it('is null for produce, which genuinely has no brand', () => {
+    const state = applyCensus(
+      createFusionState(),
+      unmarked('bananas', '::bananas'),
+      {}, [], false, {},
+    );
+    expect(bagLines(state)[0].brand).toBeNull();
+  });
+
+  it('leaves the name alone, so the brand is not shown twice in one string', () => {
+    const state = applyCensus(
+      createFusionState(),
+      unmarked('Shelled walnuts', 'southern grove::shelled walnuts'),
+      {}, [], false, {},
+    );
+    expect(bagLines(state)[0].name).toBe('Shelled walnuts');
+  });
+});

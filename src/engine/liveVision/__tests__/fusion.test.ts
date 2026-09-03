@@ -366,7 +366,8 @@ describe('products no badge landed on', () => {
 
   it('joins an unmarked sighting to the branded product by the key the model supplies', () => {
     // Without the model's own key this is two bag lines for one box: an unmarked description
-    // carries no brand, so it would key as "::froot loops" and never meet "kelloggs::froot loops".
+    // carries no brand field, so it would key as "::froot loops" and never meet
+    // "kelloggs::froot loops".
     let state = createFusionState();
     const branded = productKey('Froot Loops', "Kellogg's");
     state = applyCensus(
@@ -376,7 +377,10 @@ describe('products no badge landed on', () => {
       [],
     );
     expect(bagLines(state)).toHaveLength(1);
-    expect(bagLines(state)[0].brand).toBeNull();
+    // Read back out of the key, which is lowercased and punctuation-stripped for joining, so the
+    // apostrophe is gone and the casing is guessed. Lossy on purpose, and better than the null
+    // this used to be: with no detector every product is unmarked, so that null was every item.
+    expect(bagLines(state)[0].brand).toBe('Kelloggs');
 
     // The next keyframe does land a badge on it, with the brand this time.
     state = applyCensus(

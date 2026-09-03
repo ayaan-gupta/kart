@@ -57,6 +57,14 @@ type Row = {
   units: number[];
   /** Every bag line name seen, for the naming check and for reading the failures. */
   names: string[];
+  /**
+   * Every bag line brand seen. Checked separately from the name because they are separate fields
+   * and the brand is the one the shopper sees in the subtitle. Reading the brand out of the name
+   * string, as this harness first did, measures whether the model happened to repeat the brand in
+   * its free-text description, which is a wording habit that differs by model and is not what the
+   * product asks for. gpt-5.4-mini repeats it, gpt-5.6-luna does not, and both read it correctly.
+   */
+  brands: string[];
 };
 
 const rows: Row[] = [];
@@ -76,6 +84,7 @@ for (const image of labels.images) {
     runs: 0,
     units: [],
     names: [],
+    brands: [],
   };
 
   for (let run = 0; run < REPEAT; run++) {
@@ -94,7 +103,10 @@ for (const image of labels.images) {
     if (gotItems === row.expectItems) row.correct++;
     row.runs++;
     row.units.push(units);
-    for (const line of lines) row.names.push(String(line.name ?? ''));
+    for (const line of lines) {
+      row.names.push(String(line.name ?? ''));
+      if (line.brand) row.brands.push(String(line.brand));
+    }
 
     const verdict = gotItems === row.expectItems ? 'ok ' : 'MISS';
     console.log(
@@ -137,11 +149,14 @@ for (const image of labels.images) {
   const rightCount = row.units.filter((u) => u === expected).length;
   console.log(`  ${image.id}: units ${row.units.join(',')} against ${expected} expected, ${rightCount}/${row.runs} right`);
   const said = row.names.join(' | ').toLowerCase();
+  const branded = row.brands.join(' | ').toLowerCase();
   for (const want of image.expect_name_contains ?? []) {
     console.log(`      name contains "${want}": ${said.includes(want) ? 'yes' : 'NO'}`);
   }
+  // Against the brand field, not the name. See Row.brands.
   for (const want of image.expect_brand_contains ?? []) {
-    console.log(`      brand contains "${want}": ${said.includes(want) ? 'yes' : 'NO'}`);
+    console.log(`      brand field is "${want}": ${branded.includes(want) ? 'yes' : 'NO'}`);
   }
   if (row.names.length > 0) console.log(`      named: ${row.names.join(', ')}`);
+  if (row.brands.length > 0) console.log(`      brands: ${row.brands.join(', ')}`);
 }
