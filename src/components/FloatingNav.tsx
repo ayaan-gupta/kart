@@ -53,18 +53,35 @@ export function FloatingNav({ current }: { current: Tab }) {
         </View>
       </GlassSurface>
 
-      <PressableScale
-        onPress={() => router.push('/scan')}
-        accessibilityLabel="Start a new scan"
-      >
-        <View style={styles.scanButton}>
-          {Platform.OS === 'ios' ? (
-            <SymbolView name="plus" size={24} tintColor={color.white} weight="semibold" />
-          ) : (
-            <Caption color={color.white}>+</Caption>
-          )}
-        </View>
-      </PressableScale>
+      {/* Two ways in, deliberately side by side. The camera photographs one item at a time and
+          is the simpler interaction; "+" opens the live scan, which is unchanged. */}
+      <View style={styles.actions}>
+        <PressableScale
+          onPress={() => router.push('/photo')}
+          accessibilityLabel="Photograph an item"
+        >
+          <View style={styles.photoButton}>
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="camera.fill" size={20} tintColor={color.brand} weight="semibold" />
+            ) : (
+              <Caption color={color.brand}>Photo</Caption>
+            )}
+          </View>
+        </PressableScale>
+
+        <PressableScale
+          onPress={() => router.push('/scan')}
+          accessibilityLabel="Start a new scan"
+        >
+          <View style={styles.scanButton}>
+            {Platform.OS === 'ios' ? (
+              <SymbolView name="plus" size={24} tintColor={color.white} weight="semibold" />
+            ) : (
+              <Caption color={color.white}>+</Caption>
+            )}
+          </View>
+        </PressableScale>
+      </View>
     </View>
   );
 }
@@ -92,6 +109,20 @@ const styles = StyleSheet.create({
     minWidth: 64,
     paddingHorizontal: space.s,
     paddingVertical: 4,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.s,
+  },
+  photoButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: color.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.float,
   },
   scanButton: {
     width: 58,

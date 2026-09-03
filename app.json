@@ -54,6 +54,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kart needs your photo library so you can add a picture of an item you already took."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

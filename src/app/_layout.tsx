@@ -68,6 +68,14 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: color.feed },
             }}
           />
+          <Stack.Screen
+            name="photo"
+            options={{
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              contentStyle: { backgroundColor: color.feed },
+            }}
+          />
           <Stack.Screen name="haul/[id]" options={{ animation: 'slide_from_right' }} />
         </Stack>
         {launching ? <LaunchOverlay onDone={() => setLaunching(false)} /> : null}
