@@ -1,19 +1,17 @@
 import { router } from 'expo-router';
-import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, View } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BagTray } from '../components/BagTray';
-import { Button } from '../components/Button';
 import { CoachNotice } from '../components/CoachNotice';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
+import { PhotoCameraCapture } from '../components/PhotoCameraCapture';
 import { PressableScale } from '../components/PressableScale';
-import { color, radius, shadow, space } from '../design/tokens';
-import { Caption, Sub } from '../design/type';
+import { color, radius, space } from '../design/tokens';
+import { Caption } from '../design/type';
 import { createPhotoScanState, scanPhoto } from '../engine/liveVision/photoScan';
 import { requestCensus } from '../engine/liveVision/recognitionClient';
 import type { ClientFailure } from '../engine/liveVision/recognitionClient';
@@ -31,15 +29,14 @@ import { haulCount, useScanline } from '../engine/store';
  * `photoScan.ts`, which folds it through the same fusion the live path uses, so two photographs
  * of one orange stay one orange. See `src/engine/liveVision/photoScan.ts`.
  *
+ * Nothing here imports the camera. `PhotoCameraCapture` does, and has a `.web.tsx` beside it, so
+ * this file carries no platform branch and web never loads VisionCamera at all.
+ *
  * `scan.tsx` is untouched by this file. Live scanning is still there, still wired, and is the
  * screen the "+" button opens.
  */
 export default function PhotoScreen() {
   const insets = useSafeAreaInsets();
-  const { hasPermission, requestPermission } = useCameraPermission();
-  const [permissionAsked, setPermissionAsked] = useState(false);
-  const device = useCameraDevice('back');
-  const camera = useRef<Camera>(null);
 
   // Held in a ref rather than state: it is not rendered, and replacing it must not schedule a
   // render of its own. This is what carries the bag across shutter presses.
@@ -60,20 +57,7 @@ export default function PhotoScreen() {
     startScan();
   }, [startScan]);
 
-  // The camera is only needed for the shutter. On web there is no VisionCamera, and the library
-  // picker works there, so the screen is still usable rather than refusing to load.
-  const cameraAvailable = Platform.OS !== 'web';
-
-  useEffect(() => {
-    if (!cameraAvailable || hasPermission) return;
-    let cancelled = false;
-    void requestPermission().then(() => {
-      if (!cancelled) setPermissionAsked(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [cameraAvailable, hasPermission, requestPermission]);
+  const controlsBottom = 76 + insets.bottom + space.xl;
 
   /**
    * One photograph through recognition and into the bag.
@@ -100,28 +84,23 @@ export default function PhotoScreen() {
     }
   };
 
-  const shoot = async () => {
-    if (busy || camera.current == null) return;
-    try {
-      const photo = await camera.current.takePhoto({ enableShutterSound: false });
-      // VisionCamera returns a bare filesystem path; expo-file-system wants a URI.
-      const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
-      await ingest(await new File(uri).base64());
-    } catch {
-      // A capture that fails is the same to the shopper as one that could not be recognized:
-      // nothing arrived. Reuse the one notice rather than inventing a second vocabulary.
-      setFailure('server');
-      setBusy(false);
-    }
-  };
-
   const pick = async () => {
     if (busy) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 1,
-      base64: true,
-    });
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 1,
+        base64: true,
+      });
+    } catch {
+      // The picker is someone else's UI and can reject for reasons this screen cannot see or
+      // fix: a permission revoked mid-flight, a file the system cannot read, or its own DOM
+      // teardown on web. Without this the rejection escapes `pick`, nothing clears, and the
+      // shopper is left looking at a screen that has silently stopped responding to the button.
+      setFailure('server');
+      return;
+    }
     if (result.canceled) return;
     const base64 = result.assets?.[0]?.base64;
     if (!base64) {
@@ -155,30 +134,18 @@ export default function PhotoScreen() {
     }
   };
 
-  const showCamera = cameraAvailable && device != null && hasPermission;
-
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
 
-      {showCamera ? (
-        <Camera style={StyleSheet.absoluteFill} device={device} isActive={!busy} photo={true} ref={camera} />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, styles.fallback]}>
-          <Sub color={color.onFeedSub} style={styles.fallbackText}>
-            {!cameraAvailable
-              ? 'No camera here. Choose a photo instead.'
-              : hasPermission === false && permissionAsked
-                ? 'Kart needs camera access to photograph an item. Enable it in Settings, or choose a photo instead.'
-                : hasPermission && device == null
-                  ? 'No camera is available on this device. Choose a photo instead.'
-                  : 'Requesting camera access…'}
-          </Sub>
-          {cameraAvailable && hasPermission === false && permissionAsked ? (
-            <Button label="Open Settings" onPress={() => Linking.openSettings()} />
-          ) : null}
-        </View>
-      )}
+      <PhotoCameraCapture
+        busy={busy}
+        bottom={controlsBottom}
+        onCapture={(base64) => void ingest(base64)}
+        // A capture that fails is the same to the shopper as one that could not be recognized:
+        // nothing arrived. Reuse the one notice rather than inventing a second vocabulary.
+        onError={() => setFailure('server')}
+      />
 
       <View style={[styles.topBar, { top: insets.top + space.s }]}>
         <IconButton
@@ -194,7 +161,7 @@ export default function PhotoScreen() {
           nothing about the cause on purpose, and that is unchanged here. */}
       <CoachNotice kind={failure === null ? 'none' : 'unavailable'} topInset={insets.top} />
 
-      <View style={[styles.controls, { bottom: 76 + insets.bottom + space.xl }]}>
+      <View style={[styles.controls, { bottom: controlsBottom }]} pointerEvents="box-none">
         {busy ? (
           <GlassSurface radius={radius.pill}>
             <View style={styles.status}>
@@ -206,7 +173,11 @@ export default function PhotoScreen() {
           <GlassSurface radius={radius.pill}>
             <View style={styles.status}>
               <Caption color={color.white}>
-                {added === 0 ? 'Nothing new in that one' : added === 1 ? 'Added 1 item' : `Added ${added} items`}
+                {added === 0
+                  ? 'Nothing new in that one'
+                  : added === 1
+                    ? 'Added 1 item'
+                    : `Added ${added} items`}
               </Caption>
             </View>
           </GlassSurface>
@@ -218,17 +189,6 @@ export default function PhotoScreen() {
               <Caption color={color.white}>Library</Caption>
             </View>
           </PressableScale>
-
-          {showCamera ? (
-            <PressableScale onPress={shoot} accessibilityLabel="Photograph this item">
-              <View style={[styles.shutter, busy && styles.shutterBusy]}>
-                <View style={styles.shutterInner} />
-              </View>
-            </PressableScale>
-          ) : null}
-
-          {/* Balances the row so the shutter sits centred, without a second real control. */}
-          {showCamera ? <View style={styles.spacer} /> : null}
         </View>
       </View>
 
@@ -239,13 +199,6 @@ export default function PhotoScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.feed },
-  fallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.l,
-    paddingHorizontal: space.xl,
-  },
-  fallbackText: { textAlign: 'center' },
   topBar: {
     position: 'absolute',
     left: space.l,
@@ -271,8 +224,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    alignSelf: 'flex-start',
   },
   secondary: {
     paddingHorizontal: space.l,
@@ -281,23 +233,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     minWidth: 84,
     alignItems: 'center',
-  },
-  spacer: { minWidth: 84 },
-  shutter: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 4,
-    borderColor: color.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow.float,
-  },
-  shutterBusy: { opacity: 0.5 },
-  shutterInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: color.white,
   },
 });

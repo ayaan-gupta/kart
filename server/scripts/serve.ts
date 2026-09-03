@@ -65,9 +65,39 @@ async function toRequest(req: IncomingMessage, url: string): Promise<Request> {
   });
 }
 
-async function send(res: ServerResponse, response: Response): Promise<void> {
+/**
+ * Cross-origin headers, for a browser build of the app and nothing else.
+ *
+ * The phone is not subject to CORS: a native fetch has no origin and the browser's rule does not
+ * apply to it. A web build does, and `npx expo export --platform web` is the only way to exercise
+ * the whole capture path on a machine with no Xcode, so without this the app can be run in a
+ * browser but can never name anything.
+ *
+ * Only loopback origins are reflected, rather than `*`. This server binds every interface and
+ * spends money on each request, so `*` would let any page in any tab on this network call it and
+ * run up an OpenAI bill. A page served from somewhere else has that somewhere else as its origin
+ * and is refused; nothing here can be reached cross-origin from the open internet.
+ */
+function allowedOrigin(req: IncomingMessage): string | null {
+  const origin = req.headers.origin;
+  if (typeof origin !== "string") return null;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]"
+      ? origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function send(res: ServerResponse, response: Response, origin?: string | null): Promise<void> {
   res.statusCode = response.status;
   response.headers.forEach((value, name) => res.setHeader(name, value));
+  if (origin) {
+    res.setHeader("access-control-allow-origin", origin);
+    res.setHeader("vary", "origin");
+  }
   const buffer = Buffer.from(await response.arrayBuffer());
   res.end(buffer);
 }
@@ -91,13 +121,30 @@ const server = createServer((req, res) => {
   // cannot be asked. Nothing from the body is logged, so no image and no key can land here.
   console.log(`[serve] ${req.socket.remoteAddress ?? "?"} ${req.method ?? "?"} ${path}`);
 
+  const origin = allowedOrigin(req);
+
+  // The preflight a browser sends before a JSON POST from another origin. Answered before
+  // routing, because it is asked about a route rather than sent to one.
+  if (req.method === "OPTIONS") {
+    res.statusCode = origin ? 204 : 403;
+    if (origin) {
+      res.setHeader("access-control-allow-origin", origin);
+      res.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
+      res.setHeader("access-control-allow-headers", "content-type");
+      res.setHeader("access-control-max-age", "600");
+      res.setHeader("vary", "origin");
+    }
+    res.end();
+    return;
+  }
+
   // A plain GET on the root is how you check from the phone's browser that the laptop is
   // reachable at all, which separates "wrong address or firewall" from "recognition failed"
   // before any scanning is attempted.
   if (path === "/" && req.method === "GET") {
     void send(res, new Response(JSON.stringify({ ok: true, routes: Object.keys(ROUTES) }), {
       headers: { "content-type": "application/json" },
-    }));
+    }), origin);
     return;
   }
 
@@ -106,14 +153,14 @@ const server = createServer((req, res) => {
     void send(res, new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { "content-type": "application/json" },
-    }));
+    }), origin);
     return;
   }
 
   void (async () => {
     try {
       const request = await toRequest(req, `http://localhost:${port}${req.url ?? "/"}`);
-      await send(res, await handler(request));
+      await send(res, await handler(request), origin);
     } catch (error) {
       // The handlers already redact upstream errors; this catches failures in the adapter
       // itself, and must be equally careful never to put the cause on the wire.
@@ -122,7 +169,7 @@ const server = createServer((req, res) => {
         void send(res, new Response(JSON.stringify({ error: "Recognition failed" }), {
           status: 500,
           headers: { "content-type": "application/json" },
-        }));
+        }), origin);
       }
     }
   })();
