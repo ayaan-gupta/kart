@@ -19,17 +19,27 @@ cart photos exist in the eval corpus, and this service has never been deployed. 
   recent Node works for local `test`/`typecheck`/`eval`, which all run through `tsx`,
   `vitest`, and `tsc`, not through the Vercel runtime itself.
 - A real OpenAI API key with access to the models in `src/openai.ts` (see "Models and
-  reasoning efforts"). The only key available while building this service returned 401, so
-  nothing here has been exercised against the real API.
+  reasoning efforts"). The census path has been exercised against the real API: see
+  `eval/CLUT.md` and `eval/KART.md` for what was measured and on what.
 
 ## Setup
 
 ```bash
 cd server
 npm install
-cp .env.example .env
-# edit .env and set OPENAI_API_KEY to a real key, then never commit it
+printf 'OPENAI_API_KEY=sk-...\n' > .env.local   # a real key, and never commit it
+chmod 600 .env.local
+npm run serve
 ```
+
+`.env.local`, not `.env`: `npm run serve` passes `--env-file-if-exists=.env.local`, and
+nothing reads `server/.env`. Both are ignored by `server/.gitignore`, so a key in either is
+safe from a commit, but only one of them starts the service: `src/openai.ts` throws at import
+time when the key is unset, so a key in the wrong file is a service that refuses to boot.
+
+From a fresh clone, do not do any of this by hand. `./scripts/setup.sh` at the repository root
+asks for the key once, writes it here with the right permissions, points the app at this
+machine's address, and builds onto a phone. This section is for working on the service alone.
 
 `src/openai.ts` reads `OPENAI_API_KEY` from the environment and throws at import time if it
 is unset. Anything that imports `src/recognize.ts` (which imports `src/openai.ts`) requires

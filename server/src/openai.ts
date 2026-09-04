@@ -2,7 +2,10 @@ import OpenAI from "openai";
 
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
-  throw new Error("OPENAI_API_KEY is not set. Copy .env.example to .env and fill it in.");
+  throw new Error(
+    "OPENAI_API_KEY is not set. Put it in server/.env.local, which is the only file " +
+      "`npm run serve` loads, or run ./scripts/setup.sh from the repository root.",
+  );
 }
 
 /**
