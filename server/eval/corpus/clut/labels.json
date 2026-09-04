@@ -1,0 +1,1380 @@
+{
+ "note": "Ground truth for the clut corpus, written by reading each photograph at native resolution before any model was run on it. Where the photograph genuinely does not settle a quantity, qty is a two-element range and any value inside it scores correct: inventing precision the image does not carry would make the number unreadable.",
+ "policy": {
+  "subject": "For tier 'cart', the subject is what is inside the basket; anything on the counter around it is clutter and appears in 'ignore'. For tier 'storage', the subject is every grocery product legibly visible in the frame, including on an adjacent shelf, because there is no container to draw the line at.",
+  "ignore": "Items listed in 'ignore' are neither a miss when absent nor a false positive when named. They are things a shopper is not buying: kitchen equipment, papers, a book, a mask, storage jars the household already owns, and for a refrigerator drawer the shelf above it. 'ignoreMatch' is how the scorer recognises them, and is kept narrow on purpose so that it can never absorb a misidentification of a real product.",
+  "match": "A bag line counts as this product when its lowercased name or description contains any string in 'match'. 'brandMatch' is scored separately and only where the packaging is legible; a null brand is correct for loose produce.",
+  "hidden": "true when the product is substantially occluded by another product. Requirement 3 asks that the census raise its occlusion flag on a photograph that has any of these.",
+  "legible": "false when the packaging cannot be read in the photograph. Requirement 4 asks that these come back with a low confidence or a needsCloserLook, not a confident brand."
+ },
+ "images": [
+  {
+   "id": "clut1",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "Priano rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "match": [
+      "rigatoni"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano fusilli bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "match": [
+      "fusilli",
+      "bucati"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Hawaiian brioche buns",
+     "brand": null,
+     "qty": [
+      1,
+      2
+     ],
+     "match": [
+      "brioche",
+      "sweet roll",
+      "hawaiian",
+      "bun",
+      "roll"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    }
+   ],
+   "ignore": [
+    "face masks",
+    "papers and receipts",
+    "red plastic cup",
+    "white kitchen appliance",
+    "empty plastic bag"
+   ],
+   "ignoreMatch": [
+    "cup",
+    "mask",
+    "napkin",
+    "paper",
+    "towel",
+    "appliance",
+    "kettle"
+   ]
+  },
+  {
+   "id": "clut2",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "bananas",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "banana"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "La Costena Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "match": [
+      "salsa"
+     ],
+     "brandMatch": [
+      "costena",
+      "coste\u00f1a"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Kroger roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "match": [
+      "almond"
+     ],
+     "brandMatch": [
+      "kroger"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Campbell's cream of mushroom",
+     "brand": "Campbell's",
+     "qty": 1,
+     "match": [
+      "mushroom",
+      "soup",
+      "campbell"
+     ],
+     "brandMatch": [
+      "campbell"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "peanut butter jar",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "peanut butter",
+      "nut butter",
+      "butter"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "book",
+    "wallet",
+    "papers",
+    "face mask"
+   ],
+   "ignoreMatch": [
+    "book",
+    "wallet",
+    "paper",
+    "mask",
+    "envelope"
+   ]
+  },
+  {
+   "id": "clut3",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "bananas",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "banana"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "La Costena Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "match": [
+      "salsa"
+     ],
+     "brandMatch": [
+      "costena",
+      "coste\u00f1a"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Kroger roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "match": [
+      "almond"
+     ],
+     "brandMatch": [
+      "kroger"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Campbell's cream of mushroom",
+     "brand": "Campbell's",
+     "qty": 1,
+     "match": [
+      "mushroom",
+      "soup",
+      "campbell"
+     ],
+     "brandMatch": [
+      "campbell"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "peanut butter jar",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "peanut butter",
+      "nut butter",
+      "butter"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "book",
+    "wallet",
+    "papers",
+    "face mask"
+   ],
+   "ignoreMatch": [
+    "book",
+    "wallet",
+    "paper",
+    "mask",
+    "envelope"
+   ]
+  },
+  {
+   "id": "clut4",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "Bob's Red Mill quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "match": [
+      "quinoa"
+     ],
+     "brandMatch": [
+      "bob"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Bob's Red Mill farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "match": [
+      "farro"
+     ],
+     "brandMatch": [
+      "bob"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano rigatoni",
+     "brand": "Priano",
+     "qty": 2,
+     "match": [
+      "rigatoni"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "match": [
+      "fusilli",
+      "bucati",
+      "bronze"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature marinara",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "match": [
+      "marinara",
+      "pasta sauce"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "match": [
+      "nutella",
+      "hazelnut"
+     ],
+     "brandMatch": [
+      "nutella",
+      "ferrero"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Campbell's condensed soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "match": [
+      "campbell",
+      "soup"
+     ],
+     "brandMatch": [
+      "campbell"
+     ],
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "book",
+    "wallet",
+    "papers",
+    "face mask"
+   ],
+   "ignoreMatch": [
+    "book",
+    "wallet",
+    "paper",
+    "mask",
+    "envelope"
+   ]
+  },
+  {
+   "id": "clut5",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "Bob's Red Mill quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "match": [
+      "quinoa"
+     ],
+     "brandMatch": [
+      "bob"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Bob's Red Mill farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "match": [
+      "farro"
+     ],
+     "brandMatch": [
+      "bob"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano rigatoni",
+     "brand": "Priano",
+     "qty": 2,
+     "match": [
+      "rigatoni"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "match": [
+      "fusilli",
+      "bucati",
+      "bronze"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature marinara",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "match": [
+      "marinara",
+      "pasta sauce"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "match": [
+      "nutella",
+      "hazelnut"
+     ],
+     "brandMatch": [
+      "nutella",
+      "ferrero"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Campbell's condensed soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "match": [
+      "campbell",
+      "soup"
+     ],
+     "brandMatch": [
+      "campbell"
+     ],
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "book",
+    "wallet",
+    "papers",
+    "face mask"
+   ],
+   "ignoreMatch": [
+    "book",
+    "wallet",
+    "paper",
+    "mask",
+    "envelope"
+   ]
+  },
+  {
+   "id": "clut6",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "Barilla penne",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "penne"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "linguine"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "match": [
+      "fusilli",
+      "bucati",
+      "bronze",
+      "macaroni"
+     ],
+     "brandMatch": [
+      "priano"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "jar of pesto",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "pesto",
+      "jar",
+      "sauce"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "book",
+    "wallet",
+    "papers",
+    "face mask"
+   ],
+   "ignoreMatch": [
+    "book",
+    "wallet",
+    "paper",
+    "mask",
+    "envelope"
+   ]
+  },
+  {
+   "id": "clut7",
+   "tier": "cart",
+   "expectSubjectKind": "cart",
+   "products": [
+    {
+     "label": "Campbell's cream of mushroom",
+     "brand": "Campbell's",
+     "qty": 2,
+     "match": [
+      "mushroom",
+      "campbell"
+     ],
+     "brandMatch": [
+      "campbell"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature black beans",
+     "brand": "Simply Nature",
+     "qty": 3,
+     "match": [
+      "black bean"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "pesto alla Genovese",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "pesto",
+      "genovese"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "Nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "match": [
+      "nutella",
+      "hazelnut"
+     ],
+     "brandMatch": [
+      "nutella",
+      "ferrero"
+     ],
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "jar of pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "pasta sauce",
+      "marinara",
+      "tomato",
+      "sauce"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "can",
+      "tin",
+      "unident"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "pantry shelf below the basket",
+    "bag of seeds at the left edge",
+    "wall and shelving"
+   ],
+   "ignoreMatch": [
+    "seed",
+    "flax",
+    "shelf"
+   ]
+  },
+  {
+   "id": "clut8",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "organic marinara pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "marinara",
+      "pasta sauce"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Baker's Corner chocolate chip cookie mix",
+     "brand": "Baker's Corner",
+     "qty": 1,
+     "match": [
+      "chocolate chip",
+      "cookie"
+     ],
+     "brandMatch": [
+      "baker"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "brand": "Baker's Corner",
+     "qty": 1,
+     "match": [
+      "devil",
+      "cake",
+      "baker"
+     ],
+     "brandMatch": [
+      "baker"
+     ],
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "sponges",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "sponge",
+      "scour"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "glass storage jar of brown sugar",
+    "empty glass storage jar",
+    "paper packet",
+    "tissue boxes on the shelf below"
+   ],
+   "ignoreMatch": [
+    "brown sugar",
+    "storage jar",
+    "empty jar",
+    "tissue",
+    "packet",
+    "napkin"
+   ]
+  },
+  {
+   "id": "clut9",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "Barilla linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "linguine"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla thick spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "spaghetti"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Savoritz avocado oil crackers, sea salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "match": [
+      "cracker"
+     ],
+     "brandMatch": [
+      "savoritz"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Savoritz avocado oil crackers, rosemary sourdough",
+     "brand": "Savoritz",
+     "qty": 1,
+     "match": [
+      "cracker"
+     ],
+     "brandMatch": [
+      "savoritz"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla penne",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "penne"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature brown rice and quinoa",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "match": [
+      "brown rice",
+      "quinoa"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "glass storage jars of pasta, oats and walnuts",
+    "spice jar",
+    "pasta sauce jar on the shelf above",
+    "shelving"
+   ],
+   "ignoreMatch": [
+    "storage jar",
+    "glass jar",
+    "spice",
+    "oats",
+    "walnut"
+   ]
+  },
+  {
+   "id": "clut10",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "Savoritz avocado oil crackers, sea salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "match": [
+      "cracker"
+     ],
+     "brandMatch": [
+      "savoritz"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Savoritz avocado oil crackers, rosemary sourdough",
+     "brand": "Savoritz",
+     "qty": 1,
+     "match": [
+      "cracker"
+     ],
+     "brandMatch": [
+      "savoritz"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "linguine"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla thick spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "spaghetti"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Barilla penne",
+     "brand": "Barilla",
+     "qty": 1,
+     "match": [
+      "penne"
+     ],
+     "brandMatch": [
+      "barilla"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "whey protein tub",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "protein",
+      "whey"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "Freshpak boxed goods",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "freshpak",
+      "tea"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "glass storage jars of pasta, walnuts and coffee beans",
+    "unlabelled brown box",
+    "yellow and black bags",
+    "shelving"
+   ],
+   "ignoreMatch": [
+    "storage jar",
+    "glass jar",
+    "coffee",
+    "walnut",
+    "cardboard box",
+    "unlabel"
+   ]
+  },
+  {
+   "id": "clut11",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "Sempio Korean rice noodles",
+     "brand": "Sempio",
+     "qty": 2,
+     "match": [
+      "noodle"
+     ],
+     "brandMatch": [
+      "sempio"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature brown rice and quinoa",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "match": [
+      "brown rice",
+      "quinoa"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "Korean snack bag, green and yellow",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "bag",
+      "snack",
+      "seaweed"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "storage containers of chickpeas, grains, quinoa, oats and dried noodles",
+    "plastic tub on the shelf below",
+    "shelving"
+   ],
+   "ignoreMatch": [
+    "storage container",
+    "chickpea",
+    "container",
+    "storage jar",
+    "glass jar",
+    "oats"
+   ]
+  },
+  {
+   "id": "clut12",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "Friendly Farms lactose free whole milk",
+     "brand": "Friendly Farms",
+     "qty": 1,
+     "match": [
+      "milk"
+     ],
+     "brandMatch": [
+      "friendly farms"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Friendly Farms lactose free 2% milk",
+     "brand": "Friendly Farms",
+     "qty": 1,
+     "match": [
+      "milk"
+     ],
+     "brandMatch": [
+      "friendly farms"
+     ],
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "probiotic drink",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "probiotic",
+      "kefir",
+      "yogurt drink",
+      "drink"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": false
+    },
+    {
+     "label": "bagged greens",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "green",
+      "spinach",
+      "salad",
+      "vegetable"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "Neufchatel cream cheese",
+     "brand": null,
+     "qty": 2,
+     "match": [
+      "neufchatel",
+      "cream cheese"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "apples in the crisper",
+     "brand": null,
+     "qty": [
+      1,
+      6
+     ],
+     "match": [
+      "apple"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": true
+    }
+   ],
+   "ignore": [
+    "glass pitcher of iced tea",
+    "egg cartons at the top edge",
+    "refrigerator fittings"
+   ],
+   "ignoreMatch": [
+    "pitcher",
+    "iced tea",
+    "egg",
+    "carafe"
+   ]
+  },
+  {
+   "id": "clut13",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "strawberries",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "strawberr"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simple Truth sour cream",
+     "brand": "Simple Truth",
+     "qty": 1,
+     "match": [
+      "sour cream"
+     ],
+     "brandMatch": [
+      "simple truth"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "eggs",
+     "brand": null,
+     "qty": 3,
+     "match": [
+      "egg"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Neufchatel cream cheese",
+     "brand": null,
+     "qty": 2,
+     "match": [
+      "neufchatel",
+      "cream cheese"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Friendly Farms lactose free whole milk",
+     "brand": "Friendly Farms",
+     "qty": 1,
+     "match": [
+      "milk"
+     ],
+     "brandMatch": [
+      "friendly farms"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "butter",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "butter"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "green bottle",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "bottle",
+      "wine",
+      "beverage"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "glass pitcher of iced tea",
+    "plastic leftovers containers",
+    "items behind the left-hand shelf edge",
+    "refrigerator fittings"
+   ],
+   "ignoreMatch": [
+    "pitcher",
+    "iced tea",
+    "leftover",
+    "deli container",
+    "carafe"
+   ]
+  },
+  {
+   "id": "clut14",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "black angus beef",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "beef",
+      "steak",
+      "rib",
+      "angus"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Kirkwood chicken breast tenderloins",
+     "brand": "Kirkwood",
+     "qty": 1,
+     "match": [
+      "chicken",
+      "tenderloin"
+     ],
+     "brandMatch": [
+      "kirkwood"
+     ],
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Simply Nature ground beef",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "match": [
+      "ground beef"
+     ],
+     "brandMatch": [
+      "simply nature"
+     ],
+     "hidden": true,
+     "legible": true
+    },
+    {
+     "label": "uncured bacon",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "bacon",
+      "ham",
+      "uncured"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    },
+    {
+     "label": "green onions",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "green onion",
+      "scallion",
+      "spring onion",
+      "onion"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    }
+   ],
+   "ignore": [
+    "shopper's feet and legs",
+    "kitchen floor",
+    "drawer above",
+    "items at the left edge"
+   ],
+   "ignoreMatch": [
+    "foot",
+    "floor",
+    "sandal",
+    "shoe",
+    "leg"
+   ]
+  },
+  {
+   "id": "clut15",
+   "tier": "storage",
+   "expectSubjectKind": "product",
+   "products": [
+    {
+     "label": "green apples",
+     "brand": null,
+     "qty": 4,
+     "match": [
+      "green apple",
+      "granny smith"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "red apples",
+     "brand": null,
+     "qty": 6,
+     "match": [
+      "red apple",
+      "gala",
+      "fuji"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "Roma tomatoes",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "tomato"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "green onions",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "green onion",
+      "scallion",
+      "spring onion",
+      "onion"
+     ],
+     "brandMatch": null,
+     "hidden": false,
+     "legible": true
+    },
+    {
+     "label": "packaged chicken",
+     "brand": null,
+     "qty": 1,
+     "match": [
+      "chicken",
+      "poultry",
+      "meat"
+     ],
+     "brandMatch": null,
+     "hidden": true,
+     "legible": false
+    }
+   ],
+   "ignore": [
+    "milk carton on the shelf above",
+    "bagged greens on the shelf above",
+    "glass pitcher on the shelf above",
+    "shopper's feet",
+    "kitchen floor"
+   ],
+   "ignoreMatch": [
+    "milk",
+    "pitcher",
+    "water",
+    "jug",
+    "carafe",
+    "leafy green",
+    "spinach",
+    "salad",
+    "lettuce"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+  "note": "Fifteen photographs supplied by the product owner on 2026-09-04 as the verification set for the photo capture path. Not redistributable: the files stay in server/eval/.cache/clut/ and are not committed. This manifest records what they are so the measurements can be read without them.",
+  "source": "photographed by the product owner, supplied directly for this purpose",
+  "licence": "not redistributable; used with the owner's explicit permission",
+  "capture": "iPhone, JPEG at 4052x5403 (clut1-clut10) and 4284x5712 (clut11-clut15)",
+  "why_this_corpus": "The kart corpus is one trolley in one shop. This is fifteen scenes across three kinds: a loaded basket on a kitchen counter with deliberate clutter around it, a home pantry shelf, and the inside of a refrigerator. The clutter is the point: every earlier corpus here photographs goods against a clean background, and the owner's own framing of the product is a phone pointed at a real, messy scene.",
+  "tiers": {
+    "cart": "clut1-clut7. A basket encloses the goods. This is the shipped product's use case and is scored strictly against all four CLAUDE.md requirements.",
+    "storage": "clut8-clut15. A home pantry shelf or the inside of a refrigerator. No basket, no trolley, and the goods are already the owner's. Outside what the shipped scene gate was built for, and reported separately."
+  },
+  "images": [
+    { "id": "clut1",  "digest": "7c9ae0396110", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter" },
+    { "id": "clut2",  "digest": "0fe41962558e", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter" },
+    { "id": "clut3",  "digest": "506743c58552", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter, same goods as clut2 from further back" },
+    { "id": "clut4",  "digest": "b534f18f39cb", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter" },
+    { "id": "clut5",  "digest": "f3ca19a52a95", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter, same goods as clut4 from further back" },
+    { "id": "clut6",  "digest": "fd6db43d5174", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket on a kitchen counter" },
+    { "id": "clut7",  "digest": "ea86efdee835", "pixels": [4052, 5403], "tier": "cart",    "scene": "basket of tins inside a pantry, photographed from above" },
+    { "id": "clut8",  "digest": "b94eaf5b70f0", "pixels": [4052, 5403], "tier": "storage", "scene": "pantry corner shelf" },
+    { "id": "clut9",  "digest": "6ca8f8491ae3", "pixels": [4052, 5403], "tier": "storage", "scene": "pantry shelf" },
+    { "id": "clut10", "digest": "9069b3fef62b", "pixels": [4052, 5403], "tier": "storage", "scene": "pantry shelves, two levels" },
+    { "id": "clut11", "digest": "a4a85a27f1de", "pixels": [4284, 5712], "tier": "storage", "scene": "pantry shelf of grains and noodles" },
+    { "id": "clut12", "digest": "31b86ec42a9f", "pixels": [4284, 5712], "tier": "storage", "scene": "refrigerator shelf" },
+    { "id": "clut13", "digest": "ddcefa02c3d1", "pixels": [4284, 5712], "tier": "storage", "scene": "refrigerator, three shelves" },
+    { "id": "clut14", "digest": "4e33a01bdac7", "pixels": [4284, 5712], "tier": "storage", "scene": "refrigerator meat drawer" },
+    { "id": "clut15", "digest": "7e4807bf4e55", "pixels": [4284, 5712], "tier": "storage", "scene": "refrigerator crisper drawer" }
+  ]
+}

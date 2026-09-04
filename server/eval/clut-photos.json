@@ -1,0 +1,1655 @@
+{
+ "ranAt": "2026-09-04T05:53:53.041Z",
+ "summary": {
+  "all": {
+   "photographs": 45,
+   "labelled": 240,
+   "found": 118,
+   "qtyRight": 107,
+   "brandRight": 61,
+   "brandScored": 79,
+   "invented": 14,
+   "ignored": 10,
+   "gated": 18,
+   "kindRight": 21,
+   "hiddenImages": 39,
+   "hiddenFlagged": 22,
+   "unsure": 19,
+   "unsureFlagged": 5,
+   "secondsAvg": 5.17
+  },
+  "cart": {
+   "photographs": 21,
+   "labelled": 111,
+   "found": 97,
+   "qtyRight": 87,
+   "brandRight": 55,
+   "brandScored": 73,
+   "invented": 9,
+   "ignored": 1,
+   "gated": 0,
+   "kindRight": 18,
+   "hiddenImages": 15,
+   "hiddenFlagged": 4,
+   "unsure": 13,
+   "unsureFlagged": 5,
+   "secondsAvg": 4.41
+  },
+  "storage": {
+   "photographs": 24,
+   "labelled": 129,
+   "found": 21,
+   "qtyRight": 20,
+   "brandRight": 6,
+   "brandScored": 6,
+   "invented": 5,
+   "ignored": 9,
+   "gated": 18,
+   "kindRight": 3,
+   "hiddenImages": 24,
+   "hiddenFlagged": 18,
+   "unsure": 6,
+   "unsureFlagged": 0,
+   "secondsAvg": 5.83
+  }
+ },
+ "rows": [
+  {
+   "pass": 1,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 3.537,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 4.017,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "Kroger roasted almonds",
+     "expected": "kroger",
+     "actual": "Blue Diamond"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.76,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 4.089,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 5,
+   "qtyRight": 3,
+   "unmatchedLines": [
+    {
+     "name": "Canned food, label not legible",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's cream of mushroom",
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 4.902,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 6,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 6,
+   "brandWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Simply Nature marinara",
+     "expected": "simply nature",
+     "actual": "Raos Homemade"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 4.392,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 7,
+   "qtyRight": 4,
+   "unmatchedLines": [
+    {
+     "name": "Priano cavatappi pasta",
+     "brand": "Priano",
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Priano bronze cut pasta",
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 5,
+   "brandScored": 5,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 4.054,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Pallano"
+    }
+   ],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.55,
+     "flagged": true
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 6.22,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "many",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 6,
+   "qtyRight": 2,
+   "unmatchedLines": [
+    {
+     "name": "green packaged grocery item",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Nutella"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Campbell's cream of mushroom",
+     "expected": "2",
+     "actual": 1
+    },
+    {
+     "label": "Simply Nature black beans",
+     "expected": "3",
+     "actual": 4
+    },
+    {
+     "label": "jar of pasta sauce",
+     "expected": "1",
+     "actual": 2
+    }
+   ],
+   "brandRight": 1,
+   "brandScored": 2,
+   "brandWrong": [
+    {
+     "label": "Simply Nature black beans",
+     "expected": "simply nature",
+     "actual": "Goya"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": 0.58,
+     "flagged": true
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "confidence": 0.42,
+     "flagged": true
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut8",
+   "tier": "storage",
+   "seconds": 4.497,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [
+    {
+     "name": "Brown sugar",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "confidence": 0.94,
+     "flagged": false
+    },
+    {
+     "label": "sponges",
+     "confidence": 0.98,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut9",
+   "tier": "storage",
+   "seconds": 6.962,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla penne",
+    "Simply Nature brown rice and quinoa"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut10",
+   "tier": "storage",
+   "seconds": 8.636,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Barilla penne",
+    "whey protein tub",
+    "Freshpak boxed goods"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut11",
+   "tier": "storage",
+   "seconds": 6.901,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 3,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Sempio Korean rice noodles",
+    "Simply Nature brown rice and quinoa",
+    "Korean snack bag, green and yellow"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut12",
+   "tier": "storage",
+   "seconds": 5.3,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Friendly Farms lactose free whole milk",
+    "Friendly Farms lactose free 2% milk",
+    "probiotic drink",
+    "bagged greens",
+    "Neufchatel cream cheese",
+    "apples in the crisper"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut13",
+   "tier": "storage",
+   "seconds": 7.57,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "strawberries",
+    "Simple Truth sour cream",
+    "eggs",
+    "Neufchatel cream cheese",
+    "Friendly Farms lactose free whole milk",
+    "butter",
+    "green bottle"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut14",
+   "tier": "storage",
+   "seconds": 4.862,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 0,
+   "labelled": 5,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "black angus beef",
+    "Kirkwood chicken breast tenderloins",
+    "Simply Nature ground beef",
+    "uncured bacon",
+    "green onions"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut15",
+   "tier": "storage",
+   "seconds": 4.706,
+   "subjectKind": "cart",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 3,
+   "labelled": 5,
+   "qtyRight": 2,
+   "unmatchedLines": [
+    {
+     "name": "cucumbers",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "gallon jug of water",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "Kirkland Signature vitamin D milk, half gallon",
+     "brand": "Kirkland Signature",
+     "qty": 1
+    },
+    {
+     "name": "bagged leafy greens",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [
+    "green onions",
+    "packaged chicken"
+   ],
+   "qtyWrong": [
+    {
+     "label": "red apples",
+     "expected": "6",
+     "actual": 5
+    }
+   ],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 3.483,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 4.091,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.9,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 3.944,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 4,
+   "labelled": 5,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "La Costena Mexican salsa",
+     "expected": "costena",
+     "actual": "La Victoria"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 5.089,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 5,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 3,
+   "brandScored": 6,
+   "brandWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Simply Nature marinara",
+     "expected": "simply nature",
+     "actual": "Raos Homemade"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 4.412,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 7,
+   "qtyRight": 4,
+   "unmatchedLines": [
+    {
+     "name": "Priano cavatappi pasta",
+     "brand": "Priano",
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Priano bronze cut pasta",
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 5,
+   "brandScored": 5,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 3.573,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Piano"
+    }
+   ],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.72,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 6.56,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "many",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 6,
+   "qtyRight": 4,
+   "unmatchedLines": [
+    {
+     "name": "Goldfish crackers",
+     "brand": "Goldfish",
+     "qty": 1
+    },
+    {
+     "name": "jarred spread",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "packaged food, label not legible",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "green packaged food, label not legible",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Nutella"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Campbell's cream of mushroom",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": 0.8,
+     "flagged": false
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "confidence": 0.45,
+     "flagged": true
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut8",
+   "tier": "storage",
+   "seconds": 4.031,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [
+    {
+     "name": "Brown sugar",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "confidence": 0.97,
+     "flagged": false
+    },
+    {
+     "label": "sponges",
+     "confidence": 0.94,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut9",
+   "tier": "storage",
+   "seconds": 6.653,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla penne",
+    "Simply Nature brown rice and quinoa"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut10",
+   "tier": "storage",
+   "seconds": 7.663,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Barilla penne",
+    "whey protein tub",
+    "Freshpak boxed goods"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut11",
+   "tier": "storage",
+   "seconds": 6.444,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 3,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Sempio Korean rice noodles",
+    "Simply Nature brown rice and quinoa",
+    "Korean snack bag, green and yellow"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut12",
+   "tier": "storage",
+   "seconds": 5.091,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Friendly Farms lactose free whole milk",
+    "Friendly Farms lactose free 2% milk",
+    "probiotic drink",
+    "bagged greens",
+    "Neufchatel cream cheese",
+    "apples in the crisper"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut13",
+   "tier": "storage",
+   "seconds": 6.34,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "strawberries",
+    "Simple Truth sour cream",
+    "eggs",
+    "Neufchatel cream cheese",
+    "Friendly Farms lactose free whole milk",
+    "butter",
+    "green bottle"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut14",
+   "tier": "storage",
+   "seconds": 5.448,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 0,
+   "labelled": 5,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "black angus beef",
+    "Kirkwood chicken breast tenderloins",
+    "Simply Nature ground beef",
+    "uncured bacon",
+    "green onions"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut15",
+   "tier": "storage",
+   "seconds": 4.528,
+   "subjectKind": "cart",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 3,
+   "labelled": 5,
+   "qtyRight": 3,
+   "unmatchedLines": [
+    {
+     "name": "celery",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "green leafy vegetables",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "clear plastic bottle",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "half-gallon milk carton",
+     "brand": "Fairlife",
+     "qty": 1
+    }
+   ],
+   "misses": [
+    "green onions",
+    "packaged chicken"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 3.579,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 2,
+   "brandWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "priano",
+     "actual": "Primo"
+    },
+    {
+     "label": "Priano fusilli bucati",
+     "expected": "priano",
+     "actual": "Primo"
+    }
+   ],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 4.469,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.93,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 3.91,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 5,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 4.74,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 6,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 6,
+   "brandWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Piano"
+    },
+    {
+     "label": "Simply Nature marinara",
+     "expected": "simply nature",
+     "actual": "Raos Homemade"
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 4.58,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 5,
+   "unmatchedLines": [
+    {
+     "name": "Priano Cavatappi pasta",
+     "brand": "Priano",
+     "qty": 1
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Priano bronze cut pasta"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Campbell's condensed soup",
+     "confidence": 0.9,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 3.31,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "priano",
+     "actual": "Pallano"
+    }
+   ],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.65,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 5.634,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 6,
+   "labelled": 6,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [
+    {
+     "name": "seed packet, brand not legible",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [],
+   "qtyWrong": [
+    {
+     "label": "Campbell's cream of mushroom",
+     "expected": "2",
+     "actual": 1
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "expected": "1",
+     "actual": 2
+    }
+   ],
+   "brandRight": 2,
+   "brandScored": 3,
+   "brandWrong": [
+    {
+     "label": "Nutella",
+     "expected": "nutella",
+     "actual": null
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": 0.72,
+     "flagged": false
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "confidence": 0.5,
+     "flagged": true
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut8",
+   "tier": "storage",
+   "seconds": 4.149,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "unmatchedLines": [],
+   "ignoredLines": [
+    {
+     "name": "Brown sugar",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "confidence": 0.93,
+     "flagged": false
+    },
+    {
+     "label": "sponges",
+     "confidence": 0.98,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut9",
+   "tier": "storage",
+   "seconds": 4.908,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla penne",
+    "Simply Nature brown rice and quinoa"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut10",
+   "tier": "storage",
+   "seconds": 7.038,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Savoritz avocado oil crackers, sea salt",
+    "Savoritz avocado oil crackers, rosemary sourdough",
+    "Barilla linguine",
+    "Barilla thick spaghetti",
+    "Barilla penne",
+    "whey protein tub",
+    "Freshpak boxed goods"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut11",
+   "tier": "storage",
+   "seconds": 8.504,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 3,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Sempio Korean rice noodles",
+    "Simply Nature brown rice and quinoa",
+    "Korean snack bag, green and yellow"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut12",
+   "tier": "storage",
+   "seconds": 4.913,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 6,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Friendly Farms lactose free whole milk",
+    "Friendly Farms lactose free 2% milk",
+    "probiotic drink",
+    "bagged greens",
+    "Neufchatel cream cheese",
+    "apples in the crisper"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut13",
+   "tier": "storage",
+   "seconds": 6.086,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 0,
+   "labelled": 7,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "strawberries",
+    "Simple Truth sour cream",
+    "eggs",
+    "Neufchatel cream cheese",
+    "Friendly Farms lactose free whole milk",
+    "butter",
+    "green bottle"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut14",
+   "tier": "storage",
+   "seconds": 4.484,
+   "subjectKind": "shelf",
+   "expectSubjectKind": "product",
+   "gated": true,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 0,
+   "labelled": 5,
+   "qtyRight": 0,
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "black angus beef",
+    "Kirkwood chicken breast tenderloins",
+    "Simply Nature ground beef",
+    "uncured bacon",
+    "green onions"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut15",
+   "tier": "storage",
+   "seconds": 4.187,
+   "subjectKind": "cart",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 3,
+   "labelled": 5,
+   "qtyRight": 3,
+   "unmatchedLines": [
+    {
+     "name": "Cucumbers",
+     "brand": null,
+     "qty": 3
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "Half-gallon milk",
+     "brand": null,
+     "qty": 1
+    },
+    {
+     "name": "Bagged leafy greens",
+     "brand": null,
+     "qty": 1
+    }
+   ],
+   "misses": [
+    "green onions",
+    "packaged chicken"
+   ],
+   "qtyWrong": [],
+   "brandRight": 0,
+   "brandScored": 0,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  }
+ ]
+}
