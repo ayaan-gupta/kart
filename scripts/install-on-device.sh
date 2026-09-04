@@ -126,8 +126,46 @@ fi
 # A codesigning identity in the keychain is not a substitute either. There is one here, and it
 # is still not enough: the identity signs the binary, the profile names the device, and only an
 # account can create a profile.
-ACCOUNTS="$(defaults read com.apple.dt.Xcode DVTDeveloperAccountManagerAppleIDLists 2>/dev/null | tr -d ' \n')"
-if [ -z "$ACCOUNTS" ] || printf '%s' "$ACCOUNTS" | grep -q '=();'; then
+# Absent is not the same as empty, and treating them alike is how this refused to run on a Mac
+# that was correctly set up. The key holds an empty list when Xcode has no accounts, which is the
+# case worth stopping on. But `defaults read` also exits non-zero when the key does not exist at
+# all, which happens on a Mac where Xcode has never written that preference, and this then told
+# someone with an Apple ID signed in that they had none, with no way to get past it.
+#
+# So: empty list is still a stop, because it is positive evidence. Key missing falls back to
+# asking the keychain whether anything here can sign at all, and if something can, this proceeds
+# and lets xcodebuild speak for itself. Its "No Accounts" error is clear; being blocked by a
+# preference key that moved between Xcode versions is not.
+if ACCOUNTS_RAW="$(defaults read com.apple.dt.Xcode DVTDeveloperAccountManagerAppleIDLists 2>/dev/null)"; then
+  ACCOUNTS_KEY_PRESENT=1
+else
+  ACCOUNTS_KEY_PRESENT=0
+  ACCOUNTS_RAW=""
+fi
+ACCOUNTS="$(printf '%s' "$ACCOUNTS_RAW" | tr -d ' \n')"
+
+if [ "$ACCOUNTS_KEY_PRESENT" = 0 ]; then
+  if security find-identity -v -p codesigning 2>/dev/null | grep -q '[1-9][0-9]* valid identities found'; then
+    printf '\nNote: Xcode has not written its accounts preference on this Mac, so this script cannot\n'
+    printf 'read which Apple IDs are signed in. There is a valid signing identity in the keychain,\n'
+    printf 'so the build goes ahead. If it stops with "No Accounts", add your Apple ID under\n'
+    printf 'Xcode, Settings, Accounts and run this again.\n\n'
+  else
+    cat >&2 <<'MSG'
+
+Xcode has no Apple ID signed in, and this Mac has no signing identity in its keychain
+either, so no provisioning profile can be created.
+
+  Xcode -> Settings -> Accounts -> + -> Apple ID
+
+A free Apple ID is enough. It signs a build that runs for seven days before it needs
+re-signing, which is fine for trying the app. A paid membership removes the seven-day
+limit and allows installing without a cable.
+
+MSG
+    fail "Sign in, then run this again."
+  fi
+elif [ -z "$ACCOUNTS" ] || printf '%s' "$ACCOUNTS" | grep -q '=();'; then
   cat >&2 <<'MSG'
 
 Xcode has no Apple ID signed in, so it cannot create a provisioning profile.

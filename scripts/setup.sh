@@ -103,8 +103,50 @@ if ! xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
 Then run this again."
 fi
 
+# Xcode being present is not the same as Xcode being able to build this. app.json pins a
+# deployment target of iOS 17.0, and an Xcode whose iPhoneOS SDK is older cannot compile against
+# it. Asked as "what SDK do you have" rather than "what Xcode version is this", because the SDK
+# is the thing that has to be new enough and the mapping from Xcode version to SDK is not one a
+# script should be carrying a table of.
+SDK_VER="$(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)"
+SDK_MAJOR="$(printf '%s' "$SDK_VER" | sed -E 's/^([0-9]+).*/\1/')"
+if printf '%s' "$SDK_MAJOR" | grep -qE '^[0-9]+$'; then
+  if [ "$SDK_MAJOR" -lt 17 ]; then
+    fail "This Xcode's iPhone SDK is $SDK_VER, and Kart is built against iOS 17.
+
+The deployment target is 17.0 because the app uses Vision instance mask segmentation,
+which does not exist before then. An SDK older than that cannot compile it.
+
+  Update Xcode from the App Store, open it once, then run this again."
+  fi
+  ok "iPhone SDK: $SDK_VER"
+else
+  warn "Could not read the iPhone SDK version from this Xcode. Continuing; a build against an"
+  warn "SDK older than iOS 17 will fail at compile time rather than here."
+fi
+
+# React Native 0.86 and Expo SDK 57 are built and tested against Xcode 16. Older may work and is
+# not refused, because this is a number that goes stale and a wrong guess here would stop a
+# machine that would have built fine. Said out loud so an odd build failure has a first suspect.
+XCODE_MAJOR="$(xcodebuild -version 2>/dev/null | sed -nE '1s/^Xcode ([0-9]+).*/\1/p')"
+if printf '%s' "$XCODE_MAJOR" | grep -qE '^[0-9]+$' && [ "$XCODE_MAJOR" -lt 16 ]; then
+  warn "Xcode $XCODE_MAJOR. React Native 0.86 expects Xcode 16 or newer; this may still build,"
+  warn "but if it fails in a way that mentions Swift or the toolchain, update Xcode first."
+fi
+
 NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
-[ -n "$NODE_MAJOR" ] || fail "Node is not installed. Install it with \`brew install node\`, or from nodejs.org, then run this again."
+[ -n "$NODE_MAJOR" ] || fail "Node is not on this shell's PATH.
+
+If you have never installed it:
+
+       brew install node
+
+If you installed it with nvm, fnm or asdf, it is on your PATH in a login shell and not in
+the one this script runs in, which is why it looks missing. Either point this run at it:
+
+       PATH=\"\$(dirname \"\$(command -v node || true)\"):\$PATH\" ./scripts/setup.sh
+
+or install a system-wide Node with brew, which every shell can see."
 # 22, not 20: `npm run serve` reads the key with --env-file-if-exists, which landed in Node 22.
 [ "$NODE_MAJOR" -ge 22 ] || fail "Node $(node --version) is too old. This needs Node 22 or newer: \`brew install node\`."
 ok "Node: $(node --version)"
@@ -129,10 +171,49 @@ step "Working out who is signing this build"
 # A codesigning certificate carries the team identifier in its OU field, and that is the most
 # reliable place to read it: the Xcode preference that lists accounts holds Apple IDs, not teams,
 # and it exists and reads as present even when it is empty.
+# Every unexpired Apple Development certificate on this Mac, one team identifier per line.
+#
+# Three things this handles that reading the first certificate did not, and all three are the
+# difference between one machine and any machine.
+#
+#   - `security find-certificate` without -a returns one arbitrary match. Anyone who has ever
+#     built for an employer has two Apple IDs on their Mac, so the team was whichever came back
+#     first, and the wrong one fails much later with a provisioning error naming neither.
+#   - It returns expired certificates too, and a lapsed one sorts no differently from a live one.
+#     `-checkend 0` drops those.
+#   - A team chosen silently is a team nobody can see was chosen. Two means stop and ask.
+apple_team_ids() {
+  local tmp cert
+  tmp="$(mktemp -d -t kart-certs)" || return 0
+  security find-certificate -a -c "Apple Development" -p 2>/dev/null \
+    | awk -v dir="$tmp" '/-----BEGIN CERTIFICATE-----/{n++} n{print > (dir "/" n ".pem")}'
+  for cert in "$tmp"/*.pem; do
+    [ -e "$cert" ] || continue
+    openssl x509 -in "$cert" -noout -checkend 0 >/dev/null 2>&1 || continue
+    openssl x509 -in "$cert" -noout -subject 2>/dev/null \
+      | sed -nE 's/.*OU[ ]*=[ ]*([A-Z0-9]{10}).*/\1/p'
+  done | sort -u
+  rm -rf "$tmp"
+}
+
 if [ -z "${KART_TEAM_ID:-}" ]; then
-  KART_TEAM_ID="$(security find-certificate -c "Apple Development" -p 2>/dev/null \
-    | openssl x509 -noout -subject 2>/dev/null \
-    | sed -nE 's/.*OU[ ]*=[ ]*([A-Z0-9]{10}).*/\1/p' | head -1)"
+  TEAMS="$(apple_team_ids)"
+  TEAM_COUNT=0
+  [ -n "$TEAMS" ] && TEAM_COUNT="$(printf '%s\n' "$TEAMS" | grep -c .)"
+  if [ "$TEAM_COUNT" -gt 1 ]; then
+    fail "This Mac has certificates for more than one Apple team, so there is no single right
+answer to sign as:
+
+$(printf '%s\n' "$TEAMS" | sed 's/^/       /')
+
+Pick the one you want and record it, then run this again:
+
+       echo 'KART_TEAM_ID=$(printf '%s\n' "$TEAMS" | head -1)' >> .kartrc
+
+If you do not know which is which, Xcode, Settings, Accounts shows the team name beside
+each Apple ID, and the ten character identifier beside that."
+  fi
+  KART_TEAM_ID="$(printf '%s\n' "$TEAMS" | head -1)"
 fi
 
 if [ -z "${KART_TEAM_ID:-}" ]; then
@@ -176,8 +257,16 @@ if [ -z "${KART_BUNDLE_ID:-}" ]; then
   fi
 fi
 ok "Bundle identifier: $KART_BUNDLE_ID"
-if [ "$KART_TEAM_ID" = "$DEFAULT_TEAM" ]; then
-  ok "(this is the team the committed default belongs to, so nothing needed changing)"
+# Reported from the identifier rather than from the team, which is what it is describing. Read
+# from the team, this line claimed "nothing needed changing" while printing a changed identifier
+# on the author's own machine: install-on-device.sh's retry had recorded a derived identifier in
+# .kartrc after Apple refused to re-register the committed default, which it does to a free team
+# that has used up its weekly allowance. The team was still the owning one, so the old test was
+# true and the sentence beneath it was false.
+if [ "$KART_BUNDLE_ID" = "$DEFAULT_BUNDLE_ID" ]; then
+  ok "(the committed default, which belongs to this team, so nothing needed changing)"
+elif [ "$KART_TEAM_ID" = "$DEFAULT_TEAM" ]; then
+  ok "(this team owns the committed default, but .kartrc already carries its own identifier)"
 else
   ok "(the committed default belongs to another team, and Apple lets exactly one register it)"
 fi
@@ -231,10 +320,19 @@ step "Pointing the app at this Mac"
 # hand-written file that did it the way described here. So the script had never once produced
 # the configuration the project actually runs on.
 lan_address() {
-  local iface addr
+  local iface addr i
   iface="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')"
   for i in $iface en0 en1 en2; do
     [ -n "$i" ] || continue
+    addr="$(ipconfig getifaddr "$i" 2>/dev/null)"
+    [ -n "$addr" ] && { printf '%s' "$addr"; return; }
+  done
+  # Last resort: whatever this Mac actually has. en0 through en2 covers the built-in wifi and
+  # ethernet of a laptop and nothing else, and a Mac on a USB-C dock or a Thunderbolt adapter
+  # numbers those interfaces much higher. Skipped: loopback, Apple's own peer-to-peer radios,
+  # and VPN tunnels, none of which is an address a phone on the same wifi can reach.
+  for i in $(ifconfig -l 2>/dev/null); do
+    case "$i" in lo*|awdl*|llw*|utun*|gif*|stf*|bridge*|ap1) continue ;; esac
     addr="$(ipconfig getifaddr "$i" 2>/dev/null)"
     [ -n "$addr" ] && { printf '%s' "$addr"; return; }
   done
@@ -331,7 +429,12 @@ elif [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.l
 
 MSG
   printf '      Paste an OpenAI key now, or press Return to skip: '
-  read -r KEY
+  # Not echoed. This is the only secret in the project, the rule about it is that it never
+  # appears in a log or a message, and a terminal that prints it leaves it in the scrollback of
+  # whatever window the reader pastes into next. `read -s` costs the reader the reassurance of
+  # seeing the paste land, which is why the next line confirms the length instead.
+  read -rs KEY
+  printf '\n'
   if [ -n "$KEY" ]; then
     if [ -f server/.env.local ] && grep -q '^OPENAI_API_KEY=' server/.env.local; then
       sed -i '' "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$KEY|" server/.env.local
@@ -339,7 +442,8 @@ MSG
       printf 'OPENAI_API_KEY=%s\n' "$KEY" >> server/.env.local
     fi
     chmod 600 server/.env.local
-    ok "saved to server/.env.local, readable only by you"
+    # The length, never the value, so a mis-paste is visible without the key being printed.
+    ok "saved to server/.env.local, readable only by you (${#KEY} characters)"
   else
     warn "skipped. The app will install and run and will not name anything."
     warn "Add one later: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local"
