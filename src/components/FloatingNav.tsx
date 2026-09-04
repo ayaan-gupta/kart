@@ -9,7 +9,7 @@ import { GlassSurface } from './GlassSurface';
 import { PressableScale } from './PressableScale';
 
 /**
- * Floating pill nav with a separate circular scan button, the pattern from
+ * Floating pill nav with separate circular capture buttons, the pattern from
  * the reference apps: chrome floats above content, content scrolls beneath.
  */
 
@@ -53,31 +53,38 @@ export function FloatingNav({ current }: { current: Tab }) {
         </View>
       </GlassSurface>
 
-      {/* Two ways in, deliberately side by side. The camera photographs one item at a time and
-          is the simpler interaction; "+" opens the live scan, which is unchanged. */}
+      {/* Two ways in, deliberately side by side, and deliberately not equal.
+
+          Photographing one item is the interaction the product owner asked for on 2026-09-02
+          ("take a photo, press a button"), so it gets the primary circle: the big brand-coloured
+          one, in the position this design has always used for the app's main action. Live
+          scanning is kept whole rather than deleted, because the plan is to move back to it, but
+          it is the secondary control now and looks like it. FloatingNav.test.tsx asserts both,
+          because a diff cannot tell these two apart: the router calls read identically whichever
+          button is which. */}
       <View style={styles.actions}>
         <PressableScale
-          onPress={() => router.push('/photo')}
-          accessibilityLabel="Photograph an item"
+          onPress={() => router.push('/scan')}
+          accessibilityLabel="Start a new scan"
         >
-          <View style={styles.photoButton}>
+          <View style={styles.secondaryButton}>
             {Platform.OS === 'ios' ? (
-              <SymbolView name="camera.fill" size={20} tintColor={color.brand} weight="semibold" />
+              <SymbolView name="plus" size={20} tintColor={color.brand} weight="semibold" />
             ) : (
-              <Caption color={color.brand}>Photo</Caption>
+              <Caption color={color.brand}>+</Caption>
             )}
           </View>
         </PressableScale>
 
         <PressableScale
-          onPress={() => router.push('/scan')}
-          accessibilityLabel="Start a new scan"
+          onPress={() => router.push('/photo')}
+          accessibilityLabel="Photograph an item"
         >
-          <View style={styles.scanButton}>
+          <View style={styles.primaryButton}>
             {Platform.OS === 'ios' ? (
-              <SymbolView name="plus" size={24} tintColor={color.white} weight="semibold" />
+              <SymbolView name="camera.fill" size={24} tintColor={color.white} weight="semibold" />
             ) : (
-              <Caption color={color.white}>+</Caption>
+              <Caption color={color.white}>Photo</Caption>
             )}
           </View>
         </PressableScale>
@@ -115,7 +122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.s,
   },
-  photoButton: {
+  secondaryButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -124,7 +131,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadow.float,
   },
-  scanButton: {
+  primaryButton: {
     width: 58,
     height: 58,
     borderRadius: 29,
