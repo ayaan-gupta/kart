@@ -19,9 +19,10 @@ Rules:
    Exactly one of:
      "cart"    the inside of the shopper's own trolley or basket, with its wire mesh or moulded
                basket around the goods.
-     "product" one or a few products the shopper is showing the camera, held up in a hand or
-               standing on a table, counter, worktop or floor in front of them. A handful of
-               items at most, each one separately visible, filling much of the frame.
+     "product" the shopper's own goods, not the shop's. Either one or a few products they are
+               showing the camera, held up in a hand or standing on a table, counter, worktop or
+               floor in front of them, or the inside of their own kitchen: a domestic
+               refrigerator or freezer, a kitchen cupboard, or a home pantry shelf.
      "shelf"   goods that are still the shop's: a shop's shelves, a chiller, a display stand, an
                aisle end, or another shopper's trolley. The signs are in the goods themselves,
                not in the furniture. Look for many products in rows, the same product repeated
@@ -35,6 +36,14 @@ Rules:
    goods and "product" if nothing does. When "shelf" and "product" both seem to fit, choose
    "shelf" only if the goods are laid out as stock for sale, several facings deep or with price
    labels; a few loose items in front of a piece of furniture are "product".
+   A home kitchen is never "shelf". A shop's aisle and a household's own storage look alike from
+   a distance, both being rows of packets on shelves, so read the tells. The shopper's own are:
+   a domestic refrigerator, with its door shelves, egg trays, drawers and salad crisper; packets
+   already opened; food decanted into the household's own jars and tubs; household things in
+   among the food, a sponge, a jug, a box of tissues; one of a thing rather than a row of it;
+   and no price labels anywhere. Any of those makes the goods theirs, which is "product". Call
+   it "shelf" only on the positive evidence that the goods are still for sale: the same product
+   repeated across several facings, stock stacked deep, and price labels along the shelf edge.
    Also set subjectIsCart, true when subjectKind is "cart" and false otherwise, so the two never
    disagree.
 1. Identify at brand level whenever the packaging is legible. Split what you see into three
