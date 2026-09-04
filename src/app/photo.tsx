@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BagTray } from '../components/BagTray';
-import { CoachNotice } from '../components/CoachNotice';
+import { CoachNotice, coachKind } from '../components/CoachNotice';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
 import { PhotoCameraCapture } from '../components/PhotoCameraCapture';
@@ -46,6 +46,12 @@ export default function PhotoScreen() {
   const [failure, setFailure] = useState<ClientFailure | null>(null);
   const [added, setAdded] = useState<number | null>(null);
 
+  // What the last photograph said about things buried under other things. Held per photograph
+  // rather than for the session, because the remedy the notice asks for is another photograph:
+  // a shopper who moves the bag off the top and presses the button again has answered it, and a
+  // latched flag would leave them being told to do what they have just done.
+  const [occluded, setOccluded] = useState(false);
+
   const startScan = useScanline((s) => s.startScan);
   const setBag = useScanline((s) => s.setBag);
   const finishHaul = useScanline((s) => s.finishHaul);
@@ -76,8 +82,14 @@ export default function PhotoScreen() {
         session.current = outcome.state;
         setBag(outcome.lines, {});
         setAdded(outcome.added);
+        setOccluded(outcome.occlusion.itemsLikelyHidden);
       } else {
         setFailure(outcome.failure);
+        // Nothing was recognised, so the previous photograph's verdict is the only thing that
+        // could still be on screen, and it is now unsupported by anything. `coachKind` puts
+        // "unavailable" first in any case; this stops the occluded notice reappearing behind it
+        // when the next call succeeds and finds nothing hidden.
+        setOccluded(false);
       }
     } finally {
       setBusy(false);
@@ -157,9 +169,15 @@ export default function PhotoScreen() {
         />
       </View>
 
-      {/* The same notice the live path shows when recognition is not answering. Its wording says
-          nothing about the cause on purpose, and that is unchanged here. */}
-      <CoachNotice kind={failure === null ? 'none' : 'unavailable'} topInset={insets.top} />
+      {/* The same two notices the live path shows, chosen by the same function, so the two
+          screens cannot drift apart on which one wins. `amberPersists` is false and not a bug:
+          it drives "bring your camera closer to items highlighted yellow", and this path draws
+          no outlines to highlight, because the device runs no detector and the server's
+          enumerator is unconfigured. The other two are both reachable here. */}
+      <CoachNotice
+        kind={coachKind({ amberPersists: false, occluded, unavailable: failure !== null })}
+        topInset={insets.top}
+      />
 
       <View style={[styles.controls, { bottom: controlsBottom }]} pointerEvents="box-none">
         {busy ? (

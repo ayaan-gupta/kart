@@ -16,7 +16,13 @@
  * above it holds no counting rules of its own.
  */
 import { applyCensus, bagLines, createFusionState, type BagLine, type FusionState } from './fusion';
-import type { CensusPayload, CensusRequest, ClientFailure, ClientResult } from './recognitionClient';
+import type {
+  CensusPayload,
+  CensusRequest,
+  ClientFailure,
+  ClientResult,
+  OcclusionReport,
+} from './recognitionClient';
 
 /**
  * A photograph session. Held across shutter presses so the second photograph of one orange is
@@ -42,6 +48,19 @@ export type PhotoScanOutcome =
       lines: BagLine[];
       /** How many products this photograph put in the bag that were not already in it. */
       added: number;
+      /**
+       * Whether the census thinks this photograph has products buried under other products.
+       *
+       * Returned rather than folded away because it is the whole of CLAUDE.md's third
+       * requirement, and the bag cannot carry it: an item nobody can see has no line. The
+       * screen turns it into the one notice `CoachNotice` already holds the wording for,
+       * which asks the shopper to move what is on top and photograph it again.
+       *
+       * It describes this photograph, not the session, so it is replaced on every shutter
+       * press rather than accumulated. A second photograph taken after moving the bag is
+       * the shopper answering it, and must be able to clear it.
+       */
+      occlusion: OcclusionReport;
     }
   | { ok: false; failure: ClientFailure; state: PhotoScanState };
 
@@ -79,5 +98,6 @@ export async function scanPhoto(
     state: { fusion },
     lines,
     added: lines.filter((line) => !seen.has(line.key)).length,
+    occlusion: result.value.occlusion,
   };
 }

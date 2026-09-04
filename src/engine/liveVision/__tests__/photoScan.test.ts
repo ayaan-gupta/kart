@@ -10,7 +10,14 @@ import type { CensusPayload } from '../recognitionClient';
  * because the device never ran a detector and `ENUMERATOR_URL` is unset, so every product
  * arrives through `unmarkedItems`. See server/src/enumerate.ts.
  */
-function reply(items: { name: string; count?: number; confidence?: number }[]): CensusPayload {
+function reply(
+  items: { name: string; count?: number; confidence?: number }[],
+  occlusion: CensusPayload['occlusion'] = {
+    itemsLikelyHidden: false,
+    severity: 'none',
+    reason: 'single item',
+  },
+): CensusPayload {
   return {
     marks: [],
     inViewCounts: items.map((i) => ({ productKey: `::${i.name}`, count: i.count ?? 1 })),
@@ -21,7 +28,7 @@ function reply(items: { name: string; count?: number; confidence?: number }[]): 
       approxLocation: 'centre of frame',
       confidence: i.confidence ?? 0.9,
     })),
-    occlusion: { itemsLikelyHidden: false, severity: 'none', reason: 'single item' },
+    occlusion,
     regions: [],
     enumeration: 'degraded',
   };
@@ -185,5 +192,45 @@ describe('scanPhoto', () => {
     if (!outcome.ok) return;
     expect(outcome.lines).toHaveLength(1);
     expect(outcome.lines[0].qty).toBe(2);
+  });
+});
+
+/**
+ * CLAUDE.md's third requirement: items hidden under other items are flagged as hidden, so the
+ * shopper is asked to move them. The census answers that question on every photograph and
+ * `CoachNotice` already holds the product owner's own wording for it, but nothing carried the
+ * answer from one to the other: `scanPhoto` read `result.value.occlusion` only to hand the whole
+ * payload to `applyCensus`, and returned a bag with no trace of it.
+ *
+ * Measured on the fifteen photographs in `server/eval/corpus/clut`, the census raises this flag on
+ * 25 of the 39 scans that have something hidden. All 25 were being thrown away here.
+ */
+describe('scanPhoto reports what is hidden', () => {
+  it('returns the occlusion report so the screen can ask the shopper to move things', async () => {
+    const deps = stubCensus([
+      reply([{ name: 'cereal' }], {
+        itemsLikelyHidden: true,
+        severity: 'many',
+        reason: 'a produce bag covers the bottom of the basket',
+      }),
+    ]);
+
+    const outcome = await scanPhoto(createPhotoScanState(), 'BASE64', deps);
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.occlusion.itemsLikelyHidden).toBe(true);
+    expect(outcome.occlusion.severity).toBe('many');
+  });
+
+  it('reports nothing hidden when the census saw everything', async () => {
+    const deps = stubCensus([reply([{ name: 'cereal' }])]);
+
+    const outcome = await scanPhoto(createPhotoScanState(), 'BASE64', deps);
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.occlusion.itemsLikelyHidden).toBe(false);
+    expect(outcome.occlusion.severity).toBe('none');
   });
 });
