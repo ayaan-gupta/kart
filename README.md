@@ -65,11 +65,14 @@ Clone it, plug an iPhone in with a cable, unlock the phone, and run:
 ./scripts/setup.sh
 ```
 
-That is the whole thing. It works out your Apple team and gives this clone its own bundle
-identifier, installs the app and service dependencies and the pods, points the app at this
-Mac's address on your network, asks once for an OpenAI key, and builds and installs on the
-attached phone. Re-running it is safe, and is how you pick up a changed network, a different
-phone, or a re-signed build after a free Apple ID's seven days run out.
+That is the whole thing. It asks for an OpenAI key first, so the slow part runs unattended,
+then installs whatever the Mac is missing (Homebrew, Node, CocoaPods, the command line tools
+pointed at Xcode, Xcode's first launch), works out your Apple team and gives this clone its own
+bundle identifier, installs the app and service dependencies and the pods, points the app at
+this Mac's address on your network, waits for the phone to be plugged in and trusted, and builds
+and installs on it. The only other things it asks for are your Mac password, where Apple and
+Homebrew require it. Re-running it is safe, and is how you pick up a changed network, a
+different phone, or a re-signed build after a free Apple ID's seven days run out.
 
 It needs Xcode, not just the Command Line Tools, because the app carries its own Swift modules.
 Expo Go cannot load them, so there is no way around a real build.
@@ -79,10 +82,13 @@ one and stops with the exact thing to click rather than a build error:
 
 | | what you do | when |
 |---|---|---|
-| 1 | Install Xcode from the App Store, open it once | if only the Command Line Tools are present |
-| 2 | Xcode, Settings, Accounts, add your Apple ID, then pick your Team on the Kart target once | first clone on a Mac |
+| 1 | Install Xcode from the App Store | if it is not installed; the script does the rest |
+| 2 | Xcode, Settings, Accounts, add your Apple ID | first clone on a Mac |
 | 3 | On the phone: Settings, Privacy & Security, Developer Mode, on, then reboot | first iPhone |
 | 4 | On the phone: Settings, General, VPN & Device Management, trust the certificate | first install |
+
+`scripts/__tests__/setup.test.ts` runs the script against a throwaway Mac with fake Apple and
+Homebrew tools, in each of those states, so "works on any Mac" is a test and not a hope.
 
 A free Apple ID is enough. It signs a build that runs for seven days, then re-run the script.
 

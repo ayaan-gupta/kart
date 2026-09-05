@@ -17,8 +17,12 @@
 #   3. Developer Mode on the phone. An on-device toggle plus a reboot plus the passcode.
 #   4. Trusting the developer certificate on the phone, the first time it runs.
 #
-# Everything else, including the two things that would otherwise fail confusingly on any machine
-# that is not the original author's, is handled here:
+# Everything else is done here, on any Mac, asking for nothing but the Mac password where Apple
+# or Homebrew require it: pointing the command line tools at an installed Xcode, Xcode's licence
+# and first launch, Homebrew, Node and CocoaPods when they are missing, the node path Xcode's
+# build phases need, the OpenAI key (asked first, so the slow part runs unattended), waiting for
+# the phone to be plugged in and trusted, and the two things that would otherwise fail
+# confusingly on any machine that is not the original author's:
 #
 #   - The bundle identifier. `dev.ayaangupta.kart` is registered to one Apple team, and App IDs
 #     are globally unique across the whole developer program, so a second person building this
@@ -55,10 +59,17 @@ STEP=0
 CHECK=0
 if [ "${1:-}" = "--check" ]; then CHECK=1; shift; fi
 
+# Where an installed Xcode is looked for, where Homebrew lives, and how long to wait for a phone.
+# Each is overridable so the tests can stand a throwaway Mac up around this script.
+XCODE_APPS="${KART_XCODE_APPS:-/Applications:$HOME/Applications}"
+if [ "$(uname -m 2>/dev/null)" = "arm64" ]; then BREW_PREFIX_DEFAULT=/opt/homebrew; else BREW_PREFIX_DEFAULT=/usr/local; fi
+BREW_PREFIX="${KART_BREW_PREFIX:-$BREW_PREFIX_DEFAULT}"
+PHONE_WAIT="${KART_PHONE_WAIT_SECONDS:-180}"
+
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
-# Ten. The count was wrong from the first version and the last step printed "[9/8]", which is a
-# small thing that reads like the script has lost its place. Recount when adding a step.
-step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/10] %s\033[0m\n' "$STEP" "$*"; }
+# Twelve. The count was wrong from the first version and the last step printed "[9/8]", which is
+# a small thing that reads like the script has lost its place. Recount when adding a step.
+step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/12] %s\033[0m\n' "$STEP" "$*"; }
 ok()    { printf '      %s\n' "$*"; }
 WARNINGS=0
 warn()  { WARNINGS=$((WARNINGS + 1)); printf '      warning: %s\n' "$*"; }
@@ -76,34 +87,66 @@ step "Checking this Mac"
 
 [ "$(uname -s)" = "Darwin" ] || fail "Kart is an iOS app, so it builds on macOS only. This is $(uname -s)."
 
+# Xcode, and the command line tools pointed at it. Installing Xcode from the App Store does not
+# point them there: `xcode-select -p` goes on answering CommandLineTools until someone runs
+# `xcode-select -s`, which needs an administrator password. That is the single most common state
+# of a Mac that has "installed Xcode", so it is handled here rather than stopped on.
+find_xcode() {
+  local dir app
+  local IFS=:
+  for dir in $XCODE_APPS; do
+    for app in "$dir"/Xcode.app "$dir"/Xcode*.app; do
+      [ -d "$app/Contents/Developer" ] && { printf '%s' "$app"; return 0; }
+    done
+  done
+  return 1
+}
+
 XCODE_PATH="$(xcode-select -p 2>/dev/null || true)"
 case "$XCODE_PATH" in
-  *Xcode.app*) ok "Xcode: $(xcodebuild -version 2>/dev/null | head -1)" ;;
-  *CommandLineTools*)
-    fail "Only the Command Line Tools are installed. This project has its own Swift modules and
+  *Xcode*.app*) ;;
+  *)
+    if XCODE_APP="$(find_xcode)"; then
+      if [ "$CHECK" = 1 ]; then
+        warn "Xcode is installed at $XCODE_APP, but the command line tools point at"
+        warn "${XCODE_PATH:-nothing}. A real run points them at Xcode, which asks for your password."
+      else
+        ok "Xcode is installed at $XCODE_APP, but the command line tools point elsewhere."
+        ok "Pointing them at it. This asks for your Mac password once."
+        sudo xcode-select -s "$XCODE_APP/Contents/Developer" \
+          || fail "Could not point the command line tools at Xcode. Run this yourself, then run setup again:
+
+       sudo xcode-select -s $XCODE_APP/Contents/Developer"
+      fi
+    elif [ -n "$XCODE_PATH" ]; then
+      fail "Only the Command Line Tools are installed. This project has its own Swift modules and
 needs the full Xcode to build them.
 
   1. Install Xcode from the App Store (about 15 GB).
-  2. Open it once and accept the licence.
-  3. Point the tools at it:
-
-       sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-
-Then run this again." ;;
-  *) fail "No Xcode found. Install it from the App Store, open it once, then run this again." ;;
+  2. Run this again. It points the tools at Xcode and finishes Xcode's first launch itself."
+    else
+      fail "No Xcode found. Install it from the App Store (about 15 GB), then run this again."
+    fi
+    ;;
 esac
+ok "Xcode: $(xcodebuild -version 2>/dev/null | head -1)"
 
-# The licence blocks every build with a message that does not mention the licence when it is run
-# from a script rather than a terminal Xcode owns, so it is worth testing for directly.
+# The licence and the first-launch components block every build with a message that does not
+# mention either when the build is run from a script. Both need an administrator, and both are
+# one command, so they are done here rather than described.
 if ! xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1; then
-  fail "Xcode has not finished its first launch, so no build can start.
-
-  Open Xcode once and let it install its additional components. If it asks for the
-  licence, accept it. Or, from a terminal:
-
-       sudo xcodebuild -runFirstLaunch
-
-Then run this again."
+  if [ "$CHECK" = 1 ]; then
+    warn "Xcode has not finished its first launch. A real run accepts the licence and installs"
+    warn "its components, which asks for your password."
+  else
+    ok "Xcode has not finished its first launch. Accepting the licence and installing its"
+    ok "components. This asks for your Mac password and takes a minute or two."
+    sudo xcodebuild -license accept >/dev/null 2>&1 || true
+    sudo xcodebuild -runFirstLaunch \
+      || fail "Xcode's first launch did not finish. Open Xcode once, let it install its components, then run this again."
+    xcodebuild -checkFirstLaunchStatus >/dev/null 2>&1 \
+      || fail "Xcode still reports its first launch as unfinished. Open Xcode once, let it finish, then run this again."
+  fi
 fi
 
 # Xcode being present is not the same as Xcode being able to build this. app.json pins a
@@ -124,6 +167,7 @@ which does not exist before then. An SDK older than that cannot compile it.
   fi
   ok "iPhone SDK: $SDK_VER"
 else
+  SDK_MAJOR=""
   warn "Could not read the iPhone SDK version from this Xcode. Continuing; a build against an"
   warn "SDK older than iOS 17 will fail at compile time rather than here."
 fi
@@ -137,36 +181,169 @@ if printf '%s' "$XCODE_MAJOR" | grep -qE '^[0-9]+$' && [ "$XCODE_MAJOR" -lt 16 ]
   warn "but if it fails in a way that mentions Swift or the toolchain, update Xcode first."
 fi
 
-NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
-[ -n "$NODE_MAJOR" ] || fail "Node is not on this shell's PATH.
+# Homebrew is how Node and CocoaPods get onto a Mac that has neither. A Mac that has it but not
+# on this shell's PATH (installed a minute ago, profile not yet reloaded) is the common case, so
+# the prefix is looked at before anything is downloaded. The installer is Homebrew's own, from
+# https://brew.sh, and asks for an administrator password.
+ensure_brew() {
+  command -v brew >/dev/null 2>&1 && return 0
+  if [ -x "$BREW_PREFIX/bin/brew" ]; then
+    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+    ok "Homebrew is installed at $BREW_PREFIX and was not on this shell's PATH. Using it."
+  else
+    [ "$CHECK" = 1 ] && return 1
+    ok "Installing Homebrew, which is how Node and CocoaPods are installed. This asks for your"
+    ok "Mac password and takes a few minutes."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+      || fail "Homebrew did not install. The output above says why; https://brew.sh has the same command."
+    [ -x "$BREW_PREFIX/bin/brew" ] \
+      || fail "Homebrew installed somewhere other than $BREW_PREFIX. Open a new terminal and run this again."
+    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+  fi
+  # So the next terminal finds it as well. This is the one line Homebrew's installer asks you to
+  # add to your profile, added for you.
+  if [ "$CHECK" != 1 ] && ! grep -qs 'brew shellenv' "$HOME/.zprofile"; then
+    printf '\n# Homebrew, added by Kart'"'"'s scripts/setup.sh\neval "$(%s/bin/brew shellenv)"\n' "$BREW_PREFIX" >> "$HOME/.zprofile"
+    ok "added Homebrew to ~/.zprofile so new terminals see it"
+  fi
+}
 
-If you have never installed it:
-
-       brew install node
-
-If you installed it with nvm, fnm or asdf, it is on your PATH in a login shell and not in
-the one this script runs in, which is why it looks missing. Either point this run at it:
-
-       PATH=\"\$(dirname \"\$(command -v node || true)\"):\$PATH\" ./scripts/setup.sh
-
-or install a system-wide Node with brew, which every shell can see."
-# 22, not 20: `npm run serve` reads the key with --env-file-if-exists, which landed in Node 22.
-[ "$NODE_MAJOR" -ge 22 ] || fail "Node $(node --version) is too old. This needs Node 22 or newer: \`brew install node\`."
-ok "Node: $(node --version)"
+# Node 22, not 20: `npm run serve` reads the key with --env-file-if-exists, which landed in 22.
+if ! command -v node >/dev/null 2>&1; then
+  if [ "$CHECK" = 1 ]; then
+    warn "Node is not on this shell's PATH. A real run installs it with Homebrew. (If you use nvm,"
+    warn "fnm or asdf, it is only on the PATH of a login shell; that is fine, brew's works too.)"
+  else
+    ensure_brew
+    ok "Installing Node with Homebrew."
+    brew install node || fail "brew install node failed. The output above says why."
+    command -v node >/dev/null 2>&1 || fail "Node installed but is still not on PATH. Open a new terminal and run this again."
+  fi
+fi
+if command -v node >/dev/null 2>&1; then
+  NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
+  [ "$NODE_MAJOR" -ge 22 ] 2>/dev/null || fail "Node $(node --version) is too old. This needs Node 22 or newer: \`brew install node\`, then open a new terminal."
+  ok "Node: $(node --version)"
+fi
 
 if ! command -v pod >/dev/null 2>&1; then
-  fail "CocoaPods is not installed, and React Native's native dependencies are installed with it.
-
-       brew install cocoapods
-
-  (\`sudo gem install cocoapods\` also works and wants your password; brew does not.)
-
-Then run this again."
+  if [ "$CHECK" = 1 ]; then
+    warn "CocoaPods is not installed. A real run installs it with Homebrew."
+  else
+    ensure_brew
+    ok "Installing CocoaPods with Homebrew."
+    brew install cocoapods || fail "brew install cocoapods failed. The output above says why."
+    command -v pod >/dev/null 2>&1 || fail "CocoaPods installed but is still not on PATH. Open a new terminal and run this again."
+  fi
 fi
-ok "CocoaPods: $(pod --version)"
+command -v pod >/dev/null 2>&1 && ok "CocoaPods: $(pod --version)"
 
 command -v python3 >/dev/null 2>&1 && ok "Python: $(python3 --version 2>&1)" \
   || warn "No python3. Only needed to build replay clips for the offline harness, not to run the app."
+
+# ---------------------------------------------------------------------------------------------
+step "The one thing only you have: an OpenAI key"
+
+# Asked first, before the installs, so everything this script needs from a person is asked in
+# the first minute and the slow part runs unattended. Nothing else in this script asks a question
+# except your Mac password, and the phone asking to trust this Mac.
+if [ "$CHECK" = 1 ]; then
+  grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
+    && ok "OpenAI key configured" \
+    || warn "no OpenAI key yet. The app runs and names nothing until there is one."
+elif [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.local; then
+  cat <<'MSG'
+
+      The recognition service needs an OpenAI API key. Without one the app still installs,
+      the camera works, items get outlined and tracked, and barcodes still resolve, but
+      nothing is ever named.
+
+      The key is yours and is never committed, never sent to the phone, and never put in
+      the app binary: it lives only in server/.env.local, which git ignores.
+
+      Get one at https://platform.openai.com/api-keys
+
+MSG
+  printf '      Paste an OpenAI key now, or press Return to skip: '
+  # Not echoed. This is the only secret in the project, the rule about it is that it never
+  # appears in a log or a message, and a terminal that prints it leaves it in the scrollback of
+  # whatever window the reader pastes into next. `read -s` costs the reader the reassurance of
+  # seeing the paste land, which is why the next line confirms the length instead.
+  read -rs KEY
+  printf '\n'
+  if [ -n "$KEY" ]; then
+    if [ -f server/.env.local ] && grep -q '^OPENAI_API_KEY=' server/.env.local; then
+      sed -i '' "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$KEY|" server/.env.local
+    else
+      printf 'OPENAI_API_KEY=%s\n' "$KEY" >> server/.env.local
+    fi
+    chmod 600 server/.env.local
+    # The length, never the value, so a mis-paste is visible without the key being printed.
+    ok "saved to server/.env.local, readable only by you (${#KEY} characters)"
+  else
+    warn "skipped. The app will install and run and will not name anything."
+    warn "Add one later: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local"
+  fi
+else
+  ok "OpenAI key already configured"
+fi
+
+# ---------------------------------------------------------------------------------------------
+step "Looking for the phone"
+
+# A phone's line is `Name (26.6.1) (00008120-...)`: an OS version, then a UDID. This Mac's own
+# line is `Name (8053D28D-...)`, one group and no version. The shape tells them apart, and unlike
+# a name it is the same on every machine.
+#
+# Matching this Mac by `scutil --get ComputerName`, which is what this did, had two ways to be
+# wrong and no way to say so. If the name did not match the line, the Mac stayed in the list and
+# `head -1` below pointed the entire build at the laptop; that line carries no version, so the
+# iOS 17 check reads a non-number and skips itself, and the first honest error arrives much later
+# from xcodebuild. If this Mac's name was a substring of the phone's, which is one rename away on
+# a machine where both are named after their owner, the phone was filtered out instead and the
+# script reported no phone attached while one was plugged in.
+#
+# The hardware UUID is exact, has no characters that need quoting, and is what this Mac's own
+# line ends with, so it also covers a Mac whose name happens to end in something version shaped.
+HOST_UUID="$(ioreg -rd1 -c IOPlatformExpertDevice 2>/dev/null | awk -F'"' '/IOPlatformUUID/{print $4}')"
+[ -n "$HOST_UUID" ] || HOST_UUID='___no-such-machine___'
+
+attached_devices() {
+  xcrun xctrace list devices 2>/dev/null \
+    | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
+    | grep -E '\([0-9]+\.[0-9.]+\) \([0-9A-Fa-f-]+\)$' \
+    | grep -v 'Simulator' \
+    | grep -vF "$HOST_UUID"
+}
+
+# Looked for now so the person can plug it in while the installs run, and again, with patience,
+# just before the build. A phone that is plugged in but not yet trusted does not appear at all,
+# so "not attached" here is also "not trusted yet".
+phone_check() {
+  local line os
+  line="$(attached_devices | head -1)"
+  [ -n "$line" ] || return 1
+  ok "Phone: $line"
+  # The phone's iOS has to be one this Xcode can build for. A phone a major version ahead of
+  # the SDK fails deep inside xcodebuild with a message about device support files, which does
+  # not say "update Xcode", so it is said here.
+  os="$(printf '%s' "$line" | sed -E 's/.*\(([0-9]+)\.[0-9.]+\) \([0-9A-Fa-f-]+\)$/\1/')"
+  if printf '%s' "$os" | grep -qE '^[0-9]+$' && [ -n "${SDK_MAJOR:-}" ] && [ "$os" -gt "$SDK_MAJOR" ]; then
+    fail "The phone runs iOS $os and this Xcode's iPhone SDK is $SDK_VER, so it cannot build for it.
+
+  Update Xcode from the App Store, open it once, then run this again."
+  fi
+  return 0
+}
+
+if ! phone_check; then
+  if [ "$CHECK" = 1 ]; then
+    warn "no phone attached. A real run waits for one before building."
+  else
+    ok "No iPhone is attached yet. Plug it in with a cable and unlock it; the first time, it"
+    ok "asks whether to trust this Mac. Answer Trust. The installs below carry on meanwhile."
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------
 step "Working out who is signing this build"
@@ -199,8 +376,21 @@ apple_team_ids() {
   rm -rf "$tmp"
 }
 
+# Xcode's own record of the accounts signed into it, one team identifier per line. This is the
+# team before any certificate exists: an Apple ID added to Xcode a minute ago has a team and no
+# certificate, and `xcodebuild -allowProvisioningUpdates` mints the certificate on first use once
+# it knows the team. Read second, because a certificate is a stronger claim than a preference.
+xcode_pref_teams() {
+  defaults read com.apple.dt.Xcode IDEProvisioningTeams 2>/dev/null \
+    | sed -nE 's/.*teamID = "?([A-Z0-9]{10})"?;.*/\1/p' | sort -u
+}
+
 if [ -z "${KART_TEAM_ID:-}" ]; then
   TEAMS="$(apple_team_ids)"
+  if [ -z "$TEAMS" ]; then
+    TEAMS="$(xcode_pref_teams)"
+    [ -n "$TEAMS" ] && ok "No development certificate yet; Xcode's accounts name the team, and the build makes the certificate."
+  fi
   TEAM_COUNT=0
   [ -n "$TEAMS" ] && TEAM_COUNT="$(printf '%s\n' "$TEAMS" | grep -c .)"
   if [ "$TEAM_COUNT" -gt 1 ]; then
@@ -311,6 +501,17 @@ else
     (cd ios && pod install) || fail "pod install failed. The output above says why."
   else
     ok "pods current"
+  fi
+
+  # Xcode's "Bundle React Native code" phase runs node, from a shell whose PATH is not this one.
+  # ios/.xcode.env asks `command -v node`, which finds nothing when Node came from Homebrew or
+  # nvm, and the build dies with "node: command not found" a long way from anything that
+  # mentions PATH. The absolute path, in the git-ignored local file the template provides for
+  # exactly this, makes the build phase's answer the same as this shell's.
+  NODE_BIN="$(command -v node 2>/dev/null || true)"
+  if [ -n "$NODE_BIN" ]; then
+    printf '# Written by scripts/setup.sh. Git ignored. Which node Xcode'"'"'s build phases run.\nexport NODE_BINARY="%s"\n' "$NODE_BIN" > ios/.xcode.env.local
+    ok "ios/.xcode.env.local points Xcode's build at $NODE_BIN"
   fi
 fi
 
@@ -424,46 +625,9 @@ for port in 4310 4330; do
   fi
 done
 
-if [ "$CHECK" = 1 ]; then
-  grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
-    && ok "OpenAI key configured" \
-    || warn "no OpenAI key yet. The app runs and names nothing until there is one."
-elif [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.local; then
-  cat <<'MSG'
-
-      The recognition service needs an OpenAI API key. Without one the app still installs,
-      the camera works, items get outlined and tracked, and barcodes still resolve, but
-      nothing is ever named.
-
-      The key is yours and is never committed, never sent to the phone, and never put in
-      the app binary: it lives only in server/.env.local, which git ignores.
-
-      Get one at https://platform.openai.com/api-keys
-
-MSG
-  printf '      Paste an OpenAI key now, or press Return to skip: '
-  # Not echoed. This is the only secret in the project, the rule about it is that it never
-  # appears in a log or a message, and a terminal that prints it leaves it in the scrollback of
-  # whatever window the reader pastes into next. `read -s` costs the reader the reassurance of
-  # seeing the paste land, which is why the next line confirms the length instead.
-  read -rs KEY
-  printf '\n'
-  if [ -n "$KEY" ]; then
-    if [ -f server/.env.local ] && grep -q '^OPENAI_API_KEY=' server/.env.local; then
-      sed -i '' "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$KEY|" server/.env.local
-    else
-      printf 'OPENAI_API_KEY=%s\n' "$KEY" >> server/.env.local
-    fi
-    chmod 600 server/.env.local
-    # The length, never the value, so a mis-paste is visible without the key being printed.
-    ok "saved to server/.env.local, readable only by you (${#KEY} characters)"
-  else
-    warn "skipped. The app will install and run and will not name anything."
-    warn "Add one later: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local"
-  fi
-else
-  ok "OpenAI key already configured"
-fi
+grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
+  && ok "OpenAI key in place" \
+  || warn "no OpenAI key, so the service will refuse to start. Add one and run this again."
 
 # ---------------------------------------------------------------------------------------------
 step "Checking the grounded enumerator"
@@ -529,30 +693,19 @@ step "Building and installing on the phone"
 
 export KART_TEAM_ID KART_BUNDLE_ID
 
-# A phone's line is `Name (26.6.1) (00008120-...)`: an OS version, then a UDID. This Mac's own
-# line is `Name (8053D28D-...)`, one group and no version. The shape tells them apart, and unlike
-# a name it is the same on every machine.
-#
-# Matching this Mac by `scutil --get ComputerName`, which is what this did, had two ways to be
-# wrong and no way to say so. If the name did not match the line, the Mac stayed in the list and
-# `head -1` below pointed the entire build at the laptop; that line carries no version, so the
-# iOS 17 check reads a non-number and skips itself, and the first honest error arrives much later
-# from xcodebuild. If this Mac's name was a substring of the phone's, which is one rename away on
-# a machine where both are named after their owner, the phone was filtered out instead and the
-# script reported no phone attached while one was plugged in.
-#
-# The hardware UUID is exact, has no characters that need quoting, and is what this Mac's own
-# line ends with, so it also covers a Mac whose name happens to end in something version shaped.
-HOST_UUID="$(ioreg -rd1 -c IOPlatformExpertDevice 2>/dev/null | awk -F'"' '/IOPlatformUUID/{print $4}')"
-[ -n "$HOST_UUID" ] || HOST_UUID='___no-such-machine___'
-
-attached_devices() {
-  xcrun xctrace list devices 2>/dev/null \
-    | sed -n '/^== Devices ==/,/^== Simulators ==/p' \
-    | grep -E '\([0-9]+\.[0-9.]+\) \([0-9A-Fa-f-]+\)$' \
-    | grep -v 'Simulator' \
-    | grep -vF "$HOST_UUID"
-}
+# Everything on the Mac is done. Now the phone, with patience: the person was told to plug it in
+# while the installs ran, and trusting a Mac takes a tap on the phone and a moment.
+if [ "$CHECK" != 1 ] && ! attached_devices | grep -q .; then
+  printf '      Waiting up to %d seconds for the phone. Plug it in with a cable, unlock it, and tap Trust.' "$PHONE_WAIT"
+  waited=0
+  while [ "$waited" -lt "$PHONE_WAIT" ] && ! attached_devices | grep -q .; do
+    sleep 3
+    waited=$((waited + 3))
+    printf '.'
+  done
+  printf '\n'
+  attached_devices | grep -q . && phone_check
+fi
 
 if ! attached_devices | grep -q .; then
   bold ""
