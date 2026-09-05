@@ -32,6 +32,12 @@ chmod 600 .env.local
 npm run serve
 ```
 
+That runs it in the foreground with the log on the terminal, which is the right shape for
+working on the service. For running it, `./scripts/serve.sh` at the repository root starts the
+same thing detached from the terminal, leaves it alone when it is already up on the checked-out
+code, and restarts it when a file under `server/` or `.env.local` is newer than the process.
+`scripts/setup.sh` calls it, so a phone set up by the script has a service to dial.
+
 `.env.local`, not `.env`: `npm run serve` passes `--env-file-if-exists=.env.local`, and
 nothing reads `server/.env`. Both are ignored by `server/.gitignore`, so a key in either is
 safe from a commit, but only one of them starts the service: `src/openai.ts` throws at import

@@ -190,8 +190,8 @@ if [ ! -f .env ] || ! grep -q '^EXPO_PUBLIC_KART_API_URL=http' .env; then
 Warning: EXPO_PUBLIC_KART_API_URL is not set in .env.
 
 The app will install and run, the camera and outlines will work, and it will never name
-anything: every request returns `unconfigured`. Start the recognition service with
-`npm run serve --prefix server` and put the address it prints into .env first.
+anything: every request returns `unconfigured`. Run ./scripts/setup.sh first: it writes this
+Mac's address into .env and starts the recognition service.
 
 MSG
   read -r -p "Install anyway? [y/N] " reply
@@ -383,8 +383,13 @@ if [ "$CONFIG" = "Debug" ]; then
   echo "phone on this Mac's wifi, or the app opens on \"No script URL provided\"."
   echo
 fi
-echo "Recognition needs the service running, with the phone on this Mac's wifi:"
-echo
-echo "    npm run serve --prefix server"
+# The phone dials this Mac, so the app is no use until the service is up. serve.sh starts it
+# detached from this terminal, or restarts it when the checked-out code is newer than the
+# running process, so a re-install after a pull never scans against yesterday's service.
+echo "The phone dials this Mac for recognition. Keep the phone on this Mac's wifi."
+if ! "$ROOT/scripts/serve.sh"; then
+  echo
+  echo "Fix the above, then: ./scripts/serve.sh"
+fi
 echo
 echo "A free Apple ID signs this for seven days. Re-run this script to re-sign it."

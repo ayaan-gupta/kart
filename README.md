@@ -86,11 +86,15 @@ one and stops with the exact thing to click rather than a build error:
 
 A free Apple ID is enough. It signs a build that runs for seven days, then re-run the script.
 
-Then start the recognition service, and keep the phone on the same wifi:
+The script also starts the recognition service on this Mac and leaves it running, since the
+phone dials this Mac for every scan. Keep the phone on the same wifi. After a reboot, or after
+pulling a change under `server/`, one command brings it back or moves it onto the new code:
 
 ```bash
-npm run serve --prefix server
+./scripts/serve.sh
 ```
+
+`./scripts/serve.sh --status` says whether it is up and whether it is behind the checkout.
 
 Outlines are the one thing this does not set up. They come from a grounded detector too large
 for a phone or a serverless function, so it runs behind `ENUMERATOR_URL` on a GPU host. With that

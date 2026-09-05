@@ -8,6 +8,20 @@ in order to run on a phone, and what was verified about each part.
 The app installed from a build made today does **not** name anything, and the reason is
 configuration rather than recognition. There are three gaps, and only one of them is the model.
 
+## Where this stands on 2026-09-05
+
+The build installed on 2026-08-27 was signed by a free Apple ID, so it stopped launching on
+2026-09-03, and it predates the photograph screen in any case. Re-signing needs a Mac with
+Xcode. The Mac this repository is checked out on has only the Command Line Tools (see
+`scripts/setup.sh --check`), so the next install has to come from another Mac, and two things
+that would have broken that install on any Mac that had built before were found and fixed on
+this date: the setup skipped `npm install` and `pod install` whenever the directories existed,
+so a pull that added `expo-image-picker` built against a tree without it; and nothing started
+the recognition service, so the first scan came back "unavailable". Both are covered by
+`scripts/__tests__/`. The recognition service on this Mac is up on the checked-out code and
+answers at the name the app dials; `server/eval/pipeline/clut-photos.ts --api
+http://Ayaans-MacBook-Pro.local:4310` proves that from the network side.
+
 ## The three gaps
 
 | | what is missing | what the app does without it | verified |
@@ -153,6 +167,21 @@ A scan session is capped at eight census calls, so four seconds a call is usable
 and photographs are the slow case rather than the live one.
 
 ### 2. The recognition service
+
+```bash
+echo 'ENUMERATOR_URL=http://127.0.0.1:4320' >> server/.env.local
+./scripts/serve.sh
+```
+
+`scripts/serve.sh` is how the service is normally run, and `scripts/setup.sh` calls it, so a
+phone set up by the script has something to dial without anyone typing a second command. It
+starts the service detached from the terminal, leaves it alone when it is already up on the
+checked-out code, and restarts it when anything under `server/` or `server/.env.local` is newer
+than the running process, which is why the line above is enough to switch the enumerator on.
+`--status` reports, `--stop` stops. Until it existed the install ended by printing `npm run
+serve` for the reader to type, and a phone that reached the Mac found nothing on 4310.
+
+The same thing by hand, in the foreground, with the log on the terminal:
 
 ```bash
 ENUMERATOR_URL=http://127.0.0.1:4320 node --env-file=server/.env.local \

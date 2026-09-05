@@ -56,9 +56,9 @@ CHECK=0
 if [ "${1:-}" = "--check" ]; then CHECK=1; shift; fi
 
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
-# Nine, not eight. The count was wrong from the first version and the last step printed
-# "[9/8]", which is a small thing that reads like the script has lost its place.
-step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/9] %s\033[0m\n' "$STEP" "$*"; }
+# Ten. The count was wrong from the first version and the last step printed "[9/8]", which is a
+# small thing that reads like the script has lost its place. Recount when adding a step.
+step()  { STEP=$((STEP + 1)); printf '\n\033[1m[%d/10] %s\033[0m\n' "$STEP" "$*"; }
 ok()    { printf '      %s\n' "$*"; }
 WARNINGS=0
 warn()  { WARNINGS=$((WARNINGS + 1)); printf '      warning: %s\n' "$*"; }
@@ -67,6 +67,9 @@ fail()  { printf '\n\033[1mStopped.\033[0m %s\n\n' "$1" >&2; exit 1; }
 # `.kartrc` holds this machine's answers so a re-run does not ask again. Git ignored: it names an
 # Apple team and a LAN address, both of which are specific to one person's machine.
 [ -f "$RC" ] && . "$RC"
+
+# Whether node_modules and ios/Pods are current, read from what npm and CocoaPods write.
+. "$ROOT/scripts/lib/deps.sh"
 
 # ---------------------------------------------------------------------------------------------
 step "Checking this Mac"
@@ -274,30 +277,40 @@ fi
 # ---------------------------------------------------------------------------------------------
 step "Installing dependencies"
 
+# Decided by freshness, not by whether the directory exists. The existence test was right on a
+# fresh clone and wrong on every Mac that had built once: a pull that added expo-image-picker
+# left node_modules present and without it, and the Release build failed resolving the import on
+# a machine where this script had succeeded the week before. scripts/lib/deps.sh reads what npm
+# and CocoaPods write when they finish, so a re-run after a pull installs exactly what changed.
 if [ "$CHECK" = 1 ]; then
-  [ -d node_modules ]        && ok "app dependencies present"     || warn "app dependencies not installed yet"
-  [ -d server/node_modules ] && ok "service dependencies present" || warn "service dependencies not installed yet"
-  [ -d ios/Pods ]            && ok "pods present"                 || warn "pods not installed yet"
+  if needs_npm_install .;      then warn "app dependencies missing or older than package-lock.json";     else ok "app dependencies current"; fi
+  if needs_npm_install server; then warn "service dependencies missing or older than server/package-lock.json"; else ok "service dependencies current"; fi
+  if needs_pod_install .;      then warn "pods missing or older than what the app now depends on";       else ok "pods current"; fi
 else
-  if [ ! -d node_modules ]; then
+  if needs_npm_install .; then
     ok "npm install, in the app. First time takes a couple of minutes."
     npm install --no-audit --no-fund || fail "npm install failed in the app. The output above says why."
+    # npm leaves its hidden lockfile alone when nothing needed changing, which would keep the
+    # pulled package-lock.json newer and re-run this on every setup. Marking it done is exact:
+    # the tree now matches the lockfile.
+    touch node_modules/.package-lock.json
   else
-    ok "app dependencies already present"
+    ok "app dependencies current"
   fi
 
-  if [ ! -d server/node_modules ]; then
+  if needs_npm_install server; then
     ok "npm install, in the recognition service."
     (cd server && npm install --no-audit --no-fund) || fail "npm install failed in server/. The output above says why."
+    touch server/node_modules/.package-lock.json
   else
-    ok "service dependencies already present"
+    ok "service dependencies current"
   fi
 
-  if [ ! -d ios/Pods ]; then
+  if needs_pod_install .; then
     ok "pod install. First time takes a few minutes and downloads the CocoaPods spec repo."
     (cd ios && pod install) || fail "pod install failed. The output above says why."
   else
-    ok "pods already installed"
+    ok "pods current"
   fi
 fi
 
@@ -467,6 +480,22 @@ else
   warn "no ENUMERATOR_URL. The app names items and draws no outlines around them."
   warn "That is the supported degraded mode, not a fault. To close it, see gap 2 in"
   warn "docs/running-on-a-phone.md, then: echo 'ENUMERATOR_URL=http://...' >> server/.env.local"
+fi
+
+# ---------------------------------------------------------------------------------------------
+step "Starting the recognition service on this Mac"
+
+# The phone dials this Mac on 4310, and until this step existed nothing in the setup started
+# what answers there: the install finished and printed `npm run serve` for the reader to type,
+# so the first scan on a fresh setup came back "unavailable", which reads as recognition being
+# broken. scripts/serve.sh starts it detached from this terminal, restarts it when the
+# checked-out code is newer than the running process, and leaves it alone otherwise, so running
+# setup again after a pull is the whole procedure.
+if [ "$CHECK" = 1 ]; then
+  if ./scripts/serve.sh --status 2>&1 | sed 's/^/      /'; then :; else ok "a real run starts it"; fi
+elif ./scripts/serve.sh 2>&1 | sed 's/^/      /'; then :; else
+  warn "the recognition service did not start, so the app will install and name nothing."
+  warn "The reason is above. Fix it, then: ./scripts/serve.sh"
 fi
 
 # ---------------------------------------------------------------------------------------------
