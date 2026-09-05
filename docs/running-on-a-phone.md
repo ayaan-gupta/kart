@@ -54,6 +54,19 @@ The most likely cause of that report is the first fix of the day: on the Mac tha
 app, the setup of the time never started the service, so the phone dialed a port with nothing
 on it. The line in fix 1 would have said so.
 
+### And then the reading itself
+
+The owner's next report was that ChatGPT reads these photographs completely and the app does
+not. ChatGPT runs gpt-5.6-sol; the census ran gpt-5.6-luna, the smallest tier, chosen for cost.
+Measured one tier at a time on the fifteen clut photographs (`server/eval/CLUT.md`, "The tier
+is the lever"), Luna and Terra misread brands on every pass and no prompt changes that; Sol
+reads them, and reads them as well with reasoning off as on, in five seconds. The photo path
+now runs Sol at reasoning "none" under a short prompt of its own (`MODELS.photo` in
+`server/src/openai.ts`, `PHOTO_SYSTEM_PROMPT` in `server/src/prompts.ts`); the live scan is
+unchanged. A photo costs about two cents against a twentieth of one, which is the price of the
+brands being right. Pull under `server/` and run `./scripts/serve.sh`; nothing on the phone
+changes.
+
 ## The three gaps
 
 | | what is missing | what the app does without it | verified |

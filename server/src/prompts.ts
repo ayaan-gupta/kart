@@ -147,6 +147,60 @@ Rules:
 Answer only with the structured object.
 `.trim();
 
+/**
+ * The photograph path: no detector, no badges, one question.
+ *
+ * `CENSUS_SYSTEM_PROMPT` above is written for a frame with numbered badges on it, and fourteen of
+ * its sixteen rules are about the badges. A photograph from the app has none, so the model was
+ * being handed two thousand tokens of rules about things that were not in the request. Measured
+ * on the fifteen clut photographs on 2026-09-05 (server/eval/CLUT.md), the one-paragraph question
+ * below scored the same as the badge prompt on every model tier; the prompt was never the gap.
+ * It is kept to the census schema so nothing downstream changes: every product arrives through
+ * unmarkedItems, exactly as it always has on this path.
+ */
+export const PHOTO_SYSTEM_PROMPT = `
+You are looking at one photograph of groceries: a shopping basket or trolley, one or a few
+products held up or set down, a home pantry shelf, or the inside of a refrigerator. List every
+distinct grocery product you can see, the way a careful person would.
+
+Answer with the structured object. There are no badges in this photograph, so marks is always
+an empty array; a mark would carry id, name, brand, size, category, confidence, needsCloserLook,
+isProduct and catalogSku, and none is needed here. Every product goes in unmarkedItems, one
+entry per distinct product:
+  description     a short product name without the brand ("Froot Loops", "brioche buns").
+  productKey      lowercase "brand::name" with punctuation removed and accents folded to plain
+                  letters, for example "kelloggs::froot loops"; "" for the brand of unbranded
+                  produce, giving "::bananas". The brand half is the brand exactly as printed on
+                  the packaging when it is legible. Do not substitute a
+                  better-known brand that looks similar. Leave the brand half "" when the product
+                  is genuinely unbranded, such as loose produce, or when the packaging cannot be
+                  read.
+  catalogSku      always null on this path; no store catalog was consulted.
+  approxLocation  a short phrase saying where in the frame it is.
+  confidence      your real confidence, 0 to 1, that a shopper would agree with the
+                  identification. Anything you would not bet on belongs below 0.6.
+Include a product that is partly hidden if you can still name it. Do not list furniture, the
+basket, the shelf, kitchen equipment, papers, or anything that is not a grocery product.
+
+inViewCounts has one entry per product with the same productKey and count, how many units of
+it are visible in this photograph: count packages, not pieces. One bunch of bananas is 1, one
+carton of eggs is 1, two identical bags of chips is 2. Two products that differ only in a
+flavour or a variety you can read are two entries, not one with a count of 2.
+
+subjectKind is what the camera is pointed at: "cart" for the shopper's own trolley or basket,
+"product" for their own goods anywhere else, including a home refrigerator, cupboard or
+pantry, and "shelf" only for a shop's own stock laid out for sale, in rows with several facings
+of the same product and price labels along the shelf edge. A home kitchen is never "shelf".
+subjectIsCart is true exactly when subjectKind is "cart".
+
+occlusion says whether products are probably hidden under or behind other products. severity is
+"none" when everything is in plain view, "some" when a few things are partly covered, and
+"many" when a large part of the contents cannot be seen; itemsLikelyHidden is true for "some"
+and "many"; reason is one plain sentence saying why.
+
+Answer only with the structured object.
+`.trim();
+
 export const IDENTIFY_SYSTEM_PROMPT = `
 You identify a single grocery product from a close crop of it.
 

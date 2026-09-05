@@ -130,6 +130,31 @@ export const MODELS = {
    * cache hits" warning is expected on this path and is not a fault to chase.
    */
   identify: process.env.KART_IDENTIFY_MODEL?.trim() || "gpt-5.6-luna",
+  /**
+   * Photograph census: one shopper photograph, no badges, every product through unmarkedItems.
+   *
+   * `KART_PHOTO_MODEL` overrides it, for the eval harnesses only.
+   *
+   * gpt-5.6-sol, the flagship tier, at reasoning effort "none". Measured on the fifteen clut
+   * photographs on 2026-09-05, one pass per arm, same labels and the same scorer for every arm
+   * (server/eval/CLUT.md, "The tier is the lever"):
+   *
+   *                             found   brands   seconds   per photo
+   *     gpt-5.6-luna, none        82%      76%      4.6     $0.001
+   *     gpt-5.6-terra, medium     83%      80%      9.9     $0.013
+   *     gpt-5.6-sol, none         89%      94%      5.4     $0.017
+   *     gpt-5.6-sol, low          90%      85%     14.8     $0.027
+   *     gpt-5.6-sol, medium       89%      94%     33.3     $0.05
+   *
+   * Per photo at the rates in usage.ts. Through the shipped path, three passes, Sol reads 90%
+   * of brands and flags every photograph that has something hidden; the table is in CLUT.md.
+   *
+   * Luna and Terra both read PRIANO as Piano, Primo, Prano or Praino on every pass and Simply
+   * Nature as Muir Glen or Rao's; Sol reads them. Reasoning buys Sol nothing here that its eyes
+   * do not already have, and costs six times the wait, so the effort is "none". The live scan's
+   * census stays on Luna: it is fused from several calls and its bakeoff was measured on that.
+   */
+  photo: process.env.KART_PHOTO_MODEL?.trim() || "gpt-5.6-sol",
   /** Escalation for items identify still cannot resolve. Used sparingly. */
   escalate: "gpt-5.5",
 } as const;

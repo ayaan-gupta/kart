@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import type { Mark } from "../src/compositor.js";
 import { censusJsonSchema, identifyJsonSchema, productKey } from "../src/schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
 import type { CensusDiagnostics } from "../src/recognize.js";
 
 // The real ./openai.ts throws at import time when OPENAI_API_KEY is unset (by design, so a
@@ -48,6 +48,48 @@ const wellFormedOcclusion = { itemsLikelyHidden: false, severity: "none", reason
 
 beforeEach(() => {
   create.mockReset();
+});
+
+/**
+ * A census with no marks is a photograph, and a photograph gets a different call.
+ *
+ * Measured on the fifteen clut photographs on 2026-09-05, one pass each, same labels, same
+ * scorer: gpt-5.6-luna reads 80% of brands and misreads PRIANO as Piano, Primo or Rummo on
+ * every pass; gpt-5.6-sol reads 94% at reasoning medium and 85% at low, and reads PRIANO.
+ * Terra sits with Luna on brands. The prompt made no difference on any tier. So the photo
+ * path runs Sol, under the short photo prompt, at the effort the sweep chose, on the image the
+ * phone sent rather than a 1536 composite of it.
+ */
+describe("runCensus on a photograph (no marks)", () => {
+  it("uses the photo model, the photo prompt, and a high-detail image", async () => {
+    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+    await runCensus(await blankJpeg(), []);
+
+    const params = create.mock.calls[0][0];
+    expect(params.model).toBe(MODELS.photo);
+    expect(params.model).not.toBe(MODELS.census);
+    expect(params.input[0]).toEqual({ role: "system", content: PHOTO_SYSTEM_PROMPT });
+    expect(params.input[1].content[0]).toEqual({ type: "input_text", text: censusUserText([]) });
+    expect(params.input[1].content[1].detail).toBe("high");
+    expect(params.text.format.schema).toEqual(censusJsonSchema);
+  });
+
+  it("sends the photograph at up to 2048 on its long edge, not the census composite's 1536", async () => {
+    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+    await runCensus(await blankJpeg(3000, 2000), []);
+
+    const url: string = create.mock.calls[0][0].input[1].content[1].image_url;
+    const sent = Buffer.from(url.split(",")[1], "base64");
+    const meta = await sharp(sent).metadata();
+    expect(meta.width).toBe(2048);
+  });
+
+  it("still passes the counted list through, so a second photograph reuses the bag's names", async () => {
+    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+    await runCensus(await blankJpeg(), [], undefined, ["Nutella"]);
+    const text: string = create.mock.calls[0][0].input[1].content[0].text;
+    expect(text).toContain("Nutella");
+  });
 });
 
 describe("runCensus request shape", () => {

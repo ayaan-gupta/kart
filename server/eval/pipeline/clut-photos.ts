@@ -130,21 +130,9 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise
   return response;
 };
 
-const norm = (s: string): string => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-
-/** Whether one bag line is this labelled product, by any of the phrasings the label allows. */
-function isMatch(line: { name: string; brand: string | null }, product: Label): boolean {
-  const hay = `${norm(line.brand ?? '')} ${norm(line.name)}`;
-  return product.match.some((m) => hay.includes(norm(m)));
-}
-
-function qtyOk(actual: number, expected: number | [number, number]): boolean {
-  return Array.isArray(expected) ? actual >= expected[0] && actual <= expected[1] : actual === expected;
-}
-
-function qtyText(expected: number | [number, number]): string {
-  return Array.isArray(expected) ? `${expected[0]}-${expected[1]}` : String(expected);
-}
+// Scoring lives in clut-scoring.ts, shared with plain-baseline.ts so the two agree on what
+// "found" means. `norm` is used here for the unsure scoring below.
+const { norm, scoreImage } = await import('./clut-scoring');
 
 const tier = arg('tier', '');
 const only = arg('only', '');
@@ -172,6 +160,8 @@ interface Row {
   found: number;
   labelled: number;
   qtyRight: number;
+  /** What the bag held, so a run can be re-scored without another call. */
+  lines: { name: string; brand: string | null; qty: number }[];
   unmatchedLines: { name: string; brand: string | null; qty: number }[];
   ignoredLines: { name: string; brand: string | null; qty: number }[];
   misses: string[];
@@ -222,75 +212,24 @@ for (const image of wanted) {
     ? (result.unmarkedItems as { description: string; confidence: number }[])
     : [];
 
-  // Every labelled product against the bag, then every bag line that answered to nothing.
-  const claimed = new Set<number>();
-  const misses: string[] = [];
-  const qtyWrong: Row['qtyWrong'] = [];
+  // Every labelled product against the bag, then every bag line that answered to nothing. The
+  // assignment rules are in clut-scoring.ts.
+  const lines = outcome.lines.map((line) => ({ name: line.name, brand: line.brand, qty: line.qty }));
+  const score = scoreImage(lines, image);
+  const { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines } = score;
+
+  // Requirement 4 is about the census, not the bag: BagLine carries no confidence, so the
+  // only place the model's own doubt survives is the raw response.
   const unsureScored: Row['unsureScored'] = [];
-  const brandWrong: Row['brandWrong'] = [];
-  let found = 0;
-  let qtyRight = 0;
-  let brandRight = 0;
-  let brandScored = 0;
-
   for (const product of image.products) {
-    const hits = outcome.lines
-      .map((line, index) => ({ line, index }))
-      .filter(({ line, index }) => !claimed.has(index) && isMatch(line, product));
-    if (hits.length === 0) {
-      misses.push(product.label);
-      continue;
-    }
-    found += 1;
-    // One label may legitimately be spread across several lines when the model split a product
-    // it saw twice, so the quantity is the sum of what it assigned, and every line it used is
-    // claimed so no second label can also count it.
-    let qty = 0;
-    for (const hit of hits) {
-      claimed.add(hit.index);
-      qty += hit.line.qty;
-    }
-    if (qtyOk(qty, product.qty)) qtyRight += 1;
-    else qtyWrong.push({ label: product.label, expected: qtyText(product.qty), actual: qty });
-
-    // Scored separately from the name, and only where the packaging is legible, because the
-    // brand is the field the catalog resolves on: a bag line reading "Primo" for a bag that says
-    // PRIANO looks right to a shopper skimming their bag and matches no SKU at all. Requirement 1
-    // counts that product as having reached the bag, which it did, so without this the whole
-    // failure is invisible in the number.
-    if (product.brandMatch !== null) {
-      brandScored += 1;
-      const actual = hits[0].line.brand;
-      const ok = actual !== null && product.brandMatch.some((b) => norm(actual).includes(norm(b)));
-      if (ok) brandRight += 1;
-      else brandWrong.push({ label: product.label, expected: product.brandMatch[0], actual });
-    }
-
-    // Requirement 4 is about the census, not the bag: BagLine carries no confidence, so the
-    // only place the model's own doubt survives is the raw response.
-    if (!product.legible) {
-      const raw = rawUnmarked.find((u) => product.match.some((m) => norm(u.description).includes(norm(m))));
-      unsureScored.push({
-        label: product.label,
-        confidence: raw ? raw.confidence : null,
-        flagged: raw ? raw.confidence < 0.6 : false,
-      });
-    }
+    if (product.legible || misses.includes(product.label)) continue;
+    const raw = rawUnmarked.find((u) => product.match.some((m) => norm(u.description).includes(norm(m))));
+    unsureScored.push({
+      label: product.label,
+      confidence: raw ? raw.confidence : null,
+      flagged: raw ? raw.confidence < 0.6 : false,
+    });
   }
-
-  // A line that answered to no label is not automatically an invention. The photographs have
-  // things in them a shopper is not buying, and for a refrigerator drawer the shelf above it is
-  // in frame, so naming those is correct behaviour rather than a hallucination. The labels say
-  // which those are, per photograph, in strings narrow enough that they cannot absorb a real
-  // product that was misidentified.
-  const leftover = outcome.lines
-    .map((line, index) => ({ line, index }))
-    .filter(({ index }) => !claimed.has(index))
-    .map(({ line }) => ({ name: line.name, brand: line.brand, qty: line.qty }));
-  const isIgnorable = (l: { name: string; brand: string | null }): boolean =>
-    image.ignoreMatch.some((m) => `${norm(l.brand ?? '')} ${norm(l.name)}`.includes(norm(m)));
-  const ignoredLines = leftover.filter(isIgnorable);
-  const unmatchedLines = leftover.filter((l) => !isIgnorable(l));
 
   rows.push({
     pass,
@@ -305,6 +244,7 @@ for (const image of wanted) {
     found,
     labelled: image.products.length,
     qtyRight,
+    lines,
     unmatchedLines,
     ignoredLines,
     misses,

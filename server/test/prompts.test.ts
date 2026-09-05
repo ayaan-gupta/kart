@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
 import type { Mark } from "../src/compositor.js";
 import {
   MarkIdentification,
@@ -256,5 +256,47 @@ describe("CENSUS_SYSTEM_PROMPT asks what kind of scene the photograph is", () =>
     // Whitespace-tolerant: the prompt is wrapped, so this phrase spans a line break. Asserting
     // the literal string would make the test hostage to the wrap column.
     expect(CENSUS_SYSTEM_PROMPT).toMatch(/judge\s+the\s+photograph\s+as\s+a\s+whole,\s+not\s+the\s+badges/i);
+  });
+});
+
+/**
+ * The photograph path has no badges, so the sixteen badge rules were fourteen rules about things
+ * that were not in the request. Measured on the clut corpus on 2026-09-05, a one-paragraph
+ * question scored the same as the badge prompt on every model tier, and the tier was the lever;
+ * this prompt is that question, kept to the census schema so nothing downstream changes.
+ */
+describe("PHOTO_SYSTEM_PROMPT", () => {
+  it("contains no em dash or en dash, and is trimmed", () => {
+    expect(PHOTO_SYSTEM_PROMPT).not.toMatch(DASHES);
+    expect(PHOTO_SYSTEM_PROMPT).toBe(PHOTO_SYSTEM_PROMPT.trim());
+  });
+
+  it("names every field the census schema requires, read from schemas.ts at runtime", () => {
+    const fields = new Set<string>([
+      ...Object.keys(CensusResponse.shape),
+      ...Object.keys(MarkIdentification.shape),
+      ...Object.keys(UnmarkedItem.shape),
+      ...Object.keys(InViewCount.shape),
+      ...Object.keys(Occlusion.shape),
+    ]);
+    expect(fields.size).toBeGreaterThan(0);
+    for (const field of fields) expectPromptNamesField(PHOTO_SYSTEM_PROMPT, field);
+  });
+
+  it("uses the schema's occlusion severity values exactly", () => {
+    for (const value of Object.keys(Occlusion.shape.severity.def.entries)) {
+      expect(PHOTO_SYSTEM_PROMPT).toContain(`"${value}"`);
+    }
+  });
+
+  it("asks the question a person asks: brand as printed, packages not pieces, marks left empty", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/as printed/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/packages/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/marks/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/empty/);
+  });
+
+  it("is much shorter than the badge prompt", () => {
+    expect(PHOTO_SYSTEM_PROMPT.length).toBeLessThan(CENSUS_SYSTEM_PROMPT.length / 2);
   });
 });

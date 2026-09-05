@@ -53,7 +53,7 @@ const totals = new Map<string, ModelUsage>();
  * a new tier silently costing nothing is the same invisibility in a new coat. Prices move: this is
  * a development aid for comparing arms of a sweep, not an invoice.
  */
-const PRICES_PER_MTOK: Record<string, { input: number; cached: number; output: number }> = {
+export const PRICES_PER_MTOK: Record<string, { input: number; cached: number; output: number }> = {
   "gpt-5.6-luna": { input: 0.2, cached: 0.02, output: 1.2 },
   "gpt-5.6-terra": { input: 2, cached: 0.2, output: 12 },
   "gpt-5.6-sol": { input: 4, cached: 0.4, output: 20 },

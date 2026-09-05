@@ -111,6 +111,77 @@ node --env-file=server/.env.local server/node_modules/.bin/tsx \
 `clut-photos-phone.json` is that run. The other two columns are the same command without
 `--as-phone`, and with `--long-edge 3072 --quality 0.9`.
 
+## The tier is the lever, measured on 2026-09-05
+
+The owner's benchmark is that ChatGPT reads these photographs completely. ChatGPT runs
+gpt-5.6-sol, the flagship tier, with reasoning, on the whole image, under a one-line question.
+The census ran gpt-5.6-luna, the smallest tier, at reasoning "none", on a 1536 composite, under
+sixteen rules written for badges. `plain-baseline.ts` varies those one at a time: it calls the
+model directly with a one-paragraph question and scores the answer with the same labels and
+the same scorer as the pipeline.
+
+**First the scorer had to be fixed.** It handed every matching line to the first label that
+matched it, so two labels sharing a word ("cracker", "milk", "beef") could never both be found:
+the first was scored with a doubled quantity and the second as a miss, on every tier alike.
+It also compared accented text raw, so "Neufchâtel" never matched "neufchatel". That is what
+pinned "found" at 79% for Luna and Sol alike. `clut-scoring.ts` now assigns each line to one
+label, most specific phrase first, and `clut-rescore.ts` re-scores any saved run without a
+call. Two clut13 labels were corrected at the same time; `labels.json` says which.
+
+One pass each, 82 labelled products, the corrected scorer and labels throughout:
+
+|  | found | quantities | brands | hidden flagged | seconds | per photo |
+|---|---|---|---|---|---|---|
+| pipeline as shipped that morning (Luna, 16 rules, 1536) | 66/82 80% | 89% | 35/44 80% | 7/13 | 4.9 | |
+| Luna, one paragraph, full image | 67/82 82% | 88% | 34/45 76% | 12/13 | 4.6 | $0.001 |
+| Terra, low | 68/82 83% | 91% | 35/45 78% | 13/13 | 9.1 | $0.01 |
+| Terra, medium | 68/82 83% | 90% | 36/45 80% | 13/13 | 9.9 | $0.01 |
+| **Sol, none** | **73/82 89%** | **89%** | **44/47 94%** | **12/13** | **5.4** | **$0.02** |
+| Sol, low | 74/82 90% | 88% | 41/48 85% | 12/13 | 14.8 | $0.03 |
+| Sol, medium | 73/82 89% | 89% | 45/48 94% | 12/13 | 33.3 | $0.05 |
+
+Per-photo cost is at the prices in `server/src/usage.ts`, the September 2026 rates.
+
+**The prompt was never the gap.** The one-paragraph question scores the same as the sixteen
+rules on Luna, and the same on Sol whichever way it is asked. **The tier is.** Luna and Terra
+read PRIANO as Piano, Primo, Prano and Praino across every pass, and the Simply Nature marinara
+as Muir Glen or Rao's; Sol reads them. **Reasoning buys Sol nothing** its eyes do not have:
+"none" and "medium" tie on every requirement and "none" is six times faster, so the photo path
+now runs Sol at "none" under `PHOTO_SYSTEM_PROMPT`, and the pipeline's own three-pass number is
+in the next table. The live scan's census stays on Luna: it is fused from several calls and its
+bakeoff was measured on that.
+
+**Through the shipped path**, `clut-photos.ts --as-phone --repeat 3`, the phone's own upload
+bound and the service's own call, before and after the change. "Before" is the same morning's
+Luna run re-scored with the corrected scorer, so the two columns differ only in the tier and
+the prompt:
+
+|  | Luna, 16 rules, 1 pass | **Sol, photo prompt, 3 passes** |
+|---|---|---|
+| 1 every item reaches the bag | 66/82 80% | 218/246 **89%** |
+| &nbsp;&nbsp;of which, the basket | 32/37 86% | 105/111 **95%** |
+| &nbsp;&nbsp;of which, pantry and fridge | 34/45 76% | 113/135 **84%** |
+| 2 quantities are right | 59/66 89% | 192/218 **88%** |
+| &nbsp;&nbsp;brands right | 35/44 80% | 129/144 **90%** |
+| &nbsp;&nbsp;brands right, the basket | 20/24 83% | 75/81 **93%** |
+| 3 hidden items are flagged | 7/13 | **39/39** |
+| 4 unsure items are flagged | 7/31 | 9/36 |
+| lines matching nothing real, the basket | 3 | 5 |
+| seconds per photograph | 4.9 | 6.5 |
+
+`clut-photos-sol.json` is the Sol run. Requirement 4 did not move and is the open one: an
+illegible product still comes back with a confident guess more often than not, on either tier.
+The remaining basket-tier brand errors are one bag: PRIANO's stylised logo read as "Piano",
+"Pri Ano" or "Pri" on 5 of 42 readings. A first draft of the photo prompt said to read the brand
+letter by letter; that produced "Pri An O" and was dropped, and the run without it is the one
+above, identical on every requirement.
+
+**What no tier finds**, one pass each, all of them alike: a Campbell's tin showing only its red
+base behind the Nutella, a cookie mix box, sponges, a whey tub, a Freshpak box, butter, a
+packaged chicken under the apples, and clut13's second milk carton. They are the mostly hidden
+things in the pantry and fridge photographs, and the shipped answer to them is the occlusion
+notice, which every Sol pass raises on 12 of the 13 photographs that have something hidden.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

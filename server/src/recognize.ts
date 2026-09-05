@@ -9,7 +9,7 @@ import {
   identifyJsonSchema,
   productKey,
 } from "./schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
 
@@ -566,6 +566,29 @@ function normalizeCensusResponse(
 // ---------------------------------------------------------------------------
 
 /**
+ * The long edge a photograph is sent at. The phone already bounds its upload to 2048
+ * (src/engine/liveVision/uploadImage.ts), so this is a no-op for the app and a cap for an older
+ * client or a harness sending an original file. Above the census's 1536 on purpose: the sweep
+ * in MODELS.photo was run on the original files, and 2048 is what the API reads at most anyway.
+ */
+const PHOTO_LONG_EDGE = 2048;
+
+/** Reasoning effort for the photograph call. "none" measured equal to "medium" on Sol. */
+const PHOTO_EFFORT: "none" | "low" | "medium" | "high" = (() => {
+  const raw = process.env.KART_PHOTO_EFFORT?.trim();
+  return raw === "none" || raw === "low" || raw === "medium" || raw === "high" ? raw : "none";
+})();
+
+/** The photograph as sent: EXIF orientation applied, long edge capped, JPEG. */
+async function photoImage(image: Buffer): Promise<Buffer> {
+  return sharp(image)
+    .rotate()
+    .resize({ width: PHOTO_LONG_EDGE, height: PHOTO_LONG_EDGE, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
+
+/**
  * Labels every marked region in a full cart frame.
  *
  * `diagnostics` is optional and defaults to nothing: existing two-argument callers are
@@ -601,6 +624,38 @@ export async function runCensus(
       await runCensusLocally(image, marks, alreadyCounted, localUrl),
       diagnostics,
     );
+  }
+
+  // A census with no marks is a photograph from the app, and a photograph gets a different call:
+  // the flagship tier, the short photo prompt, and the image the phone sent rather than a 1536
+  // composite of it. See MODELS.photo for the measurement and PHOTO_SYSTEM_PROMPT for the prompt.
+  if (marks.length === 0) {
+    const photo = await photoImage(image);
+    const outputText = await requestOutputText("runCensus", {
+      model: MODELS.photo,
+      prompt_cache_key: "kart-photo",
+      reasoning: { effort: PHOTO_EFFORT },
+      input: [
+        { role: "system", content: PHOTO_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: censusUserText([], alreadyCounted) },
+            { type: "input_image", image_url: dataUrl(photo), detail: "high" },
+          ],
+        },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "cart_census",
+          strict: true,
+          schema: censusJsonSchema,
+        },
+      },
+    });
+    const parsed = CensusResponse.parse(JSON.parse(outputText));
+    return normalizeCensusResponse(parsed, diagnostics);
   }
 
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
