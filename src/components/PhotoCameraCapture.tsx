@@ -1,9 +1,9 @@
-import { File } from 'expo-file-system';
 import React, { useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { color, shadow, space } from '../design/tokens';
 import { Sub } from '../design/type';
+import type { SourcePhoto } from '../engine/liveVision/uploadImage';
 import { Button } from './Button';
 import { PressableScale } from './PressableScale';
 
@@ -24,7 +24,8 @@ export interface PhotoCameraCaptureProps {
   busy: boolean;
   /** Distance from the bottom of the screen to the control row, so the shutter lines up with it. */
   bottom: number;
-  onCapture: (base64: string) => void;
+  /** The file the camera wrote and its pixel size. The screen decides what to send from it. */
+  onCapture: (photo: SourcePhoto) => void;
   onError: () => void;
 }
 
@@ -49,9 +50,9 @@ export function PhotoCameraCapture({ busy, bottom, onCapture, onError }: PhotoCa
     if (busy || camera.current == null) return;
     try {
       const photo = await camera.current.takePhoto({ enableShutterSound: false });
-      // VisionCamera returns a bare filesystem path; expo-file-system wants a URI.
+      // VisionCamera returns a bare filesystem path; the image manipulator wants a URI.
       const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
-      onCapture(await new File(uri).base64());
+      onCapture({ uri, width: photo.width, height: photo.height });
     } catch {
       onError();
     }

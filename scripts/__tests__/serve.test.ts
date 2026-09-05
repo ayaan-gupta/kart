@@ -101,13 +101,37 @@ function makeRepo(npmBody: string): string {
 const STARTS_OK = `exec node -e '${OK_SERVER.replace(/'/g, "'\\''")}'`;
 const DIES = `echo "[serve] OPENAI_API_KEY is not set, so nothing could be recognized." >&2\nexit 1`;
 
-function run(root: string, port: number, args: string[] = []) {
+function run(root: string, port: number, args: string[] = [], extraEnv: Record<string, string> = {}) {
   return spawnSync('bash', [path.join(root, 'scripts', 'serve.sh'), ...args], {
     cwd: root,
     encoding: 'utf8',
     timeout: 30000,
-    env: { ...process.env, PATH: `${path.join(root, 'bin')}:${process.env.PATH}`, PORT: String(port) },
+    env: {
+      ...process.env,
+      PATH: `${path.join(root, 'bin')}:${process.env.PATH}`,
+      PORT: String(port),
+      ...extraEnv,
+    },
   });
+}
+
+/**
+ * A stand-in for /usr/libexec/ApplicationFirewall/socketfilterfw, answering the two questions
+ * serve.sh asks it in the words the real tool uses on macOS 26.
+ */
+function fakeFirewall(root: string, mode: 'off' | 'on' | 'blockall'): string {
+  const file = path.join(root, 'bin', 'socketfilterfw');
+  const state = mode === 'off' ? 'Firewall is disabled. (State = 0)' : 'Firewall is enabled. (State = 1)';
+  const block =
+    mode === 'blockall'
+      ? 'Firewall has block all state set to enabled.'
+      : 'Firewall has block all state set to disabled.';
+  fs.writeFileSync(
+    file,
+    `#!/usr/bin/env bash\ncase "$1" in\n  --getglobalstate) echo "${state}";;\n  --getblockall) echo "${block}";;\nesac\n`,
+  );
+  fs.chmodSync(file, 0o755);
+  return file;
 }
 
 function npmCalls(root: string): number {
@@ -225,5 +249,65 @@ describe('scripts/serve.sh', () => {
     expect(r.stderr + r.stdout).toContain('OPENAI_API_KEY is not set');
     expect(Date.now() - started).toBeLessThan(10000);
     expect(listenerPids(port)).toEqual([]);
+  });
+});
+
+/**
+ * A service that is running is not the same as a service a phone can reach. On the Mac that
+ * wrote this, both faults so far were on this side of the wifi; the next one will not be, and
+ * the phone cannot say what it sees. So the script says what to check from the phone, and warns
+ * about the one setting on the Mac that silently refuses every phone.
+ */
+describe('scripts/serve.sh reachability', () => {
+  let root = '';
+  let port = 0;
+
+  beforeEach(async () => {
+    port = await freePort();
+  });
+
+  afterEach(() => {
+    for (const pid of listenerPids(port)) {
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch {
+        // already gone
+      }
+    }
+    if (root) fs.rmSync(root, { recursive: true, force: true });
+    root = '';
+  });
+
+  it('says how to check from the phone, with the address it should open', () => {
+    root = makeRepo(STARTS_OK);
+    const r = run(root, port, [], { KART_FIREWALL_TOOL: fakeFirewall(root, 'off') });
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(new RegExp(`from the phone[^\\n]*http://[^ ]+:${port}`, 'i'));
+    expect(r.stdout).toMatch(/"ok"/);
+  });
+
+  it('warns when this Mac blocks all incoming connections, which no phone gets through', () => {
+    root = makeRepo(STARTS_OK);
+    const r = run(root, port, [], { KART_FIREWALL_TOOL: fakeFirewall(root, 'blockall') });
+    expect(r.status).toBe(0);
+    expect(r.stdout + r.stderr).toMatch(/blocks all incoming/i);
+    expect(r.stdout + r.stderr).toMatch(/System Settings/);
+  });
+
+  it('mentions the firewall only when it is on', () => {
+    root = makeRepo(STARTS_OK);
+    const off = run(root, port, [], { KART_FIREWALL_TOOL: fakeFirewall(root, 'off') });
+    expect(off.stdout + off.stderr).not.toMatch(/firewall/i);
+    expect(run(root, port, ['--stop']).status).toBe(0);
+    const on = run(root, port, [], { KART_FIREWALL_TOOL: fakeFirewall(root, 'on') });
+    expect(on.stdout + on.stderr).toMatch(/firewall is on/i);
+    expect(on.stdout + on.stderr).not.toMatch(/blocks all incoming/i);
+  });
+
+  it('says nothing about a firewall tool that is not there, as on Linux', () => {
+    root = makeRepo(STARTS_OK);
+    const r = run(root, port, [], { KART_FIREWALL_TOOL: path.join(root, 'no-such-tool') });
+    expect(r.status).toBe(0);
+    expect(r.stdout + r.stderr).not.toMatch(/firewall/i);
   });
 });

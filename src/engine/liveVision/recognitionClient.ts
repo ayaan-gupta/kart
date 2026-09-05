@@ -118,6 +118,20 @@ export interface IdentifyResult {
  */
 let resolvedBase: string | null = null;
 
+/**
+ * The address the most recent request was sent to, whether or not it answered.
+ *
+ * Kept apart from `resolvedBase`, which is deliberately forgotten on an offline result so the
+ * next call probes again. A failure notice needs the address that just failed, and "nothing
+ * answered at null" is exactly the report it exists to replace.
+ */
+let lastEndpoint: string | null = null;
+
+/** Where the last request went, or null when no address is configured. For failure notices. */
+export function lastRecognitionEndpoint(): string | null {
+  return lastEndpoint;
+}
+
 /** True when this address answers the health route with the envelope the service sends. */
 async function answers(base: string): Promise<boolean> {
   const controller = new AbortController();
@@ -187,6 +201,15 @@ export async function warmUpRecognitionEndpoint(): Promise<string> {
 /** Test seam. Drops the cached address so the next call probes again. */
 export function resetRecognitionEndpoint(): void {
   resolvedBase = null;
+  lastEndpoint = null;
+}
+
+export interface RequestOptions {
+  /**
+   * Replaces the shared `requestTimeoutMs()` budget for this one call. The photograph path passes
+   * `PHOTO_REQUEST_TIMEOUT_MS`; the live path passes nothing and keeps the session budget.
+   */
+  timeoutMs?: number;
 }
 
 async function post<T>(
@@ -194,8 +217,10 @@ async function post<T>(
   body: unknown,
   parse: (value: unknown, envelope: Record<string, unknown>) => T | null,
   signal?: AbortSignal,
+  options?: RequestOptions,
 ): Promise<ClientResult<T>> {
   const base = await resolveBase();
+  lastEndpoint = base === '' ? null : base;
   if (base === '') return { ok: false, failure: 'unconfigured' };
 
   // A signal that is already aborted when we're called (a session torn down while this request
@@ -208,7 +233,7 @@ async function post<T>(
   // is not available in the Hermes runtime, so the timeout drives a controller that the
   // caller's signal also fires.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), requestTimeoutMs());
+  const timer = setTimeout(() => controller.abort(), options?.timeoutMs ?? requestTimeoutMs());
   const onCallerAbort = () => controller.abort();
   signal?.addEventListener('abort', onCallerAbort);
 
@@ -369,10 +394,20 @@ function parseIdentify(value: unknown): IdentifyResult | null {
   };
 }
 
-export function requestCensus(req: CensusRequest, signal?: AbortSignal): Promise<ClientResult<CensusPayload>> {
+export function requestCensus(
+  req: CensusRequest,
+  signal?: AbortSignal,
+  options?: RequestOptions,
+): Promise<ClientResult<CensusPayload>> {
   // Marks are sent only when the client has them. An absent field and an empty array both mean
   // "you find them", which is what the capture path wants.
-  return post('/api/census', { image: req.imageBase64, marks: req.marks ?? [], counted: req.counted ?? [] }, parseCensus, signal);
+  return post(
+    '/api/census',
+    { image: req.imageBase64, marks: req.marks ?? [], counted: req.counted ?? [] },
+    parseCensus,
+    signal,
+    options,
+  );
 }
 
 export function requestIdentify(req: IdentifyRequest, signal?: AbortSignal): Promise<ClientResult<IdentifyResult>> {

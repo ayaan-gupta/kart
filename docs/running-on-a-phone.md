@@ -22,6 +22,38 @@ the recognition service, so the first scan came back "unavailable". Both are cov
 answers at the name the app dials; `server/eval/pipeline/clut-photos.ts --api
 http://Ayaans-MacBook-Pro.local:4310` proves that from the network side.
 
+### The same day, after a phone report of "took a picture, nothing happened"
+
+No output came with the report, and the app at the time could not have produced any: a failed
+photograph showed "Scanning isn't working right now" and nothing else. What could be proven
+from a Mac with no Xcode was proven. The shipped photograph screen, from a Release web export
+(`npx expo export --platform web`) served on this Mac and driven in a browser, took the clut1
+basket photograph from the library picker through the shipped `requestCensus`, the service at
+the name the app dials, `applyCensus`, and `BagTray`, to "Added 4 items" in six seconds. So the
+button, the client, the service and the bag all work end to end. What that leaves is the two
+hops a browser cannot stand in for, the phone's camera and the phone's wifi, and the app said
+nothing about either. Four changes:
+
+1. **The screen says why.** Under the notice, one line names the failure and the address that
+   was tried: "Nothing answered at http://Name.local:4310. Is ./scripts/serve.sh running on
+   that Mac, and is this phone on its wifi? On iPhone, Settings > Kart > Local Network must be
+   on." `src/engine/liveVision/scanFailure.ts`. Read that line before anything else.
+2. **The upload is bounded.** The phone sent the whole file: 7.6MB for one basket photograph,
+   measured, and the service refuses anything over 12MB decoded, which a 48MP phone produces on
+   its own. The photograph is now resized on the device to a long edge of 2048 and re-encoded as
+   JPEG before it is sent (`uploadImage.ts`, through `expo-image-manipulator`). The census reads
+   at 1536, so nothing it uses is lost. This adds a native module, so the next build needs
+   `pod install`; `scripts/setup.sh` does that when `node_modules` is newer than the Pods.
+3. **A photograph waits 30 seconds**, not the live scan's 20, so the service's own 25 second
+   budget answers before the phone gives up (`PHOTO_REQUEST_TIMEOUT_MS`).
+4. **`scripts/serve.sh` says what to check from the phone**, prints the address to open in the
+   phone's Safari, and warns when this Mac's firewall is set to block all incoming connections,
+   which refuses every phone with no message anywhere.
+
+The most likely cause of that report is the first fix of the day: on the Mac that built the
+app, the setup of the time never started the service, so the phone dialed a port with nothing
+on it. The line in fix 1 would have said so.
+
 ## The three gaps
 
 | | what is missing | what the app does without it | verified |

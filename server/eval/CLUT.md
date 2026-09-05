@@ -67,6 +67,50 @@ the run-to-run spread on 75 samples, and the subject verdict on the basket tier 
 10/21 (harmlessly, since none of those were "shelf", but it is movement where none was wanted).
 Reverted. The brand misread is real and still open; a longer prompt is not the lever.
 
+## What the phone sends, measured on 2026-09-05
+
+The phone no longer sends the photograph. It sends `prepareUpload`'s bounded JPEG of it, a 2048
+long edge at quality 0.85 (`src/engine/liveVision/uploadImage.ts`), because the whole file was a
+7.6MB request body for one basket photograph and a 48MP phone would have tripped the service's
+12MB limit outright. The census reads at 1536 either way, so the question was whether resizing
+twice and compressing twice costs anything. `--as-phone` runs the shipped bound through this
+harness with sharp standing in for the device; `--long-edge` and `--quality` sweep it.
+
+Three passes each, the same day, against the same service, all four requirements. The original
+file was re-run too, because the committed column above was one draw:
+
+|  | committed (09-04) | original, re-run | **phone: 2048 / 0.85** | phone: 3072 / 0.90 |
+|---|---|---|---|---|
+| 1 every item reaches the bag | 193/243 79% | 185/243 76% | 189/243 **78%** | 194/243 80% |
+| 2 quantities are right | 148/193 77% | 145/185 78% | 159/189 **84%** | 152/194 78% |
+| &nbsp;&nbsp;brands right | 104/125 83% | 92/120 77% | 99/127 **78%** | 90/125 72% |
+| 3 hidden items are flagged | 25/39 | 24/39 | **24/39** | 25/39 |
+| 4 unsure items are flagged | 8/32 | 8/33 | **7/31** | 8/33 |
+| lines matching nothing real | 45 | 42 | **36** | 39 |
+| scene gate correct | 41/45 | 37/45 | **35/45** | 30/45 |
+| scans emptied by the gate | 0 | 0 | **1** | 0 |
+
+**The shipped bound is indistinguishable from the original file** on every requirement, inside
+the spread the re-run itself shows. The larger 3072 / 0.90 bound bought nothing and read fewer
+brands, so it was not taken; a bigger upload is not a better one.
+
+**Two things the re-run says about the numbers above it.** Brands moved 83% to 77% with nothing
+changed but the day, so the brand figure has a spread of about six points on 125 samples, and
+the committed column was a favourable draw. And the scene verdict on the basket tier went from
+18/21 to 13/21 on the same photographs and the same prompt (12/21 and 6/21 on the two bounded
+runs), all of it "product" where "cart" was expected and none of it "shelf", so no basket scan
+was emptied; the one emptied scan in the shipped column is on the storage tier, where the gate
+is right 23 or 24 times in 24 on every run. That verdict is a measurement to watch, not one this
+change made.
+
+```
+node --env-file=server/.env.local server/node_modules/.bin/tsx \
+  server/eval/pipeline/clut-photos.ts --as-phone --repeat 3 --out server/eval/clut-photos-phone.json
+```
+
+`clut-photos-phone.json` is that run. The other two columns are the same command without
+`--as-phone`, and with `--long-edge 3072 --quality 0.9`.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

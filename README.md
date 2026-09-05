@@ -94,7 +94,12 @@ pulling a change under `server/`, one command brings it back or moves it onto th
 ./scripts/serve.sh
 ```
 
-`./scripts/serve.sh --status` says whether it is up and whether it is behind the checkout.
+`./scripts/serve.sh --status` says whether it is up and whether it is behind the checkout. It
+also prints the address to open in the phone's Safari, which must show `{"ok":true}`: that one
+check separates "the phone cannot reach the Mac" from everything else.
+
+When a photograph fails on the phone, the screen says why in a line under the notice, with the
+address it tried. Read that line first; it is the phone's side of the same check.
 
 Outlines are the one thing this does not set up. They come from a grounded detector too large
 for a phone or a serverless function, so it runs behind `ENUMERATOR_URL` on a GPU host. With that

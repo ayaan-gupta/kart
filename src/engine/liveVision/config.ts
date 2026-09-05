@@ -134,6 +134,20 @@ export function requestTimeoutMs(): number {
 export const REQUEST_TIMEOUT_MS = 20_000;
 
 /**
+ * How long one photograph waits for its census.
+ *
+ * Longer than the live budget above, for two reasons. A photograph is one call the shopper is
+ * standing there waiting on, not one of eight in a session that has to keep moving. And the
+ * service races recognition against its own 25 second budget (server/src/http.ts) and answers
+ * with a clean error when it loses; a phone that gives up at 20 abandons a call the server is
+ * still paying for, and reports "timeout" where the server was about to say what happened.
+ *
+ * Not subject to the `.env` override: this is a product number, and the guard on
+ * `requestTimeoutMs` exists precisely to keep that override out of a Release build.
+ */
+export const PHOTO_REQUEST_TIMEOUT_MS = 30_000;
+
+/**
  * Hard ceiling on census calls per scan session. This bounds a scan to a small, predictable
  * number of model calls plus whatever crops it needs, and it bounds upload volume to roughly
  * 2.4 MB. Without a cap, leaving the scan screen open on a table racks up calls indefinitely.

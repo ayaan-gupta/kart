@@ -1,4 +1,5 @@
-import { requestCensus, requestIdentify, resetRecognitionEndpoint } from '../recognitionClient';
+import { REQUEST_TIMEOUT_MS } from '../config';
+import { lastRecognitionEndpoint, requestCensus, requestIdentify, resetRecognitionEndpoint } from '../recognitionClient';
 
 const okCensus = {
   ok: true,
@@ -104,6 +105,86 @@ describe('requestCensus', () => {
     const res = await requestCensus(req);
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.value.marks).toHaveLength(0);
+  });
+});
+
+describe('requestCensus timeout budget', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** A server that never answers, and a fetch that honours the abort the client sends it. */
+  function hangingFetch() {
+    return mockFetch(
+      jest.fn(
+        (_url: string, init: { signal: AbortSignal }) =>
+          new Promise((_, reject) => {
+            init.signal.addEventListener('abort', () => {
+              const e = new Error('Aborted');
+              e.name = 'AbortError';
+              reject(e);
+            });
+          }),
+      ),
+    );
+  }
+
+  it('aborts at the shared default when no budget is given', async () => {
+    hangingFetch();
+    const pending = requestCensus(req);
+    await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(await pending).toEqual({ ok: false, failure: 'timeout' });
+  });
+
+  it('waits for the longer budget a photograph is given', async () => {
+    // A photograph is one call that the shopper is waiting on, not one of eight in a live scan,
+    // and the service's own budget is 25s (server/src/http.ts). A client that gives up at 20s
+    // abandons a call the server is still spending money on, and then reports a timeout where
+    // the server would have reported what actually happened.
+    hangingFetch();
+    let settled = false;
+    const pending = requestCensus(req, undefined, { timeoutMs: 30_000 }).then((r) => {
+      settled = true;
+      return r;
+    });
+    await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toEqual({ ok: false, failure: 'timeout' });
+  });
+});
+
+describe('lastRecognitionEndpoint', () => {
+  beforeEach(() => {
+    resetRecognitionEndpoint();
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('is the address the last request went to', async () => {
+    mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => okCensus }));
+    await requestCensus(req);
+    expect(lastRecognitionEndpoint()).toBe('https://kart.test');
+  });
+
+  it('still names the address after a request fails offline, so the failure can say where', async () => {
+    // `resolvedBase` is deliberately forgotten on an offline result so the next call probes
+    // again. That is the wrong thing to show a person: "nothing answered at null" is exactly the
+    // report this exists to replace.
+    mockFetch(jest.fn().mockRejectedValue(new TypeError('Network request failed')));
+    await requestCensus(req);
+    expect(lastRecognitionEndpoint()).toBe('https://kart.test');
+  });
+
+  it('is null when nothing is configured', async () => {
+    delete process.env.EXPO_PUBLIC_KART_API_URL;
+    mockFetch(jest.fn());
+    await requestCensus(req);
+    expect(lastRecognitionEndpoint()).toBeNull();
   });
 });
 

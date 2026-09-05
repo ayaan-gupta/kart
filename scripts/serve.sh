@@ -33,6 +33,32 @@ MODE="${1:-start}"
 name="$(scutil --get LocalHostName 2>/dev/null || true)"
 if [ -n "$name" ]; then ADDR="http://$name.local:$PORT"; else ADDR="http://127.0.0.1:$PORT"; fi
 
+# macOS's application firewall. Overridable so the tests can stand in for it; absent on Linux.
+FW="${KART_FIREWALL_TOOL:-/usr/libexec/ApplicationFirewall/socketfilterfw}"
+
+# What to do once the service is up. A service that is running is not one a phone can reach,
+# and the phone cannot say what it sees, so this says what to check from there and warns about
+# the one setting on this Mac that silently refuses every phone.
+reachability() {
+  echo "check from the phone: open $ADDR in Safari on the phone. It must show {\"ok\":true}."
+  [ -x "$FW" ] || return 0
+  local state block
+  state="$("$FW" --getglobalstate 2>/dev/null)"
+  case "$state" in
+    *"State = 0"*|*disabled*) return 0 ;;
+  esac
+  block="$("$FW" --getblockall 2>/dev/null)"
+  case "$block" in
+    *disabled*|*DISABLED*)
+      echo "note: this Mac's firewall is on. If macOS asks whether node may accept incoming connections, allow it."
+      ;;
+    *)
+      echo "warning: this Mac's firewall blocks all incoming connections, so no phone can reach the service." >&2
+      echo "         System Settings > Network > Firewall > Options: turn off \"Block all incoming connections\"." >&2
+      ;;
+  esac
+}
+
 listener() { lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1; }
 answers()  { curl -fsS -m 2 "http://127.0.0.1:$PORT/" 2>/dev/null | grep -q '"ok"'; }
 
@@ -86,6 +112,7 @@ start_service() {
     if answers; then
       echo "recognition service: running (pid $(listener)) at $ADDR"
       echo "                     log: server/.serve.log"
+      reachability
       return 0
     fi
     # The launcher exiting with nothing listening means the service printed its reason and
@@ -142,6 +169,7 @@ if [ -n "$pid" ]; then
     stop_service "$pid" || { echo "recognition service: pid $pid would not stop" >&2; exit 1; }
   else
     echo "recognition service: already running on current code (pid $pid) at $ADDR"
+    reachability
     exit 0
   fi
 fi

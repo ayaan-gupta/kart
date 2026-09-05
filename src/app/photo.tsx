@@ -12,9 +12,12 @@ import { PhotoCameraCapture } from '../components/PhotoCameraCapture';
 import { PressableScale } from '../components/PressableScale';
 import { color, radius, space } from '../design/tokens';
 import { Caption } from '../design/type';
+import { PHOTO_REQUEST_TIMEOUT_MS } from '../engine/liveVision/config';
+import { deviceManipulator } from '../engine/liveVision/deviceManipulator';
 import { createPhotoScanState, scanPhoto } from '../engine/liveVision/photoScan';
-import { requestCensus } from '../engine/liveVision/recognitionClient';
-import type { ClientFailure } from '../engine/liveVision/recognitionClient';
+import { lastRecognitionEndpoint, requestCensus } from '../engine/liveVision/recognitionClient';
+import { describeScanFailure, type PhotoFailure } from '../engine/liveVision/scanFailure';
+import { prepareUpload, type SourcePhoto } from '../engine/liveVision/uploadImage';
 import { haulCount, useScanline } from '../engine/store';
 
 /**
@@ -25,9 +28,13 @@ import { haulCount, useScanline } from '../engine/store';
  * exist because a live camera produces thirty frames a second and something has to decide which
  * one is worth a recognition call. A photograph has already been decided.
  *
- * This screen owns no counting rules. It turns a shutter press into base64 and hands it to
- * `photoScan.ts`, which folds it through the same fusion the live path uses, so two photographs
+ * This screen owns no counting rules and no sizing rules. It turns a shutter press into a file,
+ * `uploadImage.ts` turns the file into the bounded JPEG the service actually reads, and
+ * `photoScan.ts` folds the answer through the same fusion the live path uses, so two photographs
  * of one orange stay one orange. See `src/engine/liveVision/photoScan.ts`.
+ *
+ * When nothing goes in the bag, the screen says why, in one line under the notice, with the
+ * address it tried. "It just didn't work" on a phone is otherwise unanswerable from a Mac.
  *
  * Nothing here imports the camera. `PhotoCameraCapture` does, and has a `.web.tsx` beside it, so
  * this file carries no platform branch and web never loads VisionCamera at all.
@@ -43,7 +50,7 @@ export default function PhotoScreen() {
   const session = useRef(createPhotoScanState());
 
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<ClientFailure | null>(null);
+  const [failure, setFailure] = useState<PhotoFailure | null>(null);
   const [added, setAdded] = useState<number | null>(null);
 
   // What the last photograph said about things buried under other things. Held per photograph
@@ -73,11 +80,28 @@ export default function PhotoScreen() {
    * enumerator is unconfigured. Storing the whole photograph against every line it produced would
    * show the same picture on each row, which says less than no picture at all.
    */
-  const ingest = async (imageBase64: string) => {
+  const ingest = async (photo: SourcePhoto) => {
     setBusy(true);
     setFailure(null);
     try {
-      const outcome = await scanPhoto(session.current, imageBase64, { requestCensus });
+      // The bounded JPEG, not the file. A 48MP phone photograph is refused by the service for
+      // its size alone, and a 12MP one is an eight megabyte upload the server's first resize
+      // throws away. See uploadImage.ts for the bound and why it is what it is.
+      let imageBase64: string;
+      try {
+        imageBase64 = await prepareUpload(photo, { manipulator: deviceManipulator });
+      } catch {
+        setFailure('capture');
+        setOccluded(false);
+        return;
+      }
+
+      const outcome = await scanPhoto(session.current, imageBase64, {
+        // A photograph gets its own budget: the shopper is waiting on this one call, and it has
+        // to outlast the service's 25 second race so the server's answer arrives before the
+        // phone gives up on it.
+        requestCensus: (request) => requestCensus(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
+      });
       if (outcome.ok) {
         session.current = outcome.state;
         setBag(outcome.lines, {});
@@ -100,26 +124,25 @@ export default function PhotoScreen() {
     if (busy) return;
     let result: ImagePicker.ImagePickerResult;
     try {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 1,
-        base64: true,
-      });
+      // Not asked for base64. The asset's uri and dimensions are all `prepareUpload` needs, and
+      // asking the picker to base64 the whole file first is asking for the very upload it is
+      // there to shrink.
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'] });
     } catch {
       // The picker is someone else's UI and can reject for reasons this screen cannot see or
       // fix: a permission revoked mid-flight, a file the system cannot read, or its own DOM
       // teardown on web. Without this the rejection escapes `pick`, nothing clears, and the
       // shopper is left looking at a screen that has silently stopped responding to the button.
-      setFailure('server');
+      setFailure('capture');
       return;
     }
     if (result.canceled) return;
-    const base64 = result.assets?.[0]?.base64;
-    if (!base64) {
-      setFailure('malformed');
+    const asset = result.assets?.[0];
+    if (!asset?.uri) {
+      setFailure('capture');
       return;
     }
-    await ingest(base64);
+    await ingest({ uri: asset.uri, width: asset.width, height: asset.height });
   };
 
   const close = () => {
@@ -153,10 +176,10 @@ export default function PhotoScreen() {
       <PhotoCameraCapture
         busy={busy}
         bottom={controlsBottom}
-        onCapture={(base64) => void ingest(base64)}
-        // A capture that fails is the same to the shopper as one that could not be recognized:
-        // nothing arrived. Reuse the one notice rather than inventing a second vocabulary.
-        onError={() => setFailure('server')}
+        onCapture={(photo) => void ingest(photo)}
+        // A capture that fails shows the same notice as one that could not be recognized, and
+        // a different line under it: nothing was sent, so no address is to blame.
+        onError={() => setFailure('capture')}
       />
 
       <View style={[styles.topBar, { top: insets.top + space.s }]}>
@@ -185,6 +208,17 @@ export default function PhotoScreen() {
             <View style={styles.status}>
               <ActivityIndicator color={color.white} />
               <Caption color={color.white}>Looking at your photo…</Caption>
+            </View>
+          </GlassSurface>
+        ) : failure !== null ? (
+          // Where the outcome of the last press is shown, so the reason sits where "Added 2
+          // items" would have. The notice above keeps the product owner's wording; this is the
+          // line for whoever has to fix it.
+          <GlassSurface radius={radius.row}>
+            <View style={styles.status}>
+              <Caption color={color.white} style={styles.detail}>
+                {describeScanFailure(failure, lastRecognitionEndpoint())}
+              </Caption>
             </View>
           </GlassSurface>
         ) : added !== null ? (
@@ -239,6 +273,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.l,
     paddingVertical: space.s,
   },
+  detail: { flexShrink: 1, textAlign: 'center' },
   buttonRow: {
     flexDirection: 'row',
     alignItems: 'center',

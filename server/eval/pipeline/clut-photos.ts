@@ -21,6 +21,11 @@
  *     --only <ids>    comma-separated image ids, for re-running one failure
  *     --repeat <n>    scan the whole corpus n times and average, default 1
  *     --out <path>    where to write the result JSON (default server/eval/clut-photos.json)
+ *     --as-phone      send what the phone sends: the shipped `prepareUpload` bound (a 2048 long
+ *                     edge, JPEG 0.85) applied with sharp standing in for the device manipulator,
+ *                     rather than the original file
+ *     --long-edge <n> with --as-phone, measure a different bound before shipping it
+ *     --quality <q>   with --as-phone, likewise for the JPEG quality, 0 to 1
  *
  * The photographs are the owner's own and are not redistributable, so they live in `.cache/`
  * and not in the repository. `corpus/clut/manifest.json` records what they are and
@@ -39,6 +44,42 @@ process.env.EXPO_PUBLIC_KART_API_URL = arg('api', 'http://127.0.0.1:4310');
 
 const { createPhotoScanState, scanPhoto } = await import('../../../src/engine/liveVision/photoScan');
 const { requestCensus } = await import('../../../src/engine/liveVision/recognitionClient');
+const { prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
+const { default: sharp } = await import('sharp');
+const { orientedSize } = await import('../../src/compositor');
+
+/**
+ * The phone does not send the photograph, it sends `prepareUpload`'s bounded JPEG of it
+ * (src/engine/liveVision/uploadImage.ts). `--as-phone` runs that same rule here, with sharp
+ * standing in for expo-image-manipulator: EXIF orientation applied on load, one edge bounded and
+ * the other following the ratio, JPEG at the same quality. Without it the harness measures an
+ * upload the phone never makes.
+ */
+const asPhone = argv.includes('--as-phone');
+const sharpManipulator = {
+  async toJpegBase64(uri: string, size: { width: number } | { height: number } | null, quality: number) {
+    let image = sharp(uri).rotate();
+    if (size !== null) image = image.resize({ ...size, withoutEnlargement: false });
+    const buffer = await image.jpeg({ quality: Math.round(quality * 100) }).toBuffer();
+    return buffer.toString('base64');
+  },
+};
+async function imageBase64(file: string): Promise<string> {
+  if (!asPhone) return readFileSync(file).toString('base64');
+  const { width, height } = orientedSize(await sharp(file).metadata());
+  const longEdge = Number(arg('long-edge', ''));
+  const quality = Number(arg('quality', ''));
+  return prepareUpload(
+    { uri: file, width, height },
+    {
+      manipulator: sharpManipulator,
+      bound: {
+        ...(longEdge > 0 ? { longEdge } : {}),
+        ...(quality > 0 ? { quality } : {}),
+      },
+    },
+  );
+}
 
 const IMAGES = join(import.meta.dirname, '../.cache/clut');
 const CORPUS = join(import.meta.dirname, '../corpus/clut');
@@ -159,7 +200,7 @@ for (const image of wanted) {
     console.log(`  ${image.id}: absent from the cache, skipped`);
     continue;
   }
-  const base64 = readFileSync(file).toString('base64');
+  const base64 = await imageBase64(file);
   const state = createPhotoScanState();
   lastRaw = null;
   const started = Date.now();

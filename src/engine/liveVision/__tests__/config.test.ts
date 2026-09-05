@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { REQUEST_TIMEOUT_MS, requestTimeoutMs } from '../config';
+import { PHOTO_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS, requestTimeoutMs } from '../config';
 
 /**
  * `requestTimeoutMs` reads an environment override, and until this file existed nothing checked
@@ -64,5 +64,15 @@ describe('requestTimeoutMs', () => {
       process.env[KEY] = bad;
       expect(requestTimeoutMs()).toBe(REQUEST_TIMEOUT_MS);
     }
+  });
+});
+
+describe('PHOTO_REQUEST_TIMEOUT_MS', () => {
+  it('outlasts the service budget, so the server answers before the phone gives up', () => {
+    // server/src/http.ts races recognition against 25 seconds and returns a clean error when
+    // it loses. A phone budget below that abandons a call the server is still paying for and
+    // reports "timeout" where the server was about to say what happened.
+    expect(PHOTO_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(25_000);
+    expect(PHOTO_REQUEST_TIMEOUT_MS).toBeGreaterThan(REQUEST_TIMEOUT_MS);
   });
 });
