@@ -15,6 +15,28 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 
 ---
 
+## 0. The three-pass measurement of the two-reading photo path, cut short on 2026-09-06
+
+`clut-photos.ts --as-phone --repeat 3` on the final code got through eleven scans before the
+account answered `429 credit_balance_exhausted`; passes two and three failed on every
+photograph. `clut-photos-verify.json` is those eleven scans and says so in its summary. Run
+it again first, before anything else on this list:
+
+```bash
+./scripts/serve.sh
+node --env-file=server/.env.local server/node_modules/.bin/tsx \
+  server/eval/pipeline/clut-photos.ts --as-phone --repeat 3 --out server/eval/clut-photos-verify.json
+node server/node_modules/.bin/tsx server/eval/pipeline/clut-rescore.ts \
+  server/eval/clut-photos-wide-compact.json server/eval/clut-photos-verify.json
+```
+
+**What would matter:** "asserted lines wrong" on the basket tier staying at zero across all
+three passes (it was 0 of 31 on each of the two complete passes that exist), and the storage
+tier's asserted-wrong lines being the two known classes only: a box read from its back panel,
+and a second unit hidden behind the first. Then replace the table in CLUT.md, "Read wide, then
+read close", with the three-pass numbers. The Luna arm of the close reader is worth a second
+pass too, for the cost column, once the Sol number is settled.
+
 ## 3. The proposal filter — demoted, and probably not worth a census pass
 
 `MIN_CATALOG_CONFIDENCE` in `server/src/enumerate.ts` is **0**, which is off. Set it to **0.6** and:

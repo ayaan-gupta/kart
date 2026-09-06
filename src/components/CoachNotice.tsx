@@ -5,7 +5,7 @@ import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { color, feedTextShadow, motion, space } from '../design/tokens';
 import { Sub } from '../design/type';
 
-export type CoachKind = 'none' | 'closer' | 'occluded' | 'unavailable';
+export type CoachKind = 'none' | 'closer' | 'occluded' | 'unavailable' | 'confirm';
 
 /**
  * The exact wording asked for by the product owner. Do not reword these without asking; they
@@ -25,12 +25,19 @@ export const COACH_COPY: Record<Exclude<CoachKind, 'none'>, string> = {
   occluded:
     "We're pretty sure you're missing stuff in your cart. Move items that are covering it and scan those items.",
   unavailable: "Scanning isn't working right now, so nothing is being added to your cart.",
+  /**
+   * The product owner's wording, from the request for the review on 2026-09-06: the items that
+   * were high confidence highlighted green, the one that was not highlighted yellow, and this
+   * sentence beside it.
+   */
+  confirm: 'Please give me a better image of this so I can confirm what it is.',
 };
 
 const SYMBOL: Record<Exclude<CoachKind, 'none'>, SymbolViewProps['name']> = {
   closer: 'viewfinder',
   occluded: 'square.3.layers.3d.top.filled',
   unavailable: 'exclamationmark.triangle.fill',
+  confirm: 'camera.viewfinder',
 };
 
 /**
@@ -41,13 +48,16 @@ const SYMBOL: Record<Exclude<CoachKind, 'none'>, SymbolViewProps['name']> = {
  * first when both apply.
  */
 export function coachKind(
-  input: { amberPersists: boolean; occluded: boolean; unavailable?: boolean },
+  input: { amberPersists: boolean; occluded: boolean; unavailable?: boolean; confirm?: boolean },
 ): CoachKind {
   // First, and above both others. If recognition is not answering, "bring your camera closer" and
   // "move the items covering it" are both instructions to work harder at something that cannot
   // succeed, which is worse than saying nothing. Neither of the other two can be true for a good
   // reason while every census is failing: they are derived from census answers.
   if (input.unavailable) return 'unavailable';
+  // Above the occlusion notice, because it points at a particular item drawn in amber on the
+  // photograph the shopper is looking at, and the remedy is the same one photograph either way.
+  if (input.confirm) return 'confirm';
   if (input.occluded) return 'occluded';
   if (input.amberPersists) return 'closer';
   return 'none';

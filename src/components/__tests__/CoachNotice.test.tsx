@@ -55,6 +55,15 @@ describe('coachKind', () => {
       .toBe('unavailable');
   });
 
+  it('asks for a better image of an item the close read could not confirm', () => {
+    expect(coachKind({ amberPersists: false, occluded: false, confirm: true })).toBe('confirm');
+  });
+
+  it('puts the confirmation request above the occlusion notice: it points at one item on screen', () => {
+    expect(coachKind({ amberPersists: false, occluded: true, confirm: true })).toBe('confirm');
+    expect(coachKind({ amberPersists: false, occluded: true, confirm: true, unavailable: true })).toBe('unavailable');
+  });
+
   it('says nothing about availability when the flag is absent, as older callers pass', () => {
     expect(coachKind({ amberPersists: false, occluded: false })).toBe('none');
   });
@@ -68,7 +77,7 @@ describe('coachKind', () => {
 
   it('has copy for every kind it can return', () => {
     // A kind with no entry renders undefined text and announces undefined to a screen reader.
-    for (const kind of ['closer', 'occluded', 'unavailable'] as const) {
+    for (const kind of ['closer', 'occluded', 'unavailable', 'confirm'] as const) {
       expect(typeof COACH_COPY[kind]).toBe('string');
       expect(COACH_COPY[kind].length).toBeGreaterThan(0);
     }
@@ -107,6 +116,7 @@ describe('I3: the occluded notice has an exit even when the occlusion verdict it
 describe('COACH_COPY', () => {
   it('uses the exact requested wording', () => {
     expect(COACH_COPY.closer).toBe('Please bring your camera closer to items highlighted yellow');
+    expect(COACH_COPY.confirm).toBe('Please give me a better image of this so I can confirm what it is.');
     expect(COACH_COPY.occluded).toBe(
       "We're pretty sure you're missing stuff in your cart. Move items that are covering it and scan those items.",
     );

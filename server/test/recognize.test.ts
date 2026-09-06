@@ -2,8 +2,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
 import { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import type { Mark } from "../src/compositor.js";
-import { censusJsonSchema, identifyJsonSchema, productKey } from "../src/schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
+import { censusJsonSchema, identifyJsonSchema, photoJsonSchema, productKey, verifyJsonSchema } from "../src/schemas.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, verifyUserText } from "../src/prompts.js";
 import type { CensusDiagnostics } from "../src/recognize.js";
 
 // The real ./openai.ts throws at import time when OPENAI_API_KEY is unset (by design, so a
@@ -14,11 +14,11 @@ import type { CensusDiagnostics } from "../src/recognize.js";
 // every test below also asserts the model id actually sent matches these constants).
 vi.mock("../src/openai.js", () => ({
   openai: { responses: { create: vi.fn() } },
-  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", escalate: "gpt-5.5" },
+  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol", escalate: "gpt-5.5" },
 }));
 
 const { openai, MODELS } = await import("../src/openai.js");
-const { runCensus, runIdentify, cropToBox } = await import("../src/recognize.js");
+const { runCensus, runIdentify, runVerify, cropToBox } = await import("../src/recognize.js");
 
 const create = openai.responses.create as unknown as ReturnType<typeof vi.fn>;
 
@@ -60,9 +60,11 @@ beforeEach(() => {
  * path runs Sol, under the short photo prompt, at the effort the sweep chose, on the image the
  * phone sent rather than a 1536 composite of it.
  */
+const emptyPhoto = { subjectKind: "cart", items: [], occlusion: { severity: "none", reason: "" } };
+
 describe("runCensus on a photograph (no marks)", () => {
-  it("uses the photo model, the photo prompt, and a high-detail image", async () => {
-    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+  it("uses the photo model, the photo prompt, the photo schema, and a high-detail image", async () => {
+    mockOutput(emptyPhoto);
     await runCensus(await blankJpeg(), []);
 
     const params = create.mock.calls[0][0];
@@ -71,11 +73,28 @@ describe("runCensus on a photograph (no marks)", () => {
     expect(params.input[0]).toEqual({ role: "system", content: PHOTO_SYSTEM_PROMPT });
     expect(params.input[1].content[0]).toEqual({ type: "input_text", text: censusUserText([]) });
     expect(params.input[1].content[1].detail).toBe("high");
-    expect(params.text.format.schema).toEqual(censusJsonSchema);
+    expect(params.text.format.schema).toEqual(photoJsonSchema);
+  });
+
+  it("folds the photo answer into the census shape: derived keys, scaled boxes, counts, occlusion flag", async () => {
+    mockOutput({
+      subjectKind: "product",
+      items: [
+        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, box: { x: 58, y: 24, w: 42, h: 37 } },
+        { name: "leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, box: null },
+      ],
+      occlusion: { severity: "some", reason: "a tin is behind the jar" },
+    });
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.subjectKind).toBe("product");
+    expect(result.unmarkedItems).toHaveLength(1);
+    expect(result.unmarkedItems[0].box).toEqual({ x: 0.58, y: 0.24, w: 0.42, h: 0.37 });
+    expect(result.inViewCounts).toEqual([{ productKey: productKey("Rigatoni", "Priano"), count: 2 }]);
+    expect(result.occlusion.itemsLikelyHidden).toBe(true);
   });
 
   it("sends the photograph at up to 2048 on its long edge, not the census composite's 1536", async () => {
-    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+    mockOutput(emptyPhoto);
     await runCensus(await blankJpeg(3000, 2000), []);
 
     const url: string = create.mock.calls[0][0].input[1].content[1].image_url;
@@ -85,7 +104,7 @@ describe("runCensus on a photograph (no marks)", () => {
   });
 
   it("still passes the counted list through, so a second photograph reuses the bag's names", async () => {
-    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: wellFormedOcclusion });
+    mockOutput(emptyPhoto);
     await runCensus(await blankJpeg(), [], undefined, ["Nutella"]);
     const text: string = create.mock.calls[0][0].input[1].content[0].text;
     expect(text).toContain("Nutella");
@@ -93,34 +112,32 @@ describe("runCensus on a photograph (no marks)", () => {
 });
 
 describe("runCensus drops what the model says is not a product", () => {
-  it("removes an unmarked item with isProduct false, and its count", async () => {
+  it("removes a photograph item with isProduct false, and its count", async () => {
     mockOutput({
-      marks: [],
-      unmarkedItems: [
-        { description: "Bananas", productKey: "::bananas", catalogSku: null, approxLocation: "left", confidence: 0.9, isProduct: true },
-        { description: "Food leftovers in a tub", productKey: "::food leftovers", catalogSku: null, approxLocation: "right", confidence: 0.5, isProduct: false },
+      subjectKind: "product",
+      items: [
+        { name: "Bananas", brand: null, count: 1, confidence: 0.9, isProduct: true, box: null },
+        { name: "Food leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, box: null },
       ],
-      inViewCounts: [
-        { productKey: "::bananas", count: 1 },
-        { productKey: "::food leftovers", count: 1 },
-      ],
-      occlusion: wellFormedOcclusion,
+      occlusion: { severity: "none", reason: "" },
     });
     const result = await runCensus(await blankJpeg(), []);
     expect(result.unmarkedItems.map((u) => u.description)).toEqual(["Bananas"]);
     expect(result.inViewCounts.map((c) => c.productKey)).toEqual(["::banana"]);
   });
 
-  it("keeps an item from an older answer that has no isProduct", async () => {
+  it("keeps an unmarked item from an older badge answer that has no isProduct", async () => {
+    // The badge census still answers in the census shape, and an older answer never carried the
+    // field; absent reads as true there. The photograph path requires it of the model.
     mockOutput({
-      marks: [],
+      marks: [wellFormedMark],
       unmarkedItems: [
         { description: "Bananas", productKey: "::bananas", catalogSku: null, approxLocation: "left", confidence: 0.9 },
       ],
       inViewCounts: [{ productKey: "::bananas", count: 1 }],
       occlusion: wellFormedOcclusion,
     });
-    const result = await runCensus(await blankJpeg(), []);
+    const result = await runCensus(await blankJpeg(), [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }]);
     expect(result.unmarkedItems).toHaveLength(1);
   });
 });
@@ -487,14 +504,13 @@ describe("a census that means \"nothing here\" does not reach the shopper as an 
     // model to be complete rather than to answer with an empty list, and this is what that
     // pressure produces on a picture it cannot read. Unfiltered, the shopper's bag gets an item
     // called none.
+    // The photograph path now answers in the photo shape, in which that row is an item named
+    // "None."; the fold derives the same "::none" key and the same filter drops it.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockOutput({
-      marks: [],
-      unmarkedItems: [
-        { description: "None.", productKey: "::none.", catalogSku: null, approxLocation: "in the trolley", confidence: 0.6 },
-      ],
-      inViewCounts: [{ productKey: "::none", count: 1 }],
-      occlusion: wellFormedOcclusion,
+      subjectKind: "cart",
+      items: [{ name: "None.", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null }],
+      occlusion: { severity: "none", reason: "" },
     });
     const result = await runCensus(await blankJpeg(), []);
 
@@ -507,12 +523,9 @@ describe("a census that means \"nothing here\" does not reach the shopper as an 
   it("keeps a real product whose name merely begins with one of those words", async () => {
     // The filter is whole-name only. "no bake cheesecake" starts with "no" and is a product.
     mockOutput({
-      marks: [],
-      unmarkedItems: [
-        { description: "No Bake Cheesecake", productKey: "::no bake cheesecake", catalogSku: null, approxLocation: "in the trolley", confidence: 0.6 },
-      ],
-      inViewCounts: [{ productKey: "::No Bake Cheesecake", count: 1 }],
-      occlusion: wellFormedOcclusion,
+      subjectKind: "cart",
+      items: [{ name: "No Bake Cheesecake", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null }],
+      occlusion: { severity: "none", reason: "" },
     });
     const result = await runCensus(await blankJpeg(), []);
 
@@ -1099,5 +1112,94 @@ describe("a product held up to the camera fills a bag, a shop's shelf does not",
     mockOutput(scene("shelf", true));
     const emptied = await runCensus(await blankJpeg(), marks);
     expect(emptied.unmarkedItems).toEqual([]);
+  });
+});
+
+/**
+ * The close read, one call per crop, all in parallel, folded into one line per item by
+ * `reconcile`. See docs/superpowers/specs/2026-09-06-photo-verification-design.md.
+ */
+describe("runVerify", () => {
+  const wide = { description: "Rigatoni", productKey: "priano::rigatoni", brand: "Piano", count: 2, confidence: 0.9 };
+  const closeAnswer = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.98, legible: true, matchesHint: true };
+
+  it("asks the photo model about each crop under the verify prompt with the wide reading as the hint", async () => {
+    mockOutput(closeAnswer);
+    const crop = await blankJpeg(300, 400);
+    const [item] = await runVerify([{ id: "a", crop, wide }]);
+
+    const params = create.mock.calls[0][0];
+    expect(params.model).toBe(MODELS.photo);
+    expect(params.input[0]).toEqual({ role: "system", content: VERIFY_SYSTEM_PROMPT });
+    expect(params.input[1].content[0].text).toBe(verifyUserText({ description: "Rigatoni", productKey: "priano::rigatoni" }));
+    expect(params.input[1].content[1].detail).toBe("high");
+    expect(params.text.format.schema).toEqual(verifyJsonSchema);
+    expect(item.id).toBe("a");
+    expect(item.close).toEqual(closeAnswer);
+  });
+
+  it("sends the crop it was given, unchanged in size", async () => {
+    mockOutput(closeAnswer);
+    await runVerify([{ id: "a", crop: await blankJpeg(300, 400), wide }]);
+    const url: string = create.mock.calls[0][0].input[1].content[1].image_url;
+    const meta = await sharp(Buffer.from(url.split(",")[1], "base64")).metadata();
+    expect([meta.width, meta.height]).toEqual([300, 400]);
+  });
+
+  it("reconciles: a brand disagreement is unsure and shows the brand the close read saw", async () => {
+    mockOutput(closeAnswer);
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide }]);
+    expect(item.line.sure).toBe(false);
+    expect(item.line.brand).toBe("Priano");
+  });
+
+  it("reconciles: agreement is sure", async () => {
+    mockOutput(closeAnswer);
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide: { ...wide, brand: "Priano" } }]);
+    expect(item.line.sure).toBe(true);
+    expect(item.line.agreed).toBe(true);
+  });
+
+  it("runs the crops in parallel and keeps their order", async () => {
+    mockOutput({ ...closeAnswer, name: "first" });
+    mockOutput({ ...closeAnswer, name: "second" });
+    const crop = await blankJpeg();
+    const items = await runVerify([{ id: "a", crop, wide }, { id: "b", crop, wide }]);
+    expect(items.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives an item whose call failed no close reading, without failing the others", async () => {
+    create.mockRejectedValueOnce(new APIError(500, undefined, "boom", undefined));
+    mockOutput(closeAnswer);
+    const crop = await blankJpeg();
+    const items = await runVerify([{ id: "a", crop, wide }, { id: "b", crop, wide }]);
+    expect(items[0].close).toBeNull();
+    expect(items[0].line.sure).toBe(false);
+    expect(items[1].close).not.toBeNull();
+  });
+
+  it("tells the close read which brands the wide pass read elsewhere, leaving out the item's own", async () => {
+    mockOutput(closeAnswer);
+    await runVerify([{ id: "a", crop: await blankJpeg(), wide }], ["Piano", "Bob's Red Mill", "Nutella"]);
+    const text: string = create.mock.calls[0][0].input[1].content[0].text;
+    expect(text).toContain("Bob's Red Mill");
+    expect(text).toContain("Nutella");
+    expect(text).not.toMatch(/photograph: Piano/);
+  });
+
+  it("normalises an empty close brand to null", async () => {
+    mockOutput({ ...closeAnswer, brand: "  " });
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide }]);
+    expect(item.close?.brand).toBeNull();
+  });
+});
+
+describe("runCensus on a confirmation photograph", () => {
+  it("puts the confirming names into the user text", async () => {
+    mockOutput(emptyPhoto);
+    await runCensus(await blankJpeg(), [], undefined, ["Nutella"], ["Priano rigatoni"]);
+    const text: string = create.mock.calls[0][0].input[1].content[0].text;
+    expect(text).toContain("Priano rigatoni");
   });
 });

@@ -41,6 +41,11 @@ export interface UnmarkedItem {
   confidence: number;
   /** Whether the model says this is a supermarket product. An older server never says, which reads as true. */
   isProduct: boolean;
+  /**
+   * Where it is in the upload, normalized, origin top left, or null when the model could not
+   * place it or the server predates the field. The review draws it, and the close read crops it.
+   */
+  box: Box | null;
 }
 
 /**
@@ -87,6 +92,40 @@ export interface CensusRequest {
    * lines that match nothing real from about 1.7 a bag to 0.3 with recall unchanged.
    */
   counted?: string[];
+  /**
+   * Names the review showed in amber, which this photograph was taken to confirm. The census
+   * looks for those first and names them the same way, so the sure reading replaces the line.
+   */
+  confirming?: string[];
+}
+
+/** What the census said about one product, sent back with its crop for the close read. */
+export interface WideReading {
+  description: string;
+  productKey: string;
+  brand: string | null;
+  count: number;
+  confidence: number;
+}
+
+export interface VerifyRequest {
+  items: { id: string; imageBase64: string; wide: WideReading }[];
+  /** Every brand the census read in the same photograph, so a logo crumpled on one bag can be read off the bag beside it. */
+  brands?: string[];
+}
+
+/** The two readings reconciled on the server: what the bag shows, and whether it is sure. */
+export interface VerifiedLine {
+  description: string;
+  brand: string | null;
+  count: number;
+  confidence: number;
+  sure: boolean;
+  agreed: boolean;
+}
+
+export interface VerifyPayload {
+  items: { id: string; line: VerifiedLine }[];
 }
 
 export interface IdentifyRequest {
@@ -338,6 +377,7 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
         approxLocation: str(raw.approxLocation),
         confidence: Math.min(1, Math.max(0, num(raw.confidence))),
         isProduct: raw.isProduct !== false,
+        box: parseBox(raw.box),
       });
     }
   }
@@ -385,6 +425,36 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
   };
 }
 
+/** A box with four finite numbers, or null: a malformed box is no box, never a guess at one. */
+function parseBox(value: unknown): Box | null {
+  if (!isRecord(value)) return null;
+  const parts = [value.x, value.y, value.w, value.h];
+  if (!parts.every((n) => typeof n === 'number' && Number.isFinite(n))) return null;
+  return { x: value.x as number, y: value.y as number, w: value.w as number, h: value.h as number };
+}
+
+function parseVerify(value: unknown): VerifyPayload | null {
+  if (!isRecord(value) || !Array.isArray(value.items)) return null;
+  const items: VerifyPayload['items'] = [];
+  for (const raw of value.items) {
+    if (!isRecord(raw) || typeof raw.id !== 'string' || !isRecord(raw.line)) return null;
+    const line = raw.line;
+    if (typeof line.description !== 'string') return null;
+    items.push({
+      id: raw.id,
+      line: {
+        description: line.description,
+        brand: nullableStr(line.brand),
+        count: Math.max(0, Math.round(num(line.count))),
+        confidence: Math.min(1, Math.max(0, num(line.confidence))),
+        sure: line.sure === true,
+        agreed: line.agreed === true,
+      },
+    });
+  }
+  return { items };
+}
+
 function parseIdentify(value: unknown): IdentifyResult | null {
   if (!isRecord(value) || typeof value.name !== 'string') return null;
   return {
@@ -406,8 +476,31 @@ export function requestCensus(
   // "you find them", which is what the capture path wants.
   return post(
     '/api/census',
-    { image: req.imageBase64, marks: req.marks ?? [], counted: req.counted ?? [] },
+    {
+      image: req.imageBase64,
+      marks: req.marks ?? [],
+      counted: req.counted ?? [],
+      ...(req.confirming && req.confirming.length > 0 ? { confirming: req.confirming } : {}),
+    },
     parseCensus,
+    signal,
+    options,
+  );
+}
+
+/** The close read: every crop with what the census said about it, answered as reconciled lines. */
+export function requestVerify(
+  req: VerifyRequest,
+  signal?: AbortSignal,
+  options?: RequestOptions,
+): Promise<ClientResult<VerifyPayload>> {
+  return post(
+    '/api/verify',
+    {
+      items: req.items.map((item) => ({ id: item.id, image: item.imageBase64, wide: item.wide })),
+      ...(req.brands && req.brands.length > 0 ? { brands: req.brands } : {}),
+    },
+    parseVerify,
     signal,
     options,
   );

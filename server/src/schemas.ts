@@ -36,6 +36,15 @@ export const MarkIdentification = z.object({
   catalogSku: z.string().nullable(),
 });
 
+/** A rectangle in the frame the model was shown: fractions of width and height, origin top left. */
+export const NormalizedBox = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  w: z.number().min(0).max(1),
+  h: z.number().min(0).max(1),
+});
+export type NormalizedBox = z.infer<typeof NormalizedBox>;
+
 export const UnmarkedItem = z.object({
   description: z.string(),
   // The same "brand::name" key the model reports in inViewCounts, so an unmarked sighting joins
@@ -61,6 +70,18 @@ export const UnmarkedItem = z.object({
    * an older server's answer, which never carried it, still parses and reads as true.
    */
   isProduct: z.boolean().optional(),
+  /**
+   * Where the product is: the smallest rectangle enclosing every visible unit of it, normalized
+   * to the frame the model was shown, origin top left, 0 to 1.
+   *
+   * Two things need it. The app shows the shopper their own photograph with each item outlined,
+   * green when it is sure and amber when it is not, so "not sure about this one" points at a
+   * thing rather than at a name. And the server cuts the box out for the close read, which is
+   * what turns a wide guess at a stylised logo into a reading of it. Nullable rather than
+   * optional in the wire schema: strict mode makes the model answer for every item, and a product
+   * it cannot place is null, never a guess. Optional here so an older answer still parses.
+   */
+  box: NormalizedBox.nullable().optional(),
 });
 
 export const InViewCount = z.object({
@@ -125,6 +146,25 @@ export const IdentifyResponse = z.object({
   stillUnclear: z.boolean(),
 });
 export type IdentifyResponse = z.infer<typeof IdentifyResponse>;
+
+/**
+ * The close read of one product, from a crop cut at the box the wide pass gave.
+ *
+ * `matchesHint` is the question that makes two readings comparable without matching free text:
+ * the crop is shown with the wide pass's own description, and the model says whether that is
+ * what the crop holds. `count` is how many units are in the crop, which is the wide count read a
+ * second way. `legible` is whether the packaging text could actually be read, so that a
+ * confident guess at an unreadable label cannot be reported as a reading.
+ */
+export const VerifyResponse = z.object({
+  name: z.string(),
+  brand: z.string().nullable(),
+  count: z.number().int().min(0),
+  confidence: z.number().min(0).max(1),
+  legible: z.boolean(),
+  matchesHint: z.boolean(),
+});
+export type VerifyResponse = z.infer<typeof VerifyResponse>;
 
 /**
  * Stable key for one product across calls.
@@ -225,8 +265,19 @@ export const censusJsonSchema = {
           approxLocation: { type: "string" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
           isProduct: { type: "boolean" },
+          box: {
+            type: ["object", "null"],
+            properties: {
+              x: { type: "number", minimum: 0, maximum: 1 },
+              y: { type: "number", minimum: 0, maximum: 1 },
+              w: { type: "number", minimum: 0, maximum: 1 },
+              h: { type: "number", minimum: 0, maximum: 1 },
+            },
+            required: ["x", "y", "w", "h"],
+            additionalProperties: false,
+          },
         },
-        required: ["description", "productKey", "catalogSku", "approxLocation", "confidence", "isProduct"],
+        required: ["description", "productKey", "catalogSku", "approxLocation", "confidence", "isProduct", "box"],
         additionalProperties: false,
       },
     },
@@ -274,3 +325,146 @@ export const identifyJsonSchema = {
   required: ["name", "brand", "size", "category", "confidence", "stillUnclear"],
   additionalProperties: false,
 } as const;
+
+export const verifyJsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    brand: { type: ["string", "null"] },
+    // No minimum, for the reason InViewCount.count gives above.
+    count: { type: "integer" },
+    confidence: { type: "number", minimum: 0, maximum: 1 },
+    legible: { type: "boolean" },
+    matchesHint: { type: "boolean" },
+  },
+  required: ["name", "brand", "count", "confidence", "legible", "matchesHint"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * The photograph census, in the model's own terms.
+ *
+ * The badge census answers with `censusJsonSchema`, whose unmarked items carry a hand-built
+ * "brand::name" key, a store SKU, a location phrase and a separate count list keyed by the same
+ * hand-built key. On a photograph every product is an unmarked item, and that shape cost the
+ * wide pass about 85 output tokens a product, most of it the key written twice. Sol writes
+ * output at roughly eighty tokens a second, so a fourteen-product refrigerator was a fifteen
+ * second answer. This shape is the same answer at about half the tokens: name and brand as
+ * separate fields, the count beside them, and the box as whole percentages of the frame. The
+ * server derives the key with `productKey` and folds the whole thing into a `CensusResponse`,
+ * so nothing downstream knows the difference.
+ */
+export const PhotoItem = z.object({
+  name: z.string(),
+  brand: z.string().nullable(),
+  count: z.number().int().min(0),
+  confidence: z.number().min(0).max(1),
+  isProduct: z.boolean(),
+  /** Percentages of the frame's width and height, origin top left, 0 to 100. */
+  box: z
+    .object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+      w: z.number().min(0).max(100),
+      h: z.number().min(0).max(100),
+    })
+    .nullable(),
+});
+export type PhotoItem = z.infer<typeof PhotoItem>;
+
+export const PhotoResponse = z.object({
+  subjectKind: z.enum(["cart", "product", "shelf"]),
+  items: z.array(PhotoItem),
+  occlusion: z.object({
+    severity: z.enum(["none", "some", "many"]),
+    reason: z.string(),
+  }),
+});
+export type PhotoResponse = z.infer<typeof PhotoResponse>;
+
+export const photoJsonSchema = {
+  type: "object",
+  properties: {
+    subjectKind: { type: "string", enum: ["cart", "product", "shelf"] },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          brand: { type: ["string", "null"] },
+          // No minimum, for the reason InViewCount.count gives above.
+          count: { type: "integer" },
+          confidence: { type: "number", minimum: 0, maximum: 1 },
+          isProduct: { type: "boolean" },
+          box: {
+            type: ["object", "null"],
+            properties: {
+              x: { type: "number", minimum: 0, maximum: 100 },
+              y: { type: "number", minimum: 0, maximum: 100 },
+              w: { type: "number", minimum: 0, maximum: 100 },
+              h: { type: "number", minimum: 0, maximum: 100 },
+            },
+            required: ["x", "y", "w", "h"],
+            additionalProperties: false,
+          },
+        },
+        required: ["name", "brand", "count", "confidence", "isProduct", "box"],
+        additionalProperties: false,
+      },
+    },
+    occlusion: {
+      type: "object",
+      properties: {
+        severity: { type: "string", enum: ["none", "some", "many"] },
+        reason: { type: "string" },
+      },
+      required: ["severity", "reason"],
+      additionalProperties: false,
+    },
+  },
+  required: ["subjectKind", "items", "occlusion"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Folds a photograph answer into the census shape every caller already reads.
+ *
+ * The key is derived here with `productKey`, the same function the client keys the bag with,
+ * from the two fields the model wrote separately, so the hand-built key that used to drift in
+ * case, accents and punctuation no longer exists. Two items that derive to one key are one
+ * product listed twice, and their counts are summed exactly as `normalizeCensusResponse` sums
+ * a duplicated count; the close read, which counts on its own, is what settles that.
+ */
+export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
+  const unmarkedItems: CensusResponse["unmarkedItems"] = [];
+  const counts = new Map<string, number>();
+  for (const item of photo.items) {
+    const name = item.name.trim();
+    if (name.length === 0) continue;
+    const brand = item.brand !== null && item.brand.trim().length > 0 ? item.brand.trim() : null;
+    const key = productKey(name, brand);
+    unmarkedItems.push({
+      description: name,
+      productKey: `${brand ?? ""}::${name}`,
+      catalogSku: null,
+      approxLocation: "",
+      confidence: item.confidence,
+      isProduct: item.isProduct,
+      box: item.box === null ? null : { x: item.box.x / 100, y: item.box.y / 100, w: item.box.w / 100, h: item.box.h / 100 },
+    });
+    counts.set(key, (counts.get(key) ?? 0) + Math.max(0, item.count));
+  }
+  return {
+    subjectIsCart: photo.subjectKind === "cart",
+    subjectKind: photo.subjectKind,
+    marks: [],
+    unmarkedItems,
+    inViewCounts: [...counts].map(([productKey, count]) => ({ productKey, count })),
+    occlusion: {
+      itemsLikelyHidden: photo.occlusion.severity !== "none",
+      severity: photo.occlusion.severity,
+      reason: photo.occlusion.reason,
+    },
+  };
+}

@@ -76,6 +76,34 @@ a supermarket product and the server drops what is not, and a line the model is 
 of shows as "Not sure" in the bag rather than asserted. The bag change is in the app, so it
 needs a rebuild; the gate is server side.
 
+### The next day: every product read twice, and the photograph shown back
+
+The owner's next ask was for no mistakes, and for the shopper to see their own photograph with
+what the app is sure of in green and what it is not in yellow, with the words "Please give me a
+better image of this so I can confirm what it is." beside the yellow. That is what the
+photograph screen does now, and the way it gets there is a second reading. The census places a
+box on every product; the phone cuts each box out of the original photograph, not the 2048
+upload, because a crop of the upload had the model read a jar of Simply Nature as "Murphy's
+Naturals" at 0.97 and the same crop of the original read it right; a second call reads each
+crop on its own; and the server asserts a line only when the two readings agree on the product,
+the brand and the count. Anything else is amber, and the next photograph is taken as the better
+image of it: its names go to the census, and a sure reading replaces the amber line.
+`server/eval/CLUT.md`, "Read wide, then read close", has the numbers, and "asserted lines wrong"
+is the one the gate exists to drive to zero.
+
+Both halves need updating. The service has a new route, `/api/verify`, so pull under `server/`
+and run `./scripts/serve.sh`. The app cuts the crops with the image manipulator it already
+carries and draws the review with `react-native-svg`, which it already carries, so the build
+needs no new pod, but it does need a rebuild: `./scripts/setup.sh`. A new app against an old
+service gets a census with no boxes and no verify route, shows every line as unsure, and says
+under the review that the closer look did not happen. An old app against the new service works
+exactly as before.
+
+The whole path was driven in a browser from a web export before it was committed: the basket
+photograph through the picker, the census in 4.8 seconds, the close read in 2.5 seconds, five
+green boxes and one amber, the owner's sentence, and "Photograph it again". What a browser
+cannot stand in for is unchanged: the phone's camera and the phone's wifi.
+
 ## The three gaps
 
 | | what is missing | what the app does without it | verified |

@@ -170,50 +170,91 @@ or tub of a grocery in its retail packaging, loose fruit or vegetables, meat, da
 not: a cooked meal or leftovers, food in a household's own container, a drink in a glass,
 tableware, cookware, a book, papers, a phone, clothing, furniture, or an object you cannot
 actually see the product in. If there are no grocery products in the photograph, which is what a
-photograph of a table, a desk, a room or a person is, the right answer is empty unmarkedItems
-and empty inViewCounts. Never guess a product into a photograph to have something to report.
+photograph of a table, a desk, a room or a person is, the right answer is an empty items list.
+Never guess a product into a photograph to have something to report.
 
-Answer with the structured object. There are no badges in this photograph, so marks is always
-an empty array; a mark would carry id, name, brand, size, category, confidence, needsCloserLook,
-isProduct and catalogSku, and none is needed here. Every product goes in unmarkedItems, one
-entry per distinct product:
-  description     a short product name without the brand ("Froot Loops", "brioche buns").
-  productKey      lowercase "brand::name" with punctuation removed and accents folded to plain
-                  letters, for example "kelloggs::froot loops"; "" for the brand of unbranded
-                  produce, giving "::bananas". The brand half is the brand exactly as printed on
-                  the packaging when it is legible. Do not substitute a
-                  better-known brand that looks similar. Leave the brand half "" when the product
-                  is genuinely unbranded, such as loose produce, or when the packaging cannot be
-                  read.
-  catalogSku      always null on this path; no store catalog was consulted.
-  approxLocation  a short phrase saying where in the frame it is.
-  confidence      your real confidence, 0 to 1, that a shopper would agree with the
-                  identification. Anything you would not bet on belongs below 0.6; a line below
-                  0.6 is shown to the shopper as unsure, a line above it is asserted.
-  isProduct       true when this is a supermarket product as defined above, false when it is
-                  something else you felt you should mention. Anything false is dropped before
-                  it reaches the shopper, so it costs nothing to be honest here.
+Answer with the structured object. items has one entry per distinct product; the same product
+in two places is one entry with the total count and one box around both:
+  name        a short product name without the brand ("Froot Loops", "brioche buns"). Two
+              products that differ only in a flavour or a variety you can read are two entries.
+  brand       the brand exactly as printed on the packaging, or null for unbranded produce and
+              for packaging you cannot read. Do not substitute a better-known brand that looks
+              similar, and do not guess a brand from the style of the packaging.
+  count       how many units of it are visible: count packages, not pieces. One bunch of bananas
+              is 1, one carton of eggs is 1, two identical bags of chips is 2.
+  confidence  your real confidence, 0 to 1, that a shopper would agree with the name, the brand
+              and the count together. Anything you would not bet on belongs below 0.6.
+  isProduct   true when this is a supermarket product as defined above, false when it is
+              something else you felt you should mention. Anything false is dropped before it
+              reaches the shopper, so it costs nothing to be honest here.
+  box         where it is: the smallest rectangle that encloses every visible unit of this
+              product, as x, y, w and h in whole percentages of the image width and height, 0 to
+              100, with the origin at the top-left corner. Tight to the product, not to the shelf
+              or basket around it. null only if you cannot place it.
 Include a product that is partly hidden if you can still name it. Do not list furniture, the
 basket, the shelf, kitchen equipment, papers, or anything that is not a grocery product.
-
-inViewCounts has one entry per product with the same productKey and count, how many units of
-it are visible in this photograph: count packages, not pieces. One bunch of bananas is 1, one
-carton of eggs is 1, two identical bags of chips is 2. Two products that differ only in a
-flavour or a variety you can read are two entries, not one with a count of 2.
 
 subjectKind is what the camera is pointed at: "cart" for the shopper's own trolley or basket,
 "product" for their own goods anywhere else, including a home refrigerator, cupboard or
 pantry, and "shelf" only for a shop's own stock laid out for sale, in rows with several facings
 of the same product and price labels along the shelf edge. A home kitchen is never "shelf".
-subjectIsCart is true exactly when subjectKind is "cart".
 
 occlusion says whether products are probably hidden under or behind other products. severity is
 "none" when everything is in plain view, "some" when a few things are partly covered, and
-"many" when a large part of the contents cannot be seen; itemsLikelyHidden is true for "some"
-and "many"; reason is one plain sentence saying why.
+"many" when a large part of the contents cannot be seen; reason is one plain sentence saying why.
 
 Answer only with the structured object.
 `.trim();
+
+/**
+ * The close read. One crop of one product, cut at the box the wide pass gave, shown with the wide
+ * pass's own reading as the hint. Short on purpose: the crop is the whole question.
+ */
+export const VERIFY_SYSTEM_PROMPT = `
+You are looking at a close crop of one grocery product, cut from a wider photograph of groceries.
+A first pass over the whole photograph described what it thought this was; that description is
+given with the crop. Read the packaging in the crop and answer:
+  name          the product name alone, without the brand, as specific as the packaging supports.
+  brand         the brand exactly as printed on the packaging, letter for letter, or null when no
+                brand is printed or the text is not readable. Do not substitute a better-known
+                brand that looks similar, and do not guess a brand from the style of the packaging.
+  count         how many units of exactly this product are in the crop: count packages, not
+                pieces. One bag is 1, two of the same bag stacked is 2, a carton of eggs is 1.
+                The crop is cut a little wider than the product, so it may show the edge of a
+                neighbour, and a neighbour of the same brand in a different variety or flavour
+                is not a unit of this product. Do not count it.
+  confidence    your real confidence, 0 to 1, that a shopper looking at the product would agree
+                with name, brand and count together. Below 0.6 means you would not bet on it.
+  legible       true when you could actually read the product name or the brand off the
+                packaging in this crop, or when the product has no packaging text to read and
+                is plain to see for what it is: loose fruit or vegetables, eggs in an open
+                carton, a bunch of green onions. False when you are going by colour, shape or
+                memory to guess at packaging you cannot read.
+  matchesHint   true when the crop shows the product the first pass described, allowing for
+                different wording of the same thing; false when it shows something else, or when
+                the first pass got the brand wrong.
+If the crop does not contain a grocery product, or is too blurred or too small to read, say so
+with legible false, a low confidence and matchesHint false.
+Answer only with the structured object.
+`.trim();
+
+/**
+ * The hint that goes with a crop: what the wide pass read, in its own words, and deliberately
+ * not how many it counted. Told the count, the close read echoed it: a shelf of three egg
+ * cartons was counted as five by a wide pass that had summed two entries, and the close read
+ * agreed with five. Counted on its own it says three, and the disagreement is what the shopper
+ * needs to see.
+ */
+export function verifyUserText(hint: { description: string; productKey: string }, brandsInPhoto: string[] = []): string {
+  // The brands the wide pass read on the other products in the same photograph. A basket often
+  // holds several products of one range in one livery, and a logo crumpled into a fold on one bag
+  // is printed flat on the bag beside it. This does not tell the model what the brand is; it says
+  // what the same design read as elsewhere, and the instruction to write what is printed stands.
+  const others = brandsInPhoto.length > 0
+    ? ` Brands read on other products in the same photograph: ${brandsInPhoto.join("; ")}. If this packaging is the same design as one of those, it is probably that brand; still write what is printed.`
+    : "";
+  return `The first pass called this "${hint.description}" (key ${hint.productKey}). Read the crop and answer, counting the units yourself.${others}`;
+}
 
 export const IDENTIFY_SYSTEM_PROMPT = `
 You identify a single grocery product from a close crop of it.
@@ -240,16 +281,24 @@ Answer only with the structured object.
  * badges gives the model a second, independent way to bind a number to a region, which is
  * the documented weak point of set-of-mark prompting.
  */
-export function censusUserText(marks: Mark[], alreadyCounted: string[] = []): string {
+export function censusUserText(marks: Mark[], alreadyCounted: string[] = [], confirming: string[] = []): string {
   // Products the session has already counted, so this call can name them the same way rather than
   // inventing a third phrasing. The trolley is static and every call re-describes it; a product
   // that arrives as "packaged apples", then "red apples", then "bag of apples" opens three lines
   // nothing can join. This does not ask for fewer products, it asks for the same words.
-  const known = alreadyCounted.length > 0
+  const counted = alreadyCounted.length > 0
     ? `\n\nAlready counted in this scan: ${alreadyCounted.join("; ")}.\nIf you see one of those `
       + `again, use exactly that name. Report every other product as usual; this list is not a `
       + `limit on what to report.`
     : "";
+  // A confirmation photograph. The review showed these items in amber and asked the shopper for a
+  // better picture of them, so this is most likely a closer view of one or two of them. Naming
+  // them the same way is what lets the new, sure reading replace the old, unsure line.
+  const confirm = confirming.length > 0
+    ? `\n\nThe shopper was asked for a better photograph of: ${confirming.join("; ")}.\nLook for `
+      + `those first. If you can read one now, name it the same way and give the brand as printed.`
+    : "";
+  const known = counted + confirm;
   if (marks.length === 0) {
     return "No regions were detected. List every grocery product you can see in unmarkedItems." + known;
   }

@@ -62,7 +62,15 @@ export interface CensusResult {
    * unmarked item has no polygon and so never gets an outline, but it still gets named, still
    * gets counted, and still reaches the bag, which is worth far more than the outline.
    */
-  unmarkedItems?: { description: string; productKey?: string; catalogSku?: string | null; confidence?: number; isProduct?: boolean }[];
+  unmarkedItems?: {
+    description: string;
+    productKey?: string;
+    catalogSku?: string | null;
+    confidence?: number;
+    isProduct?: boolean;
+    /** Where it is in the frame, when the model placed it. Fusion does not read it; the review does. */
+    box?: { x: number; y: number; w: number; h: number } | null;
+  }[];
 }
 
 export interface FusionState {
@@ -341,7 +349,7 @@ export interface TrackBox { x: number; y: number; w: number; h: number }
  * score 1.0, because one is wholly inside the other. Nesting is the signal that separates "one
  * item proposed twice" from "two items touching".
  */
-function containment(a: TrackBox, b: TrackBox): number {
+export function containment(a: TrackBox, b: TrackBox): number {
   const overlap =
     Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
     Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
@@ -356,7 +364,7 @@ function containment(a: TrackBox, b: TrackBox): number {
  * product rarely nest perfectly; measured on real cart photographs the true duplicates scored
  * 0.93 to 1.00 and the true neighbours scored 0.00.
  */
-const NESTED_CONTAINMENT = 0.85;
+export const NESTED_CONTAINMENT = 0.85;
 
 /** Normalized box area. Zero for a degenerate box, which never wins a survivor comparison. */
 function area(box: TrackBox): number {
@@ -749,6 +757,7 @@ export function applyCensus(
     const count = Math.max(Math.max(0, counted.get(key) ?? 0), listedTimes.get(key) ?? 1);
     if (count === 0) continue;
     maxSimultaneous[key] = Math.max(maxSimultaneous[key] ?? 0, count);
+    const confidence = typeof unmarked.confidence === 'number' ? unmarked.confidence : 0.5;
     // Give it a bag identity only if nothing already carries this product. The synthetic id can
     // never collide with a track id, so every outline lookup simply misses it and the item shows
     // in the bag with no outline, which is the honest rendering of "seen but not located".
@@ -763,12 +772,22 @@ export function applyCensus(
         // The model's own confidence, passed through rather than invented. needsCloserLook is
         // always true: nothing was cropped and nothing was outlined, so a closer look is exactly
         // what this item has not had.
-        confidence: typeof unmarked.confidence === 'number' ? unmarked.confidence : 0.5,
+        confidence,
         needsCloserLook: true,
         source: 'vlm',
         placeholder: false,
         verifiedByIdentify: false,
       };
+      continue;
+    }
+    // Seen again, and better. A photograph session reads the same product on every shutter
+    // press, and the later reading can be the one that settled it: the review showed the line in
+    // amber, the shopper photographed that item again, and this time the close read agreed. The
+    // identity takes the more confident reading's words and confidence, and never the less
+    // confident one's, so a worse later photograph cannot undo a settled line.
+    const existing = working.identities[`${CENSUS_IDENTITY_PREFIX}${key}`];
+    if (existing !== undefined && existing.source === 'vlm' && confidence > existing.confidence) {
+      working.identities[`${CENSUS_IDENTITY_PREFIX}${key}`] = { ...existing, name, brand: brandFromKey(key), confidence };
     }
   }
 
@@ -933,15 +952,22 @@ export function bagLines(state: FusionState): BagLine[] {
     // The same object at two moments, not two of it, so the quantity is the larger of the two
     // rather than their sum. The surviving line keeps its place and takes whichever of the two
     // descriptions carries a brand, since that is the more specific answer.
+    //
+    // Unless the earlier line was unsure and this one is not. Then this one is the answer: the
+    // wide pass read PRIANO as Piano and the close read disagreed, the shopper photographed the
+    // packet again, and the confirmation read Priano and agreed. Same name, two brands, one
+    // product, and the line the shopper sees must be the one that was read twice.
     const kept = folded[at];
+    const winner = kept.unsure && !line.unsure ? line : kept;
+    const loser = winner === kept ? line : kept;
     folded[at] = {
-      ...kept,
-      brand: kept.brand ?? line.brand,
-      size: kept.size ?? line.size,
+      ...winner,
+      brand: winner.brand ?? loser.brand,
+      size: winner.size ?? loser.size,
       qty: Math.max(kept.qty, line.qty),
       // The absorbed key is carried, not discarded: a thumbnail is stored under the resolved key
       // of the track that earned it, and that can be either of the two being folded here.
-      mergedKeys: [...(kept.mergedKeys ?? []), line.key, ...(line.mergedKeys ?? [])],
+      mergedKeys: [...(winner.mergedKeys ?? []), loser.key, ...(loser.mergedKeys ?? [])],
     };
   }
   return folded;

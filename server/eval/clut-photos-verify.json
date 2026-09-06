@@ -1,0 +1,3480 @@
+{
+ "ranAt": "2026-09-06T09:08:52.257Z",
+ "arms": {
+  "asPhone": true,
+  "verify": true
+ },
+ "cost": {
+  "usd": 0.7305,
+  "perPhotoUsd": 0.0664,
+  "callsPerPhoto": 7.55
+ },
+ "summary": {
+  "all": {
+   "photographs": 11,
+   "labelled": 57,
+   "found": 51,
+   "qtyRight": 48,
+   "brandRight": 39,
+   "brandScored": 41,
+   "invented": 9,
+   "ignored": 10,
+   "gated": 0,
+   "kindRight": 9,
+   "hiddenImages": 9,
+   "hiddenFlagged": 9,
+   "unsure": 8,
+   "unsureFlagged": 1,
+   "secondsAvg": 7.74,
+   "gate": {
+    "assertedRight": 40,
+    "assertedWrong": 3,
+    "unsureRight": 7,
+    "unsureWrong": 4,
+    "gated": 11
+   }
+  },
+  "cart": {
+   "photographs": 7,
+   "labelled": 37,
+   "found": 36,
+   "qtyRight": 35,
+   "brandRight": 27,
+   "brandScored": 27,
+   "invented": 1,
+   "ignored": 1,
+   "gated": 0,
+   "kindRight": 5,
+   "hiddenImages": 5,
+   "hiddenFlagged": 5,
+   "unsure": 6,
+   "unsureFlagged": 1,
+   "secondsAvg": 7.11,
+   "gate": {
+    "assertedRight": 31,
+    "assertedWrong": 0,
+    "unsureRight": 4,
+    "unsureWrong": 2,
+    "gated": 7
+   }
+  },
+  "storage": {
+   "photographs": 4,
+   "labelled": 20,
+   "found": 15,
+   "qtyRight": 13,
+   "brandRight": 12,
+   "brandScored": 14,
+   "invented": 8,
+   "ignored": 9,
+   "gated": 0,
+   "kindRight": 4,
+   "hiddenImages": 4,
+   "hiddenFlagged": 4,
+   "unsure": 2,
+   "unsureFlagged": 0,
+   "secondsAvg": 8.83,
+   "gate": {
+    "assertedRight": 9,
+    "assertedWrong": 3,
+    "unsureRight": 3,
+    "unsureWrong": 2,
+    "gated": 4
+   }
+  }
+ },
+ "rows": [
+  {
+   "pass": 1,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 6.171,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Hawaiian brioche sliced sweet rolls",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Fusilli bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "Rigatoni",
+     "brand": "PRIANO",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.25,
+      "w": 0.43,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "Hawaiian brioche sliced sweet rolls",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.9099999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.18,
+      "y": 0.37,
+      "w": 0.79,
+      "h": 0.43
+     }
+    },
+    {
+     "name": "Fusilli bucati",
+     "brand": "PRIANO",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.6,
+      "y": 0.45,
+      "w": 0.4,
+      "h": 0.31
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 3.45,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Hawaiian Brioche Sliced Sweet Rolls",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.94,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Hawaiian brioche sliced sweet rolls",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.9099999999999999,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Fusilli Bucati",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Fusilli bucati",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 6.755,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds with sea salt",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "homestyle Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "condensed cream of mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.01,
+      "y": 0.22,
+      "w": 0.39,
+      "h": 0.56
+     }
+    },
+    {
+     "name": "roasted almonds with sea salt",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.54,
+      "y": 0.24,
+      "w": 0.36,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "homestyle Mexican salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.37,
+      "y": 0.4,
+      "w": 0.25,
+      "h": 0.29
+     }
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.74,
+     "status": "sure",
+     "box": {
+      "x": 0.38,
+      "y": 0.62,
+      "w": 0.23,
+      "h": 0.16
+     }
+    },
+    {
+     "name": "condensed cream of mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.66,
+      "y": 0.52,
+      "w": 0.27,
+      "h": 0.26
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 4.19,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Roasted Almonds Salted with Sea Salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "roasted almonds with sea salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "homestyle Mexican salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.98,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Peanut Butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.7,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.74,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Condensed Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "condensed cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.78,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 7.43,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds salted with sea salt",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "homestyle Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.1,
+      "y": 0.32,
+      "w": 0.36,
+      "h": 0.51
+     }
+    },
+    {
+     "name": "roasted almonds salted with sea salt",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.61,
+      "y": 0.34,
+      "w": 0.32,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "homestyle Mexican salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.43,
+      "y": 0.51,
+      "w": 0.23,
+      "h": 0.27
+     }
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.72,
+     "status": "sure",
+     "box": {
+      "x": 0.45,
+      "y": 0.72,
+      "w": 0.19,
+      "h": 0.1
+     }
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.825,
+     "status": "sure",
+     "box": {
+      "x": 0.69,
+      "y": 0.65,
+      "w": 0.27,
+      "h": 0.22
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 4.67,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Roasted Almonds Salted with Sea Salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "roasted almonds salted with sea salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "homestyle Mexican salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.965,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Peanut Butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.72,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.72,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Condensed Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.89,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "condensed soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.825,
+       "sure": true,
+       "agreed": true
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.72,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 6.736,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "Organic whole grain quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Organic farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "Organic marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Nutella B-ready",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Organic whole grain quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.24,
+      "w": 0.34,
+      "h": 0.38
+     }
+    },
+    {
+     "name": "Organic farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.22,
+      "y": 0.3,
+      "w": 0.35,
+      "h": 0.35
+     }
+    },
+    {
+     "name": "Bronze cut pasta",
+     "brand": "PRIANO",
+     "qty": 1,
+     "confidence": 0.97,
+     "status": "sure",
+     "box": {
+      "x": 0.06,
+      "y": 0.6,
+      "w": 0.35,
+      "h": 0.2
+     }
+    },
+    {
+     "name": "Rigatoni",
+     "brand": "PRIANO",
+     "qty": 2,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.58,
+      "y": 0.25,
+      "w": 0.42,
+      "h": 0.38
+     }
+    },
+    {
+     "name": "Organic marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.44,
+      "y": 0.52,
+      "w": 0.21,
+      "h": 0.24
+     }
+    },
+    {
+     "name": "Nutella B-ready",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.62,
+      "y": 0.52,
+      "w": 0.3,
+      "h": 0.27
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 4.14,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Organic whole grain quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Organic farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Bronze cut pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.97,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Organic marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 7.367,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 7,
+   "labelled": 7,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "organic whole grain quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "organic farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "organic marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "hazelnut spread with cocoa",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic whole grain quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.17,
+      "w": 0.35,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "organic farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.23,
+      "y": 0.25,
+      "w": 0.37,
+      "h": 0.34
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "PRIANO",
+     "qty": 1,
+     "confidence": 0.95,
+     "status": "sure",
+     "box": {
+      "x": 0.03,
+      "y": 0.51,
+      "w": 0.41,
+      "h": 0.21
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "PRIANO",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.65,
+      "y": 0.14,
+      "w": 0.34,
+      "h": 0.34
+     }
+    },
+    {
+     "name": "organic marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.45,
+      "y": 0.39,
+      "w": 0.24,
+      "h": 0.31
+     }
+    },
+    {
+     "name": "hazelnut spread with cocoa",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.67,
+      "y": 0.35,
+      "w": 0.33,
+      "h": 0.37
+     }
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.845,
+     "status": "sure",
+     "box": {
+      "x": 0.68,
+      "y": 0.61,
+      "w": 0.23,
+      "h": 0.1
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 4.85,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic whole grain quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.95,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "hazelnut spread with cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "Condensed Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.93,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "condensed soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.845,
+       "sure": true,
+       "agreed": true
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 7,
+   "brandScored": 7,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Campbell's condensed soup",
+     "confidence": 0.76,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 5.618,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.15,
+      "y": 0.34,
+      "w": 0.33,
+      "h": 0.29
+     }
+    },
+    {
+     "name": "linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.51,
+      "y": 0.34,
+      "w": 0.19,
+      "h": 0.48
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.9450000000000001,
+     "status": "sure",
+     "box": {
+      "x": 0.07,
+      "y": 0.61,
+      "w": 0.4,
+      "h": 0.2
+     }
+    },
+    {
+     "name": "pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.25,
+     "status": "unsure",
+     "box": {
+      "x": 0.68,
+      "y": 0.53,
+      "w": 0.21,
+      "h": 0.22
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 3.67,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Penne",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.9450000000000001,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "pasta sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.25,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "pasta sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.25,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.63,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 9.674,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "many",
+   "occlusionFlag": true,
+   "found": 6,
+   "labelled": 6,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "Cream of Mushroom Soup",
+     "brand": "Campbells",
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "Organic Black Beans",
+     "brand": "Simply Nature",
+     "qty": 4,
+     "sure": true
+    },
+    {
+     "name": "Pesto alla Genovese",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Pasta Sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Nutella Hazelnut Spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Canned Food",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Seeds",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Packaged Grocery Product",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Cream of Mushroom Soup",
+     "brand": "Campbell's",
+     "qty": 2,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.21,
+      "y": 0.21,
+      "w": 0.36,
+      "h": 0.29
+     }
+    },
+    {
+     "name": "Organic Black Beans",
+     "brand": "Simply Nature",
+     "qty": 4,
+     "confidence": 0.94,
+     "status": "sure",
+     "box": {
+      "x": 0.19,
+      "y": 0.18,
+      "w": 0.63,
+      "h": 0.53
+     }
+    },
+    {
+     "name": "Pesto alla Genovese",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.875,
+     "status": "sure",
+     "box": {
+      "x": 0.57,
+      "y": 0.49,
+      "w": 0.21,
+      "h": 0.21
+     }
+    },
+    {
+     "name": "Pasta Sauce",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.2,
+     "status": "unsure",
+     "box": {
+      "x": 0.77,
+      "y": 0.34,
+      "w": 0.21,
+      "h": 0.28
+     }
+    },
+    {
+     "name": "Nutella Hazelnut Spread",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.97,
+     "status": "sure",
+     "box": {
+      "x": 0.61,
+      "y": 0.54,
+      "w": 0.36,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "Canned Food",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.45,
+     "status": "unsure",
+     "box": {
+      "x": 0.36,
+      "y": 0.59,
+      "w": 0.25,
+      "h": 0.35
+     }
+    },
+    {
+     "name": "Seeds",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.42,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.19,
+      "w": 0.18,
+      "h": 0.2
+     }
+    },
+    {
+     "name": "Packaged Grocery Product",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.15,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.34,
+      "w": 0.2,
+      "h": 0.25
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "ignored",
+    "invented"
+   ],
+   "censusSeconds": 5.33,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Condensed Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.98,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Organic Black Beans",
+       "brand": "Simply Nature",
+       "count": 4,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Organic Black Beans",
+       "brand": "Simply Nature",
+       "count": 4,
+       "confidence": 0.94,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Pesto alla Genovese",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.91,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Pesto alla Genovese",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.875,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Pasta Sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.2,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "Pasta Sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.2,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.97,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Nutella Hazelnut Spread",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.97,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Medium Salsa",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.58,
+       "legible": true,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "Canned Food",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "Seed",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.55,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Seeds",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.42,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "Packaged grocery product",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.15,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "Packaged Grocery Product",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.15,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "Packaged Grocery Product",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "Seeds",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": 0.63,
+     "flagged": false
+    },
+    {
+     "label": "unlabelled pull-tab tin",
+     "confidence": 0.45,
+     "flagged": true
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut8",
+   "tier": "storage",
+   "seconds": 7.354,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 2,
+   "labelled": 4,
+   "qtyRight": 1,
+   "lines": [
+    {
+     "name": "organic marinara pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brown sugar",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "semi-sweet chocolate morsels",
+     "brand": "Bakers Corner",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Baker's Corner baking bar",
+     "brand": "Bakers Corner",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "cake decorating icing",
+     "brand": "Scrub Buddies",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "sugar",
+     "brand": "Savortz",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "organic marinara pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.96,
+     "status": "sure",
+     "box": {
+      "x": 0.01,
+      "y": 0.44,
+      "w": 0.3,
+      "h": 0.43
+     }
+    },
+    {
+     "name": "brown sugar",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.88,
+     "status": "sure",
+     "box": {
+      "x": 0.24,
+      "y": 0.33,
+      "w": 0.26,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "semi-sweet chocolate morsels",
+     "brand": "Baker's Corner",
+     "qty": 1,
+     "confidence": 0.895,
+     "status": "sure",
+     "box": {
+      "x": 0.47,
+      "y": 0.5,
+      "w": 0.24,
+      "h": 0.32
+     }
+    },
+    {
+     "name": "Baker's Corner baking bar",
+     "brand": "Baker's Corner",
+     "qty": 1,
+     "confidence": 0.8049999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.72,
+      "y": 0.37,
+      "w": 0.25,
+      "h": 0.4
+     }
+    },
+    {
+     "name": "cake decorating icing",
+     "brand": "Scrub Buddies",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.8,
+      "y": 0.63,
+      "w": 0.2,
+      "h": 0.24
+     }
+    },
+    {
+     "name": "sugar",
+     "brand": "Savortz",
+     "qty": 1,
+     "confidence": 0.54,
+     "status": "unsure",
+     "box": {
+      "x": 0.2,
+      "y": 0.91,
+      "w": 0.32,
+      "h": 0.09
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "ignored",
+    "wrong",
+    "wrong",
+    "wrong",
+    "invented"
+   ],
+   "censusSeconds": 4.89,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "organic marinara pasta sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.96,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "brown sugar",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.93,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "brown sugar",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.88,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Semi-Sweet Chocolate Morsels",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.93,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "semi-sweet chocolate morsels",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.895,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Baking Bar",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.82,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Baker's Corner baking bar",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.8049999999999999,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "dishwashing sponge",
+       "brand": "Scrub Buddies",
+       "count": 1,
+       "confidence": 0.82,
+       "legible": true,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "dishwashing sponge",
+       "brand": "Scrub Buddies",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Sugar",
+       "brand": "Savortz",
+       "count": 1,
+       "confidence": 0.72,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "sugar",
+       "brand": "Savortz",
+       "count": 1,
+       "confidence": 0.54,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "sugar",
+     "brand": "Savortz",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "brown sugar",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "misses": [
+    "Baker's Corner baking soda",
+    "sponges"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "expected": "1",
+     "actual": 3
+    }
+   ],
+   "brandRight": 1,
+   "brandScored": 1,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Baker's Corner devil's food cake mix",
+     "confidence": 0.79,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut9",
+   "tier": "storage",
+   "seconds": 9.169,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 6,
+   "labelled": 6,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "Avocado Oil Crackers with Sea Salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Avocado Oil Crackers with Rosemary & Sea Salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Thick Spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Brown Rice & Quinoa Fusilli",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Avocado Oil Crackers with Sea Salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.46,
+      "y": 0.41,
+      "w": 0.18,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "Avocado Oil Crackers with Rosemary & Sea Salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.61,
+      "y": 0.41,
+      "w": 0.24,
+      "h": 0.39
+     }
+    },
+    {
+     "name": "Linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.29,
+      "y": 0.49,
+      "w": 0.12,
+      "h": 0.3
+     }
+    },
+    {
+     "name": "Thick Spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.38,
+      "y": 0.49,
+      "w": 0.08,
+      "h": 0.3
+     }
+    },
+    {
+     "name": "Penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.53,
+      "y": 0.81,
+      "w": 0.17,
+      "h": 0.19
+     }
+    },
+    {
+     "name": "Brown Rice & Quinoa Fusilli",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.9550000000000001,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.86,
+      "w": 0.15,
+      "h": 0.14
+     }
+    },
+    {
+     "name": "Pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.45,
+     "status": "unsure",
+     "box": {
+      "x": 0.35,
+      "y": 0,
+      "w": 0.27,
+      "h": 0.14
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "right",
+    "invented"
+   ],
+   "censusSeconds": 6.52,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Avocado Oil Crackers with Sea Salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Avocado Oil Crackers with Sea Salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Avocado Oil Crackers with Rosemary & Sea Salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Avocado Oil Crackers with Rosemary & Sea Salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Linguine No. 13",
+       "brand": "Barilla",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Thick Spaghetti",
+       "brand": "Barilla",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Thick Spaghetti",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Penne",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.965,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Brown Rice & Quinoa Fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Brown Rice & Quinoa Fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.9550000000000001,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "Pasta sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "legible": false,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Pasta sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "Pasta sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Simply Nature brown rice and quinoa",
+     "confidence": 0.93,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut10",
+   "tier": "storage",
+   "seconds": 11.042,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "many",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 7,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "spaghetti",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "thick spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "avocado oil crackers with sea salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "avocado oil crackers with rosemary and sourdough",
+     "brand": "Savoritz",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "penne",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brown rice and quinoa",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "walnuts",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "coffee beans",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brioche buns",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Sparkle lemonpack",
+     "brand": "Sparkle",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "dry pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "boxed grocery product",
+     "brand": null,
+     "qty": 2,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "spaghetti",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.88,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0,
+      "w": 0.18,
+      "h": 0.42
+     }
+    },
+    {
+     "name": "linguine",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.15,
+      "y": 0.21,
+      "w": 0.13,
+      "h": 0.26
+     }
+    },
+    {
+     "name": "thick spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.25,
+      "y": 0.21,
+      "w": 0.11,
+      "h": 0.26
+     }
+    },
+    {
+     "name": "avocado oil crackers with sea salt",
+     "brand": "Savoritz",
+     "qty": 1,
+     "confidence": 0.99,
+     "status": "sure",
+     "box": {
+      "x": 0.31,
+      "y": 0,
+      "w": 0.2,
+      "h": 0.48
+     }
+    },
+    {
+     "name": "avocado oil crackers with rosemary and sourdough",
+     "brand": "Savoritz",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.49,
+      "y": 0.01,
+      "w": 0.26,
+      "h": 0.46
+     }
+    },
+    {
+     "name": "penne",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "sure",
+     "box": {
+      "x": 0.5,
+      "y": 0.57,
+      "w": 0.11,
+      "h": 0.29
+     }
+    },
+    {
+     "name": "brown rice and quinoa",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.665,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.61,
+      "w": 0.08,
+      "h": 0.2
+     }
+    },
+    {
+     "name": "walnuts",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.71,
+      "y": 0.01,
+      "w": 0.29,
+      "h": 0.45
+     }
+    },
+    {
+     "name": "coffee beans",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.985,
+     "status": "sure",
+     "box": {
+      "x": 0.68,
+      "y": 0.53,
+      "w": 0.27,
+      "h": 0.38
+     }
+    },
+    {
+     "name": "brioche buns",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.58,
+     "status": "unsure",
+     "box": {
+      "x": 0.21,
+      "y": 0.89,
+      "w": 0.38,
+      "h": 0.11
+     }
+    },
+    {
+     "name": "Sparkle lemonpack",
+     "brand": "Sparkle",
+     "qty": 1,
+     "confidence": 0.735,
+     "status": "sure",
+     "box": {
+      "x": 0.57,
+      "y": 0.91,
+      "w": 0.16,
+      "h": 0.09
+     }
+    },
+    {
+     "name": "dry pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.29,
+      "y": 0.51,
+      "w": 0.28,
+      "h": 0.16
+     }
+    },
+    {
+     "name": "boxed grocery product",
+     "brand": null,
+     "qty": 2,
+     "confidence": 0.2,
+     "status": "unsure",
+     "box": {
+      "x": 0.08,
+      "y": 0.66,
+      "w": 0.38,
+      "h": 0.15
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "wrong",
+    "right",
+    "ignored",
+    "right",
+    "right",
+    "right",
+    "ignored",
+    "ignored",
+    "ignored",
+    "invented",
+    "invented",
+    "invented",
+    "invented"
+   ],
+   "censusSeconds": 7.35,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.88,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.88,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Thick Spaghetti",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "thick spaghetti",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Avocado Oil Crackers with Sea Salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "avocado oil crackers with sea salt",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.99,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Avocado Oil Crackers with Rosemary Sourdough",
+       "brand": "Savoritz",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "avocado oil crackers with rosemary and sourdough",
+       "brand": "Savoritz",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Penne",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "penne",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.975,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "Brown Rice & Quinoa",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.7,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "brown rice and quinoa",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.665,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "walnuts",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "walnuts",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p8",
+      "close": {
+       "name": "coffee beans",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "coffee beans",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.985,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p9",
+      "close": {
+       "name": "brioche buns",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.58,
+       "legible": false,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "brioche buns",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.58,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p10",
+      "close": {
+       "name": "6=1 Pack",
+       "brand": "Sparkle",
+       "count": 1,
+       "confidence": 0.78,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Sparkle lemonpack",
+       "brand": "Sparkle",
+       "count": 1,
+       "confidence": 0.735,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p11",
+      "close": {
+       "name": "Penne",
+       "brand": "Barilla",
+       "count": 2,
+       "confidence": 0.96,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "dry pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p12",
+      "close": {
+       "name": "boxed grocery product",
+       "brand": null,
+       "count": 2,
+       "confidence": 0.2,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "boxed grocery product",
+       "brand": null,
+       "count": 2,
+       "confidence": 0.2,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "brioche buns",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Sparkle lemonpack",
+     "brand": "Sparkle",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "dry pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "boxed grocery product",
+     "brand": null,
+     "qty": 2,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "thick spaghetti",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brown rice and quinoa",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "walnuts",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "coffee beans",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "misses": [
+    "whey protein tub",
+    "Freshpak boxed goods"
+   ],
+   "qtyWrong": [],
+   "brandRight": 4,
+   "brandScored": 5,
+   "brandWrong": [
+    {
+     "label": "Barilla thick spaghetti",
+     "expected": "barilla",
+     "actual": null
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut11",
+   "tier": "storage",
+   "seconds": 7.775,
+   "subjectKind": "product",
+   "expectSubjectKind": "product",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 2,
+   "labelled": 3,
+   "qtyRight": 1,
+   "lines": [
+    {
+     "name": "Korean rice noodles",
+     "brand": null,
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "dried noodles",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "packaged leafy greens",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "spaghetti",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "canned food",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "brown rice and quinoa fusilli",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Korean rice product",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "packaged grain mix",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Korean rice noodles",
+     "brand": "샘표",
+     "qty": 2,
+     "confidence": 0.96,
+     "status": "sure",
+     "box": {
+      "x": 0.12,
+      "y": 0.18,
+      "w": 0.31,
+      "h": 0.4
+     }
+    },
+    {
+     "name": "dried noodles",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.32,
+     "status": "unsure",
+     "box": {
+      "x": 0.42,
+      "y": 0.25,
+      "w": 0.14,
+      "h": 0.18
+     }
+    },
+    {
+     "name": "packaged leafy greens",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.35,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.11,
+      "w": 0.14,
+      "h": 0.55
+     }
+    },
+    {
+     "name": "spaghetti",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.935,
+     "status": "sure",
+     "box": {
+      "x": 0.64,
+      "y": 0.16,
+      "w": 0.29,
+      "h": 0.31
+     }
+    },
+    {
+     "name": "canned food",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.2,
+     "status": "unsure",
+     "box": {
+      "x": 0.94,
+      "y": 0.55,
+      "w": 0.06,
+      "h": 0.12
+     }
+    },
+    {
+     "name": "brown rice and quinoa fusilli",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.9450000000000001,
+     "status": "sure",
+     "box": {
+      "x": 0.73,
+      "y": 0.83,
+      "w": 0.17,
+      "h": 0.17
+     }
+    },
+    {
+     "name": "Korean rice product",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.28,
+     "status": "unsure",
+     "box": {
+      "x": 0.07,
+      "y": 0.78,
+      "w": 0.22,
+      "h": 0.22
+     }
+    },
+    {
+     "name": "packaged grain mix",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.28,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.89,
+      "w": 0.23,
+      "h": 0.11
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "ignored",
+    "wrong",
+    "invented",
+    "ignored",
+    "invented",
+    "right",
+    "ignored",
+    "ignored"
+   ],
+   "censusSeconds": 5.4,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Gluten Free Korean Rice Noodles",
+       "brand": "샘표",
+       "count": 2,
+       "confidence": 0.97,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "Korean rice noodles",
+       "brand": "샘표",
+       "count": 2,
+       "confidence": 0.96,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "dried noodles",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.32,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "dried noodles",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.32,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "packaged leafy greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.35,
+       "legible": false,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "packaged leafy greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.35,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.96,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.935,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "canned food",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.2,
+       "legible": false,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "canned food",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.2,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Brown Rice & Quinoa Fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.96,
+       "legible": true,
+       "matchesHint": true
+      },
+      "line": {
+       "description": "brown rice and quinoa fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.9450000000000001,
+       "sure": true,
+       "agreed": true
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "Korean Rice",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "Korean rice product",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "sure": false,
+       "agreed": false
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "packaged grain mix",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "legible": false,
+       "matchesHint": false
+      },
+      "line": {
+       "description": "packaged grain mix",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "sure": false,
+       "agreed": false
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "packaged leafy greens",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "canned food",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "Korean rice noodles",
+     "brand": null,
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "spaghetti",
+     "brand": null,
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Korean rice product",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "packaged grain mix",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "misses": [
+    "Korean snack bag, green and yellow"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Sempio Korean rice noodles",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 1,
+   "brandScored": 2,
+   "brandWrong": [
+    {
+     "label": "Sempio Korean rice noodles",
+     "expected": "sempio",
+     "actual": null
+    }
+   ],
+   "hiddenExpected": true,
+   "unsureScored": []
+  }
+ ]
+}

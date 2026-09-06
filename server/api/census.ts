@@ -95,6 +95,7 @@ export default async function handler(req: Request): Promise<Response> {
   let image: Buffer;
   let marks: Mark[];
   let counted: string[];
+  let confirming: string[];
   try {
     assertReasonableContentLength(req);
     assertJsonContentType(req);
@@ -104,6 +105,9 @@ export default async function handler(req: Request): Promise<Response> {
     await assertReasonablePixelDimensions(image);
     marks = parseMarks(body.marks ?? []);
     counted = parseCounted(body.counted);
+    // The names the review showed in amber, which this photograph was taken to confirm. Same
+    // shape and the same bounds as `counted`, for the same reason: it goes into a prompt.
+    confirming = parseCounted(body.confirming);
   } catch (err) {
     return fail(err, 400);
   }
@@ -129,7 +133,7 @@ export default async function handler(req: Request): Promise<Response> {
       marks = marksFromRegions(regions);
     }
 
-    const result = await withTimeout(runCensus(image, marks, undefined, counted));
+    const result = await withTimeout(runCensus(image, marks, undefined, counted, confirming));
 
     // The geometry goes back with the identifications. The device no longer has it: it never ran
     // a detector, so without this there is nothing to draw an outline around and nothing for the

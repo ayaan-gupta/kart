@@ -95,3 +95,42 @@ describe("scoreImage", () => {
     expect(s.unmatchedLines.map((l) => l.name)).toEqual(["Chocolate bar"]);
   });
 });
+
+/**
+ * Per-line verdicts, so a run can say whether a line the app asserted was wrong. That is the
+ * number the confidence gate exists to drive to zero, and no per-label total can give it.
+ */
+describe("scoreImage line outcomes", () => {
+  const products = [
+    label({ label: "Priano rigatoni", match: ["rigatoni"], brandMatch: ["priano"], qty: 2 }),
+    label({ label: "bananas", match: ["banana"] }),
+  ];
+
+  it("calls a line right when its label's quantity and brand are right", () => {
+    const s = scoreImage([line("Rigatoni", "Priano", 2), line("Bananas")], { products, ignoreMatch: [] });
+    expect(s.lineOutcomes).toEqual(["right", "right"]);
+  });
+
+  it("calls a line wrong when its brand is wrong, or its label's quantity is", () => {
+    const s = scoreImage([line("Rigatoni", "Piano", 2), line("Bananas", null, 3)], { products, ignoreMatch: [] });
+    expect(s.lineOutcomes).toEqual(["wrong", "wrong"]);
+  });
+
+  it("calls a line that matches nothing invented, and one the ignore list covers ignored", () => {
+    const s = scoreImage([line("Rigatoni", "Priano", 2), line("Wallet"), line("Red cup")], { products, ignoreMatch: ["cup"] });
+    expect(s.lineOutcomes).toEqual(["right", "invented", "ignored"]);
+  });
+});
+
+describe("scoreImage gives an ignorable line with the label's brand the label first", () => {
+  it("lets the Barilla box take the Barilla label ahead of the household's jar of the same pasta", () => {
+    const products = [label({ label: "Barilla thick spaghetti", match: ["spaghetti"], brandMatch: ["barilla"] })];
+    // The jar is listed first, as the bag listed it. Both lines are ignorable, since the jar is
+    // on the ignore list by the word they share.
+    const lines = [line("spaghetti", null), line("thick spaghetti", "Barilla")];
+    const s = scoreImage(lines, { products, ignoreMatch: ["spaghetti", "storage jar"] });
+    expect(s.found).toBe(1);
+    expect(s.brandRight).toBe(1);
+    expect(s.lineOutcomes).toEqual(["ignored", "right"]);
+  });
+});

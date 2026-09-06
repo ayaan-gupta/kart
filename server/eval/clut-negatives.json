@@ -1,93 +1,93 @@
 {
- "ranAt": "2026-09-06T03:01:39.191Z",
+ "ranAt": "2026-09-06T09:03:18.324Z",
  "summary": {
   "scans": 12,
   "clean": 12,
   "asserted": 0,
   "unsure": 0,
   "allowed": 1,
-  "secondsAvg": 2.02
+  "secondsAvg": 2.21
  },
  "rows": [
   {
    "pass": 1,
    "id": "desk-with-book",
-   "seconds": 2.045,
+   "seconds": 1.963,
    "lines": []
   },
   {
    "pass": 1,
    "id": "plain-counter",
-   "seconds": 1.776,
+   "seconds": 1.614,
    "lines": []
   },
   {
    "pass": 1,
    "id": "floor-and-feet",
-   "seconds": 1.809,
+   "seconds": 2.239,
    "lines": []
   },
   {
    "pass": 1,
    "id": "fridge-top-shelf",
-   "seconds": 1.981,
+   "seconds": 2.226,
    "lines": []
   },
   {
    "pass": 2,
    "id": "desk-with-book",
-   "seconds": 1.713,
+   "seconds": 2.924,
    "lines": []
   },
   {
    "pass": 2,
    "id": "plain-counter",
-   "seconds": 1.881,
+   "seconds": 2.613,
    "lines": []
   },
   {
    "pass": 2,
    "id": "floor-and-feet",
-   "seconds": 1.817,
+   "seconds": 1.995,
    "lines": []
   },
   {
    "pass": 2,
    "id": "fridge-top-shelf",
-   "seconds": 2.791,
+   "seconds": 1.873,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "desk-with-book",
+   "seconds": 1.866,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "plain-counter",
+   "seconds": 1.712,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "floor-and-feet",
+   "seconds": 1.677,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "fridge-top-shelf",
+   "seconds": 3.87,
    "lines": [
     {
-     "name": "bottled beverage",
+     "name": "green bottled beverage",
      "brand": null,
      "qty": 1,
      "unsure": true,
      "allowed": true
     }
    ]
-  },
-  {
-   "pass": 3,
-   "id": "desk-with-book",
-   "seconds": 1.771,
-   "lines": []
-  },
-  {
-   "pass": 3,
-   "id": "plain-counter",
-   "seconds": 2.699,
-   "lines": []
-  },
-  {
-   "pass": 3,
-   "id": "floor-and-feet",
-   "seconds": 1.881,
-   "lines": []
-  },
-  {
-   "pass": 3,
-   "id": "fridge-top-shelf",
-   "seconds": 2.127,
-   "lines": []
   }
  ]
 }

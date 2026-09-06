@@ -5,12 +5,25 @@ import { compositeMarks, orientedSize, type Box, type Mark } from "./compositor.
 import {
   CensusResponse,
   IdentifyResponse,
+  PhotoResponse,
+  VerifyResponse,
+  censusFromPhoto,
   censusJsonSchema,
   identifyJsonSchema,
+  photoJsonSchema,
   productKey,
+  verifyJsonSchema,
 } from "./schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "./prompts.js";
+import {
+  CENSUS_SYSTEM_PROMPT,
+  IDENTIFY_SYSTEM_PROMPT,
+  PHOTO_SYSTEM_PROMPT,
+  VERIFY_SYSTEM_PROMPT,
+  censusUserText,
+  verifyUserText,
+} from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
+import { reconcile, type ReconciledLine, type WideReading } from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
 
 /**
@@ -588,6 +601,29 @@ const PHOTO_EFFORT: "none" | "low" | "medium" | "high" = (() => {
   return raw === "none" || raw === "low" || raw === "medium" || raw === "high" ? raw : "none";
 })();
 
+type ImageDetail = "low" | "high" | "original" | "auto";
+function detailFromEnv(name: string, fallback: ImageDetail): ImageDetail {
+  const raw = process.env[name]?.trim();
+  return raw === "low" || raw === "high" || raw === "original" || raw === "auto" ? raw : fallback;
+}
+
+/**
+ * How much of the upload the wide pass sees. At "high" the API fits the image inside 2,500
+ * patches of 32 pixels, so a 2048 by 1536 upload (3,072 patches) is read at roughly 1850 by
+ * 1390; "original" keeps every pixel. `KART_PHOTO_DETAIL` overrides it for the harnesses.
+ */
+const PHOTO_DETAIL = detailFromEnv("KART_PHOTO_DETAIL", "high");
+
+/**
+ * How much of a crop the close read sees. A crop is the phone's cut of the original photograph,
+ * bounded at 2048 on its long edge (src/engine/liveVision/uploadImage.ts), so at "original" a
+ * crop of a whole shelf is the most expensive call this service makes. `KART_VERIFY_DETAIL` and
+ * `KART_VERIFY_MODEL` override the two for the harnesses, which is how the tier and the detail
+ * of the close read get measured rather than assumed.
+ */
+const VERIFY_DETAIL = detailFromEnv("KART_VERIFY_DETAIL", "high");
+const VERIFY_MODEL = (): string => process.env.KART_VERIFY_MODEL?.trim() || MODELS.photo;
+
 /** The photograph as sent: EXIF orientation applied, long edge capped, JPEG. */
 async function photoImage(image: Buffer): Promise<Buffer> {
   return sharp(image)
@@ -610,6 +646,8 @@ export async function runCensus(
   diagnostics?: CensusDiagnostics,
   /** Product names the session has already counted, so this call can reuse them verbatim. */
   alreadyCounted: string[] = [],
+  /** Names the review showed in amber, which this photograph was taken to confirm. */
+  confirming: string[] = [],
 ): Promise<CensusResponse> {
   // The local fallback, for an account with no credit. Unset is the normal state: when
   // LOCAL_CENSUS_URL is empty this branch never runs and everything below is unchanged. See
@@ -649,21 +687,23 @@ export async function runCensus(
         {
           role: "user",
           content: [
-            { type: "input_text", text: censusUserText([], alreadyCounted) },
-            { type: "input_image", image_url: dataUrl(photo), detail: "high" },
+            { type: "input_text", text: censusUserText([], alreadyCounted, confirming) },
+            { type: "input_image", image_url: dataUrl(photo), detail: PHOTO_DETAIL },
           ],
         },
       ],
       text: {
         format: {
           type: "json_schema",
-          name: "cart_census",
+          name: "photo_census",
           strict: true,
-          schema: censusJsonSchema,
+          schema: photoJsonSchema,
         },
       },
     });
-    const parsed = CensusResponse.parse(JSON.parse(outputText));
+    // The model answers in its own compact terms (see `photoJsonSchema`); folded into the census
+    // shape here, so every caller and every normalisation below reads what it always has.
+    const parsed = censusFromPhoto(PhotoResponse.parse(JSON.parse(outputText)));
     return normalizeCensusResponse(parsed, diagnostics);
   }
 
@@ -763,4 +803,83 @@ export async function runIdentify(
 
   const parsed = IdentifyResponse.parse(JSON.parse(outputText));
   return { ...parsed, brand: normalizeBrand(parsed.brand) };
+}
+
+// ---------------------------------------------------------------------------
+// The close read
+// ---------------------------------------------------------------------------
+
+export interface VerifyItemInput {
+  /** The client's own id for the item, echoed back so it can join the answer to its box. */
+  id: string;
+  /** A crop of one product, cut by the phone from its original photograph at the box the census gave. */
+  crop: Buffer;
+  /** What the census said about it. */
+  wide: WideReading & { productKey: string };
+}
+
+export interface VerifiedItem {
+  id: string;
+  /** The close reading, or null when the call for this crop failed. */
+  close: VerifyResponse | null;
+  /** The two readings reconciled: what the bag shows, and whether it is sure. */
+  line: ReconciledLine;
+}
+
+/**
+ * Reads each crop on its own and reconciles it with what the wide pass said.
+ *
+ * Every crop is a separate call and they all run at once, so a cart of twelve products costs
+ * one call's latency rather than twelve. A call that fails leaves that item with no close
+ * reading, which `reconcile` reports as unsure, rather than failing the whole request: the
+ * shopper is asked for another photograph of one item, not told that nothing worked.
+ *
+ * The photo model, not the identify tier. The close read exists to read a stylised logo the
+ * wide pass misread, and the tier measurement in `MODELS.photo` is that the smaller tiers
+ * misread exactly those; a second reading by a model that makes the same mistake would agree
+ * with the first and assert it.
+ */
+export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[] = []): Promise<VerifiedItem[]> {
+  const settled = await Promise.allSettled(
+    items.map(async (item): Promise<VerifyResponse> => {
+      const outputText = await requestOutputText("runVerify", {
+        model: VERIFY_MODEL(),
+        prompt_cache_key: "kart-verify",
+        reasoning: { effort: PHOTO_EFFORT },
+        input: [
+          { role: "system", content: VERIFY_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: verifyUserText(
+                  { description: item.wide.description, productKey: item.wide.productKey },
+                  // Every brand the wide pass read on the other items, not this one's own.
+                  brandsInPhoto.filter((b) => b.toLowerCase() !== (item.wide.brand ?? "").toLowerCase()),
+                ),
+              },
+              { type: "input_image", image_url: dataUrl(item.crop), detail: VERIFY_DETAIL },
+            ],
+          },
+        ],
+        text: {
+          format: { type: "json_schema", name: "verify", strict: true, schema: verifyJsonSchema },
+        },
+      });
+      const parsed = VerifyResponse.parse(JSON.parse(outputText));
+      return { ...parsed, brand: normalizeBrand(parsed.brand) };
+    }),
+  );
+
+  return items.map((item, i) => {
+    const result = settled[i];
+    if (result.status === "rejected") {
+      // Logged here, once, in the safe form `toSafeError` produced; the item itself carries no
+      // message, so nothing about the failure can reach the client.
+      console.warn(`[recognize] close read of ${JSON.stringify(item.id)} failed:`, result.reason);
+    }
+    const close = result.status === "fulfilled" ? result.value : null;
+    return { id: item.id, close, line: reconcile(item.wide, close) };
+  });
 }

@@ -1,5 +1,5 @@
 import { REQUEST_TIMEOUT_MS } from '../config';
-import { lastRecognitionEndpoint, requestCensus, requestIdentify, resetRecognitionEndpoint } from '../recognitionClient';
+import { lastRecognitionEndpoint, requestCensus, requestIdentify, requestVerify, resetRecognitionEndpoint } from '../recognitionClient';
 
 const okCensus = {
   ok: true,
@@ -372,5 +372,103 @@ describe('unmarked items carry whether the model called them a product', () => {
     if (!res.ok) return;
     expect(res.value.unmarkedItems[0].isProduct).toBe(false);
     expect(res.value.unmarkedItems[1].isProduct).toBe(true);
+  });
+});
+
+describe('unmarked items carry a box', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('reads a box, and gives null for an absent, null or malformed one', async () => {
+    mockFetch(jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ok: true,
+        result: {
+          marks: [],
+          unmarkedItems: [
+            { description: 'a', productKey: '::a', approxLocation: '', confidence: 0.9, box: { x: 0.1, y: 0.2, w: 0.3, h: 0.4 } },
+            { description: 'b', productKey: '::b', approxLocation: '', confidence: 0.9, box: null },
+            { description: 'c', productKey: '::c', approxLocation: '', confidence: 0.9 },
+            { description: 'd', productKey: '::d', approxLocation: '', confidence: 0.9, box: { x: 'no', y: 0, w: 1, h: 1 } },
+          ],
+          inViewCounts: [],
+          occlusion: { itemsLikelyHidden: false, severity: 'none', reason: '' },
+        },
+      }),
+    }));
+    const res = await requestCensus(req);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value.unmarkedItems.map((u) => u.box)).toEqual([{ x: 0.1, y: 0.2, w: 0.3, h: 0.4 }, null, null, null]);
+  });
+
+  it('sends the confirming list with the census request', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => okCensus }));
+    await requestCensus({ ...req, confirming: ['Priano rigatoni'] });
+    const body = JSON.parse(f.mock.calls[0][1].body);
+    expect(body.confirming).toEqual(['Priano rigatoni']);
+  });
+});
+
+describe('requestVerify', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  const item = {
+    id: 'a',
+    imageBase64: 'Q1JPUA==',
+    wide: { description: 'Rigatoni', productKey: 'priano::rigatoni', brand: 'Piano', count: 2, confidence: 0.9 },
+  };
+  const answer = {
+    ok: true,
+    result: {
+      items: [{
+        id: 'a',
+        close: { name: 'Rigatoni', brand: 'Priano', count: 2, confidence: 0.98, legible: true, matchesHint: true },
+        line: { description: 'Rigatoni', brand: 'Priano', count: 2, confidence: 0.5, sure: false, agreed: false },
+      }],
+    },
+  };
+
+  it('posts the crops and the wide readings to the verify route', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => answer }));
+    await requestVerify({ items: [item] });
+    const [url, init] = f.mock.calls[0];
+    expect(url).toBe('https://kart.test/api/verify');
+    const body = JSON.parse(init.body);
+    expect(body.items).toEqual([{ id: 'a', image: 'Q1JPUA==', wide: item.wide }]);
+    expect(body.brands).toBeUndefined();
+  });
+
+  it('sends the brands read in the photograph when there are any', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => answer }));
+    await requestVerify({ items: [item], brands: ['Priano', 'Nutella'] });
+    expect(JSON.parse(f.mock.calls[0][1].body).brands).toEqual(['Priano', 'Nutella']);
+  });
+
+  it('returns the reconciled line per item', async () => {
+    mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => answer }));
+    const res = await requestVerify({ items: [item] });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value.items).toHaveLength(1);
+    expect(res.value.items[0].id).toBe('a');
+    expect(res.value.items[0].line).toEqual({ description: 'Rigatoni', brand: 'Priano', count: 2, confidence: 0.5, sure: false, agreed: false });
+  });
+
+  it('reports malformed when an item has no line, rather than trusting half an answer', async () => {
+    mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { items: [{ id: 'a' }] } }) }));
+    const res = await requestVerify({ items: [item] });
+    expect(res).toEqual({ ok: false, failure: 'malformed' });
+  });
+
+  it('uses the photograph budget it is given', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => answer }));
+    await requestVerify({ items: [item] }, undefined, { timeoutMs: 30_000 });
+    expect(f).toHaveBeenCalled();
   });
 });

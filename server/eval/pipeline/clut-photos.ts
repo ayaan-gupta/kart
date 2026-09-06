@@ -26,6 +26,19 @@
  *                     rather than the original file
  *     --long-edge <n> with --as-phone, measure a different bound before shipping it
  *     --quality <q>   with --as-phone, likewise for the JPEG quality, 0 to 1
+ *     --no-verify     the wide pass alone: no crops, no close read, every line is the census's
+ *                     own word. The shipped path reads twice; this is the "before" arm.
+ *
+ * Since 2026-09-06 the shipped path reads every photograph twice (docs/superpowers/specs/
+ * 2026-09-06-photo-verification-design.md): the census places a box on each product, the
+ * phone cuts each box out of its original photograph, and a second call reads the crop. A line
+ * is asserted only when the two readings agree; otherwise the bag shows it as unsure and the
+ * review asks for a better photograph of it. The crops are cut here from the original file with
+ * sharp standing in for the device, through the shipped `prepareCrops`, and sent through the
+ * shipped `requestVerify`. Two numbers come out of that beside the four requirements:
+ * "asserted wrong", the lines shown as sure that were wrong or matched nothing real, which the
+ * gate exists to make zero; and "unsure but right", the lines it held back that were in fact
+ * right, which is what the gate costs the shopper in extra photographs.
  *
  * The photographs are the owner's own and are not redistributable, so they live in `.cache/`
  * and not in the repository. `corpus/clut/manifest.json` records what they are and
@@ -43,8 +56,10 @@ function arg(name: string, fallback: string): string {
 process.env.EXPO_PUBLIC_KART_API_URL = arg('api', 'http://127.0.0.1:4310');
 
 const { createPhotoScanState, scanPhoto } = await import('../../../src/engine/liveVision/photoScan');
-const { requestCensus } = await import('../../../src/engine/liveVision/recognitionClient');
-const { prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
+const { requestCensus, requestVerify } = await import('../../../src/engine/liveVision/recognitionClient');
+const { prepareCrops, prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
+const { sharpManipulator } = await import('./sharp-manipulator');
+const { PRICES_PER_MTOK } = await import('../../src/usage');
 const { default: sharp } = await import('sharp');
 const { orientedSize } = await import('../../src/compositor');
 
@@ -56,20 +71,13 @@ const { orientedSize } = await import('../../src/compositor');
  * upload the phone never makes.
  */
 const asPhone = argv.includes('--as-phone');
-const sharpManipulator = {
-  async toJpegBase64(uri: string, size: { width: number } | { height: number } | null, quality: number) {
-    let image = sharp(uri).rotate();
-    if (size !== null) image = image.resize({ ...size, withoutEnlargement: false });
-    const buffer = await image.jpeg({ quality: Math.round(quality * 100) }).toBuffer();
-    return buffer.toString('base64');
-  },
-};
+const noVerify = argv.includes('--no-verify');
 async function imageBase64(file: string): Promise<string> {
   if (!asPhone) return readFileSync(file).toString('base64');
   const { width, height } = orientedSize(await sharp(file).metadata());
   const longEdge = Number(arg('long-edge', ''));
   const quality = Number(arg('quality', ''));
-  return prepareUpload(
+  const upload = await prepareUpload(
     { uri: file, width, height },
     {
       manipulator: sharpManipulator,
@@ -79,6 +87,36 @@ async function imageBase64(file: string): Promise<string> {
       },
     },
   );
+  return upload.base64;
+}
+
+/** What the service has spent so far, so the run can be costed by difference. */
+async function usageSnapshot(): Promise<Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number; calls: number }>> {
+  try {
+    const res = await realFetch(`${process.env.EXPO_PUBLIC_KART_API_URL}/usage`);
+    const body = (await res.json()) as { usage?: Record<string, { inputTokens: number; cachedInputTokens: number; outputTokens: number; calls: number }> };
+    return body.usage ?? {};
+  } catch {
+    return {};
+  }
+}
+function usageCostUsd(
+  before: Awaited<ReturnType<typeof usageSnapshot>>,
+  after: Awaited<ReturnType<typeof usageSnapshot>>,
+): { usd: number; calls: number } | null {
+  let usd = 0;
+  let calls = 0;
+  let priced = false;
+  for (const [model, u] of Object.entries(after)) {
+    const b = before[model] ?? { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, calls: 0 };
+    const price = PRICES_PER_MTOK[model];
+    calls += u.calls - b.calls;
+    if (!price) continue;
+    priced = true;
+    const uncached = (u.inputTokens - b.inputTokens) - (u.cachedInputTokens - b.cachedInputTokens);
+    usd += (uncached * price.input + (u.cachedInputTokens - b.cachedInputTokens) * price.cached + (u.outputTokens - b.outputTokens) * price.output) / 1e6;
+  }
+  return priced ? { usd, calls } : null;
 }
 
 const IMAGES = join(import.meta.dirname, '../.cache/clut');
@@ -117,6 +155,8 @@ const labels = JSON.parse(readFileSync(join(CORPUS, 'labels.json'), 'utf8')) as 
  * what the shopper pays for.
  */
 let lastRaw: Record<string, unknown> | null = null;
+/** The close read's raw answer, both readings per item, kept on the row so a verdict can be read back. */
+let lastVerifyRaw: Record<string, unknown> | null = null;
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const response = await realFetch(input, init);
@@ -125,6 +165,13 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise
       lastRaw = (await response.clone().json()) as Record<string, unknown>;
     } catch {
       lastRaw = null;
+    }
+  }
+  if (typeof input === 'string' && input.endsWith('/api/verify')) {
+    try {
+      lastVerifyRaw = (await response.clone().json()) as Record<string, unknown>;
+    } catch {
+      lastVerifyRaw = null;
     }
   }
   return response;
@@ -160,8 +207,17 @@ interface Row {
   found: number;
   labelled: number;
   qtyRight: number;
-  /** What the bag held, so a run can be re-scored without another call. */
-  lines: { name: string; brand: string | null; qty: number }[];
+  /** What the bag held, so a run can be re-scored without another call. `sure` is the gate's verdict. */
+  lines: { name: string; brand: string | null; qty: number; confidence?: number; sure?: boolean }[];
+  /** What the review would have drawn: each product's box and status, for the record. */
+  items?: { name: string; brand: string | null; qty: number; confidence: number; status: string; box: { x: number; y: number; w: number; h: number } | null }[];
+  /** Per line, the scorer's verdict, beside `lines`. */
+  lineOutcomes?: string[];
+  verifyFailure?: string;
+  /** Seconds until the census answered; the rest of `seconds` is the close read. */
+  censusSeconds?: number;
+  /** The close read's answer as the server sent it: the close reading and the reconciled line per item. */
+  verify?: unknown;
   unmatchedLines: { name: string; brand: string | null; qty: number }[];
   ignoredLines: { name: string; brand: string | null; qty: number }[];
   misses: string[];
@@ -174,6 +230,7 @@ interface Row {
 }
 
 const rows: Row[] = [];
+const usageBefore = await usageSnapshot();
 
 // The model is not deterministic: two scans of one photograph can differ in a name, a count, and
 // occasionally in whether a product is seen at all. A single pass is therefore an anecdote, and
@@ -193,8 +250,27 @@ for (const image of wanted) {
   const base64 = await imageBase64(file);
   const state = createPhotoScanState();
   lastRaw = null;
+  lastVerifyRaw = null;
   const started = Date.now();
-  const outcome = await scanPhoto(state, base64, { requestCensus });
+  let censusSeconds = 0;
+  const { width: origW, height: origH } = orientedSize(await sharp(file).metadata());
+  const photo = { uri: file, width: origW, height: origH };
+  const outcome = await scanPhoto(
+    state,
+    base64,
+    {
+      requestCensus,
+      ...(noVerify
+        ? {}
+        : {
+            // The close read, exactly as the phone does it: each box cut from the original
+            // photograph through the shipped rule, sharp standing in for the device.
+            crop: async (box) => (await prepareCrops(photo, [box], { manipulator: sharpManipulator }))[0],
+            requestVerify,
+          }),
+    },
+    { onCensus: () => { censusSeconds = (Date.now() - started) / 1000; } },
+  );
   const seconds = (Date.now() - started) / 1000;
 
   if (!outcome.ok) {
@@ -214,9 +290,12 @@ for (const image of wanted) {
 
   // Every labelled product against the bag, then every bag line that answered to nothing. The
   // assignment rules are in clut-scoring.ts.
-  const lines = outcome.lines.map((line) => ({ name: line.name, brand: line.brand, qty: line.qty }));
+  const lines = outcome.lines.map((line) => ({ name: line.name, brand: line.brand, qty: line.qty, sure: !line.unsure }));
   const score = scoreImage(lines, image);
-  const { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines } = score;
+  const { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, lineOutcomes } = score;
+  const items = outcome.items.map((item) => ({
+    name: item.name, brand: item.brand, qty: item.qty, confidence: item.confidence, status: item.status, box: item.box,
+  }));
 
   // Requirement 4 is about the census, not the bag: BagLine carries no confidence, so the
   // only place the model's own doubt survives is the raw response.
@@ -245,6 +324,11 @@ for (const image of wanted) {
     labelled: image.products.length,
     qtyRight,
     lines,
+    items,
+    lineOutcomes,
+    censusSeconds: Number(censusSeconds.toFixed(2)),
+    ...(lastVerifyRaw ? { verify: (lastVerifyRaw as { result?: unknown }).result } : {}),
+    ...(outcome.verifyFailure ? { verifyFailure: outcome.verifyFailure } : {}),
     unmatchedLines,
     ignoredLines,
     misses,
@@ -258,10 +342,18 @@ for (const image of wanted) {
 
   const row = rows[rows.length - 1];
   console.log(
-    `  ${image.id.padEnd(7)} ${image.tier.padEnd(8)} ${seconds.toFixed(1)}s  subject=${subjectKind}` +
+    `  ${image.id.padEnd(7)} ${image.tier.padEnd(8)} ${seconds.toFixed(1)}s (census ${censusSeconds.toFixed(1)}s)  subject=${subjectKind}` +
       `${row.gated ? ' GATED' : ''}  found ${found}/${image.products.length}` +
       `  qty ${qtyRight}/${found}  brand ${brandRight}/${brandScored}  invented ${unmatchedLines.length}`,
   );
+  for (const [i, line] of lines.entries()) {
+    const verdict = lineOutcomes[i];
+    if (line.sure && (verdict === 'wrong' || (verdict === 'invented' && image.tier === 'cart'))) {
+      console.log(`      ASSERTED ${verdict.padEnd(8)} ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
+    }
+    if (!line.sure) console.log(`      unsure   ${verdict.padEnd(8)} ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
+  }
+  if (outcome.verifyFailure) console.log(`      close read failed: ${outcome.verifyFailure}`);
   for (const miss of misses) console.log(`      miss     ${miss}`);
   for (const w of qtyWrong) console.log(`      qty      ${w.label}: expected ${w.expected}, got ${w.actual}`);
   for (const b of brandWrong) console.log(`      brand    ${b.label}: expected ${b.expected}, got ${b.actual ?? 'null'}`);
@@ -290,6 +382,23 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   const unsureFlagged = unsure.filter((u) => u.flagged).length;
   const seconds = subset.reduce((n, r) => n + r.seconds, 0) / Math.max(1, subset.length);
 
+  // The gate, line by line. A line matching nothing real counts against the gate only on the
+  // cart tier, whose labels are complete; on the storage tier such a line usually names something
+  // that is there and unlisted (see labels.json's limitations).
+  const gate = { assertedRight: 0, assertedWrong: 0, unsureRight: 0, unsureWrong: 0, gated: 0 };
+  for (const r of subset) {
+    if (r.lineOutcomes === undefined) continue;
+    gate.gated += 1;
+    r.lines.forEach((line, i) => {
+      const verdict = r.lineOutcomes![i];
+      if (verdict === 'ignored') return;
+      const wrong = verdict === 'wrong' || (verdict === 'invented' && r.tier === 'cart');
+      if (verdict === 'invented' && r.tier !== 'cart') return;
+      if (line.sure !== false) wrong ? (gate.assertedWrong += 1) : (gate.assertedRight += 1);
+      else wrong ? (gate.unsureWrong += 1) : (gate.unsureRight += 1);
+    });
+  }
+
   console.log(`\n  ${name}: ${subset.length} scans (${subset.length / passes} photographs x ${passes})`);
   console.log(`    1. every item reaches the bag   ${found}/${labelled} products (${((100 * found) / Math.max(1, labelled)).toFixed(0)}%)`);
   console.log(`    2. quantities are right         ${qtyRight}/${found} of the products found (${((100 * qtyRight) / Math.max(1, found)).toFixed(0)}%)`);
@@ -298,9 +407,15 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   console.log(`    4. unsure items are flagged     ${unsureFlagged}/${unsure.length} illegible products came back under 0.6`);
   console.log(`       lines matching nothing real  ${invented} (a further ${ignored} named something in frame the shopper is not buying)`);
   console.log(`       scene gate correct           ${kindRight}/${subset.length} (${gated} emptied as "shelf")`);
+  if (gate.gated > 0) {
+    const asserted = gate.assertedRight + gate.assertedWrong;
+    const held = gate.unsureRight + gate.unsureWrong;
+    console.log(`    5. asserted lines wrong         ${gate.assertedWrong}/${asserted} lines shown as sure were wrong (must be 0)`);
+    console.log(`       unsure lines                 ${held}, of which ${gate.unsureWrong} wrong and ${gate.unsureRight} right (the gate's cost)`);
+  }
   console.log(`       seconds per photograph       ${seconds.toFixed(1)}`);
 
-  return { photographs: subset.length, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)) };
+  return { photographs: subset.length, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
 }
 
 const summary = {
@@ -309,6 +424,13 @@ const summary = {
   storage: summarise('tier "storage", pantry and refrigerator', rows.filter((r) => r.tier === 'storage')),
 };
 
+// Costed by what the service reports it spent between the two snapshots, at the prices in
+// usage.ts. Null when the service does not answer /usage (a deployment rather than serve.ts).
+const cost = usageCostUsd(usageBefore, await usageSnapshot());
+if (cost && rows.length > 0) {
+  console.log(`\n  cost: $${cost.usd.toFixed(3)} for ${rows.length} scans, $${(cost.usd / rows.length).toFixed(4)} and ${(cost.calls / rows.length).toFixed(1)} calls per photograph`);
+}
+
 const out = arg('out', join(import.meta.dirname, '../clut-photos.json'));
-writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), summary, rows }, null, 1)}\n`);
+writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: cost && rows.length > 0 ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / rows.length).toFixed(4)), callsPerPhoto: Number((cost.calls / rows.length).toFixed(2)) } : null, summary, rows }, null, 1)}\n`);
 console.log(`\n  written to ${out}`);

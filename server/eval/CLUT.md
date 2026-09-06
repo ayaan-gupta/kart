@@ -225,6 +225,170 @@ its own guessing line and the bag would have asserted. Two changes, both kept:
 The fifteen positives were re-run through the gate to make sure it drops nothing real; the row is
 in the shipped-path table above.
 
+## Read wide, then read close, measured on 2026-09-06
+
+The owner's next ask was for no mistakes, and for the shopper to see their own photograph with
+what the app is sure of in green and what it is not in yellow, with "Please give me a better
+image of this so I can confirm what it is." beside the yellow. The measured errors above are of
+four kinds, and only some of them are reachable from one photograph: a brand misread (PRIANO's
+stylised logo as Piano), two products lumped (a cookie box read as a second cake mix), a count
+off by one (two stacked bags as one, three egg cartons as four), and an item mostly hidden.
+Nothing reads what is not visible, so the target became two things, each measurable: every
+line the app asserts is right, and every line it is not sure of is shown amber and asked about.
+
+The way there is a second reading. The census places a box on every product; the phone cuts
+each box out of its original photograph; a second call reads each crop on its own; and the
+server asserts a line only when the two readings agree on the product, the brand and the count
+(`server/src/reconcile.ts`). The spec is `docs/superpowers/specs/2026-09-06-photo-verification-design.md`.
+
+### What the probe decided
+
+`box-probe.ts` asks two questions before any of it was built: can the model place a box on
+each product, and does a crop read what the wide pass misread. Every item on five photographs
+came back boxed, tight enough to crop (`.cache/clut/boxes/` holds the drawn photographs). The
+second question decided where the crop is cut from:
+
+| the same jar of Simply Nature marinara, clut4 | read as |
+|---|---|
+| crop of the 2048 upload, 423 pixels wide | "Murphy's Naturals", 0.97 |
+| crop of a 3072 upload, 641 pixels wide | "Merry Chef", 0.99 |
+| crop of the original, 1117 pixels wide | "Simply Nature", 0.99 |
+
+Two confident wrong brands from the pixels the upload keeps, the right one from the pixels it
+throws away. So the phone cuts from its original (`prepareCrops`, 1536 on the long edge, padded
+8%) and posts the crops to a second route, `/api/verify`; the review draws the boxes as soon as
+the census answers and colours them when the close read lands. The same probe read PRIANO off
+the rigatoni bag on every crop, counted the two stacked rigatoni bags as two where the wide pass
+said one, and found the Campbell's tin no pass had found.
+
+### Four things the first measurement changed
+
+Each was found by running the harness and reading the flagged lines, and each is pinned by a
+test.
+
+1. **The close read is not told the wide count.** Told it, it echoed it: a shelf of three egg
+   cartons was counted as five by a wide pass that had summed two entries, and the close read
+   agreed with five. Counted on its own it says three. A different count now makes the line
+   unsure, with the wide count left on it.
+2. **The photograph census answers in its own compact schema** (`photoJsonSchema`: name, brand,
+   count, confidence, isProduct, box in whole percentages), and the server derives the key with
+   `productKey` and folds it into the census shape. The wide pass had been writing a hand-built
+   key twice per product and taking 10 to 16 seconds on a fridge; it takes 4 to 7 now, and the
+   key that used to drift is gone.
+3. **The crop is padded 8%, not 12%, and the close read is told a neighbour is not a unit.** At
+   12% a bag of the same brand beside the product was cut into the crop and counted as a second
+   unit of it on five products. Legibility only gates a line that carries a brand: loose produce
+   has no text to read, and a close read that called green onions illegible had not doubted
+   that they were green onions.
+4. **Two boxes one inside the other, on two names that share their words, are one object.** The
+   wide pass named a package of beef ribs twice, and each close read confirmed its own hint, so
+   the bag held two of one thing and both were sure. The survivor is kept and shown unsure.
+
+### The numbers
+
+`clut-photos.ts --as-phone` is the shipped path; `--no-verify` is the wide pass alone, on the
+same compact schema, which is the "before" arm. Both cut from the same labels, corrected the
+same day (below), and both report a fifth number: **asserted lines wrong**, the lines shown as
+sure that were wrong or matched nothing real on the basket tier, which the gate exists to make
+zero. "Unsure" lines are the gate's cost: right ones are photographs the shopper is asked for
+without needing to be.
+
+The three-pass run of the shipped path was cut short: the OpenAI account answered
+`429 credit_balance_exhausted` after eleven scans, and passes two and three failed on every
+photograph. So the numbers below are what exists, each column labelled with its size, and the
+three-pass run is first on `WHEN-CREDIT-RETURNS.md`. Every column is scored against the same
+corrected labels with `clut-rescore.ts`; the "before" column is the same wide pass the shipped
+path starts with, and the last column is the wide pass alone on the previous day's schema, from
+the table above, re-scored.
+
+|  | Sol, single reading, 3 passes (09-05) | wide pass alone, 1 pass | **read twice, first 11 scans** | read twice, 1 complete pass, before the duplicate fold |
+|---|---|---|---|---|
+| photographs scanned | 45 | 15 | **11** | 15 |
+| 1 every item reaches the bag | 223/246 91% | 73/82 89% | **51/57 89%** | 73/82 89% |
+| &nbsp;&nbsp;of which, the basket | 108/111 97% | 35/37 95% | **36/37 97%** | 36/37 97% |
+| 2 quantities are right | 200/223 90% | 68/73 93% | **48/51 94%** | 68/73 93% |
+| &nbsp;&nbsp;brands right | 133/145 92% | 48/49 98% | **40/41 98%** | 47/48 98% |
+| 3 hidden items are flagged | 39/39 | 13/13 | **9/9** | 13/13 |
+| 5 asserted lines wrong, all | not measured | 5/72 | **2/43** | 5/64 |
+| &nbsp;&nbsp;of which, the basket | | 2/34 | **0/31** | 0/31 |
+| unsure lines, wrong / right | | 1 / 2 | **4 / 7** | 3 / 9 |
+| seconds per photograph | 6.6 | 5.1 | **7.7** | 8.5 |
+| dollars per photograph | 0.017 | | **0.066** | 0.074 |
+
+`clut-photos-verify.json` is the eleven scans; `clut-photos-verify-pass1.log` is the complete
+pass that preceded it, whose JSON was not kept; `clut-photos-wide-compact.json` is the wide
+pass alone. Cost is read off the service's `/usage` route before and after each run, at the
+prices in `usage.ts`, and includes the wide pass.
+
+**On the basket tier, the shipped use case, no line shown as sure was wrong**: 0 of 31 on each
+of the two complete passes, with 97% of items found, 97% of quantities and every brand right,
+against 2 of 34 for the wide pass alone. The basket photographs are the ones with complete
+labels, so that number means what it says. Six lines were held back as unsure across those two
+passes and four of them were right, which is the price: a shopper photographs an item again
+that was already read correctly about once every three or four photographs.
+
+### What is still asserted wrong, and why the second reading cannot catch it
+
+Every asserted-wrong line that remains is on the storage tier, and every one is a case where
+both readings read the same wrong thing off the same pixels:
+
+- **A box read from its back.** clut8's Baker's Corner baking soda box shows only its back
+  panel, which prints a recipe for chocolate chip cookies calling for the brand's chocolate
+  morsels; wide and close both read "semi-sweet chocolate morsels", and on the box beside it,
+  standing on its side, both read the side panel's "baking bar". Two lines, every pass. A person
+  who could not turn the box over would guess the same.
+- **A second unit hidden behind the first.** clut12's two Neufchâtel boxes stacked with only
+  their ends showing were read as one by both. The label marks it hidden; the occlusion notice is
+  raised on the photograph; the count stays wrong.
+- **A brand both readings hallucinate alike.** On the complete pass before the fold, clut14's
+  Simply Nature ground beef, upside down behind a drawer lid, was read as "Simple Truth Natural"
+  by both readings at 0.98. The packet says Simply Nature at native resolution. The wide pass
+  had listed the beef ribs beside it twice under two names, which is what the duplicate fold
+  now catches; the brand it cannot.
+
+The first and third are what a store catalog answers: neither "chocolate morsels" in that box
+nor "Simple Truth" in that store is a product on the list, and the resolver would have to pick
+from what is. That is the closed-world design in CLAUDE.md, still not built. The second is
+CLAUDE.md's third requirement doing its job: the flag is raised, and the count waits for the
+shopper to move the box.
+
+What the gate held back and was right about, on the eleven scans: a jar of pasta sauce and a
+tin the close read could not read, two bags of the same brand where the close read counted the
+neighbour, and the stacked rigatoni where the wide pass counted one and the close read two.
+Each of those is a photograph the shopper is asked for. The alternative, asserting them, was
+wrong on the rigatoni.
+
+### The close reader's tier
+
+The close read runs on the photo model, Sol. `KART_VERIFY_MODEL` swaps it, and one pass with
+gpt-5.6-luna reading the crops, against the same labels and the same wide pass:
+
+| close reader, one pass | found | quantities | brands | asserted wrong | unsure, wrong / right | seconds | per photo |
+|---|---|---|---|---|---|---|---|
+| Sol (shipped) | 73/82 89% | 68/73 93% | 47/48 98% | 5/64 | 3 / 9 | 8.5 | $0.074 |
+| Luna | 73/82 89% | 60/73 82% | 47/48 98% | 5/54 | 12 / 11 | 7.6 | $0.013 |
+
+Luna reads the crops for a sixth of the price and asserts as many wrong lines while holding
+back four times as many wrong ones and about as many right ones, and its counts are worse: it
+disagrees with a right wide reading about as often as it catches a wrong one. Sol stays. Per photo at the prices in
+`usage.ts`, read off the service's `/usage` route before and after each run; the Sol row is the
+single pass that preceded the three-pass run below and includes the wide pass.
+
+### Nothing to buy in the frame, again
+
+`clut-negatives.ts --repeat 3` through the two-reading path: 12 of 12 scans came back empty,
+nothing asserted and nothing unsure, the wine bottle named once and allowed.
+
+### Labels corrected the same day
+
+Three, each by zooming into the photograph at native resolution after a close reading disagreed
+with the file, and each recorded in `labels.json`: clut8's orange Baker's Corner box is baking
+soda (its back panel says so), not a cookie mix; clut11's Sempio is printed only as 샘표; clut7
+holds three or four cans of black beans, the fourth mostly behind the others. And the Simply
+Nature brown rice and quinoa fusilli's match terms were narrowed so the household's own jar of
+loose quinoa on the same shelf stops scoring as that box. Earlier runs are re-scored with
+`clut-rescore.ts`, which now prints the gate's numbers for any run that carried them.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

@@ -975,3 +975,46 @@ describe('sharedNames counts objects, not badges', () => {
     expect(state.sharedNames).toContain(foldedName('apples'));
   });
 });
+
+/**
+ * A photograph session reads the same product more than once, and the second reading can be the
+ * better one: the review showed a line in amber, the shopper photographed that item again, and
+ * this time the close read agreed. Two rules make the better reading win.
+ */
+describe('a sure sighting replaces an unsure one', () => {
+  it('raises an unmarked identity to the later, more confident sighting under the same key', () => {
+    let state = createFusionState();
+    const key = productKey('rigatoni', 'Priano');
+    state = applyCensus(state, census([], [[key, 1]], [{ description: 'rigatoni', productKey: key, confidence: 0.45 }]), {}, []);
+    expect(bagLines(state)[0].unsure).toBe(true);
+    state = applyCensus(state, census([], [[key, 1]], [{ description: 'rigatoni', productKey: key, confidence: 0.95 }]), {}, []);
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].unsure).toBe(false);
+    expect(lines[0].qty).toBe(1);
+  });
+
+  it('does not lower an identity to a later, less confident sighting', () => {
+    let state = createFusionState();
+    const key = productKey('rigatoni', 'Priano');
+    state = applyCensus(state, census([], [[key, 1]], [{ description: 'rigatoni', productKey: key, confidence: 0.95 }]), {}, []);
+    state = applyCensus(state, census([], [[key, 1]], [{ description: 'rigatoni', productKey: key, confidence: 0.3 }]), {}, []);
+    expect(bagLines(state)[0].unsure).toBe(false);
+  });
+
+  it('folds an unsure line into a sure line of the same name, and the sure one is what shows', () => {
+    // The wide pass read PRIANO as Piano and the close read disagreed, so the line was unsure.
+    // The confirmation photograph read Priano and agreed. Same name, different brand, one product.
+    let state = createFusionState();
+    const unsure = productKey('rigatoni', 'Piano');
+    const sure = productKey('rigatoni', 'Priano');
+    state = applyCensus(state, census([], [[unsure, 2]], [{ description: 'rigatoni', productKey: unsure, confidence: 0.5 }]), {}, []);
+    state = applyCensus(state, census([], [[sure, 2]], [{ description: 'rigatoni', productKey: sure, confidence: 0.95 }]), {}, []);
+    const lines = bagLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].brand).toBe('Priano');
+    expect(lines[0].unsure).toBe(false);
+    expect(lines[0].qty).toBe(2);
+    expect(lines[0].key).toBe(sure);
+  });
+});

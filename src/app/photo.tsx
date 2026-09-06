@@ -9,15 +9,16 @@ import { CoachNotice, coachKind } from '../components/CoachNotice';
 import { GlassSurface } from '../components/GlassSurface';
 import { IconButton } from '../components/IconButton';
 import { PhotoCameraCapture } from '../components/PhotoCameraCapture';
+import { PhotoReview } from '../components/PhotoReview';
 import { PressableScale } from '../components/PressableScale';
 import { color, radius, space } from '../design/tokens';
 import { Caption } from '../design/type';
 import { PHOTO_REQUEST_TIMEOUT_MS } from '../engine/liveVision/config';
 import { deviceManipulator } from '../engine/liveVision/deviceManipulator';
-import { createPhotoScanState, scanPhoto } from '../engine/liveVision/photoScan';
-import { lastRecognitionEndpoint, requestCensus } from '../engine/liveVision/recognitionClient';
+import { createPhotoScanState, scanPhoto, type PhotoItem } from '../engine/liveVision/photoScan';
+import { lastRecognitionEndpoint, requestCensus, requestVerify } from '../engine/liveVision/recognitionClient';
 import { describeScanFailure, type PhotoFailure } from '../engine/liveVision/scanFailure';
-import { prepareUpload, type SourcePhoto } from '../engine/liveVision/uploadImage';
+import { prepareCrops, prepareUpload, type SourcePhoto } from '../engine/liveVision/uploadImage';
 import { haulCount, useScanline } from '../engine/store';
 
 /**
@@ -35,6 +36,11 @@ import { haulCount, useScanline } from '../engine/store';
  *
  * When nothing goes in the bag, the screen says why, in one line under the notice, with the
  * address it tried. "It just didn't work" on a phone is otherwise unanswerable from a Mac.
+ *
+ * After every photograph the shopper sees it back, with each item outlined: green where the wide
+ * and the close reading agreed, amber where they did not, and for an amber item the owner's own
+ * sentence asking for a better image of it. The next photograph is taken as that better image,
+ * and its names go to the census as `confirming` so a sure reading replaces the amber line.
  *
  * Nothing here imports the camera. `PhotoCameraCapture` does, and has a `.web.tsx` beside it, so
  * this file carries no platform branch and web never loads VisionCamera at all.
@@ -58,6 +64,18 @@ export default function PhotoScreen() {
   // a shopper who moves the bag off the top and presses the button again has answered it, and a
   // latched flag would leave them being told to do what they have just done.
   const [occluded, setOccluded] = useState(false);
+
+  /**
+   * The last photograph, shown back with its items outlined. Null while the camera is live. The
+   * image is the upload itself and the size is the upload's, which is the frame the boxes are in.
+   */
+  const [review, setReview] = useState<{ uri: string; width: number; height: number; items: PhotoItem[] } | null>(null);
+
+  /**
+   * Set when the census answered but the close read could not be made, so the bag was filled
+   * from one reading and every line of it is unsure. Shown as the failure line under the review.
+   */
+  const [verifyFailure, setVerifyFailure] = useState<PhotoFailure | null>(null);
 
   const startScan = useScanline((s) => s.startScan);
   const setBag = useScanline((s) => s.setBag);
@@ -83,30 +101,52 @@ export default function PhotoScreen() {
   const ingest = async (photo: SourcePhoto) => {
     setBusy(true);
     setFailure(null);
+    setVerifyFailure(null);
+    // The names the last review showed in amber. This photograph is the shopper's answer to
+    // that, so the census is told what to look for; a review with nothing amber sends nothing.
+    const confirming = (review?.items ?? []).filter((item) => item.status === 'unsure').map((item) => item.name);
     try {
       // The bounded JPEG, not the file. A 48MP phone photograph is refused by the service for
       // its size alone, and a 12MP one is an eight megabyte upload the server's first resize
       // throws away. See uploadImage.ts for the bound and why it is what it is.
-      let imageBase64: string;
+      let upload: { base64: string; width: number; height: number };
       try {
-        imageBase64 = await prepareUpload(photo, { manipulator: deviceManipulator });
+        upload = await prepareUpload(photo, { manipulator: deviceManipulator });
       } catch {
         setFailure('capture');
         setOccluded(false);
+        setReview(null);
         return;
       }
+      setReview({ uri: `data:image/jpeg;base64,${upload.base64}`, width: upload.width, height: upload.height, items: [] });
 
-      const outcome = await scanPhoto(session.current, imageBase64, {
-        // A photograph gets its own budget: the shopper is waiting on this one call, and it has
-        // to outlast the service's 25 second race so the server's answer arrives before the
-        // phone gives up on it.
-        requestCensus: (request) => requestCensus(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
-      });
+      const outcome = await scanPhoto(
+        session.current,
+        upload.base64,
+        {
+          // A photograph gets its own budget: the shopper is waiting on this one call, and it has
+          // to outlast the service's 25 second race so the server's answer arrives before the
+          // phone gives up on it.
+          requestCensus: (request) => requestCensus(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
+          // The close read. Each box is cut from the original photograph on the device, because
+          // the label the wide pass misread is written in the pixels the upload bound discards.
+          crop: async (box) => (await prepareCrops(photo, [box], { manipulator: deviceManipulator }))[0],
+          requestVerify: (request) => requestVerify(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
+        },
+        {
+          confirming,
+          // The boxes go on the photograph as soon as the census places them, in the plain
+          // outline of "checking", and take their colour when the close read lands.
+          onCensus: (items) => setReview((current) => (current ? { ...current, items } : current)),
+        },
+      );
       if (outcome.ok) {
         session.current = outcome.state;
         setBag(outcome.lines, {});
         setAdded(outcome.added);
         setOccluded(outcome.occlusion.itemsLikelyHidden);
+        setReview((current) => (current ? { ...current, items: outcome.items } : current));
+        setVerifyFailure(outcome.verifyFailure ?? null);
       } else {
         setFailure(outcome.failure);
         // Nothing was recognised, so the previous photograph's verdict is the only thing that
@@ -114,11 +154,15 @@ export default function PhotoScreen() {
         // "unavailable" first in any case; this stops the occluded notice reappearing behind it
         // when the next call succeeds and finds nothing hidden.
         setOccluded(false);
+        setReview(null);
       }
     } finally {
       setBusy(false);
     }
   };
+
+  /** Back to the live camera. The bag keeps what the photograph put in it either way. */
+  const retake = () => setReview(null);
 
   const pick = async () => {
     if (busy) return;
@@ -182,6 +226,12 @@ export default function PhotoScreen() {
         onError={() => setFailure('capture')}
       />
 
+      {review !== null ? (
+        <View style={[styles.review, { top: insets.top + space.s + 58 + 52, bottom: controlsBottom + 56 }]} pointerEvents="none">
+          <PhotoReview uri={review.uri} width={review.width} height={review.height} items={review.items} />
+        </View>
+      ) : null}
+
       <View style={[styles.topBar, { top: insets.top + space.s }]}>
         <IconButton
           symbol="xmark"
@@ -198,7 +248,14 @@ export default function PhotoScreen() {
           no outlines to highlight, because the device runs no detector and the server's
           enumerator is unconfigured. The other two are both reachable here. */}
       <CoachNotice
-        kind={coachKind({ amberPersists: false, occluded, unavailable: failure !== null })}
+        kind={coachKind({
+          amberPersists: false,
+          occluded,
+          unavailable: failure !== null,
+          // An item the close read could not confirm is drawn in amber on the review, and this
+          // is the sentence beside it.
+          confirm: review !== null && !busy && review.items.some((item) => item.status === 'unsure'),
+        })}
         topInset={insets.top}
       />
 
@@ -207,7 +264,20 @@ export default function PhotoScreen() {
           <GlassSurface radius={radius.pill}>
             <View style={styles.status}>
               <ActivityIndicator color={color.white} />
-              <Caption color={color.white}>Looking at your photo…</Caption>
+              <Caption color={color.white}>
+                {review !== null && review.items.length > 0 ? 'Taking a closer look…' : 'Looking at your photo…'}
+              </Caption>
+            </View>
+          </GlassSurface>
+        ) : verifyFailure !== null ? (
+          // The census answered and the bag is filled, but the close read did not happen, so
+          // every line is shown as unsure. The same line the census failure would show, since
+          // it is the same address that did not answer.
+          <GlassSurface radius={radius.row}>
+            <View style={styles.status}>
+              <Caption color={color.white} style={styles.detail}>
+                {`The closer look did not happen, so nothing here is confirmed. ${describeScanFailure(verifyFailure, lastRecognitionEndpoint())}`}
+              </Caption>
             </View>
           </GlassSurface>
         ) : failure !== null ? (
@@ -241,6 +311,15 @@ export default function PhotoScreen() {
               <Caption color={color.white}>Library</Caption>
             </View>
           </PressableScale>
+          {review !== null && !busy ? (
+            <PressableScale onPress={retake} accessibilityLabel="Take another photo">
+              <View style={styles.secondary}>
+                <Caption color={color.white}>
+                  {review.items.some((item) => item.status === 'unsure') ? 'Photograph it again' : 'Next photo'}
+                </Caption>
+              </View>
+            </PressableScale>
+          ) : null}
         </View>
       </View>
 
@@ -258,6 +337,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  review: {
+    position: 'absolute',
+    left: space.s,
+    right: space.s,
   },
   controls: {
     position: 'absolute',
@@ -277,7 +361,8 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
+    justifyContent: 'space-between',
   },
   secondary: {
     paddingHorizontal: space.l,

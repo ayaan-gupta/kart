@@ -101,7 +101,7 @@
      ],
      "brandMatch": [
       "costena",
-      "coste\u00f1a"
+      "costeña"
      ],
      "hidden": false,
      "legible": true
@@ -187,7 +187,7 @@
      ],
      "brandMatch": [
       "costena",
-      "coste\u00f1a"
+      "costeña"
      ],
      "hidden": false,
      "legible": true
@@ -579,7 +579,10 @@
     {
      "label": "Simply Nature black beans",
      "brand": "Simply Nature",
-     "qty": 3,
+     "qty": [
+      3,
+      4
+     ],
      "match": [
       "black bean"
      ],
@@ -673,12 +676,12 @@
      "legible": true
     },
     {
-     "label": "Baker's Corner chocolate chip cookie mix",
+     "label": "Baker's Corner baking soda",
      "brand": "Baker's Corner",
      "qty": 1,
      "match": [
-      "chocolate chip",
-      "cookie"
+      "baking soda",
+      "soda"
      ],
      "brandMatch": [
       "baker"
@@ -810,7 +813,9 @@
      "qty": 1,
      "match": [
       "brown rice",
-      "quinoa"
+      "fusilli",
+      "rice and quinoa",
+      "rice & quinoa"
      ],
      "brandMatch": [
       "simply nature"
@@ -974,7 +979,8 @@
       "noodle"
      ],
      "brandMatch": [
-      "sempio"
+      "sempio",
+      "샘표"
      ],
      "hidden": false,
      "legible": true
@@ -985,7 +991,9 @@
      "qty": 1,
      "match": [
       "brown rice",
-      "quinoa"
+      "fusilli",
+      "rice and quinoa",
+      "rice & quinoa"
      ],
      "brandMatch": [
       "simply nature"
@@ -1447,6 +1455,9 @@
   "The 'cart' tier labels are complete: every product in the basket is listed, so both recall and the count of lines matching nothing real are meaningful there.",
   "The 'storage' tier labels are NOT exhaustive. A pantry shelf and a refrigerator hold dozens of things, many half visible behind other things, and this file lists only the ones a reader can identify with confidence. Recall against it is therefore a lower bound and is meaningful; the count of lines matching nothing real is NOT a hallucination count on that tier, because most such lines name something really there that this file does not list.",
   "clut13's mayonnaise, and the correction of clut12's bag from 'bagged greens' to NatureSweet mini cucumbers, were both found by adjudicating a model answer back against the photograph on 2026-09-04. The baseline in the commit before that was measured without them.",
-  "Two clut13 labels were corrected on 2026-09-05 after five model arms agreed against the file: the second Friendly Farms carton (2% reduced fat, lactose free) visible behind the whole milk is now listed, hidden; and 'cheese' in ignoreMatch, meant for the cheddar block, was narrowed because it was also swallowing the Neufchatel boxes. Rescore earlier runs with clut-rescore.ts rather than comparing across the change."
+  "Two clut13 labels were corrected on 2026-09-05 after five model arms agreed against the file: the second Friendly Farms carton (2% reduced fat, lactose free) visible behind the whole milk is now listed, hidden; and 'cheese' in ignoreMatch, meant for the cheddar block, was narrowed because it was also swallowing the Neufchatel boxes. Rescore earlier runs with clut-rescore.ts rather than comparing across the change.",
+  "Two labels were corrected on 2026-09-06 after zooming into the photographs at native resolution when a close-crop model reading disagreed with the file: clut8's orange Baker's Corner box is baking soda, not a cookie mix (the back panel reads 'Sprinkle Baker's Corner Baking Soda' and 'Replace with a fresh box every 30 days'; the front is not visible, so every reader was guessing from the recipe printed beside it); and clut11's Sempio brand is printed on the packet only in Korean, 샘표, so that spelling is a correct brand read. clut13's three egg cartons were checked the same way and are three. Rescore earlier runs with clut-rescore.ts rather than comparing across the change.",
+  "clut7's Simply Nature black beans were labelled 3 and re-read on 2026-09-06 after every reading, wide and close, said 4: the bottom row holds two cans side by side at the left, one mostly behind the other, plus the one under the pull-tab tin, plus the one at the top right. The fourth is partly hidden, so the label is now the range 3 to 4.",
+  "The Simply Nature product in clut9 and clut11 is a box of brown rice and quinoa fusilli; its match terms were 'brown rice' and 'quinoa', and the bare word matched the household's own jar of loose quinoa on the same shelf, scoring a jar the file ignores as that box with the wrong brand. Narrowed on 2026-09-06 to the phrases only the box answers to."
  ]
 }

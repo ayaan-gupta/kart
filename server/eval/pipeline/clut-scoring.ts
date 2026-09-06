@@ -52,6 +52,14 @@ export interface ImageScore {
   ignoredLines: ScoreLine[];
   /** Label index to the indexes of the lines assigned to it. */
   assigned: Map<number, number[]>;
+  /**
+   * One verdict per line, in the order the lines were given. `right` is a line assigned to a
+   * label whose quantity came out right and, where the brand is scored, whose brand is right;
+   * `wrong` is a line assigned to a label that got the quantity or the brand wrong; `invented`
+   * matched no label; `ignored` matched nothing the shopper is buying. With each line's sure or
+   * unsure flag beside it, this is what says whether the gate asserted a wrong line.
+   */
+  lineOutcomes: ('right' | 'wrong' | 'invented' | 'ignored')[];
 }
 
 /** Lowercase ASCII words: accents folded, punctuation dropped, whitespace collapsed. */
@@ -117,9 +125,21 @@ export function scoreImage(lines: ScoreLine[], image: ScoreImage): ImageScore {
   }
   for (const i of pending) give(fewest(bestOf(i).labels), i);
 
-  // Pass 3: lines the ignore list covers reach a label only when it has nothing yet.
-  for (let i = 0; i < lines.length; i += 1) {
-    if (!ignorable[i]) continue;
+  // Pass 3: lines the ignore list covers reach a label only when it has nothing yet. A line
+  // carrying the label's own brand goes first, whatever order the bag listed them in: on a shelf
+  // with a jar of loose spaghetti beside the Barilla box, both lines say "spaghetti" and both are
+  // ignorable, and the jar listed first used to take the Barilla label and score its brand wrong
+  // while the Barilla line was ignored.
+  const brandOf = (i: number, l: number): boolean => {
+    const brand = lines[i].brand;
+    const wanted = products[l].brandMatch;
+    return brand !== null && wanted !== null && wanted.some((b) => norm(brand).includes(norm(b)));
+  };
+  const ignorableOrder = lines
+    .map((_, i) => i)
+    .filter((i) => ignorable[i])
+    .sort((a, b) => Number(bestOf(b).labels.some((l) => brandOf(b, l))) - Number(bestOf(a).labels.some((l) => brandOf(a, l))));
+  for (const i of ignorableOrder) {
     const { labels } = bestOf(i);
     const empty = labels.filter((l) => count(l) === 0);
     if (empty.length > 0) give(fewest(empty), i);
@@ -129,6 +149,9 @@ export function scoreImage(lines: ScoreLine[], image: ScoreImage): ImageScore {
   const misses: string[] = [];
   const qtyWrong: ImageScore['qtyWrong'] = [];
   const brandWrong: ImageScore['brandWrong'] = [];
+  const lineOutcomes: ImageScore['lineOutcomes'] = lines.map((l) =>
+    unmatchedLines.includes(l) ? 'invented' : ignoredLines.includes(l) ? 'ignored' : 'right',
+  );
   let found = 0;
   let qtyRight = 0;
   let brandRight = 0;
@@ -142,7 +165,10 @@ export function scoreImage(lines: ScoreLine[], image: ScoreImage): ImageScore {
     found += 1;
     const qty = mine.reduce((sum, i) => sum + lines[i].qty, 0);
     if (qtyOk(qty, product.qty)) qtyRight += 1;
-    else qtyWrong.push({ label: product.label, expected: qtyText(product.qty), actual: qty });
+    else {
+      qtyWrong.push({ label: product.label, expected: qtyText(product.qty), actual: qty });
+      for (const i of mine) lineOutcomes[i] = 'wrong';
+    }
 
     // Scored separately from the name, and only where the packaging is legible, because the
     // brand is the field the catalog resolves on: a bag line reading "Primo" for a bag that says
@@ -152,9 +178,12 @@ export function scoreImage(lines: ScoreLine[], image: ScoreImage): ImageScore {
       const actual = lines[mine[0]].brand;
       const ok = actual !== null && product.brandMatch.some((b) => norm(actual).includes(norm(b)));
       if (ok) brandRight += 1;
-      else brandWrong.push({ label: product.label, expected: product.brandMatch[0], actual });
+      else {
+        brandWrong.push({ label: product.label, expected: product.brandMatch[0], actual });
+        lineOutcomes[mine[0]] = 'wrong';
+      }
     }
   });
 
-  return { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, assigned };
+  return { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, assigned, lineOutcomes };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, censusUserText } from "../src/prompts.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, verifyUserText } from "../src/prompts.js";
 import type { Mark } from "../src/compositor.js";
 import {
   MarkIdentification,
@@ -8,6 +8,9 @@ import {
   Occlusion,
   CensusResponse,
   IdentifyResponse,
+  PhotoItem,
+  PhotoResponse,
+  VerifyResponse,
 } from "../src/schemas.js";
 
 const DASHES = /[—–]/;
@@ -271,13 +274,11 @@ describe("PHOTO_SYSTEM_PROMPT", () => {
     expect(PHOTO_SYSTEM_PROMPT).toBe(PHOTO_SYSTEM_PROMPT.trim());
   });
 
-  it("names every field the census schema requires, read from schemas.ts at runtime", () => {
+  it("names every field the photo schema requires, read from schemas.ts at runtime", () => {
     const fields = new Set<string>([
-      ...Object.keys(CensusResponse.shape),
-      ...Object.keys(MarkIdentification.shape),
-      ...Object.keys(UnmarkedItem.shape),
-      ...Object.keys(InViewCount.shape),
-      ...Object.keys(Occlusion.shape),
+      ...Object.keys(PhotoResponse.shape),
+      ...Object.keys(PhotoItem.shape),
+      ...Object.keys(PhotoResponse.shape.occlusion.shape),
     ]);
     expect(fields.size).toBeGreaterThan(0);
     for (const field of fields) expectPromptNamesField(PHOTO_SYSTEM_PROMPT, field);
@@ -289,10 +290,9 @@ describe("PHOTO_SYSTEM_PROMPT", () => {
     }
   });
 
-  it("asks the question a person asks: brand as printed, packages not pieces, marks left empty", () => {
+  it("asks the question a person asks: brand as printed, packages not pieces, an empty list when there is nothing", () => {
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/as printed/);
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/packages/);
-    expect(PHOTO_SYSTEM_PROMPT).toMatch(/marks/);
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/empty/);
   });
 
@@ -323,5 +323,74 @@ describe("only supermarket products, and nothing is a valid answer", () => {
   it("CENSUS_SYSTEM_PROMPT gives unmarked items the same isProduct answer as badges", () => {
     const rule12 = CENSUS_SYSTEM_PROMPT.slice(CENSUS_SYSTEM_PROMPT.indexOf("12."), CENSUS_SYSTEM_PROMPT.indexOf("13."));
     expect(rule12).toMatch(/isProduct/);
+  });
+});
+
+describe("PHOTO_SYSTEM_PROMPT asks for a box per item", () => {
+  it("names the box and its frame: origin top left, whole percentages 0 to 100", () => {
+    expectPromptNamesField(PHOTO_SYSTEM_PROMPT, "box");
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/top[- ]left/i);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/0 to\s+100/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/percentages/);
+  });
+});
+
+/**
+ * The close read. A crop of one product, cut at the box the wide pass gave, and the question of
+ * whether it is what the wide pass said, read off the packaging at the upload's own resolution.
+ */
+describe("VERIFY_SYSTEM_PROMPT", () => {
+  it("contains no em dash or en dash, and is trimmed", () => {
+    expect(VERIFY_SYSTEM_PROMPT).not.toMatch(DASHES);
+    expect(VERIFY_SYSTEM_PROMPT).toBe(VERIFY_SYSTEM_PROMPT.trim());
+  });
+
+  it("names every field the verify schema requires, read from schemas.ts at runtime", () => {
+    for (const field of Object.keys(VerifyResponse.shape)) expectPromptNamesField(VERIFY_SYSTEM_PROMPT, field);
+  });
+
+  it("asks for the brand as printed and for a count of units in the crop, excluding a neighbour", () => {
+    expect(VERIFY_SYSTEM_PROMPT).toMatch(/as printed/);
+    expect(VERIFY_SYSTEM_PROMPT).toMatch(/count/);
+    // Measured: with the crop cut a little wide, a bag of the same brand beside the product was
+    // counted as a second unit of it on five products of fifteen photographs.
+    expect(VERIFY_SYSTEM_PROMPT).toMatch(/neighbour/);
+    expect(VERIFY_SYSTEM_PROMPT).toMatch(/not a unit/);
+  });
+
+  it("does not make loose produce illegible for having no text to read", () => {
+    expect(VERIFY_SYSTEM_PROMPT).toMatch(/no packaging text/);
+  });
+});
+
+describe("verifyUserText", () => {
+  it("carries the wide pass's reading as the hint, and not its count, which the close read must make itself", () => {
+    const text = verifyUserText({ description: "Rigatoni", productKey: "priano::rigatoni" });
+    expect(text).toContain("Rigatoni");
+    expect(text).toContain("priano");
+    expect(text).not.toMatch(/\b\d+\b/);
+    expect(text).toMatch(/count/i);
+  });
+
+  it("names the brands read elsewhere in the photograph, and still asks for what is printed", () => {
+    const text = verifyUserText({ description: "Bronze cut pasta", productKey: "piano::bronze cut pasta" }, ["Priano", "Bob's Red Mill"]);
+    expect(text).toContain("Priano");
+    expect(text).toContain("Bob's Red Mill");
+    expect(text).toMatch(/printed/);
+    expect(verifyUserText({ description: "x", productKey: "::x" }, [])).not.toMatch(/other products/);
+  });
+});
+
+describe("censusUserText with a confirmation list", () => {
+  it("names what the shopper was asked to photograph again, after the counted list", () => {
+    const text = censusUserText([], ["Nutella"], ["Priano rigatoni"]);
+    expect(text).toContain("Nutella");
+    expect(text).toContain("Priano rigatoni");
+    expect(text.indexOf("Nutella")).toBeLessThan(text.indexOf("Priano rigatoni"));
+    expect(text).toMatch(/as printed/);
+  });
+
+  it("adds nothing when there is nothing to confirm", () => {
+    expect(censusUserText([], ["Nutella"], [])).toBe(censusUserText([], ["Nutella"]));
   });
 });

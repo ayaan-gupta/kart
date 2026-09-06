@@ -1,0 +1,134 @@
+# One complete pass of clut-photos.ts --as-phone on 2026-09-06, on the two-reading code before the nested-duplicate fold was added; the JSON of this pass was not kept. The three-pass run that followed on the final code (clut-photos-verify.json) was cut short by the OpenAI account running out of credit after eleven scans.
+  clut1   cart     6.5s (census 4.0s)  subject=product  found 3/3  qty 3/3  brand 2/2  invented 0
+  clut2   cart     6.5s (census 4.1s)  subject=cart  found 5/5  qty 5/5  brand 3/3  invented 0
+  clut3   cart     7.9s (census 4.6s)  subject=cart  found 5/5  qty 5/5  brand 3/3  invented 0
+  clut4   cart     6.8s (census 4.5s)  subject=cart  found 6/7  qty 6/6  brand 6/6  invented 0
+      unsure   right    1 x Bronze cut pasta (Priano)
+      unsure   right    1 x Nutella B-ready (Nutella)
+      miss     Campbell's condensed soup
+  clut5   cart     9.1s (census 6.2s)  subject=product  found 7/7  qty 6/7  brand 7/7  invented 0
+      unsure   wrong    1 x Rigatoni (Priano)
+      qty      Priano rigatoni: expected 2, got 1
+  clut6   cart     5.8s (census 3.8s)  subject=cart  found 4/4  qty 4/4  brand 3/3  invented 0
+      unsure   right    1 x Jarred food
+  clut7   cart     8.1s (census 4.8s)  subject=product  found 6/6  qty 6/6  brand 3/3  invented 0
+      unsure   right    1 x Pasta Sauce
+      unsure   right    1 x Canned Food
+      unsure   ignored  1 x Seeds
+      ignored  1 x Seeds
+  clut8   storage  8.7s (census 5.0s)  subject=product  found 2/4  qty 1/2  brand 1/1  invented 2
+      ASSERTED wrong    1 x Semi-sweet chocolate morsels (Bakers Corner)
+      ASSERTED wrong    1 x Baking bar (Bakers Corner)
+      unsure   invented 1 x Yellow cooking oil
+      miss     Baker's Corner baking soda
+      miss     sponges
+      qty      Baker's Corner devil's food cake mix: expected 1, got 2
+      invented 1 x Yellow cooking oil
+      invented 1 x Sugar (Savarin)
+      ignored  1 x Light brown sugar
+  clut9   storage  8.4s (census 6.0s)  subject=product  found 6/6  qty 6/6  brand 6/6  invented 1
+      unsure   invented 1 x tomato pasta sauce
+      unsure   right    1 x avocado oil crackers with rosemary and sea salt (Savoritz)
+      invented 1 x tomato pasta sauce
+  clut10  storage  8.5s (census 5.8s)  subject=product  found 5/7  qty 5/5  brand 5/5  invented 1
+      unsure   right    1 x Thick Spaghetti (Barilla)
+      miss     whey protein tub
+      miss     Freshpak boxed goods
+      invented 1 x Bread rolls
+      ignored  1 x Rice and Quinoa
+      ignored  1 x Walnuts
+      ignored  1 x Coffee beans
+  clut11  storage  11.6s (census 8.4s)  subject=product  found 2/3  qty 2/2  brand 0/2  invented 2
+      ASSERTED wrong    1 x mixed quinoa
+      unsure   wrong    2 x dried noodles
+      unsure   invented 1 x packaged leafy greens
+      unsure   ignored  1 x packaged dried grains
+      unsure   invented 1 x canned food
+      miss     Korean snack bag, green and yellow
+      brand    Sempio Korean rice noodles: expected sempio, got null
+      brand    Simply Nature brown rice and quinoa: expected simply nature, got null
+      invented 1 x packaged leafy greens
+      invented 1 x canned food
+      ignored  2 x Korean rice noodles
+      ignored  1 x Brown rice and quinoa fusilli (Simply Nature)
+      ignored  1 x chickpeas
+      ignored  1 x brown rice
+      ignored  1 x whole grains
+      ignored  1 x packaged dried grains
+  clut12  storage  8.9s (census 6.3s)  subject=product  found 5/6  qty 4/5  brand 2/2  invented 1
+      ASSERTED wrong    1 x Neufchâtel cheese (Happy Farms)
+      unsure   right    6 x apples
+      miss     NatureSweet Starlight mini cucumbers
+      qty      Neufchatel cream cheese: expected 2, got 1
+      invented 1 x spring mix (Little Salad Bar)
+      ignored  3 x egg carton
+  clut13  storage  10.9s (census 7.1s)  subject=product  found 8/9  qty 7/8  brand 3/3  invented 1
+      unsure   wrong    5 x eggs
+      unsure   ignored  1 x cheddar cheese slices
+      unsure   ignored  1 x leafy greens
+      unsure   right    1 x green glass bottled beverage
+      miss     butter
+      qty      eggs: expected 3, got 5
+      invented 1 x probiotic dairy drink
+      ignored  1 x cheddar cheese slices
+      ignored  1 x leafy greens
+  clut14  storage  11.1s (census 6.6s)  subject=product  found 5/5  qty 4/5  brand 2/2  invented 5
+      ASSERTED wrong    1 x Black Angus beef chuck country-style ribs
+      ASSERTED wrong    1 x Beef country-style ribs (Usda Choice)
+      unsure   invented 1 x Coffee creamer
+      unsure   invented 1 x Green bell pepper
+      unsure   invented 1 x Orange
+      unsure   invented 1 x Potatoes (Simply Nature)
+      qty      black angus beef: expected 1, got 2
+      invented 1 x Milk
+      invented 1 x Coffee creamer
+      invented 1 x Green bell pepper
+      invented 1 x Orange
+      invented 1 x Potatoes (Simply Nature)
+  clut15  storage  8.8s (census 5.6s)  subject=product  found 4/5  qty 4/4  brand 0/0  invented 2
+      unsure   invented 1 x Brown eggs
+      miss     packaged chicken
+      invented 1 x Green grapes (Gaines)
+      invented 1 x Brown eggs
+      ignored  1 x Whole milk
+
+  all: 15 scans (15 photographs x 1)
+    1. every item reaches the bag   73/82 products (89%)
+    2. quantities are right         68/73 of the products found (93%)
+       brands right                 46/48 legible-brand products (96%)
+    3. hidden items are flagged     13/13 photographs that have one
+    4. unsure items are flagged     3/12 illegible products came back under 0.6
+       lines matching nothing real  15 (a further 15 named something in frame the shopper is not buying)
+       scene gate correct           12/15 (0 emptied as "shelf")
+    5. asserted lines wrong         6/64 lines shown as sure were wrong (must be 0)
+       unsure lines                 12, of which 3 wrong and 9 right (the gate's cost)
+       seconds per photograph       8.5
+
+  tier "cart", the shipped use case: 7 scans (7 photographs x 1)
+    1. every item reaches the bag   36/37 products (97%)
+    2. quantities are right         35/36 of the products found (97%)
+       brands right                 27/27 legible-brand products (100%)
+    3. hidden items are flagged     5/5 photographs that have one
+    4. unsure items are flagged     2/6 illegible products came back under 0.6
+       lines matching nothing real  0 (a further 1 named something in frame the shopper is not buying)
+       scene gate correct           4/7 (0 emptied as "shelf")
+    5. asserted lines wrong         0/31 lines shown as sure were wrong (must be 0)
+       unsure lines                 6, of which 1 wrong and 5 right (the gate's cost)
+       seconds per photograph       7.2
+
+  tier "storage", pantry and refrigerator: 8 scans (8 photographs x 1)
+    1. every item reaches the bag   37/45 products (82%)
+    2. quantities are right         33/37 of the products found (89%)
+       brands right                 19/21 legible-brand products (90%)
+    3. hidden items are flagged     8/8 photographs that have one
+    4. unsure items are flagged     1/6 illegible products came back under 0.6
+       lines matching nothing real  15 (a further 14 named something in frame the shopper is not buying)
+       scene gate correct           8/8 (0 emptied as "shelf")
+    5. asserted lines wrong         6/33 lines shown as sure were wrong (must be 0)
+       unsure lines                 6, of which 2 wrong and 4 right (the gate's cost)
+       seconds per photograph       9.6
+
+  cost: $1.104 for 15 scans, $0.0736 and 8.2 calls per photograph
+
+  written to server/eval/clut-photos-verify-sol.json
+exit 0

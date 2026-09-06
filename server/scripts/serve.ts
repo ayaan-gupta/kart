@@ -34,10 +34,13 @@ if ((process.env.OPENAI_API_KEY ?? "") === "") {
 
 const { default: census } = await import("../api/census.js");
 const { default: identify } = await import("../api/identify.js");
+const { default: verify } = await import("../api/verify.js");
+const { usageTotals } = await import("../src/usage.js");
 
 const ROUTES: Record<string, (req: Request) => Promise<Response>> = {
   "/api/census": census,
   "/api/identify": identify,
+  "/api/verify": verify,
 };
 
 /**
@@ -143,6 +146,17 @@ const server = createServer((req, res) => {
   // before any scanning is attempted.
   if (path === "/" && req.method === "GET") {
     void send(res, new Response(JSON.stringify({ ok: true, routes: Object.keys(ROUTES) }), {
+      headers: { "content-type": "application/json" },
+    }), origin);
+    return;
+  }
+
+  // What this process has spent so far, per model, so a harness can put a dollar figure beside
+  // an accuracy figure: read it before and after a run and take the difference. The usage
+  // reporter prints the same totals when the process ends, which a long-running service never
+  // does while anyone is watching. Development server only; the deployment has no such route.
+  if (path === "/usage" && req.method === "GET") {
+    void send(res, new Response(JSON.stringify({ ok: true, usage: usageTotals() }), {
       headers: { "content-type": "application/json" },
     }), origin);
     return;

@@ -1,0 +1,1787 @@
+{
+ "ranAt": "2026-09-06T08:22:09.744Z",
+ "model": "gpt-5.6-sol",
+ "closeModel": "gpt-5.6-sol",
+ "results": [
+  {
+   "id": "clut4",
+   "wideSeconds": 9.837,
+   "subjectKind": "cart",
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "Several packages overlap one another inside the basket, so a few products may be partly hidden."
+   },
+   "items": [
+    {
+     "wide": {
+      "description": "Organic whole grain quinoa",
+      "productKey": "bobs red mill::organic whole grain quinoa",
+      "catalogSku": null,
+      "approxLocation": "left side of basket",
+      "confidence": 0.98,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.233,
+       "w": 0.345,
+       "h": 0.371
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       609,
+       988
+      ],
+      "originalPx": [
+       1608,
+       2606
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Organic farro",
+      "productKey": "bobs red mill::organic farro",
+      "catalogSku": null,
+      "approxLocation": "center of basket",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.222,
+       "y": 0.293,
+       "w": 0.353,
+       "h": 0.37
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       705,
+       985
+      ],
+      "originalPx": [
+       1859,
+       2599
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Bronze cut pasta",
+      "productKey": "piano::bronze cut pasta",
+      "catalogSku": null,
+      "approxLocation": "front left of basket",
+      "confidence": 0.97,
+      "isProduct": true,
+      "box": {
+       "x": 0.05,
+       "y": 0.59,
+       "w": 0.371,
+       "h": 0.207
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       732,
+       551
+      ],
+      "originalPx": [
+       1931,
+       1454
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Rigatoni",
+      "productKey": "piano::rigatoni",
+      "catalogSku": null,
+      "approxLocation": "upper right of basket, two bags",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.576,
+       "y": 0.236,
+       "w": 0.423,
+       "h": 0.389
+      }
+     },
+     "count": 2,
+     "close": {
+      "fromUpload": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       749,
+       1036
+      ],
+      "originalPx": [
+       1975,
+       2732
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Organic marinara pasta sauce",
+      "productKey": "murphys::organic marinara pasta sauce",
+      "catalogSku": null,
+      "approxLocation": "front center of basket",
+      "confidence": 0.9,
+      "isProduct": true,
+      "box": {
+       "x": 0.438,
+       "y": 0.507,
+       "w": 0.212,
+       "h": 0.266
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Murphy's Naturals",
+       "count": 1,
+       "confidence": 0.97,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       423,
+       708
+      ],
+      "originalPx": [
+       1117,
+       1868
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Nutella hazelnut spread",
+      "productKey": "nutella::hazelnut spread",
+      "catalogSku": null,
+      "approxLocation": "front right of basket",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.625,
+       "y": 0.512,
+       "w": 0.3,
+       "h": 0.289
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Hazelnut Spread",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       599,
+       769
+      ],
+      "originalPx": [
+       1580,
+       2030
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "clut5",
+   "wideSeconds": 9.585,
+   "subjectKind": "cart",
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "Several packages overlap, and the soup can is largely hidden beneath the Nutella jar."
+   },
+   "items": [
+    {
+     "wide": {
+      "description": "Organic whole grain quinoa",
+      "productKey": "bobs red mill::organic whole grain quinoa",
+      "catalogSku": null,
+      "approxLocation": "left side of basket",
+      "confidence": 0.98,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.17,
+       "w": 0.35,
+       "h": 0.38
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Whole Grain Quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       618,
+       1012
+      ],
+      "originalPx": [
+       1631,
+       2669
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Organic farro",
+      "productKey": "bobs red mill::organic farro",
+      "catalogSku": null,
+      "approxLocation": "center-left of basket",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.23,
+       "y": 0.25,
+       "w": 0.38,
+       "h": 0.36
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       759,
+       958
+      ],
+      "originalPx": [
+       2002,
+       2529
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Bronze cut pasta",
+      "productKey": "priano::bronze cut pasta",
+      "catalogSku": null,
+      "approxLocation": "front-left of basket",
+      "confidence": 0.92,
+      "isProduct": true,
+      "box": {
+       "x": 0.03,
+       "y": 0.5,
+       "w": 0.4,
+       "h": 0.21
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       753,
+       559
+      ],
+      "originalPx": [
+       1985,
+       1475
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Rigatoni",
+      "productKey": "priano::rigatoni",
+      "catalogSku": null,
+      "approxLocation": "back-right of basket",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.65,
+       "y": 0.16,
+       "w": 0.34,
+       "h": 0.29
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": false
+      },
+      "fromOriginal": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": false
+      },
+      "uploadPx": [
+       616,
+       772
+      ],
+      "originalPx": [
+       1625,
+       2037
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Organic marinara pasta sauce",
+      "productKey": "simply nature::organic marinara pasta sauce",
+      "catalogSku": null,
+      "approxLocation": "front-center of basket",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.45,
+       "y": 0.39,
+       "w": 0.25,
+       "h": 0.3
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       499,
+       799
+      ],
+      "originalPx": [
+       1317,
+       2107
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Hazelnut spread with cocoa",
+      "productKey": "nutella::hazelnut spread with cocoa",
+      "catalogSku": null,
+      "approxLocation": "front-right of basket, stacked on soup can",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.67,
+       "y": 0.35,
+       "w": 0.32,
+       "h": 0.3
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       581,
+       799
+      ],
+      "originalPx": [
+       1532,
+       2107
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Condensed soup",
+      "productKey": "campbells::condensed soup",
+      "catalogSku": null,
+      "approxLocation": "front-right of basket beneath Nutella jar",
+      "confidence": 0.88,
+      "isProduct": true,
+      "box": {
+       "x": 0.68,
+       "y": 0.59,
+       "w": 0.25,
+       "h": 0.11
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Condensed Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.81,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Condensed soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.93,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       499,
+       293
+      ],
+      "originalPx": [
+       1317,
+       773
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "clut8",
+   "wideSeconds": 9.903,
+   "subjectKind": "product",
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "Several containers and boxes overlap, and the lower pantry area is only partly visible."
+   },
+   "items": [
+    {
+     "wide": {
+      "description": "Organic marinara pasta sauce",
+      "productKey": "::organic marinara pasta sauce",
+      "catalogSku": null,
+      "approxLocation": "large jar at front left",
+      "confidence": 0.91,
+      "isProduct": true,
+      "box": {
+       "x": 0.012,
+       "y": 0.392,
+       "w": 0.298,
+       "h": 0.369
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Organic Marinara Pasta Sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       545,
+       982
+      ],
+      "originalPx": [
+       1437,
+       2592
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Light brown sugar",
+      "productKey": "::light brown sugar",
+      "catalogSku": null,
+      "approxLocation": "glass storage jar at center left",
+      "confidence": 0.78,
+      "isProduct": true,
+      "box": {
+       "x": 0.246,
+       "y": 0.294,
+       "w": 0.244,
+       "h": 0.327
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Light brown sugar",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.82,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Light brown sugar",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.55,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       487,
+       871
+      ],
+      "originalPx": [
+       1285,
+       2297
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Corn starch",
+      "productKey": "bakers corner::corn starch",
+      "catalogSku": null,
+      "approxLocation": "orange box at center front",
+      "confidence": 0.84,
+      "isProduct": true,
+      "box": {
+       "x": 0.475,
+       "y": 0.439,
+       "w": 0.237,
+       "h": 0.276
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Corn Starch",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Corn Starch",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.97,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       473,
+       735
+      ],
+      "originalPx": [
+       1248,
+       1939
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Baker's Corner baking product",
+      "productKey": "bakers corner::baking product",
+      "catalogSku": null,
+      "approxLocation": "tall red box at upper right",
+      "confidence": 0.47,
+      "isProduct": true,
+      "box": {
+       "x": 0.728,
+       "y": 0.322,
+       "w": 0.237,
+       "h": 0.341
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Devil's Food Cake Mix",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.72,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Devil's Food Cake Mix",
+       "brand": "Baker's Corner",
+       "count": 1,
+       "confidence": 0.93,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       472,
+       908
+      ],
+      "originalPx": [
+       1246,
+       2395
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "clut11",
+   "wideSeconds": 14.631,
+   "subjectKind": "product",
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "many",
+    "reason": "Large jars, containers, and overlapping packages conceal much of the pantry contents behind and below them."
+   },
+   "items": [
+    {
+     "wide": {
+      "description": "Korean rice noodles",
+      "productKey": "sempio::korean rice noodles",
+      "catalogSku": null,
+      "approxLocation": "upper left-center, two beige bags behind the containers",
+      "confidence": 0.96,
+      "isProduct": true,
+      "box": {
+       "x": 0.123,
+       "y": 0.181,
+       "w": 0.305,
+       "h": 0.386
+      }
+     },
+     "count": 2,
+     "close": {
+      "fromUpload": {
+       "name": "Gluten Free Korean Rice Noodles",
+       "brand": "샘표",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Gluten Free Korean Rice Noodles",
+       "brand": "샘표",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       609,
+       1028
+      ],
+      "originalPx": [
+       1699,
+       2866
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Packaged seaweed",
+      "productKey": "::packaged seaweed",
+      "catalogSku": null,
+      "approxLocation": "far left edge in green and yellow bag",
+      "confidence": 0.73,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.111,
+       "w": 0.128,
+       "h": 0.531
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Packaged seaweed",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.58,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Roasted Seaweed",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.68,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       226,
+       1414
+      ],
+      "originalPx": [
+       631,
+       3943
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Packaged dried noodles",
+      "productKey": "::dried noodles",
+      "catalogSku": null,
+      "approxLocation": "upper center behind the grain jars",
+      "confidence": 0.66,
+      "isProduct": true,
+      "box": {
+       "x": 0.402,
+       "y": 0.258,
+       "w": 0.142,
+       "h": 0.146
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Dried noodles",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.52,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "제일 식감 그대로",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.38,
+       "legible": true,
+       "matchesHint": false
+      },
+      "uploadPx": [
+       284,
+       389
+      ],
+      "originalPx": [
+       791,
+       1084
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Packaged noodles",
+      "productKey": "::packaged noodles",
+      "catalogSku": null,
+      "approxLocation": "upper right in tall clear retail package",
+      "confidence": 0.7,
+      "isProduct": true,
+      "box": {
+       "x": 0.632,
+       "y": 0.163,
+       "w": 0.286,
+       "h": 0.285
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.72,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Spaghetti",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.62,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       571,
+       759
+      ],
+      "originalPx": [
+       1593,
+       2116
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Chickpeas",
+      "productKey": "::chickpeas",
+      "catalogSku": null,
+      "approxLocation": "left-center in labeled household container",
+      "confidence": 0.98,
+      "isProduct": true,
+      "box": {
+       "x": 0.082,
+       "y": 0.515,
+       "w": 0.328,
+       "h": 0.153
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Chickpeas",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Chickpeas",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       655,
+       407
+      ],
+      "originalPx": [
+       1827,
+       1136
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Wheat berries",
+      "productKey": "::wheat berries",
+      "catalogSku": null,
+      "approxLocation": "left-center in upper round household container",
+      "confidence": 0.82,
+      "isProduct": true,
+      "box": {
+       "x": 0.077,
+       "y": 0.376,
+       "w": 0.323,
+       "h": 0.185
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Wheat berries",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "wheat berries",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       645,
+       493
+      ],
+      "originalPx": [
+       1799,
+       1374
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Quinoa blend",
+      "productKey": "::quinoa blend",
+      "catalogSku": null,
+      "approxLocation": "center in large glass jar",
+      "confidence": 0.9,
+      "isProduct": true,
+      "box": {
+       "x": 0.399,
+       "y": 0.324,
+       "w": 0.301,
+       "h": 0.365
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Quinoa blend",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.55,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Quinoa blend",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.48,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       601,
+       972
+      ],
+      "originalPx": [
+       1676,
+       2710
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Brown rice",
+      "productKey": "::brown rice",
+      "catalogSku": null,
+      "approxLocation": "right-center in large glass jar",
+      "confidence": 0.92,
+      "isProduct": true,
+      "box": {
+       "x": 0.672,
+       "y": 0.404,
+       "w": 0.321,
+       "h": 0.35
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Brown rice",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.74,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Brown rice",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.72,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       578,
+       932
+      ],
+      "originalPx": [
+       1611,
+       2599
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Brown rice and quinoa fusilli",
+      "productKey": "simply nature::brown rice & quinoa fusilli",
+      "catalogSku": null,
+      "approxLocation": "lower right beneath the shelf",
+      "confidence": 0.94,
+      "isProduct": true,
+      "box": {
+       "x": 0.737,
+       "y": 0.838,
+       "w": 0.159,
+       "h": 0.16
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Brown Rice & Quinoa Fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.96,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Brown Rice & Quinoa Fusilli",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       317,
+       381
+      ],
+      "originalPx": [
+       886,
+       1062
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Bagged dry grains or legumes",
+      "productKey": "::bagged dry grains or legumes",
+      "catalogSku": null,
+      "approxLocation": "lower left beneath the shelf",
+      "confidence": 0.51,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.787,
+       "w": 0.274,
+       "h": 0.211
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Bagged dry grains or legumes",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.35,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Bagged dry grains or legumes",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "legible": false,
+       "matchesHint": false
+      },
+      "uploadPx": [
+       484,
+       501
+      ],
+      "originalPx": [
+       1350,
+       1397
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "clut13",
+   "wideSeconds": 15.675,
+   "subjectKind": "product",
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "many",
+    "reason": "Several refrigerator items are stacked behind cartons and containers or obscured by the shelf edges."
+   },
+   "items": [
+    {
+     "wide": {
+      "description": "strawberries",
+      "productKey": "::strawberries",
+      "catalogSku": null,
+      "approxLocation": "upper shelf, left-center, in a clear clamshell",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.04,
+       "y": 0.14,
+       "w": 0.49,
+       "h": 0.19
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Strawberries",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Strawberries",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.98,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       927,
+       506
+      ],
+      "originalPx": [
+       2585,
+       1411
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "sour cream",
+      "productKey": "simple truth::sour cream",
+      "catalogSku": null,
+      "approxLocation": "upper shelf, center-right, white tub",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.51,
+       "y": 0.15,
+       "w": 0.28,
+       "h": 0.18
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "All Natural Sour Cream",
+       "brand": "simple truth",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "All Natural Sour Cream",
+       "brand": "simple truth",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       559,
+       479
+      ],
+      "originalPx": [
+       1559,
+       1337
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "green bottled beverage",
+      "productKey": "::green bottled beverage",
+      "catalogSku": null,
+      "approxLocation": "upper shelf at far right",
+      "confidence": 0.58,
+      "isProduct": true,
+      "box": {
+       "x": 0.76,
+       "y": 0,
+       "w": 0.16,
+       "h": 0.33
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "bottled beverage",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.35,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "bottled beverage",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.28,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       319,
+       777
+      ],
+      "originalPx": [
+       891,
+       2168
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "Neufchâtel cheese",
+      "productKey": "happy farms::neufchatel cheese",
+      "catalogSku": null,
+      "approxLocation": "middle shelf at left, two boxes",
+      "confidence": 0.98,
+      "isProduct": true,
+      "box": {
+       "x": 0.05,
+       "y": 0.44,
+       "w": 0.28,
+       "h": 0.16
+      }
+     },
+     "count": 2,
+     "close": {
+      "fromUpload": {
+       "name": "Neufchâtel Cheese",
+       "brand": "Happy Farms",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Neufchâtel Cheese",
+       "brand": "Happy Farms",
+       "count": 2,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       559,
+       426
+      ],
+      "originalPx": [
+       1559,
+       1188
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "eggs",
+      "productKey": "::eggs",
+      "catalogSku": null,
+      "approxLocation": "middle shelf, three large cartons",
+      "confidence": 0.98,
+      "isProduct": true,
+      "box": {
+       "x": 0.32,
+       "y": 0.4,
+       "w": 0.55,
+       "h": 0.17
+      }
+     },
+     "count": 4,
+     "close": {
+      "fromUpload": {
+       "name": "eggs",
+       "brand": null,
+       "count": 4,
+       "confidence": 0.88,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "eggs",
+       "brand": null,
+       "count": 4,
+       "confidence": 0.91,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       1098,
+       453
+      ],
+      "originalPx": [
+       3063,
+       1262
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "sliced cheese",
+      "productKey": "::sliced cheese",
+      "catalogSku": null,
+      "approxLocation": "middle shelf at upper right, clear rectangular tub",
+      "confidence": 0.94,
+      "isProduct": true,
+      "box": {
+       "x": 0.69,
+       "y": 0.37,
+       "w": 0.17,
+       "h": 0.1
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "sliced cheese",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.68,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "sliced cheese",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.74,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       339,
+       266
+      ],
+      "originalPx": [
+       947,
+       743
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "whole lactose-free milk",
+      "productKey": "friendly farms::whole lactose free milk",
+      "catalogSku": null,
+      "approxLocation": "lower shelf, center foreground, red carton",
+      "confidence": 0.99,
+      "isProduct": true,
+      "box": {
+       "x": 0.43,
+       "y": 0.64,
+       "w": 0.2,
+       "h": 0.35
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Whole Lactose Free Milk",
+       "brand": "Friendly Farms",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Whole Lactose Free Milk",
+       "brand": "Friendly Farms",
+       "count": 1,
+       "confidence": 0.99,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       399,
+       845
+      ],
+      "originalPx": [
+       1114,
+       2356
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "2% reduced-fat lactose-free milk",
+      "productKey": "friendly farms::2 reduced fat lactose free milk",
+      "catalogSku": null,
+      "approxLocation": "lower shelf behind the red carton",
+      "confidence": 0.89,
+      "isProduct": true,
+      "box": {
+       "x": 0.63,
+       "y": 0.63,
+       "w": 0.13,
+       "h": 0.21
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "2% Reduced Fat Lactose-Free Milk",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.68,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "2% Reduced Fat Lactose Free Milk",
+       "brand": "Friendly Farms",
+       "count": 1,
+       "confidence": 0.86,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       260,
+       559
+      ],
+      "originalPx": [
+       724,
+       1559
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "probiotic cultured dairy drink",
+      "productKey": "::probiotic cultured dairy drink",
+      "catalogSku": null,
+      "approxLocation": "lower shelf at right, tall pale bottle",
+      "confidence": 0.79,
+      "isProduct": true,
+      "box": {
+       "x": 0.67,
+       "y": 0.63,
+       "w": 0.18,
+       "h": 0.25
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Probiotic Cultured Dairy Drink",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.82,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "probiotic cultured dairy drink",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.74,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       359,
+       666
+      ],
+      "originalPx": [
+       1002,
+       1856
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "bagged leafy greens",
+      "productKey": "::bagged leafy greens",
+      "catalogSku": null,
+      "approxLocation": "lower shelf, front right",
+      "confidence": 0.83,
+      "isProduct": true,
+      "box": {
+       "x": 0.61,
+       "y": 0.7,
+       "w": 0.16,
+       "h": 0.33
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Tender Green Lettuce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.74,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Spring Mix",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.68,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       319,
+       716
+      ],
+      "originalPx": [
+       891,
+       1996
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "mayonnaise",
+      "productKey": "::mayonnaise",
+      "catalogSku": null,
+      "approxLocation": "lower left, mostly hidden behind the shelf edge",
+      "confidence": 0.8,
+      "isProduct": true,
+      "box": {
+       "x": 0.05,
+       "y": 0.7,
+       "w": 0.09,
+       "h": 0.11
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "Mayonnaise",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.82,
+       "legible": true,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "Mayonnaise",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.82,
+       "legible": true,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       180,
+       293
+      ],
+      "originalPx": [
+       501,
+       817
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "eggs",
+      "productKey": "::eggs",
+      "catalogSku": null,
+      "approxLocation": "bottom left, partially visible carton",
+      "confidence": 0.85,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.83,
+       "w": 0.23,
+       "h": 0.13
+      }
+     },
+     "count": 4,
+     "close": {
+      "fromUpload": {
+       "name": "eggs",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.72,
+       "legible": false,
+       "matchesHint": false
+      },
+      "fromOriginal": {
+       "name": "eggs",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.72,
+       "legible": true,
+       "matchesHint": false
+      },
+      "uploadPx": [
+       406,
+       346
+      ],
+      "originalPx": [
+       1133,
+       965
+      ]
+     }
+    },
+    {
+     "wide": {
+      "description": "leafy greens",
+      "productKey": "::leafy greens",
+      "catalogSku": null,
+      "approxLocation": "upper far left in a translucent produce bag",
+      "confidence": 0.76,
+      "isProduct": true,
+      "box": {
+       "x": 0,
+       "y": 0.03,
+       "w": 0.2,
+       "h": 0.22
+      }
+     },
+     "count": 1,
+     "close": {
+      "fromUpload": {
+       "name": "leafy greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.55,
+       "legible": false,
+       "matchesHint": true
+      },
+      "fromOriginal": {
+       "name": "leafy greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.45,
+       "legible": false,
+       "matchesHint": true
+      },
+      "uploadPx": [
+       353,
+       580
+      ],
+      "originalPx": [
+       985,
+       1616
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

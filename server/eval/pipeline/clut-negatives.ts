@@ -34,8 +34,9 @@ function arg(name: string, fallback: string): string {
 process.env.EXPO_PUBLIC_KART_API_URL = arg('api', 'http://127.0.0.1:4310');
 
 const { createPhotoScanState, scanPhoto } = await import('../../../src/engine/liveVision/photoScan');
-const { requestCensus } = await import('../../../src/engine/liveVision/recognitionClient');
-const { prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
+const { requestCensus, requestVerify } = await import('../../../src/engine/liveVision/recognitionClient');
+const { prepareCrops, prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
+const { sharpManipulator } = await import('./sharp-manipulator');
 const { default: sharp } = await import('sharp');
 const { orientedSize } = await import('../../src/compositor');
 
@@ -52,8 +53,11 @@ interface Crop {
 }
 const { crops } = JSON.parse(readFileSync(join(CORPUS, 'negatives.json'), 'utf8')) as { crops: Crop[] };
 
-/** The crop, then the phone's own bound (uploadImage.ts), with sharp standing in for the device. */
-async function cropBase64(crop: Crop): Promise<string> {
+/**
+ * The crop written out as the "original photograph", then the phone's own bound and the phone's
+ * own close-read crops of it (uploadImage.ts), with sharp standing in for the device.
+ */
+async function cropPhoto(crop: Crop): Promise<{ uri: string; width: number; height: number; base64: string }> {
   const file = join(IMAGES, `${crop.source}.jpg`);
   const { width: W, height: H } = orientedSize(await sharp(file).metadata());
   const [fx, fy, fw, fh] = crop.box;
@@ -61,18 +65,9 @@ async function cropBase64(crop: Crop): Promise<string> {
   const cut = await sharp(file).rotate().extract(region).jpeg({ quality: 95 }).toBuffer();
   const tmp = join(IMAGES, `.negative-${crop.id}.jpg`);
   writeFileSync(tmp, cut);
-  return prepareUpload(
-    { uri: tmp, width: region.width, height: region.height },
-    {
-      manipulator: {
-        async toJpegBase64(uri, size, quality) {
-          let image = sharp(uri).rotate();
-          if (size !== null) image = image.resize({ ...size });
-          return (await image.jpeg({ quality: Math.round(quality * 100) }).toBuffer()).toString('base64');
-        },
-      },
-    },
-  );
+  const photo = { uri: tmp, width: region.width, height: region.height };
+  const upload = await prepareUpload(photo, { manipulator: sharpManipulator });
+  return { ...photo, base64: upload.base64 };
 }
 
 interface Row {
@@ -91,9 +86,15 @@ for (let pass = 1; pass <= passes; pass += 1) {
       console.log(`  ${crop.id}: ${crop.source} absent from the cache, skipped`);
       continue;
     }
-    const base64 = await cropBase64(crop);
+    const photo = await cropPhoto(crop);
     const started = Date.now();
-    const outcome = await scanPhoto(createPhotoScanState(), base64, { requestCensus });
+    const outcome = await scanPhoto(createPhotoScanState(), photo.base64, {
+      requestCensus,
+      // The shipped path reads twice: the close read's crops are cut from the "original" here
+      // exactly as the phone cuts them, and a line is asserted only when both readings agree.
+      crop: async (box) => (await prepareCrops(photo, [box], { manipulator: sharpManipulator }))[0],
+      requestVerify,
+    });
     const seconds = (Date.now() - started) / 1000;
     if (!outcome.ok) {
       console.log(`  ${crop.id}: FAILED (${outcome.failure})`);

@@ -107,9 +107,15 @@ check separates "the phone cannot reach the Mac" from everything else.
 When a photograph fails on the phone, the screen says why in a line under the notice, with the
 address it tried. Read that line first; it is the phone's side of the same check.
 
-A line in the bag that the model was not confident of says "Not sure" in amber before anything
-else, rather than being asserted like the rest, and anything the model itself says is not a
-supermarket product never reaches the bag. `server/eval/CLUT.md` measures both.
+Every product in a photograph is read twice: once in the whole photograph, and once more from a
+crop of it cut from the original at the box the first reading placed. A line is asserted only
+when the two readings agree on the product, the brand and the count. After each photograph the
+shopper sees it back with every item outlined, green where the readings agreed and amber where
+they did not, and for an amber item the words "Please give me a better image of this so I can
+confirm what it is." The next photograph replaces the amber line. A line in the bag that is not
+sure says "Not sure" in amber before anything else, and anything the model itself says is not a
+supermarket product never reaches the bag. `server/eval/CLUT.md` measures all of it, and the
+number the review exists to drive to zero is "asserted lines wrong".
 
 Outlines are the one thing this does not set up. They come from a grounded detector too large
 for a phone or a serverless function, so it runs behind `ENUMERATOR_URL` on a GPU host. With that

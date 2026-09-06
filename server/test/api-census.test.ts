@@ -188,7 +188,7 @@ describe("POST /api/census: marks validation", () => {
     });
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, [], []);
   });
 
   it("rejects marks that is not an array", async () => {
@@ -294,7 +294,7 @@ describe("POST /api/census: marks validation", () => {
     ];
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, [], []);
   });
 });
 
@@ -441,7 +441,7 @@ describe("POST /api/census: the capture path, where the server finds the regions
 
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, []);
+    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, [], []);
     const body = await res.json();
     expect(body.enumeration).toBe("degraded");
     expect(body.regions).toEqual([]);
@@ -547,5 +547,27 @@ describe("POST /api/census: the names the session has already counted", () => {
     const sent = runCensusMock.mock.calls[0][3] as string[];
     expect(sent.length).toBeLessThanOrEqual(64);
     expect(Math.max(...sent.map((n) => n.length))).toBeLessThanOrEqual(120);
+  });
+});
+
+/**
+ * A confirmation photograph: the one the shopper takes after the review showed an item in amber.
+ * The names go to the census so it looks for them first and names them the same way.
+ */
+describe("POST /api/census: confirming", () => {
+  it("passes the confirming names to runCensus after the counted list", async () => {
+    runCensusMock.mockResolvedValueOnce({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" } });
+    const res = await handler(post({ image: validImage, counted: ["Nutella"], confirming: ["Rigatoni"] }));
+    expect(res.status).toBe(200);
+    const args = runCensusMock.mock.calls[0];
+    expect(args[3]).toEqual(["Nutella"]);
+    expect(args[4]).toEqual(["Rigatoni"]);
+  });
+
+  it("treats an absent confirming as none, and rejects one that is not an array", async () => {
+    runCensusMock.mockResolvedValueOnce({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" } });
+    await handler(post({ image: validImage }));
+    expect(runCensusMock.mock.calls[0][4]).toEqual([]);
+    expect((await handler(post({ image: validImage, confirming: "Rigatoni" }))).status).toBe(400);
   });
 });

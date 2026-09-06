@@ -5,7 +5,13 @@ import {
   CensusResponse,
   IdentifyResponse,
   InViewCount,
+  UnmarkedItem,
+  VerifyResponse,
+  PhotoResponse,
+  censusFromPhoto,
   productKey,
+  photoJsonSchema,
+  verifyJsonSchema,
 } from "../src/schemas.js";
 
 /** OpenAI strict mode rejects any object that omits these. */
@@ -287,5 +293,95 @@ describe("unmarked items say whether they are a product", () => {
       ],
     };
     expect(() => CensusResponse.parse(old)).not.toThrow();
+  });
+});
+
+/**
+ * Every unmarked item carries a box, so the app can show the shopper which item it means and the
+ * server can cut a close crop of it. Nullable rather than optional: strict mode makes the model
+ * answer on every item, and a product it cannot place is null rather than a guess.
+ */
+describe("unmarked items carry a box", () => {
+  it("requires a nullable box of four 0 to 1 numbers of the model", () => {
+    const props = (censusJsonSchema.properties.unmarkedItems.items.properties as any);
+    expect(props.box.type).toEqual(["object", "null"]);
+    expect(Object.keys(props.box.properties).sort()).toEqual(["h", "w", "x", "y"]);
+    for (const k of ["x", "y", "w", "h"]) expect(props.box.properties[k]).toEqual({ type: "number", minimum: 0, maximum: 1 });
+    expect(censusJsonSchema.properties.unmarkedItems.items.required).toContain("box");
+  });
+
+  it("parses an item with a box, an item with a null box, and an older item with none", () => {
+    const item = { description: "Nutella", productKey: "nutella::nutella", catalogSku: null, approxLocation: "right", confidence: 0.9, isProduct: true };
+    expect(UnmarkedItem.parse({ ...item, box: { x: 0.1, y: 0.2, w: 0.3, h: 0.4 } }).box).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
+    expect(UnmarkedItem.parse({ ...item, box: null }).box).toBeNull();
+    expect(UnmarkedItem.parse(item).box).toBeUndefined();
+  });
+
+  it("rejects a box outside the frame", () => {
+    const item = { description: "Nutella", productKey: "nutella::nutella", catalogSku: null, approxLocation: "right", confidence: 0.9, isProduct: true };
+    expect(() => UnmarkedItem.parse({ ...item, box: { x: 1.2, y: 0, w: 0.1, h: 0.1 } })).toThrow();
+  });
+});
+
+/**
+ * The close read: one crop, one product, and the question of whether it is what the wide pass
+ * said it was.
+ */
+describe("verify schema", () => {
+  it("satisfies OpenAI strict mode at every level", () => {
+    assertStrict(verifyJsonSchema);
+  });
+
+  it("stays in sync with its zod schema", () => {
+    walkAligned(VerifyResponse, verifyJsonSchema, "verify");
+  });
+
+  it("accepts a well-formed answer and rejects a confidence out of range", () => {
+    const ok = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true };
+    expect(VerifyResponse.parse(ok)).toEqual(ok);
+    expect(() => VerifyResponse.parse({ ...ok, confidence: 2 })).toThrow();
+  });
+});
+
+/**
+ * The photograph answer in the model's own terms, folded into the census shape on the server.
+ */
+describe("photo schema", () => {
+  it("satisfies OpenAI strict mode at every level and stays in sync with its zod schema", () => {
+    assertStrict(photoJsonSchema);
+    walkAligned(PhotoResponse, photoJsonSchema, "photo");
+  });
+
+  it("folds into a census: the key derived from name and brand, the box scaled to 0 to 1, the count beside it", () => {
+    const census = censusFromPhoto({
+      subjectKind: "cart",
+      items: [
+        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, box: { x: 58, y: 24, w: 42, h: 37 } },
+        { name: "Bananas", brand: null, count: 1, confidence: 0.95, isProduct: true, box: null },
+      ],
+      occlusion: { severity: "some", reason: "a tin is behind the jar" },
+    });
+    expect(census.subjectIsCart).toBe(true);
+    expect(census.marks).toEqual([]);
+    expect(census.unmarkedItems[0]).toMatchObject({ description: "Rigatoni", productKey: "Priano::Rigatoni", box: { x: 0.58, y: 0.24, w: 0.42, h: 0.37 }, isProduct: true });
+    expect(census.unmarkedItems[1]).toMatchObject({ description: "Bananas", productKey: "::Bananas", box: null });
+    expect(census.inViewCounts).toEqual([
+      { productKey: productKey("Rigatoni", "Priano"), count: 2 },
+      { productKey: productKey("Bananas", null), count: 1 },
+    ]);
+    expect(census.occlusion).toEqual({ itemsLikelyHidden: true, severity: "some", reason: "a tin is behind the jar" });
+  });
+
+  it("sums the counts of one product listed twice, and treats a blank brand as none", () => {
+    const census = censusFromPhoto({
+      subjectKind: "product",
+      items: [
+        { name: "eggs", brand: " ", count: 3, confidence: 0.9, isProduct: true, box: null },
+        { name: "Eggs", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null },
+      ],
+      occlusion: { severity: "none", reason: "" },
+    });
+    expect(census.inViewCounts).toEqual([{ productKey: productKey("eggs", null), count: 4 }]);
+    expect(census.unmarkedItems.map((u) => u.productKey)).toEqual(["::eggs", "::Eggs"]);
   });
 });
