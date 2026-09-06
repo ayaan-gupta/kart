@@ -14,6 +14,12 @@ export interface HaulItem {
   size: string | null;
   category: string;
   qty: number;
+  /**
+   * True when the model was not confident of this line (below `UNSURE_BELOW` in fusion.ts), so
+   * the bag shows it as unsure rather than asserting it. Absent in hauls saved before the flag
+   * existed, which reads as sure.
+   */
+  unsure?: boolean;
   /** Local file URI of a photo of this item, cut from the user's own camera frame. */
   thumbnailUri: string | null;
   /**

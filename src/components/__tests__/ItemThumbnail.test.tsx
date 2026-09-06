@@ -18,6 +18,16 @@ function containsType(node: Json, type: string): boolean {
   return (node.children ?? []).some((n) => containsType(n, type));
 }
 
+describe('itemSubtitle for an unsure item', () => {
+  it('says so first, before anything else on the line', () => {
+    expect(itemSubtitle(item({ unsure: true, brand: 'Priano', size: '500g' }))).toBe('Not sure · Priano · 500g');
+  });
+
+  it('says nothing extra for a sure one', () => {
+    expect(itemSubtitle(item({ unsure: false, size: '1 gal' }))).toBe('1 gal');
+  });
+});
+
 describe('itemSubtitle', () => {
   it('falls back to the category when there is nothing else to say', () => {
     expect(itemSubtitle(item())).toBe('Produce');

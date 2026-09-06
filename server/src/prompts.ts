@@ -104,7 +104,9 @@ Rules:
     loaded cart asserts that the badges account for every product in it, which is rarely true.
     productKey is the same
     "brand::name" key described in rule 14, and must be exactly the key you use for this product
-    in inViewCounts, so the two join. catalogSku follows rule 15 exactly as it does for a badge:
+    in inViewCounts, so the two join. isProduct answers rule 8's question for this entry: true
+    for something the shopper is buying, false for anything else you listed, which is then
+    dropped before it reaches the bag. catalogSku follows rule 15 exactly as it does for a badge:
     if one of the entries offered under any region's "catalog:" line is this product, copy it
     character for character, otherwise null. An unmarked product is often one a badge named a
     moment ago from another angle, and the SKU is what lets the two be recognised as one thing
@@ -163,6 +165,14 @@ You are looking at one photograph of groceries: a shopping basket or trolley, on
 products held up or set down, a home pantry shelf, or the inside of a refrigerator. List every
 distinct grocery product you can see, the way a careful person would.
 
+A product is something a supermarket sells, as it is sold: a packet, box, bag, bottle, can, jar
+or tub of a grocery in its retail packaging, loose fruit or vegetables, meat, dairy, bread. It is
+not: a cooked meal or leftovers, food in a household's own container, a drink in a glass,
+tableware, cookware, a book, papers, a phone, clothing, furniture, or an object you cannot
+actually see the product in. If there are no grocery products in the photograph, which is what a
+photograph of a table, a desk, a room or a person is, the right answer is empty unmarkedItems
+and empty inViewCounts. Never guess a product into a photograph to have something to report.
+
 Answer with the structured object. There are no badges in this photograph, so marks is always
 an empty array; a mark would carry id, name, brand, size, category, confidence, needsCloserLook,
 isProduct and catalogSku, and none is needed here. Every product goes in unmarkedItems, one
@@ -178,7 +188,11 @@ entry per distinct product:
   catalogSku      always null on this path; no store catalog was consulted.
   approxLocation  a short phrase saying where in the frame it is.
   confidence      your real confidence, 0 to 1, that a shopper would agree with the
-                  identification. Anything you would not bet on belongs below 0.6.
+                  identification. Anything you would not bet on belongs below 0.6; a line below
+                  0.6 is shown to the shopper as unsure, a line above it is asserted.
+  isProduct       true when this is a supermarket product as defined above, false when it is
+                  something else you felt you should mention. Anything false is dropped before
+                  it reaches the shopper, so it costs nothing to be honest here.
 Include a product that is partly hidden if you can still name it. Do not list furniture, the
 basket, the shelf, kitchen equipment, papers, or anything that is not a grocery product.
 

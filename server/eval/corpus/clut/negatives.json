@@ -1,0 +1,54 @@
+{
+ "note": "Photographs with no grocery products in them, cut from the clut originals so they need no new provenance: the same files, the same licence, a different rectangle. A tester photographed a table and the bag said 'assorted chocolates'; these are the regression test for that. Each box is [left, top, width, height] as fractions of the EXIF-oriented frame. The right answer to every one of them is an empty bag, apart from lines matching an 'allowed' phrase, which name a real product that happens to be in the crop; a line at or above the unsure threshold is a false assertion, a line below it is a false but flagged guess. Scored by server/eval/pipeline/clut-negatives.ts.",
+ "crops": [
+  {
+   "id": "desk-with-book",
+   "source": "clut4",
+   "box": [
+    0,
+    0,
+    1,
+    0.2
+   ],
+   "what": "a countertop with a hardback book, a wallet, an envelope and some papers, the corner of a face mask, a red sofa behind"
+  },
+  {
+   "id": "plain-counter",
+   "source": "clut5",
+   "box": [
+    0,
+    0.8,
+    1,
+    0.2
+   ],
+   "what": "bare speckled countertop below the basket, nothing on it"
+  },
+  {
+   "id": "floor-and-feet",
+   "source": "clut14",
+   "box": [
+    0,
+    0.74,
+    1,
+    0.26
+   ],
+   "what": "kitchen floor tiles and the shopper's feet in sandals, below the refrigerator drawer"
+  },
+  {
+   "id": "fridge-top-shelf",
+   "source": "clut13",
+   "box": [
+    0,
+    0,
+    1,
+    0.1
+   ],
+   "what": "the top strip of a refrigerator: leftovers in clear plastic tubs, and the neck of a green wine bottle",
+   "allowed": [
+    "bottle",
+    "wine",
+    "beverage"
+   ]
+  }
+ ]
+}

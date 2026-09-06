@@ -37,6 +37,8 @@ export function migrateHaulItems(raw: unknown): HaulItem[] {
         name: row.name,
         brand: typeof row.brand === 'string' ? row.brand : null,
         size: typeof row.size === 'string' ? row.size : null,
+        // Only when the row says so: a haul saved before the flag existed keeps its shape.
+        ...(row.unsure === true ? { unsure: true } : {}),
         category: typeof row.category === 'string' ? row.category : 'Grocery',
         qty,
         thumbnailUri: typeof row.thumbnailUri === 'string' ? row.thumbnailUri : null,
@@ -165,6 +167,7 @@ export const useScanline = create<ScanlineState>()(
             size: line.size,
             category: line.category,
             qty: line.qty,
+            unsure: line.unsure ?? false,
             // `line.key` first, then any key folded into this line: the picture is stored under
             // the resolved key of whichever track earned it, which may be the one the fold dropped.
             //

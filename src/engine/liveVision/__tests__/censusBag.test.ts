@@ -327,3 +327,42 @@ describe('the brand of an unmarked product', () => {
     expect(bagLines(state)[0].name).toBe('Shelled walnuts');
   });
 });
+
+/**
+ * CLAUDE.md's fourth requirement, on the line the shopper reads: an item the model is unsure
+ * about is flagged as unsure, not asserted. A tester photographed a table and read "assorted
+ * chocolates" in the bag with nothing to say it was a guess. The prompt's own rule is that a
+ * guess belongs below 0.6, so that is where a line becomes "unsure"; and something the model
+ * itself says is not a product never reaches the bag at all.
+ */
+describe('unsure lines and non-products', () => {
+  const unmarked = (description: string, confidence: number, isProduct = true) => ({
+    description, productKey: `::${description}`, catalogSku: null, approxLocation: 'centre', confidence, isProduct,
+  });
+  const census = (items: ReturnType<typeof unmarked>[]): CensusResult => ({
+    marks: [],
+    inViewCounts: items.map((i) => ({ productKey: i.productKey, count: 1 })),
+    unmarkedItems: items,
+  });
+
+  it('marks a line unsure below the confidence the prompt calls a guess', () => {
+    const state = applyCensus(createFusionState(), census([unmarked('assorted chocolates', 0.25), unmarked('bananas', 0.9)]), {}, [], false, {});
+    const lines = bagLines(state);
+    expect(lines.find((l) => l.name === 'assorted chocolates')?.unsure).toBe(true);
+    expect(lines.find((l) => l.name === 'bananas')?.unsure).toBe(false);
+  });
+
+  it('never puts something the model says is not a product in the bag', () => {
+    const state = applyCensus(createFusionState(), census([unmarked('food leftovers', 0.8, false), unmarked('bananas', 0.9)]), {}, [], false, {});
+    expect(bagLines(state).map((l) => l.name)).toEqual(['bananas']);
+  });
+
+  it('does not call a confident badge unsure', () => {
+    const state = applyCensus(
+      createFusionState(),
+      { marks: [mark(0, 'egg carton')], inViewCounts: [{ productKey: '::egg carton', count: 1 }], unmarkedItems: [] },
+      { 0: 'a' }, ['a'], false, { a: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
+    );
+    expect(bagLines(state)[0].unsure).toBe(false);
+  });
+});

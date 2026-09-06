@@ -62,7 +62,7 @@ export interface CensusResult {
    * unmarked item has no polygon and so never gets an outline, but it still gets named, still
    * gets counted, and still reaches the bag, which is worth far more than the outline.
    */
-  unmarkedItems?: { description: string; productKey?: string; catalogSku?: string | null; confidence?: number }[];
+  unmarkedItems?: { description: string; productKey?: string; catalogSku?: string | null; confidence?: number; isProduct?: boolean }[];
 }
 
 export interface FusionState {
@@ -726,12 +726,16 @@ export function applyCensus(
   // say so in inViewCounts, but when it lists a product twice and counts it once, the listing is
   // the more direct evidence, so take whichever is larger.
   const listedTimes = new Map<string, number>();
-  for (const unmarked of census.unmarkedItems ?? []) {
+  // What the model itself says is not a product never reaches the bag. The server already drops
+  // these; an older server, or the local model, may not, and the bag is the last place it can
+  // be caught.
+  const products = (census.unmarkedItems ?? []).filter((u) => u.isProduct !== false);
+  for (const unmarked of products) {
     if (!unmarked.description.trim()) continue;
     listedTimes.set(unmarkedKey(working, unmarked), (listedTimes.get(unmarkedKey(working, unmarked)) ?? 0) + 1);
   }
 
-  for (const unmarked of census.unmarkedItems ?? []) {
+  for (const unmarked of products) {
     const name = unmarked.description.trim();
     if (!name) continue;
     const key = unmarkedKey(working, unmarked);
@@ -826,6 +830,14 @@ export function applyBarcode(
   return { ...working, identities };
 }
 
+/**
+ * Below this, a line is shown as unsure rather than asserted. It is the prompt's own number:
+ * both census prompts tell the model that anything it would not bet on belongs below 0.6, so
+ * this is where the model's doubt and the shopper's view of it agree. CLAUDE.md's fourth
+ * requirement is that an unsure item is flagged, not asserted; this is the flag.
+ */
+export const UNSURE_BELOW = 0.6;
+
 export interface BagLine {
   key: string;
   name: string;
@@ -833,6 +845,8 @@ export interface BagLine {
   size: string | null;
   category: string;
   qty: number;
+  /** True when the model's confidence in this line is below `UNSURE_BELOW`. */
+  unsure: boolean;
   /**
    * Keys that were folded into this line, if any.
    *
@@ -874,7 +888,15 @@ export function bagLines(state: FusionState): BagLine[] {
   const lines: BagLine[] = order
     .map((key): BagLine => {
       const { identity } = display.get(key)!;
-      return { key, name: identity.name, brand: identity.brand, size: identity.size, category: identity.category, qty: state.maxSimultaneous[key] ?? 0 };
+      return {
+        key,
+        name: identity.name,
+        brand: identity.brand,
+        size: identity.size,
+        category: identity.category,
+        qty: state.maxSimultaneous[key] ?? 0,
+        unsure: identity.confidence < UNSURE_BELOW,
+      };
     })
     .filter((line) => line.qty > 0);
 

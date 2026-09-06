@@ -156,20 +156,21 @@ bound and the service's own call, before and after the change. "Before" is the s
 Luna run re-scored with the corrected scorer, so the two columns differ only in the tier and
 the prompt:
 
-|  | Luna, 16 rules, 1 pass | **Sol, photo prompt, 3 passes** |
-|---|---|---|
-| 1 every item reaches the bag | 66/82 80% | 218/246 **89%** |
-| &nbsp;&nbsp;of which, the basket | 32/37 86% | 105/111 **95%** |
-| &nbsp;&nbsp;of which, pantry and fridge | 34/45 76% | 113/135 **84%** |
-| 2 quantities are right | 59/66 89% | 192/218 **88%** |
-| &nbsp;&nbsp;brands right | 35/44 80% | 129/144 **90%** |
-| &nbsp;&nbsp;brands right, the basket | 20/24 83% | 75/81 **93%** |
-| 3 hidden items are flagged | 7/13 | **39/39** |
-| 4 unsure items are flagged | 7/31 | 9/36 |
-| lines matching nothing real, the basket | 3 | 5 |
-| seconds per photograph | 4.9 | 6.5 |
+|  | Luna, 16 rules, 1 pass | Sol, photo prompt, 3 passes | **Sol, with the product gate, 3 passes** |
+|---|---|---|---|
+| 1 every item reaches the bag | 66/82 80% | 218/246 89% | 222/246 **90%** |
+| &nbsp;&nbsp;of which, the basket | 32/37 86% | 105/111 95% | 105/111 **95%** |
+| &nbsp;&nbsp;of which, pantry and fridge | 34/45 76% | 113/135 84% | 117/135 **87%** |
+| 2 quantities are right | 59/66 89% | 192/218 88% | 195/222 **88%** |
+| &nbsp;&nbsp;brands right | 35/44 80% | 129/144 90% | 132/144 **92%** |
+| 3 hidden items are flagged | 7/13 | 39/39 | **39/39** |
+| 4 unsure items are flagged | 7/31 | 9/36 | 8/39 |
+| lines matching nothing real, all tiers | 13 | 69 | **49** |
+| seconds per photograph | 4.9 | 6.5 | 6.6 |
 
-`clut-photos-sol.json` is the Sol run. Requirement 4 did not move and is the open one: an
+`clut-photos-sol.json` is the gated run, the shipped path as it stands. The gate ("Nothing to
+buy in the frame", below) drops what the model itself says is not a product, which is where the
+twenty fewer lines matching nothing real went; it dropped nothing labelled. Requirement 4 did not move and is the open one: an
 illegible product still comes back with a confident guess more often than not, on either tier.
 The remaining basket-tier brand errors are one bag: PRIANO's stylised logo read as "Piano",
 "Pri Ano" or "Pri" on 5 of 42 readings. A first draft of the photo prompt said to read the brand
@@ -181,6 +182,48 @@ base behind the Nutella, a cookie mix box, sponges, a whey tub, a Freshpak box, 
 packaged chicken under the apples, and clut13's second milk carton. They are the mostly hidden
 things in the pantry and fridge photographs, and the shipped answer to them is the occlusion
 notice, which every Sol pass raises on 12 of the 13 photographs that have something hidden.
+
+## Nothing to buy in the frame, measured on 2026-09-05
+
+A tester photographed a table and the bag said "assorted chocolates". Two things have to hold
+for that not to happen: the model must be allowed to answer "nothing", and what it does report
+must be shown as sure or unsure according to its own confidence, because the shopper had no way
+to tell a guess from a reading.
+
+`corpus/clut/negatives.json` cuts four rectangles out of the clut originals and
+`clut-negatives.ts` sends them through the shipped photo path. Three hold nothing to buy at all:
+a desk with a book, a wallet and papers; a bare countertop; floor tiles and the shopper's feet.
+The fourth is the hard case, the top strip of a refrigerator with leftovers in the household's
+own tubs and the neck of a wine bottle, where the bottle is a real product and the tubs are
+not. Three passes each, before and after today's change, and once more through the server as it
+was before Sol (`675a304`, Luna under the sixteen badge rules), which is the code the tester most
+likely had:
+
+|  | three empty scenes, 9 scans | the fridge strip, 3 scans |
+|---|---|---|
+| Luna, 16 rules (`675a304`) | 9/9 empty | not run |
+| Sol, photo prompt, before the gate | 9/9 empty | "food leftovers" at 0.54 and "bottled beverage" at 0.45, every pass |
+| **Sol, photo prompt, with the gate** | **9/9 empty** | **3/3 empty**, the bottle named once and allowed |
+
+An empty scene does not produce a product on any tier, so the report is not an empty-scene
+invention these crops can reproduce; it reads as an object on the tester's table misread and
+then asserted. What the fridge strip shows is the gate doing its job on exactly that shape of
+error: an object that is food but not a product, which the model listed at a confidence below
+its own guessing line and the bag would have asserted. Two changes, both kept:
+
+1. **`isProduct` on every unmarked item.** The photo prompt now defines a product as something a
+   supermarket sells, as it is sold, and lists what is not (leftovers, food in the household's
+   own container, a drink in a glass, tableware, a book, a phone, furniture). The model answers
+   the question per item, the same field a badge has always carried under rule 8, and the server
+   drops anything it answers false to, with its count. It also says in words that a table, a
+   desk, a room or a person has no products in it and that empty lists are the right answer.
+2. **Unsure lines are flagged in the bag.** Both prompts have always told the model that a guess
+   belongs below 0.6. The bag now shows a line below that as "Not sure" in amber, first on its
+   subtitle, instead of asserting it like any other line. That is CLAUDE.md's fourth requirement
+   arriving on the screen for the first time.
+
+The fifteen positives were re-run through the gate to make sure it drops nothing real; the row is
+in the shipped-path table above.
 
 ## What the numbers do not cover
 

@@ -39,6 +39,8 @@ export interface UnmarkedItem {
   catalogSku: string | null;
   approxLocation: string;
   confidence: number;
+  /** Whether the model says this is a supermarket product. An older server never says, which reads as true. */
+  isProduct: boolean;
 }
 
 /**
@@ -335,6 +337,7 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
         catalogSku: nullableStr(raw.catalogSku),
         approxLocation: str(raw.approxLocation),
         confidence: Math.min(1, Math.max(0, num(raw.confidence))),
+        isProduct: raw.isProduct !== false,
       });
     }
   }

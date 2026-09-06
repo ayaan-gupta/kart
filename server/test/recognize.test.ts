@@ -92,6 +92,39 @@ describe("runCensus on a photograph (no marks)", () => {
   });
 });
 
+describe("runCensus drops what the model says is not a product", () => {
+  it("removes an unmarked item with isProduct false, and its count", async () => {
+    mockOutput({
+      marks: [],
+      unmarkedItems: [
+        { description: "Bananas", productKey: "::bananas", catalogSku: null, approxLocation: "left", confidence: 0.9, isProduct: true },
+        { description: "Food leftovers in a tub", productKey: "::food leftovers", catalogSku: null, approxLocation: "right", confidence: 0.5, isProduct: false },
+      ],
+      inViewCounts: [
+        { productKey: "::bananas", count: 1 },
+        { productKey: "::food leftovers", count: 1 },
+      ],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.unmarkedItems.map((u) => u.description)).toEqual(["Bananas"]);
+    expect(result.inViewCounts.map((c) => c.productKey)).toEqual(["::banana"]);
+  });
+
+  it("keeps an item from an older answer that has no isProduct", async () => {
+    mockOutput({
+      marks: [],
+      unmarkedItems: [
+        { description: "Bananas", productKey: "::bananas", catalogSku: null, approxLocation: "left", confidence: 0.9 },
+      ],
+      inViewCounts: [{ productKey: "::bananas", count: 1 }],
+      occlusion: wellFormedOcclusion,
+    });
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.unmarkedItems).toHaveLength(1);
+  });
+});
+
 describe("runCensus request shape", () => {
   it("sends the census model, effort none, and the strict census schema", async () => {
     mockOutput({

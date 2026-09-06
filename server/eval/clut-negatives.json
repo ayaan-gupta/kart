@@ -1,0 +1,93 @@
+{
+ "ranAt": "2026-09-06T03:01:39.191Z",
+ "summary": {
+  "scans": 12,
+  "clean": 12,
+  "asserted": 0,
+  "unsure": 0,
+  "allowed": 1,
+  "secondsAvg": 2.02
+ },
+ "rows": [
+  {
+   "pass": 1,
+   "id": "desk-with-book",
+   "seconds": 2.045,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "plain-counter",
+   "seconds": 1.776,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "floor-and-feet",
+   "seconds": 1.809,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "fridge-top-shelf",
+   "seconds": 1.981,
+   "lines": []
+  },
+  {
+   "pass": 2,
+   "id": "desk-with-book",
+   "seconds": 1.713,
+   "lines": []
+  },
+  {
+   "pass": 2,
+   "id": "plain-counter",
+   "seconds": 1.881,
+   "lines": []
+  },
+  {
+   "pass": 2,
+   "id": "floor-and-feet",
+   "seconds": 1.817,
+   "lines": []
+  },
+  {
+   "pass": 2,
+   "id": "fridge-top-shelf",
+   "seconds": 2.791,
+   "lines": [
+    {
+     "name": "bottled beverage",
+     "brand": null,
+     "qty": 1,
+     "unsure": true,
+     "allowed": true
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "desk-with-book",
+   "seconds": 1.771,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "plain-counter",
+   "seconds": 2.699,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "floor-and-feet",
+   "seconds": 1.881,
+   "lines": []
+  },
+  {
+   "pass": 3,
+   "id": "fridge-top-shelf",
+   "seconds": 2.127,
+   "lines": []
+  }
+ ]
+}

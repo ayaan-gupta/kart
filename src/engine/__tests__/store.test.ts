@@ -181,3 +181,33 @@ describe('a folded bag line owns more than one thumbnail file', () => {
     expect(item.extraThumbnailUris).toEqual([]);
   });
 });
+
+describe('an unsure line stays unsure in the bag', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    jest.resetModules();
+  });
+
+  it('setBag carries the flag onto the item, and a haul keeps it', () => {
+    const { useScanline } = require('../store');
+    useScanline.getState().startScan();
+    useScanline.getState().setBag(
+      [
+        { key: '::assorted chocolates', name: 'Assorted chocolates', brand: null, size: null, category: 'other', qty: 1, unsure: true },
+        { key: '::bananas', name: 'Bananas', brand: null, size: null, category: 'Produce', qty: 1, unsure: false },
+      ],
+      {},
+    );
+    const items = useScanline.getState().scan.items;
+    expect(items.find((i: { name: string }) => i.name === 'Assorted chocolates')?.unsure).toBe(true);
+    expect(items.find((i: { name: string }) => i.name === 'Bananas')?.unsure).toBe(false);
+    const haulId = useScanline.getState().finishHaul();
+    const haul = useScanline.getState().hauls.find((h: { id: string }) => h.id === haulId);
+    expect(haul.items.find((i: { name: string }) => i.name === 'Assorted chocolates')?.unsure).toBe(true);
+  });
+
+  it('migrates a stored item without the flag as sure', () => {
+    const items = migrateHaulItems([{ key: '::x', name: 'X', qty: 1 }]);
+    expect(items[0].unsure).toBeFalsy();
+  });
+});

@@ -27,6 +27,7 @@ function reply(
       catalogSku: null,
       approxLocation: 'centre of frame',
       confidence: i.confidence ?? 0.9,
+      isProduct: true,
     })),
     occlusion,
     regions: [],

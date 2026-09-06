@@ -67,6 +67,15 @@ unchanged. A photo costs about two cents against a twentieth of one, which is th
 brands being right. Pull under `server/` and run `./scripts/serve.sh`; nothing on the phone
 changes.
 
+A tester then photographed a table and read "assorted chocolates" in the bag. Three grocery-free
+crops of the owner's own photographs come back empty nine times out of nine on both the old and
+the new server (`server/eval/CLUT.md`, "Nothing to buy in the frame"), so that report is not an
+empty-scene invention this corpus can reproduce; it reads as an object on the table misread and
+asserted. Two changes answer the second half of that: the model now says per item whether it is
+a supermarket product and the server drops what is not, and a line the model is not confident
+of shows as "Not sure" in the bag rather than asserted. The bag change is in the app, so it
+needs a rebuild; the gate is server side.
+
 ## The three gaps
 
 | | what is missing | what the app does without it | verified |

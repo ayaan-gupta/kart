@@ -299,6 +299,7 @@ esac
       input: machine.stdin,
       timeout: 120000,
       env: {
+        NODE_ENV: 'test',
         PATH,
         HOME: this.home,
         LANG: 'en_US.UTF-8',

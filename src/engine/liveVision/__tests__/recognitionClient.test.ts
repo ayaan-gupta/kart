@@ -344,3 +344,33 @@ describe('choosing between candidate addresses', () => {
     expect(posted?.[0]).toBe('http://first.test:4310/api/census');
   });
 });
+
+describe('unmarked items carry whether the model called them a product', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('reads isProduct, and treats an older server that omits it as true', async () => {
+    mockFetch(jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ok: true,
+        result: {
+          marks: [],
+          unmarkedItems: [
+            { description: 'leftovers', productKey: '::leftovers', approxLocation: 'left', confidence: 0.5, isProduct: false },
+            { description: 'bananas', productKey: '::bananas', approxLocation: 'top', confidence: 0.9 },
+          ],
+          inViewCounts: [],
+          occlusion: { itemsLikelyHidden: false, severity: 'none', reason: '' },
+        },
+      }),
+    }));
+    const res = await requestCensus(req);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value.unmarkedItems[0].isProduct).toBe(false);
+    expect(res.value.unmarkedItems[1].isProduct).toBe(true);
+  });
+});

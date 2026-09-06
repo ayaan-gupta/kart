@@ -150,7 +150,7 @@ export function BagTray({ onFinish }: { onFinish: () => void }) {
                   <ItemThumbnail uri={it.thumbnailUri} size={46} />
                   <View style={styles.lineText}>
                     <Headline numberOfLines={1}>{it.name}</Headline>
-                    <Sub>{itemSubtitle(it)}</Sub>
+                    <Sub color={it.unsure ? color.amber : undefined}>{itemSubtitle(it)}</Sub>
                   </View>
                   {it.qty > 1 ? <Headline>{`x${it.qty}`}</Headline> : null}
                 </Animated.View>

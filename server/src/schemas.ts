@@ -52,6 +52,15 @@ export const UnmarkedItem = z.object({
   catalogSku: z.string().nullable(),
   approxLocation: z.string(),
   confidence: z.number().min(0).max(1),
+  /**
+   * Whether this is something a supermarket sells, the same question rule 8 asks of a badge.
+   *
+   * A tester photographed a table and the bag said "assorted chocolates". The model had been
+   * asked to list products and had nothing to list, and nothing in the answer let it say that
+   * what it saw was not a product. Required of the model in `censusJsonSchema`; optional here so
+   * an older server's answer, which never carried it, still parses and reads as true.
+   */
+  isProduct: z.boolean().optional(),
 });
 
 export const InViewCount = z.object({
@@ -215,8 +224,9 @@ export const censusJsonSchema = {
           catalogSku: { type: ["string", "null"] },
           approxLocation: { type: "string" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
+          isProduct: { type: "boolean" },
         },
-        required: ["description", "productKey", "catalogSku", "approxLocation", "confidence"],
+        required: ["description", "productKey", "catalogSku", "approxLocation", "confidence", "isProduct"],
         additionalProperties: false,
       },
     },

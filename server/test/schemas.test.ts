@@ -259,3 +259,33 @@ describe("zod schema and JSON Schema stay in sync", () => {
     expect(countNode).toEqual({ type: "integer" });
   });
 });
+
+describe("unmarked items say whether they are a product", () => {
+  const base = {
+    marks: [],
+    inViewCounts: [],
+    occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+  };
+  it("carries isProduct on an unmarked item, and requires it of the model", () => {
+    const ok = {
+      ...base,
+      unmarkedItems: [
+        { description: "leftovers in a tub", productKey: "::leftovers", catalogSku: null, approxLocation: "left", confidence: 0.5, isProduct: false },
+      ],
+    };
+    expect(CensusResponse.parse(ok).unmarkedItems[0].isProduct).toBe(false);
+    const wire = censusJsonSchema.properties.unmarkedItems.items;
+    expect(wire.required).toContain("isProduct");
+    expect(wire.properties.isProduct).toEqual({ type: "boolean" });
+  });
+
+  it("still parses an older server's item that has no isProduct at all", () => {
+    const old = {
+      ...base,
+      unmarkedItems: [
+        { description: "bananas", productKey: "::bananas", catalogSku: null, approxLocation: "left", confidence: 0.9 },
+      ],
+    };
+    expect(() => CensusResponse.parse(old)).not.toThrow();
+  });
+});

@@ -445,13 +445,22 @@ function normalizeCensusResponse(
   // Dropped before anything else reads them, so no later stage has to know about this case and
   // no caller can reach a null answer that this one skipped. Both arrays are filtered, because
   // the model reports the same non-answer in both and dropping one leaves the other counting it.
+  // What the model itself says is not a product leaves here too, with its count. This is rule 8
+  // applied to the unmarked list: a tub of leftovers, a book, a bowl of something on a table.
+  // Absent means true, which is what every answer before the field existed meant.
+  const notProducts = new Set(
+    response.unmarkedItems.filter((u) => u.isProduct === false).map((u) => reDeriveFromRawKey(u.productKey)),
+  );
   const unmarkedItems = response.unmarkedItems.filter(
     (u) =>
+      u.isProduct !== false &&
       !isNullAnswerKey(reDeriveFromRawKey(u.productKey)) &&
       !isNullAnswerKey(productKey(u.description, null)),
   );
   const counted = response.inViewCounts.filter(
-    (c) => !isNullAnswerKey(reDeriveFromRawKey(c.productKey)),
+    (c) =>
+      !isNullAnswerKey(reDeriveFromRawKey(c.productKey)) &&
+      !notProducts.has(reDeriveFromRawKey(c.productKey)),
   );
 
   const marks = response.marks.map((m) => ({ ...m, brand: normalizeBrand(m.brand) }));

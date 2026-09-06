@@ -40,6 +40,8 @@ export function ItemThumbnail({ uri, size }: { uri: string | null; size: number 
  */
 export function itemSubtitle(item: HaulItem): string {
   const parts: string[] = [];
+  // First, before the brand: the one thing the shopper should read before trusting the line.
+  if (item.unsure) parts.push('Not sure');
   if (item.brand) parts.push(item.brand);
   parts.push(item.size ?? item.category);
   if (item.qty > 1) parts.push(`${item.qty} in bag`);

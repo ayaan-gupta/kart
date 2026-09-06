@@ -300,3 +300,28 @@ describe("PHOTO_SYSTEM_PROMPT", () => {
     expect(PHOTO_SYSTEM_PROMPT.length).toBeLessThan(CENSUS_SYSTEM_PROMPT.length / 2);
   });
 });
+
+/**
+ * A tester photographed a table and the bag said "assorted chocolates". Two things have to be
+ * true for that to stop: the model has to be told that "nothing here" is a right answer, and it
+ * has to be told what a product is, which is something a supermarket sells and not whatever
+ * object is on the table. Both prompts now say so, and both carry the answer per item, in the
+ * same isProduct field the badges have always had.
+ */
+describe("only supermarket products, and nothing is a valid answer", () => {
+  it("PHOTO_SYSTEM_PROMPT defines a product as something a supermarket sells", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/supermarket/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/isProduct/);
+  });
+
+  it("PHOTO_SYSTEM_PROMPT says a photograph with no products gets empty lists, and names the case", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/no grocery products?/i);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/table/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/never guess|do not guess|not guess/i);
+  });
+
+  it("CENSUS_SYSTEM_PROMPT gives unmarked items the same isProduct answer as badges", () => {
+    const rule12 = CENSUS_SYSTEM_PROMPT.slice(CENSUS_SYSTEM_PROMPT.indexOf("12."), CENSUS_SYSTEM_PROMPT.indexOf("13."));
+    expect(rule12).toMatch(/isProduct/);
+  });
+});
