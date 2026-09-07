@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { photoJsonSchema } from "../src/schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, verifyUserText } from "../src/prompts.js";
 import type { Mark } from "../src/compositor.js";
 import {
@@ -25,10 +26,27 @@ function expectPromptNamesField(prompt: string, field: string): void {
   expect(re.test(prompt), `expected prompt to mention field "${field}" as a standalone token`).toBe(true);
 }
 
+/**
+ * The empty-marks branch is reached from exactly one place, the photograph call in recognize.ts,
+ * and that call is answered against `photoJsonSchema`, whose array of products is `items`. It
+ * used to ask for `unmarkedItems`, which is the *census* schema's field and does not exist in the
+ * one the model is being handed. gpt-5.6-sol read through the mismatch; qwen3-vl-235b obeyed it
+ * literally and returned an empty list on all fifteen clut photographs (2026-09-07). A prompt
+ * that names a field its own schema does not have is a defect whichever model tolerates it.
+ */
+describe("censusUserText names a field the photo schema actually has", () => {
+  it("asks for the photo schema's own array, not the census schema's", () => {
+    const text = censusUserText([]);
+    expect(Object.keys(photoJsonSchema.properties)).toContain("items");
+    expect(text).toContain("items");
+    expect(text).not.toContain("unmarkedItems");
+  });
+});
+
 describe("censusUserText", () => {
-  it("tells the model to use unmarkedItems when no regions were detected", () => {
+  it("tells the model to use items when no regions were detected", () => {
     expect(censusUserText([])).toBe(
-      "No regions were detected. List every grocery product you can see in unmarkedItems.",
+      "No regions were detected. List every grocery product you can see in items.",
     );
   });
 
@@ -195,7 +213,7 @@ describe("censusUserText carries what the session already counted", () => {
     // field existed, which is what keeps an older client behaving identically.
     expect(censusUserText([mark(1)])).not.toMatch(/already counted/i);
     expect(censusUserText([])).toBe(
-      "No regions were detected. List every grocery product you can see in unmarkedItems.",
+      "No regions were detected. List every grocery product you can see in items.",
     );
   });
 

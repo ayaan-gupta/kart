@@ -61,6 +61,14 @@ export const PRICES_PER_MTOK: Record<string, { input: number; cached: number; ou
   "gpt-5.4": { input: 2.5, cached: 0.25, output: 15 },
   "gpt-5.4-mini": { input: 0.75, cached: 0.075, output: 4.5 },
   "gpt-5.4-nano": { input: 0.2, cached: 0.02, output: 1.25 },
+  // Open Qwen tiers reached through OpenRouter (OPENAI_BASE_URL), for the eval harnesses. Rates
+  // are OpenRouter's listed ones and were checked against a real bill rather than copied: one
+  // Alibaba call of 3,684 input and 355 output tokens was billed $0.00127218, which these two
+  // numbers reproduce exactly. No cached rate is documented for these upstreams, so cached input
+  // is priced at the full rate, which overstates rather than flatters a cache-heavy run.
+  "qwen/qwen3.5-27b": { input: 0.195, cached: 0.195, output: 1.56 },
+  "qwen/qwen3.5-9b": { input: 0.1, cached: 0.1, output: 0.15 },
+  "qwen/qwen3-vl-235b-a22b-instruct": { input: 0.21, cached: 0.21, output: 1.9 },
 };
 
 /**

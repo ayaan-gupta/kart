@@ -237,6 +237,27 @@ const IDENTIFY_EFFORT: "none" | "low" | "medium" | "high" = (() => {
   return raw === "none" || raw === "low" || raw === "medium" || raw === "high" ? raw : "low";
 })();
 
+/**
+ * Pins one OpenRouter upstream provider, for the eval harnesses only.
+ *
+ * Only meaningful with `OPENAI_BASE_URL` pointed at OpenRouter, which routes a model to whichever
+ * of several upstreams it likes. That choice is not cosmetic and it is not only about speed. The
+ * same `qwen/qwen3.5-27b` call on the same photograph, measured 2026-09-07:
+ *
+ *     DeepInfra      1,783 input tokens    6.8 s   $0.0014
+ *     Alibaba        3,684 input tokens    8.8 s   $0.0013
+ *     SiliconFlow   16,981 input tokens   25.8 s   $0.0047
+ *
+ * Input tokens are the image: Qwen bills 32x32 px per visual token, so an upstream serving at a
+ * lower `max_pixels` is reading a smaller photograph, and reading a brand off a downscaled
+ * package is the failure this project spends most of its effort on. An unpinned run therefore
+ * measures a different resolution on every call and cannot be reproduced, which CLAUDE.md counts
+ * as unmeasured. Alibaba's 3,684 is roughly native for the 2048px upload.
+ *
+ * Unset, nothing is sent and the call is exactly the OpenAI one it has always been.
+ */
+const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || undefined;
+
 async function requestOutputText(
   context: string,
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
@@ -244,8 +265,13 @@ async function requestOutputText(
   // Every OpenAI call in this project comes through here, which is the whole reason the token
   // count is taken here and not in the callers. See `usage.ts` for what went wrong without it.
   installUsageReporter();
+  // `allow_fallbacks: false` so a busy upstream fails the call rather than silently answering
+  // from a different one, which would put two resolutions in one run's numbers.
+  const sent = OPENROUTER_PROVIDER
+    ? { ...params, provider: { order: [OPENROUTER_PROVIDER], allow_fallbacks: false } }
+    : params;
   try {
-    const response = await openai.responses.create(params);
+    const response = await openai.responses.create(sent);
     // After the await, so a failed call is not counted as spend. A 429 or a 400 bills nothing,
     // and counting it would inflate the total in exactly the situation someone is reading it.
     recordUsage(

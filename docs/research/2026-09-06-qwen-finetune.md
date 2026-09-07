@@ -2,6 +2,37 @@
 
 Research memo, 2026-09-06. Sources are numbered [S#] and listed at the end. Numbers reported by a model vendor about its own model are marked "vendor".
 
+## Outcome: the experiment in section 6 was run on 2026-09-07
+
+Step 0 was run. **Qwen was measured and not adopted.** Full numbers and method in
+`server/eval/CLUT.md`, "Qwen instead of Sol, measured on 2026-09-07". In short, against the same
+fifteen photographs, the same labels and the same scorer, on the cart tier through both readings:
+
+| | found | brands | asserted wrong | seconds | per photo |
+|---|---|---|---|---|---|
+| gpt-5.6-sol | 97% | 100% | 0/31 | 7.1 | $0.066 |
+| qwen3.5-27b | 86% | 92% | 6/31 | 12.5 | $0.0045 |
+| qwen3-vl-235b-a22b | 78% | 96% | 0/16 | 10.5 | $0.0029 |
+
+Four things this memo did not predict:
+
+1. No port was needed. OpenRouter implements the Responses API with strict `json_schema`, so
+   `OPENAI_BASE_URL` and `KART_PHOTO_MODEL` were the entire change.
+2. The benchmark ranking did not transfer. This memo cites Qwen3.5-27B at OCRBench 894 against
+   GPT-5's 810, and predicted the brand misreads were where Qwen would win. On real packaging it
+   read brands nine points *worse* than Sol and reproduced the PRIANO/"Piano" error that Luna and
+   Terra make. OCRBench is documents and scene text; a stylised logo on a curved bag is not that.
+3. Reader independence, not model quality, is what the agreement gate runs on. Qwen in both seats
+   scored worse than Qwen in one, because two calls to the same weights agree on their own
+   mistakes. The memo's own closing suggestion, Qwen as a second reader that must agree with sol,
+   is the surviving idea and is now the next arm to run.
+4. Provider routing is a correctness problem, not a procurement one. The same model and schema
+   returned an empty `items` list with no error on two of four upstreams. See CLUT.md.
+
+The fine-tuning case in the rest of this memo is unchanged and still deferred: a fine-tune cannot
+recover an occluded item, and the measured gap is now a reason to spend on the catalog retrieval
+head in `2026-09-06-recognition-literature.md` rather than on training a weaker reader.
+
 ## Summary
 
 - Open Qwen vision models are Apache 2.0, ground natively, and now beat GPT-5-class models on OCR and match or beat them on counting. Qwen3.5-27B (Feb 2026): OCRBench 89.4, CountBench 97.8, RealWorldQA 83.7 vs GPT-5-mini 82.1, 91.0, 79.0 [S5]. Independent OCRBench v2 (June 2026): Qwen3.6-35B-A3B 65.5 vs GPT-5 55.5 [S14]. No OCR or counting benchmark for gpt-5.6 itself was found.

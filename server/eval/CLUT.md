@@ -389,6 +389,106 @@ Nature brown rice and quinoa fusilli's match terms were narrowed so the househol
 loose quinoa on the same shelf stops scoring as that box. Earlier runs are re-scored with
 `clut-rescore.ts`, which now prints the gate's numbers for any run that carried them.
 
+## Qwen instead of Sol, measured on 2026-09-07
+
+The proposal was to switch recognition to an open Qwen model: cheaper, open weights, and a
+fine-tune available later. It was measured before it was adopted, against the same fifteen
+photographs, the same labels and the same scorer, under a rule written down first: adopt only if
+items found and quantities both hold and neither brands nor the unsure flagging regresses.
+
+**Qwen does not pass that rule, and is not adopted.**
+
+Nothing in the pipeline had to be rewritten to find that out. OpenRouter implements the Responses
+API with `json_schema` strict mode, so `OPENAI_BASE_URL` plus `KART_PHOTO_MODEL` was the whole
+port. `KART_OPENROUTER_PROVIDER` was added for the reason in the next section.
+
+### The wide pass, one pass each
+
+| wide reader | found | quantities | brands | invented | hidden flagged | seconds | per photo |
+|---|---|---|---|---|---|---|---|
+| gpt-5.6-sol (shipped) | 73/82 89% | 68/73 93% | 48/49 98% | 18 | 13/13 | 5.1 | $0.017 |
+| qwen3.5-27b | 71/82 87% | 66/71 93% | 43/47 91% | 14 | 11/13 | 10.6 | $0.0019 |
+| qwen3.5-27b, second pass | 69/82 84% | 63/69 91% | 41/47 87% | 13 | 12/13 | 9.3 | $0.0019 |
+| qwen3-vl-235b-a22b | 54/82 66% | 51/54 94% | 39/40 98% | 6 | 7/13 | 9.7 | $0.0016 |
+
+Two passes of qwen3.5-27b differ by three points on both recall and brands, which is this corpus's
+own spread and not a real difference between them. Against Sol the brand gap is larger than that
+spread in both passes. It reads PRIANO correctly on some photographs and as "Piano" on others,
+which is the failure Luna and Terra have and Sol does not.
+
+qwen3-vl-235b-a22b is the opposite animal: it matches Sol's brands exactly, invents a third as
+many lines, and finds two thirds of the cart. Precise and quiet. That is a bad wide reader and an
+interesting second one.
+
+### Both readings, the shipped path, cart tier
+
+| two readings | found | quantities | brands | asserted wrong | unsure, wrong / right | seconds | per photo |
+|---|---|---|---|---|---|---|---|
+| gpt-5.6-sol (shipped) | 36/37 97% | 35/36 97% | 27/27 100% | 0/31 | 2 / 4 | 7.1 | $0.066 |
+| qwen3.5-27b | 32/37 86% | 29/32 91% | 23/25 92% | 6/31 | 2 / 3 | 12.5 | $0.0045 |
+| qwen3-vl-235b-a22b | 29/37 78% | 27/29 93% | 22/23 96% | 0/16 | 3 / 10 | 10.5 | $0.0029 |
+
+Sol and the 235B both assert nothing wrong. Sol finds 97% of the cart where the 235B finds 78%,
+and asks the shopper to re-photograph four right items where the 235B asks for ten. Sol stays.
+
+On four photographs with nothing to buy in them, qwen3.5-27b came back empty 4 of 4 with nothing
+asserted and nothing unsure, matching Sol. Hallucinating groceries into a bare room is not where
+it is weak.
+
+### The gate needs its two readers to fail independently
+
+qwen3.5-27b through both seats finds **fewer** items than qwen3.5-27b through the wide seat alone
+(82% against 87% over all fifteen) and asserts more wrong lines on the cart tier (6/31 against
+5/36 wide-only). The gate did not merely fail to help, it cost recall and bought nothing.
+
+The reason is that both readings are the same weights making the same mistake, so agreement
+certifies a correlated error instead of catching it. The gate's power comes from the two readers
+being wrong about different things. That is why the 235B, whose errors are omissions rather than
+misreadings, reaches 0/16 with the same machinery.
+
+It also says what Qwen is actually for here: an independent second reader beside Sol, not a
+replacement for both seats. Sol wide plus Qwen close could not be measured on 2026-09-07 because
+the OpenAI account was still answering `429 credit_balance_exhausted`. It is the next arm to run.
+
+### Two hazards that only appear when you run it
+
+**The same model and schema returns an empty list, with no error, on some providers.** OpenRouter
+routes a model id to whichever upstream it likes. qwen3-vl-235b-a22b with the shipped strict schema
+returned `items: []` on every photograph through Alibaba and Novita, and read the photograph
+correctly through Parasail and DeepInfra. Asked the same question in plain text with no schema,
+the Alibaba endpoint answered "Priano Rigatoni, Hawaiian Brioche Buns, Priano Fusilli Bucati",
+all three correct: the eyes were never the problem, the structured-output implementation was.
+A cart that silently comes back empty is the worst failure this product has, and unpinned routing
+produces it at random. qwen3.6-27b on Alibaba refuses a schema outright with
+`'messages' must contain the word 'json' in some form`.
+
+**Providers serve different image resolutions for the same request.** Qwen bills 32x32 px per
+visual token, so input tokens are the resolution the model actually saw. The same photograph and
+the same call:
+
+| provider | input tokens | seconds | cost |
+|---|---|---|---|
+| DeepInfra | 1,783 | 6.8 | $0.0014 |
+| Alibaba | 3,684 | 8.8 | $0.0013 |
+| SiliconFlow | 16,981 | 25.8 | $0.0047 |
+
+Alibaba's 3,684 is roughly native for the 2048px upload; DeepInfra is reading a much smaller
+photograph, which is exactly how a brand becomes unreadable. An unpinned run measures a different
+resolution on every call and cannot be reproduced, so `KART_OPENROUTER_PROVIDER` pins one upstream
+with fallbacks off and every number above names the provider it was measured on.
+
+### A prompt bug Qwen found and Sol had been hiding
+
+The photograph call told the model to list products "in unmarkedItems". That is the *census*
+schema's field. The photograph is answered against `photoJsonSchema`, whose array is `items`. Sol
+read through the mismatch for as long as the path has existed. qwen3-vl-235b-a22b obeyed it and
+returned an empty list. The wording is corrected, and `prompts.test.ts` now reads the field names
+out of `photoJsonSchema` at runtime so the two cannot drift apart again.
+
+Sol's rows in the tables above were measured with the old wording. Sol answered in `items`
+regardless, so no movement is expected, but that is an expectation and not a measurement: the Sol
+arms want a re-run when the account has credit.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

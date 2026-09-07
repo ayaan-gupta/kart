@@ -15,7 +15,38 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 
 ---
 
+## 0a. Sol wide plus Qwen close, the one arm the Qwen measurement could not run
+
+Qwen was measured against Sol on 2026-09-07 and not adopted (`CLUT.md`, "Qwen instead of Sol").
+The finding that matters for this list: the two-reading gate works on the two readers failing
+*independently*, and Qwen in both seats scored worse than Qwen in one because two calls to the
+same weights agree on their own mistakes. The untested arm is a heterogeneous pair, Sol reading
+wide and a Qwen reading the crops, which costs about a tenth of Sol-on-both and is the one
+configuration with a reason to beat the shipped path on requirement 4.
+
+It needs an OpenAI key for the wide call and an OpenRouter key for the close call in the same
+process, which the single-client `server/src/openai.ts` cannot do today. That is the work: a
+second client selected per tier. Do not build it until item 0 has re-established Sol's baseline
+on the corrected prompt (see below).
+
+The Qwen side is already proven and needs no new plumbing:
+
+```bash
+PORT=4311 OPENAI_API_KEY=$KART_QWEN_KEY OPENAI_BASE_URL=https://openrouter.ai/api/v1 \
+  KART_OPENROUTER_PROVIDER=Alibaba KART_PHOTO_MODEL=qwen/qwen3.5-27b \
+  KART_VERIFY_MODEL=qwen/qwen3.5-27b server/node_modules/.bin/tsx server/scripts/serve.ts
+```
+
+Pin the provider. Unpinned, the same model and schema returns an empty `items` list with no error
+on some upstreams, and reads a different image resolution on others. Both are in `CLUT.md`.
+
+---
+
 ## 0. The three-pass measurement of the two-reading photo path, cut short on 2026-09-06
+
+Also re-establishes Sol's baseline on the corrected photograph prompt: it used to ask for
+`unmarkedItems`, a field `photoJsonSchema` does not have, which Sol read through and
+qwen3-vl-235b did not. Every committed Sol row predates that correction.
 
 `clut-photos.ts --as-phone --repeat 3` on the final code got through eleven scans before the
 account answered `429 credit_balance_exhausted`; passes two and three failed on every

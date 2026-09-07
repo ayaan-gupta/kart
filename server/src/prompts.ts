@@ -300,7 +300,7 @@ export function censusUserText(marks: Mark[], alreadyCounted: string[] = [], con
     : "";
   const known = counted + confirm;
   if (marks.length === 0) {
-    return "No regions were detected. List every grocery product you can see in unmarkedItems." + known;
+    return "No regions were detected. List every grocery product you can see in items." + known;
   }
   const rows = marks
     .map((m) => {

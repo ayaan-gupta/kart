@@ -1,0 +1,37 @@
+{
+ "ranAt": "2026-09-07T19:11:04.428Z",
+ "summary": {
+  "scans": 4,
+  "clean": 4,
+  "asserted": 0,
+  "unsure": 0,
+  "allowed": 0,
+  "secondsAvg": 2.54
+ },
+ "rows": [
+  {
+   "pass": 1,
+   "id": "desk-with-book",
+   "seconds": 2.653,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "plain-counter",
+   "seconds": 2.488,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "floor-and-feet",
+   "seconds": 2.758,
+   "lines": []
+  },
+  {
+   "pass": 1,
+   "id": "fridge-top-shelf",
+   "seconds": 2.247,
+   "lines": []
+  }
+ ]
+}
