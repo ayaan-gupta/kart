@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
-import { openai, MODELS } from "./openai.js";
+import { clientFor, MODELS } from "./openai.js";
 import { compositeMarks, orientedSize, type Box, type Mark } from "./compositor.js";
 import {
   CensusResponse,
@@ -256,7 +256,29 @@ const IDENTIFY_EFFORT: "none" | "low" | "medium" | "high" = (() => {
  *
  * Unset, nothing is sent and the call is exactly the OpenAI one it has always been.
  */
-const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || undefined;
+/**
+ * Which upstream serves an OpenRouter model, defaulted rather than left open.
+ *
+ * A default looks like a preference and is a correctness guard. The same model and the same
+ * strict schema returns `items: []`, with no error and a billed call, on Alibaba and Novita, and
+ * reads the photograph correctly on DeepInfra and Parasail. An unpinned deployment therefore
+ * empties a shopper's cart at random, which is the worst failure this service has, and it does it
+ * silently.
+ *
+ * Parasail, measured on the model this service actually sends. DeepInfra was the first default
+ * here, chosen off a table measured on qwen3.5-27b, and on the 235B it timed out eleven of the
+ * fifteen clut photographs against the service's own 20 second ceiling. Same harness, same day,
+ * only the pin changed:
+ *
+ *     DeepInfra    4 of 15 scans completed
+ *     Parasail    15 of 15 scans completed, 5.8s per cart photograph
+ *
+ * A provider is part of the configuration and inherits nothing from a measurement of a different
+ * model, which is the mistake the first version of this line made.
+ *
+ * `KART_OPENROUTER_PROVIDER` overrides it, and only the eval harnesses have reason to.
+ */
+const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || "Parasail";
 
 async function requestOutputText(
   context: string,
@@ -267,11 +289,13 @@ async function requestOutputText(
   installUsageReporter();
   // `allow_fallbacks: false` so a busy upstream fails the call rather than silently answering
   // from a different one, which would put two resolutions in one run's numbers.
-  const sent = OPENROUTER_PROVIDER
+  // OpenAI has no `provider` field and rejects unknown ones, so the pin rides only on the models
+  // that are routed to OpenRouter, which are exactly the ones whose names carry a vendor.
+  const sent = String(params.model ?? "").includes("/")
     ? { ...params, provider: { order: [OPENROUTER_PROVIDER], allow_fallbacks: false } }
     : params;
   try {
-    const response = await openai.responses.create(sent);
+    const response = await clientFor(String(sent.model ?? "")).responses.create(sent);
     // After the await, so a failed call is not counted as spend. A 429 or a 400 bills nothing,
     // and counting it would inflate the total in exactly the situation someone is reading it.
     recordUsage(

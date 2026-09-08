@@ -6,7 +6,7 @@
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { openai, MODELS } from "../src/openai.js";
+import { clientFor, MODELS } from "../src/openai.js";
 
 const CORPUS = "eval/corpus/images";
 
@@ -19,7 +19,7 @@ function firstImageAsDataUrl(): string {
   return `data:${mime};base64,${b64}`;
 }
 
-const response = await openai.responses.create({
+const response = await clientFor(MODELS.census).responses.create({
   model: MODELS.census,
   reasoning: { effort: "none" },
   input: [

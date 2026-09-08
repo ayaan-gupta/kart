@@ -489,6 +489,52 @@ Sol's rows in the tables above were measured with the old wording. Sol answered 
 regardless, so no movement is expected, but that is an expectation and not a measurement: the Sol
 arms want a re-run when the account has credit.
 
+## The switch was made on 2026-09-07, and what it costs
+
+The section above measured Qwen against Sol and recommended keeping Sol. The owner's decision was
+to switch anyway, which is the decision this project exists to serve, so the photograph tier now
+defaults to `qwen/qwen3-vl-235b-a22b-instruct`. The 235B and not the cheaper 27B: the 27B asserts
+six wrong lines in thirty-one and the bar is zero.
+
+Re-measured through the shipped default, pinned to Parasail, fifteen photographs, one pass:
+
+| cart tier | found | qty | brands | asserted wrong | unsure | s | $/photo |
+|---|---|---|---|---|---|---|---|
+| gpt-5.6-sol | 97% | 97% | 100% | 0 of 31 | 4 | 7.1 | $0.066 |
+| qwen3-vl-235b-a22b | 78% | 93% | 96% | 0 of 7 | 22 | 5.8 | $0.0027 |
+
+The unsure column is the one to read. Qwen clears the asserted-wrong bar partly by declining to
+assert: seven sure lines where Sol produces thirty-one, and twenty-two things the shopper is asked
+about where Sol asks about four. On the storage tier it does assert, and three of eight sure lines
+are wrong there, so the bar is met on carts and missed on pantries.
+
+This is a worse product today at a twenty-fourth of the price. It is defensible only because both
+of its costs are the kind retrieval recovers. A missed item and an unresolved one are what a
+catalog shortlist is for; a confidently misread brand, which is what the 27B produces and what got
+Luna and Terra rejected, is not.
+
+### The provider is part of the configuration
+
+The first default here was DeepInfra, chosen from the provider table above, which was measured on
+qwen3.5-27b. On the 235B it timed out eleven of the fifteen photographs against the service's own
+twenty second ceiling. Same harness, same day, only the pin changed:
+
+| pin | scans completed | seconds per cart photograph |
+|---|---|---|
+| DeepInfra | 4 of 15 | |
+| Parasail | 15 of 15 | 5.8 |
+
+A provider inherits nothing from a measurement of a different model, and the shipped default now
+names one measured on the model it serves.
+
+### What this configuration has still never been given
+
+A catalog. Every number in this file, for every model, is a reader with no shortlist in front of
+it: no enumerator endpoint is configured, so the `catalog:` line in `censusUserText` was empty in
+all of them. The plan this switch comes from pairs an open-weight reader with retrieval over the
+store's product list. Until one run has that, 78% is this configuration's floor rather than its
+result. `docs/research/2026-09-07-retrieval-review.md` is the route there.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

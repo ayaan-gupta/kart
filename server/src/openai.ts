@@ -1,47 +1,94 @@
 import OpenAI from "openai";
 
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  throw new Error(
-    "OPENAI_API_KEY is not set. Put it in server/.env.local, which is the only file " +
-      "`npm run serve` loads, or run ./scripts/setup.sh from the repository root.",
-  );
-}
+/**
+ * The recognition tiers stopped living at one provider on 2026-09-07, so the client is chosen per
+ * model rather than built once.
+ *
+ * The rule is the model name. OpenAI names a model plainly, `gpt-5.6-sol`; every other catalog
+ * reached through OpenRouter qualifies it with a vendor, `qwen/qwen3-vl-235b-a22b-instruct`. That
+ * is not a convention invented here, it is how the two APIs already name things, so a tier is
+ * routed by what it is called and no second variable has to agree with the first.
+ *
+ * Why this exists at all: the photograph tier moved to Qwen while the live scan's census and
+ * identify tiers stayed on OpenAI, and one client with one key cannot serve both. It is also what
+ * the untested arm in `server/eval/WHEN-CREDIT-RETURNS.md` needs, a wide pass on one provider and
+ * a close read on another.
+ *
+ * Both sides speak the Responses API with strict `json_schema`, which is the only reason this is a
+ * routing change and not a port. Local servers do not: llama.cpp, vLLM, Ollama and mlx-vlm
+ * implement `/v1/chat/completions`, and pointing anything here at one produces a 404 on the first
+ * request rather than a working pipeline.
+ */
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const OPENAI_BASE_URL = "https://api.openai.com/v1";
 
 /**
- * `OPENAI_BASE_URL` points the client at any OpenAI-compatible endpoint instead of OpenAI's own.
- *
- * Unset, nothing changes: the SDK's own default applies and this is the client it has always
- * built. Set, it covers the case that stopped every model-tier measurement in `server/eval` -- an
- * account with no credit -- without waiting on that one account.
- *
- * **It will not reach a locally served model, and an earlier version of this comment wrongly said
- * it would.** Everything here goes through `openai.responses.create`, the Responses API, and the
- * local servers people reach for -- llama.cpp, vLLM, Ollama, mlx-vlm -- implement
- * `/v1/chat/completions` instead. A base URL only helps against an endpoint that implements
- * `/v1/responses` with `json_schema` strict mode: another OpenAI organisation or key, an OpenAI
- * gateway or proxy, or Azure OpenAI where the deployment exposes it. Pointing this at a local
- * server produces a 404 on the first request, not a working pipeline.
- *
- * Validated rather than passed through. A typo here does not fail loudly at construction; it fails
- * on the first request, several layers down, as a connection error that reads like the network
- * being off, and `redactSecrets` is between you and the detail. Parsing it here says which
- * variable is wrong.
+ * Validated rather than passed through. A typo does not fail loudly at construction; it fails on
+ * the first request, several layers down, as a connection error that reads like the network being
+ * off, and `redactSecrets` is between you and the detail. Parsing it here says which variable is
+ * wrong.
  */
-const rawBaseUrl = process.env.OPENAI_BASE_URL?.trim();
-let baseURL: string | undefined;
-if (rawBaseUrl) {
+function parseBaseUrl(raw: string | undefined, variable: string): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
   try {
-    baseURL = new URL(rawBaseUrl).toString();
+    return new URL(trimmed).toString();
   } catch {
     throw new Error(
-      `OPENAI_BASE_URL is not a valid URL: ${JSON.stringify(rawBaseUrl)}. ` +
-        "Unset it to use OpenAI's own endpoint.",
+      `${variable} is not a valid URL: ${JSON.stringify(trimmed)}. Unset it to use the default.`,
     );
   }
 }
 
-export const openai = new OpenAI(baseURL ? { apiKey, baseURL } : { apiKey });
+function requireKey(variable: string, hint: string): string {
+  const key = process.env[variable]?.trim();
+  if (!key) throw new Error(`${variable} is not set. ${hint}`);
+  return key;
+}
+
+const clients = new Map<string, OpenAI>();
+
+/**
+ * The client that serves `model`.
+ *
+ * Built on first use and cached, so a key that is only needed by a tier nobody calls is never
+ * required. That matters for the eval harnesses, which run one tier at a time: measuring Qwen
+ * should not need an OpenAI key on the machine, and it used to.
+ */
+export function clientFor(model: string): OpenAI {
+  const openRouter = model.includes("/");
+  const cached = clients.get(openRouter ? "openrouter" : "openai");
+  if (cached) return cached;
+
+  const client = openRouter
+    ? new OpenAI({
+        apiKey: requireKey(
+          "KART_QWEN_KEY",
+          "It is the OpenRouter key, and it belongs in server/.env.local, which is the only " +
+            "file `npm run serve` loads. A model name carrying a vendor prefix is routed there.",
+        ),
+        baseURL: parseBaseUrl(process.env.KART_OPENROUTER_BASE_URL, "KART_OPENROUTER_BASE_URL")
+          ?? OPENROUTER_BASE_URL,
+      })
+    : new OpenAI({
+        apiKey: requireKey(
+          "OPENAI_API_KEY",
+          "Put it in server/.env.local, which is the only file `npm run serve` loads, or run " +
+            "./scripts/setup.sh from the repository root.",
+        ),
+        /**
+         * `OPENAI_BASE_URL` points the OpenAI tiers at any Responses-API-compatible endpoint:
+         * another organisation or key, a gateway or proxy, or Azure OpenAI where the deployment
+         * exposes it. It covers the case that stopped every model-tier measurement in
+         * `server/eval`, an account with no credit, without waiting on that one account. It does
+         * not reach OpenRouter, which has its own variable above and its own key.
+         */
+        baseURL: parseBaseUrl(process.env.OPENAI_BASE_URL, "OPENAI_BASE_URL") ?? OPENAI_BASE_URL,
+      });
+
+  clients.set(openRouter ? "openrouter" : "openai", client);
+  return client;
+}
 
 export const MODELS = {
   /**
@@ -154,7 +201,41 @@ export const MODELS = {
    * do not already have, and costs six times the wait, so the effort is "none". The live scan's
    * census stays on Luna: it is fused from several calls and its bakeoff was measured on that.
    */
-  photo: process.env.KART_PHOTO_MODEL?.trim() || "gpt-5.6-sol",
+  /**
+   * Moved from gpt-5.6-sol to qwen3-vl-235b-a22b-instruct on 2026-09-07, on the owner's decision
+   * to run this tier on an open-weight model, and this comment is the bill for that decision.
+   *
+   * Both readings, cart tier, the fifteen clut photographs, same labels and same scorer:
+   *
+   *                                found   brands   asserted wrong   unsure   seconds   per photo
+   *     gpt-5.6-sol                  97%     100%      0 of 31            4       7.1     $0.066
+   *     qwen3-vl-235b-a22b           78%      96%      0 of 7            22       5.8     $0.0027
+   *     qwen3.5-27b                  86%      92%      6 of 31            3      12.5     $0.0045
+   *
+   * The Qwen row is the run pinned to Parasail on 2026-09-07, fifteen of fifteen scans completed.
+   *
+   * The 235B and not the 27B, which is cheaper again and faster to say a wrong thing confidently.
+   * "Asserted lines wrong must be 0" is this project's own bar and the 27B misses it six times in
+   * thirty-one; the 235B meets it.
+   *
+   * Read the unsure column before reading that as a tie. The 235B meets the bar partly by
+   * asserting almost nothing: 7 sure lines against Sol's 31, and 22 unsure against Sol's 4. The
+   * cart tier is 78% found against 97%, and what the shopper gets is a screen of things to
+   * confirm rather than a bag. That is a worse product today, bought at a twenty-fourth of the
+   * price, and it is a defensible trade only because both of its costs, missed items and
+   * unresolved ones, are what retrieval recovers and confident misreading is not.
+   *
+   * What has NOT been measured, and is the reason this is not yet an improvement: every number in
+   * that table is a reader with no catalog behind it. No enumerator endpoint is configured, so the
+   * `catalog:` line in `censusUserText` was empty in every run. The plan this switch comes from
+   * pairs an open-weight reader with retrieval over the store's product list, and retrieval is
+   * exactly what recovers a missed item and separates two variants of one product. Until one run
+   * has the shortlist in front of the reader, the 78% is the floor of this configuration and not
+   * its result. `docs/research/2026-09-07-retrieval-review.md` is the plan for getting there.
+   *
+   * Pinned to one OpenRouter provider by `OPENROUTER_PROVIDER` in recognize.ts. Do not unpin it.
+   */
+  photo: process.env.KART_PHOTO_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
   /** Escalation for items identify still cannot resolve. Used sparingly. */
   escalate: "gpt-5.5",
 } as const;

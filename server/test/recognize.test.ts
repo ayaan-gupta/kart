@@ -12,15 +12,15 @@ import type { CensusDiagnostics } from "../src/recognize.js";
 // and the same MODELS values ./openai.ts exports (given verbatim by the task brief, not
 // derived from the real module, so this mock cannot silently drift from it undetected since
 // every test below also asserts the model id actually sent matches these constants).
+const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock("../src/openai.js", () => ({
-  openai: { responses: { create: vi.fn() } },
+  clientFor: () => ({ responses: { create } }),
   MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol", escalate: "gpt-5.5" },
 }));
 
-const { openai, MODELS } = await import("../src/openai.js");
+const { MODELS } = await import("../src/openai.js");
 const { runCensus, runIdentify, runVerify, cropToBox } = await import("../src/recognize.js");
 
-const create = openai.responses.create as unknown as ReturnType<typeof vi.fn>;
 
 async function blankJpeg(w = 200, h = 150): Promise<Buffer> {
   return sharp({

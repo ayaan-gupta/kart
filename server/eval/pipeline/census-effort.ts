@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { compositeMarks } from '../../src/compositor';
 import type { Mark } from '../../src/compositor';
 import { MAX_CANDIDATES } from '../../src/enumerate';
-import { openai, MODELS } from '../../src/openai';
+import { clientFor, MODELS } from '../../src/openai';
 import { CENSUS_SYSTEM_PROMPT, censusUserText } from '../../src/prompts';
 import { censusJsonSchema } from '../../src/schemas';
 
@@ -54,7 +54,7 @@ for (const id of SUBJECTS) {
   const composited = await compositeMarks(image, marks, LONG_EDGE);
 
   for (const effort of EFFORTS) {
-    const response = await openai.responses.create({
+    const response = await clientFor(MODELS.census).responses.create({
       model: MODELS.census,
       reasoning: { effort },
       input: [

@@ -26,7 +26,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { openai } from '../../src/openai';
+import { clientFor } from '../../src/openai';
 import { PRICES_PER_MTOK } from '../../src/usage';
 import { scoreImage, type ScoreLine } from './clut-scoring';
 
@@ -143,7 +143,7 @@ for (let pass = 1; pass <= passes; pass += 1) {
     let parsed: { products: { brand: string | null; name: string; size: string | null; count: number; confidence: number }[]; itemsLikelyHidden: boolean };
     let costUsd = 0;
     try {
-      const response = await openai.responses.create({
+      const response = await clientFor(model).responses.create({
         model,
         ...(effort === 'none' ? { reasoning: { effort: 'none' } } : { reasoning: { effort } }),
         input: [
