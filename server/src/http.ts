@@ -196,7 +196,7 @@ export const REQUEST_TIMEOUT_MS = 25_000;
  * ceiling turns the clean JSON error this race exists to produce back into the bare connection
  * failure it was written to prevent.
  */
-function configuredTimeoutMs(): number {
+export function configuredTimeoutMs(): number {
   const raw = Number((process.env.RECOGNITION_TIMEOUT_MS ?? "").trim());
   return Number.isFinite(raw) && raw > 0 ? raw : REQUEST_TIMEOUT_MS;
 }

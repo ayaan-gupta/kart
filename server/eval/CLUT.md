@@ -535,6 +535,118 @@ all of them. The plan this switch comes from pairs an open-weight reader with re
 store's product list. Until one run has that, 78% is this configuration's floor rather than its
 result. `docs/research/2026-09-07-retrieval-review.md` is the route there.
 
+## The store's catalog, measured on 2026-09-09
+
+Every number above this line is open-world naming. `ENUMERATOR_URL` has never been set in any
+measurement this project has run, so `enumerateRegions` returned "no enumerator configured", the
+census came back with no regions, and the `catalog:` line in `prompts.ts` never rendered. The
+model was asked "what product on earth is this" and scored as though it had been asked "which of
+the things this shop sells is this", which CLAUDE.md's closed-world section says is the wrong
+question and sends tuning in the wrong direction.
+
+The built retrieval leg matches picture against picture and wants a GPU and a Python environment
+this machine no longer has. So the other leg was built: the reader answers in text, the catalog is
+text, and text against text runs wherever the service runs. `server/src/catalog.ts` is the whole
+of it, and `server/eval/corpus/clut/catalog.json` is a shop of 250 products, 48 of them in these
+photographs and the rest siblings from the same brands' ranges, because a catalog holding only
+the answers measures nothing.
+
+It answers one of five things about a reading, and only the first two are evidence:
+
+| | |
+|---|---|
+| `matched` | one entry fits, and clearly better than the next |
+| `picked` | the text could not separate two, and the crop chose between them |
+| `ambiguous` | two entries fit alike and the reading does not say which |
+| `absent` | nothing this shop sells fits |
+| `not-reached` | the two readings had already disagreed |
+
+### Four arms over the fifteen photographs, basket tier
+
+| | no catalog | catalog, shop listed in the prompt | catalog, retrieval only | and boxes, two passes |
+|---|---|---|---|---|
+| 1 every item reaches the bag | 31/37 84% | 33/37 89% | 34/37 **92%** | 60/74 81% |
+| 2 quantities are right | 28/31 90% | 30/33 91% | 32/34 **94%** | 55/60 92% |
+| &nbsp;&nbsp;brands right | 24/24 100% | 27/27 100% | 25/26 96% | 47/47 100% |
+| 5 asserted lines wrong | 3/13 | 4/22 | **1/17** | **1/23** |
+| lines matching nothing real | 2 | 2 | **0** | **0** |
+
+Run with `clut-photos.ts` against the shipped service on Qwen 3 VL 235B through Parasail, then
+re-scored together by `clut-rescore.ts`. The first three are one pass over fifteen photographs;
+the fourth is two.
+
+### Listing the shop in the wide prompt makes things worse
+
+The second arm gives the census the shop's whole product list. It finds more, and it invents
+differently. Two of clut7's lines came back as "Simply Nature organic chicken broth" and "Simply
+Nature organic brown rice and quinoa fusilli", products of that shop which are not in that basket.
+Named in the shop's own words they resolve against the catalog, the close read confirms them, and
+they reach the shopper asserted. Without the list the same two inventions arrive as "Green
+Packaging Snack" and "Nutrition Facts", and the catalog declines both.
+
+A list is a menu. The gate's premise is that the two readings and the catalog are separate
+witnesses, and a menu shown to all three at once is one witness wearing three hats. Retrieval
+belongs where it is conditioned on one region's evidence, which is the shortlist each crop is
+shown. `KART_PHOTO_STOCK_LIST=1` turns the arm back on and nothing else does.
+
+### What the catalog catches, replayed over runs that predate it
+
+Every line of a saved run is already labelled, so `catalog-replay.ts` asks what resolving each
+line would have done, over 45 scans from three runs made before the catalog existed:
+
+| | |
+|---|---|
+| lines the gate asserted | 100 |
+| of those, wrong | 22 |
+| wrong, and the catalog declines them | **18** |
+| right, and the catalog declines them | 18 of 78 |
+
+Asserted wrong falls from 22 to 4. All four are quantity errors, which the harness now classifies
+rather than leaves to be read off a list: two readings agreeing that there is one box of Priano
+rigatoni where there are two is a reading of a product this shop sells, and no text catalog can
+see the difference. The cost is 18 of 78 right lines held back, each of which is a shopper asked
+for a second photograph of something already correct.
+
+The catalog is not a substitute for the close read. Replayed over the wide-only arms, where every
+line is one reading with no second, it leaves 15 of 30 wrong lines still asserted, 11 of them on
+the basket tier. Both witnesses are load-bearing.
+
+### Two ways the catalog itself asserted something wrong, and what fixed them
+
+Both were found by reading the lines a live run asserted, and both are now pinned in
+`catalog.test.ts`.
+
+A shortlist offered "Benton's chocolate chip cookies" for a box both readings had called Baker's
+Corner. The close read copied it back and the line reached the shopper under a brand nothing had
+read. A shortlist is for choosing a variety, not a brand, so an entry whose brand contradicts one
+that was actually read is no longer offered. A brand nobody could read is not a contradiction and
+those entries stay, because that is exactly what a crop is good at settling.
+
+Then a shortlist offered "Friendly Farms cottage cheese", scoring 0.36, for a tub both readings
+had called Friendly Farms neufchatel, and the close read took it. The shortlist floor is now the
+same bar the text has to clear on its own: a crop may choose between entries the text would have
+accepted, and may not be talked into one it rejected.
+
+### Half the photographs came back with no boxes at all
+
+A product with no box is never cut out, never read a second time, and so can only ever be shown
+as unsure. Qwen declines to place boxes all or nothing, on between 39% and 55% of answers
+depending on the run, and the same photograph gets boxes on one pass and none on the next.
+Rewriting the box instruction moved it from 50% to 61%, which is inside the run to run spread.
+
+Asking once more works: 111 of 128 products placed, 87%, against 50% on the arm before it. It
+costs a census call on the photographs that need one, and it is skipped when a second call would
+not fit inside the request's budget, because eight of thirty scans were lost to the timeout when
+it was not.
+
+### What is not measured
+
+The configuration as it now stands has not been run end to end. Both providers ran out of credit
+partway through the last arm: OpenRouter answers 402 and OpenAI answers 429
+`credit_balance_exhausted`. The box retry and the two catalog fixes above are each measured or
+pinned on their own, and the offline replay uses the current resolver, but the four requirements
+have not been scored together on the final build. `WHEN-CREDIT-RETURNS.md` carries it.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

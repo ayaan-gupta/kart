@@ -163,6 +163,14 @@ export const VerifyResponse = z.object({
   confidence: z.number().min(0).max(1),
   legible: z.boolean(),
   matchesHint: z.boolean(),
+  /**
+   * One of the store products offered with the crop, copied back, or null.
+   *
+   * The crop is the right instrument for the question text cannot answer: which variety of a
+   * range this is. Only a SKU that was actually offered is honoured (see `reconcile`), so this
+   * field can settle a choice between the shop's own rows and can never introduce a product.
+   */
+  catalogSku: z.string().nullable(),
 });
 export type VerifyResponse = z.infer<typeof VerifyResponse>;
 
@@ -336,8 +344,9 @@ export const verifyJsonSchema = {
     confidence: { type: "number", minimum: 0, maximum: 1 },
     legible: { type: "boolean" },
     matchesHint: { type: "boolean" },
+    catalogSku: { type: ["string", "null"] },
   },
-  required: ["name", "brand", "count", "confidence", "legible", "matchesHint"],
+  required: ["name", "brand", "count", "confidence", "legible", "matchesHint", "catalogSku"],
   additionalProperties: false,
 } as const;
 

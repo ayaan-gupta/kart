@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { reconcile, type WideReading } from "../src/reconcile.js";
 import type { VerifyResponse } from "../src/schemas.js";
+import { buildCatalog } from "../src/catalog.js";
 
 /**
  * The rule that decides whether a line is shown green or amber. Two readings of one product, a
@@ -10,7 +11,7 @@ import type { VerifyResponse } from "../src/schemas.js";
  */
 const wide: WideReading = { description: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9 };
 const close = (over: Partial<VerifyResponse> = {}): VerifyResponse => ({
-  name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true, ...over,
+  name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null, ...over,
 });
 
 describe("reconcile: two readings that agree", () => {
@@ -104,5 +105,93 @@ describe("reconcile: no close reading", () => {
     expect(line.confidence).toBeLessThan(0.6);
     expect(line.description).toBe("Rigatoni");
     expect(line.count).toBe(2);
+  });
+});
+
+/**
+ * The third reading: the store's own catalog.
+ *
+ * Two model readings agreeing is two answers to "what is this", and they can agree and both be
+ * wrong. The catalog answers a different question, "which of the things this shop sells is
+ * that", and a line the shop cannot account for is the case the two-reading gate cannot see:
+ * measured over the lines of two recorded runs (server/eval/pipeline/catalog-replay.ts), fourteen
+ * of the sixteen lines those runs asserted wrongly are lines the catalog declines.
+ */
+const shop = buildCatalog([
+  { sku: "Priano rigatoni", brand: "Priano", name: "rigatoni" },
+  { sku: "Priano penne rigate", brand: "Priano", name: "penne rigate" },
+  { sku: "Savoritz avocado oil crackers sea salt", brand: "Savoritz", name: "avocado oil crackers sea salt" },
+  { sku: "Savoritz avocado oil crackers rosemary and sourdough", brand: "Savoritz", name: "avocado oil crackers rosemary and sourdough" },
+  { sku: "bananas", brand: null, name: "bananas" },
+]);
+
+describe("reconcile: against the store's catalog", () => {
+  it("is sure and carries the sku when the shop sells exactly this", () => {
+    const line = reconcile(wide, close(), shop);
+    expect(line.sure).toBe(true);
+    expect(line.sku).toBe("Priano rigatoni");
+  });
+
+  it("is unsure when the shop sells nothing like it, however well the two readings agreed", () => {
+    const reading: WideReading = { description: "pull-tab tin", brand: null, count: 1, confidence: 0.95 };
+    const line = reconcile(reading, close({ name: "pull-tab tin", brand: null, count: 1 }), shop);
+    expect(line.sure).toBe(false);
+    expect(line.sku).toBeNull();
+    expect(line.catalog).toBe("absent");
+  });
+
+  it("is unsure when the reading fits two of the shop's products equally", () => {
+    const reading: WideReading = { description: "avocado oil crackers", brand: "Savoritz", count: 1, confidence: 0.95 };
+    const line = reconcile(reading, close({ name: "avocado oil crackers", brand: "Savoritz", count: 1 }), shop);
+    expect(line.sure).toBe(false);
+    expect(line.catalog).toBe("ambiguous");
+  });
+
+  it("leaves a line the two readings already doubted alone", () => {
+    // The catalog cannot promote anything. A disagreement is unsure whatever the shop stocks.
+    const line = reconcile(wide, close({ count: 3 }), shop);
+    expect(line.sure).toBe(false);
+  });
+
+  it("changes nothing at all when there is no catalog", () => {
+    const line = reconcile(wide, close());
+    expect(line.sure).toBe(true);
+    expect(line.sku).toBeNull();
+    expect(line.catalog).toBe("not-consulted");
+  });
+});
+
+describe("reconcile: the crop chooses from the shortlist", () => {
+  const crackers: WideReading = { description: "avocado oil crackers", brand: "Savoritz", count: 1, confidence: 0.95 };
+  const closeCrackers = (over: Partial<VerifyResponse> = {}): VerifyResponse =>
+    close({ name: "avocado oil crackers", brand: "Savoritz", count: 1, ...over });
+
+  it("settles an ambiguity when the crop names one of the products that were offered", () => {
+    // Text cannot separate the shop's two avocado oil crackers, because the reading does not name
+    // a variety. The crop can: it is the packaging at the photograph's own resolution, and it was
+    // shown the shop's own two rows to choose between.
+    const line = reconcile(crackers, closeCrackers({ catalogSku: "Savoritz avocado oil crackers sea salt" }), shop);
+    expect(line.sure).toBe(true);
+    expect(line.sku).toBe("Savoritz avocado oil crackers sea salt");
+    expect(line.catalog).toBe("picked");
+  });
+
+  it("ignores a product the shortlist never offered", () => {
+    // The shortlist is the whole of what the crop may choose from. A SKU from outside it is the
+    // model writing a product name, which is what it was already doing in `name`.
+    const line = reconcile(crackers, closeCrackers({ catalogSku: "Priano penne rigate" }), shop);
+    expect(line.sure).toBe(false);
+    expect(line.sku).toBeNull();
+  });
+
+  it("does not let the crop rescue a reading of something the shop sells nothing like", () => {
+    const tin: WideReading = { description: "pull-tab tin", brand: null, count: 1, confidence: 0.95 };
+    const line = reconcile(tin, close({ name: "pull-tab tin", brand: null, count: 1, catalogSku: "bananas" }), shop);
+    expect(line.sure).toBe(false);
+  });
+
+  it("still needs the two readings to agree", () => {
+    const line = reconcile(crackers, closeCrackers({ count: 3, catalogSku: "Savoritz avocado oil crackers sea salt" }), shop);
+    expect(line.sure).toBe(false);
   });
 });

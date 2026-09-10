@@ -4,6 +4,15 @@ import type { Mark } from "./compositor.js";
 const SHOWN_CANDIDATES = 5;
 
 /**
+ * The largest shop whose whole product list goes into a photograph prompt.
+ *
+ * A few hundred entries is a corner shop and about two thousand tokens, which caches and costs
+ * almost nothing after the first call. A supermarket's forty thousand SKUs neither fit nor should
+ * be sent: naming what is in a photograph is not helped by a list the size of a phone book.
+ */
+const MAX_STOCK_LISTED = 400;
+
+/**
  * Kept as one frozen string and placed first in the request so it caches. Cached input is
  * $0.075/1M on gpt-5.4-mini against $0.75/1M uncached, so anything volatile must come after.
  */
@@ -190,7 +199,12 @@ in two places is one entry with the total count and one box around both:
   box         where it is: the smallest rectangle that encloses every visible unit of this
               product, as x, y, w and h in whole percentages of the image width and height, 0 to
               100, with the origin at the top-left corner. Tight to the product, not to the shelf
-              or basket around it. null only if you cannot place it.
+              or basket around it. Give a box for every product you list. The box is cut out of
+              the photograph and read again close up, and that second reading is the only thing
+              that can confirm a product; one with no box cannot be checked, so it is shown to the
+              shopper as unsure and they are asked to photograph it again. A roughly right
+              rectangle is far better than none. Use null only when the product is so scattered or
+              so buried that no rectangle contains it.
 Include a product that is partly hidden if you can still name it. Do not list furniture, the
 basket, the shelf, kitchen equipment, papers, or anything that is not a grocery product.
 
@@ -202,6 +216,14 @@ of the same product and price labels along the shelf edge. A home kitchen is nev
 occlusion says whether products are probably hidden under or behind other products. severity is
 "none" when everything is in plain view, "some" when a few things are partly covered, and
 "many" when a large part of the contents cannot be seen; reason is one plain sentence saying why.
+
+The message may end with "This shop sells:" and a list. That is the store's whole product list,
+and the store sells nothing else. Use it as vocabulary, not as an inventory: when a product you
+can see is on the list, name it and brand it the way the list does, so that the same product
+photographed twice arrives under one name. When a product you can see is not on the list, say
+what you see in your own words; the list can be out of date and the photograph cannot. Never list
+a product because it appears on the list. Everything you report is something you can see in this
+photograph, and a list of what a shop stocks is not evidence about what is in front of you.
 
 Answer only with the structured object.
 `.trim();
@@ -233,6 +255,14 @@ given with the crop. Read the packaging in the crop and answer:
   matchesHint   true when the crop shows the product the first pass described, allowing for
                 different wording of the same thing; false when it shows something else, or when
                 the first pass got the brand wrong.
+  catalogSku    null, unless the crop is shown with a "The shop sells:" list. Those entries are
+                the store's own products, closest first, and the store sells nothing else. If the
+                packaging in the crop is one of them, copy that entry back character for
+                character. If none of them is what you can see, or you cannot read enough of the
+                packaging to tell which, answer null. Do not pick the closest of a bad list: a
+                null here costs the shopper one more photograph, and a wrong one puts the wrong
+                product in their bag. Fill name, brand and count from what you can actually read,
+                not from the entry you chose.
 If the crop does not contain a grocery product, or is too blurred or too small to read, say so
 with legible false, a low confidence and matchesHint false.
 Answer only with the structured object.
@@ -245,7 +275,11 @@ Answer only with the structured object.
  * agreed with five. Counted on its own it says three, and the disagreement is what the shopper
  * needs to see.
  */
-export function verifyUserText(hint: { description: string; productKey: string }, brandsInPhoto: string[] = []): string {
+export function verifyUserText(
+  hint: { description: string; productKey: string },
+  brandsInPhoto: string[] = [],
+  candidates: string[] = [],
+): string {
   // The brands the wide pass read on the other products in the same photograph. A basket often
   // holds several products of one range in one livery, and a logo crumpled into a fold on one bag
   // is printed flat on the bag beside it. This does not tell the model what the brand is; it says
@@ -253,7 +287,14 @@ export function verifyUserText(hint: { description: string; productKey: string }
   const others = brandsInPhoto.length > 0
     ? ` Brands read on other products in the same photograph: ${brandsInPhoto.join("; ")}. If this packaging is the same design as one of those, it is probably that brand; still write what is printed.`
     : "";
-  return `The first pass called this "${hint.description}" (key ${hint.productKey}). Read the crop and answer, counting the units yourself.${others}`;
+  // The store's own rows for this product, retrieved by text from what the first pass read. Shown
+  // only when the retrieval found something plausible: an empty list would read as the shop
+  // having been asked about this crop and stocking nothing like it, which is a far stronger claim
+  // than not having been asked, and is the same distinction rule 15 draws for the badge census.
+  const shop = candidates.length > 0
+    ? `\nThe shop sells: ${candidates.join("; ")}.\nIf the packaging in the crop is one of those, copy it into catalogSku exactly; otherwise catalogSku is null.`
+    : "";
+  return `The first pass called this "${hint.description}" (key ${hint.productKey}). Read the crop and answer, counting the units yourself.${others}${shop}`;
 }
 
 export const IDENTIFY_SYSTEM_PROMPT = `
@@ -281,7 +322,12 @@ Answer only with the structured object.
  * badges gives the model a second, independent way to bind a number to a region, which is
  * the documented weak point of set-of-mark prompting.
  */
-export function censusUserText(marks: Mark[], alreadyCounted: string[] = [], confirming: string[] = []): string {
+export function censusUserText(
+  marks: Mark[],
+  alreadyCounted: string[] = [],
+  confirming: string[] = [],
+  stock: string[] = [],
+): string {
   // Products the session has already counted, so this call can name them the same way rather than
   // inventing a third phrasing. The trolley is static and every call re-describes it; a product
   // that arrives as "packaged apples", then "red apples", then "bag of apples" opens three lines
@@ -298,7 +344,15 @@ export function censusUserText(marks: Mark[], alreadyCounted: string[] = [], con
     ? `\n\nThe shopper was asked for a better photograph of: ${confirming.join("; ")}.\nLook for `
       + `those first. If you can read one now, name it the same way and give the brand as printed.`
     : "";
-  const known = counted + confirm;
+  // The whole of what the shop sells, on the photograph path, where there are no regions and so
+  // no per-region "catalog:" line to hang candidates on. A shop small enough to list is listed;
+  // above that the list is left out rather than truncated, because a truncated catalog says the
+  // shop sells a hundred things when it sells forty thousand, and the prompt tells the model to
+  // trust it. Retrieving the relevant part of a catalog that large is the image leg's job.
+  const shopList = stock.length > 0 && stock.length <= MAX_STOCK_LISTED
+    ? `\n\nThis shop sells: ${stock.join("; ")}.`
+    : "";
+  const known = counted + confirm + shopList;
   if (marks.length === 0) {
     return "No regions were detected. List every grocery product you can see in items." + known;
   }

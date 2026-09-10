@@ -117,6 +117,12 @@ sure says "Not sure" in amber before anything else, and anything the model itsel
 supermarket product never reaches the bag. `server/eval/CLUT.md` measures all of it, and the
 number the review exists to drive to zero is "asserted lines wrong".
 
+The store's catalog is the other half of that number, and it is a text file. Point `CATALOG_FILE`
+at a list of what the shop sells and every line the two readings agree on is resolved against it:
+one entry and the line stands, none or two and the shopper is asked for a better photograph.
+`server/eval/corpus/clut/catalog.json` is a worked example and `server/eval/CLUT.md` measures what
+it is worth. Unset, the resolver reports `not-consulted` and nothing changes.
+
 Outlines are the one thing this does not set up. They come from a grounded detector too large
 for a phone or a serverless function, so it runs behind `ENUMERATOR_URL` on a GPU host. With that
 unset the app still names what it sees and still fills a bag, it just draws no outlines, and

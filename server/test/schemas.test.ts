@@ -337,7 +337,7 @@ describe("verify schema", () => {
   });
 
   it("accepts a well-formed answer and rejects a confidence out of range", () => {
-    const ok = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true };
+    const ok = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null };
     expect(VerifyResponse.parse(ok)).toEqual(ok);
     expect(() => VerifyResponse.parse({ ...ok, confidence: 2 })).toThrow();
   });

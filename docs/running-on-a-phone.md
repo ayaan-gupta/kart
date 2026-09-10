@@ -110,10 +110,14 @@ cannot stand in for is unchanged: the phone's camera and the phone's wifi.
 |---|---|---|---|
 | 1 | `EXPO_PUBLIC_KART_API_URL` | never names anything: every request returns `unconfigured` | yes, both ways: a build with no `.env` has no endpoint in its bundle, and a build with one has it |
 | 2 | `ENUMERATOR_URL` | degraded mode: no outlines, no catalog shortlist, 72% of units | yes, the server logged `enumeration degraded: no enumerator configured` |
-| 3 | OpenAI credit | nothing is recognized at all, unless the local fallback below is used | yes, `429 credit_balance_exhausted` |
+| 3 | `CATALOG_FILE` | the store catalog is never consulted, so every line is named open-world and the gate has two witnesses instead of three | yes, every reconciled line comes back `catalog: "not-consulted"` |
+| 4 | OpenAI credit | nothing is recognized at all, unless the local fallback below is used | yes, `429 credit_balance_exhausted` |
 
 Gap 1 is the one that matters most and costs nothing to close. Gap 2 is closed locally by the
-host added below. Gap 3 is the user's account, and is now optional: a local vision model can
+host added below. Gap 3 costs nothing at all: point `CATALOG_FILE` at a JSON file of what the shop
+sells and the resolver in `server/src/catalog.ts` runs on the CPU the service is already using,
+with no GPU and no Python. `server/eval/corpus/clut/catalog.json` is one, and `CLUT.md` measures
+what it is worth. Gap 4 is the user's account, and is now optional: a local vision model can
 answer the census instead, worse and slower but with no account at all.
 
 Note what still works with all three missing: the camera, the tracker, the outlines, and the
@@ -252,6 +256,7 @@ and photographs are the slow case rather than the live one.
 
 ```bash
 echo 'ENUMERATOR_URL=http://127.0.0.1:4320' >> server/.env.local
+echo 'CATALOG_FILE=server/eval/corpus/clut/catalog.json' >> server/.env.local
 ./scripts/serve.sh
 ```
 

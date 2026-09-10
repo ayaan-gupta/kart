@@ -28,6 +28,9 @@
  *     --quality <q>   with --as-phone, likewise for the JPEG quality, 0 to 1
  *     --no-verify     the wide pass alone: no crops, no close read, every line is the census's
  *                     own word. The shipped path reads twice; this is the "before" arm.
+ *     --append        keep the rows already in --out and add these, replacing any with the same
+ *                     id. A photograph that timed out is re-run with --only and folded back into
+ *                     the run it belongs to, rather than paying for the other fourteen again.
  *
  * Since 2026-09-06 the shipped path reads every photograph twice (docs/superpowers/specs/
  * 2026-09-06-photo-verification-design.md): the census places a box on each product, the
@@ -379,8 +382,24 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   const hiddenImages = subset.filter((r) => r.hiddenExpected);
   const hiddenFlagged = hiddenImages.filter((r) => r.occlusionFlag).length;
   const unsure = subset.flatMap((r) => r.unsureScored);
+  // What the store's catalog said about each line, read back off the close read's own answer.
+  // "not-consulted" on every line means the deployment has no catalog and this leg is inert, which
+  // is what every measurement before 2026-09-09 was: open-world naming, scored closed-world.
+  const catalogVerdicts = new Map<string, number>();
+  for (const r of subset) {
+    const items = ((r.verify as { items?: { line?: { catalog?: string } }[] } | undefined)?.items ?? []);
+    for (const item of items) {
+      const verdict = item.line?.catalog ?? 'none';
+      catalogVerdicts.set(verdict, (catalogVerdicts.get(verdict) ?? 0) + 1);
+    }
+  }
   const unsureFlagged = unsure.filter((u) => u.flagged).length;
   const seconds = subset.reduce((n, r) => n + r.seconds, 0) / Math.max(1, subset.length);
+  // How many of the products the census listed it also placed a box on. A product with no box is
+  // never cut out and never read a second time, so it can only ever be unsure: this is the
+  // ceiling on how much of the bag the gate can possibly assert, and it moves.
+  const listed = subset.reduce((n, r) => n + (r.items?.length ?? 0), 0);
+  const boxed = subset.reduce((n, r) => n + (r.items ?? []).filter((i) => i.box !== null).length, 0);
 
   // The gate, line by line. A line matching nothing real counts against the gate only on the
   // cart tier, whose labels are complete; on the storage tier such a line usually names something
@@ -413,9 +432,13 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
     console.log(`    5. asserted lines wrong         ${gate.assertedWrong}/${asserted} lines shown as sure were wrong (must be 0)`);
     console.log(`       unsure lines                 ${held}, of which ${gate.unsureWrong} wrong and ${gate.unsureRight} right (the gate's cost)`);
   }
+  if (catalogVerdicts.size > 0) {
+    console.log(`    6. the store catalog             ${[...catalogVerdicts].map(([k, v]) => `${k} ${v}`).join(', ')}`);
+  }
+  console.log(`       products the census boxed    ${boxed}/${listed} (only these can be read twice)`);
   console.log(`       seconds per photograph       ${seconds.toFixed(1)}`);
 
-  return { photographs: subset.length, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
+  return { photographs: subset.length, catalog: Object.fromEntries(catalogVerdicts), listed, boxed, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
 }
 
 const summary = {
@@ -432,5 +455,11 @@ if (cost && rows.length > 0) {
 }
 
 const out = arg('out', join(import.meta.dirname, '../clut-photos.json'));
-writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: cost && rows.length > 0 ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / rows.length).toFixed(4)), callsPerPhoto: Number((cost.calls / rows.length).toFixed(2)) } : null, summary, rows }, null, 1)}\n`);
+// With --append the rows already in the file stay, and these replace any that share an id. The
+// summary written beside them is this run's, over its own rows; re-score the file with
+// clut-rescore.ts to get one over all of them.
+const kept = argv.includes('--append') && existsSync(out)
+  ? (JSON.parse(readFileSync(out, 'utf8')) as { rows?: Row[] }).rows?.filter((r) => !rows.some((fresh) => fresh.id === r.id && fresh.pass === r.pass)) ?? []
+  : [];
+writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: cost && rows.length > 0 ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / rows.length).toFixed(4)), callsPerPhoto: Number((cost.calls / rows.length).toFixed(2)) } : null, summary, rows: [...kept, ...rows] }, null, 1)}\n`);
 console.log(`\n  written to ${out}`);

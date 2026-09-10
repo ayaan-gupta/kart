@@ -12,8 +12,22 @@
  * stylised PRIANO as "Piano" at 0.97 and a jar of Simply Nature marinara as "Murphy's Naturals"
  * at 0.9. What does separate them is a second reading that disagrees.
  *
+ * Since 2026-09-09 a third reading is consulted when the shop's catalog is configured: the two
+ * readings say what the product is, and the catalog says which of the things this shop sells that
+ * is, if any. It can only take a line's certainty away, never grant it. A line the two readings
+ * agreed on that the shop cannot account for, or that fits two of its products equally, is unsure.
+ *
+ * Measured reason for the rule, over the lines of two recorded runs on the fifteen clut
+ * photographs (server/eval/pipeline/catalog-replay.ts): of the sixteen lines those runs asserted
+ * that were wrong, the catalog declines fourteen. It costs eleven of the fifty-nine right lines,
+ * each of which is a shopper asked for a second photograph of something already correct. The two
+ * it does not catch are quantity errors, which are outside what a text catalog can see: both read
+ * one box of Priano rigatoni where there were two, and one box of Priano rigatoni is a thing the
+ * shop sells.
+ *
  * Pure, so every branch is pinned in reconcile.test.ts without a model call.
  */
+import { resolve, shortlist, type Catalog } from "./catalog.js";
 import type { VerifyResponse } from "./schemas.js";
 
 /** The same line the bag draws: below this a line is unsure. Mirrors UNSURE_BELOW in fusion.ts. */
@@ -39,6 +53,14 @@ export interface ReconciledLine {
   sure: boolean;
   /** Whether a close reading existed and agreed with the wide one. */
   agreed: boolean;
+  /** The store product this line resolved to, or null when it resolved to none. */
+  sku: string | null;
+  /**
+   * What the catalog said. "matched" is the text of the two readings resolving to one product;
+   * "picked" is the close read choosing between products the text could not separate;
+   * "not-consulted" is a deployment with no catalog, where this whole leg is inert.
+   */
+  catalog: "matched" | "picked" | "ambiguous" | "absent" | "not-reached" | "not-consulted";
 }
 
 /** Brands compared the way `productKey` compares them: no case, accents or punctuation. */
@@ -52,7 +74,7 @@ function foldBrand(brand: string | null): string {
     .trim();
 }
 
-export function reconcile(wide: WideReading, close: VerifyResponse | null): ReconciledLine {
+export function reconcile(wide: WideReading, close: VerifyResponse | null, catalog: Catalog | null = null): ReconciledLine {
   const unsure = (over: Partial<ReconciledLine> = {}): ReconciledLine => ({
     description: wide.description,
     brand: wide.brand,
@@ -60,6 +82,11 @@ export function reconcile(wide: WideReading, close: VerifyResponse | null): Reco
     confidence: Math.min(DISAGREED_CONFIDENCE, wide.confidence, close?.confidence ?? 1),
     sure: false,
     agreed: false,
+    sku: null,
+    // Reached the catalog or not: a line the two readings already disagreed on never gets that
+    // far, and reporting it as "not-consulted" would read as a deployment with no catalog, which
+    // is how the whole leg reports itself being off.
+    catalog: catalog === null ? "not-consulted" : "not-reached",
     ...over,
   });
 
@@ -101,12 +128,28 @@ export function reconcile(wide: WideReading, close: VerifyResponse | null): Reco
     return unsure({ brand, confidence: Math.min(wide.confidence, close.confidence) });
   }
 
-  return {
+  // The two readings agree. What the shop sells is the last question and the only one that can
+  // still take the line back: the close read is asked the same question the wide pass was, so two
+  // readings of a jar of Simply Nature marinara can agree on "Murphy's Naturals" and be sure of
+  // it. A shop stocking no such product is evidence neither reading holds on its own.
+  const agreed = {
     description: wide.description,
     brand,
     count: wide.count,
     confidence: (wide.confidence + close.confidence) / 2,
-    sure: true,
     agreed: true,
   };
+  const verdict = resolve({ name: wide.description, brand }, catalog);
+  if (verdict.status === "absent" || verdict.status === "ambiguous") {
+    // Text could not settle it, which is not the same as the crop not settling it. The close read
+    // was shown the shop's own rows for this product and may copy one back; honouring only a SKU
+    // that was actually offered is what keeps this a choice between retrieved rows rather than a
+    // second chance to name a product. Nothing was offered when nothing was plausible, and then
+    // there is nothing to choose and the line stays unsure.
+    const offered = shortlist({ name: wide.description, brand }, catalog);
+    const picked = offered.find((c) => c.sku === close.catalogSku);
+    if (picked !== undefined) return { ...agreed, sure: true, sku: picked.sku, catalog: "picked" };
+    return unsure({ ...agreed, confidence: Math.min(DISAGREED_CONFIDENCE, agreed.confidence), catalog: verdict.status });
+  }
+  return { ...agreed, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
 }

@@ -23,6 +23,8 @@ import {
   verifyUserText,
 } from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
+import { loadCatalog, shortlist, skus } from "./catalog.js";
+import { configuredTimeoutMs } from "./http.js";
 import { reconcile, type ReconciledLine, type WideReading } from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
 
@@ -674,6 +676,30 @@ const PHOTO_DETAIL = detailFromEnv("KART_PHOTO_DETAIL", "high");
 const VERIFY_DETAIL = detailFromEnv("KART_VERIFY_DETAIL", "high");
 const VERIFY_MODEL = (): string => process.env.KART_VERIFY_MODEL?.trim() || MODELS.photo;
 
+/**
+ * Whether the wide pass is shown the shop's whole product list. Off, and only an eval arm turns
+ * it on.
+ *
+ * Measured on the fifteen clut photographs on 2026-09-09 (server/eval/CLUT.md). Shown the list,
+ * the wide pass finds more (59 of 75 labelled products against 54) and invents differently: two
+ * of clut7's lines came back as "Simply Nature organic chicken broth" and "Simply Nature organic
+ * brown rice and quinoa fusilli", products of that shop which are not in that basket. Named in
+ * the shop's own words they resolve against the catalog, the close read confirms them, and they
+ * reach the shopper asserted. Without the list the same two inventions arrive as "Green Packaging
+ * Snack" and "Nutrition Facts", which the catalog declines.
+ *
+ * The list is a menu, and the gate's whole premise is that the two readings and the catalog are
+ * separate witnesses. Retrieval belongs where it is conditioned on one region's evidence, which
+ * is the shortlist each crop is shown, not offered to the whole photograph at once.
+ */
+const PHOTO_STOCK_LIST = process.env.KART_PHOTO_STOCK_LIST === "1";
+
+/** Two or more products listed and not one of them placed. See the call site for the measurement. */
+function boxless(answer: PhotoResponse): boolean {
+  const products = answer.items.filter((item) => item.isProduct);
+  return products.length >= 2 && products.every((item) => item.box === null);
+}
+
 /** The photograph as sent: EXIF orientation applied, long edge capped, JPEG. */
 async function photoImage(image: Buffer): Promise<Buffer> {
   return sharp(image)
@@ -728,33 +754,61 @@ export async function runCensus(
   // composite of it. See MODELS.photo for the measurement and PHOTO_SYSTEM_PROMPT for the prompt.
   if (marks.length === 0) {
     const photo = await photoImage(image);
-    const outputText = await requestOutputText("runCensus", {
-      model: MODELS.photo,
-      prompt_cache_key: "kart-photo",
-      reasoning: { effort: PHOTO_EFFORT },
-      input: [
-        { role: "system", content: PHOTO_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: censusUserText([], alreadyCounted, confirming) },
-            { type: "input_image", image_url: dataUrl(photo), detail: PHOTO_DETAIL },
-          ],
+    const askPhoto = async (): Promise<PhotoResponse> => {
+      const outputText = await requestOutputText("runCensus", {
+        model: MODELS.photo,
+        prompt_cache_key: "kart-photo",
+        reasoning: { effort: PHOTO_EFFORT },
+        input: [
+          { role: "system", content: PHOTO_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: censusUserText([], alreadyCounted, confirming, PHOTO_STOCK_LIST ? skus(loadCatalog()) : []) },
+              { type: "input_image", image_url: dataUrl(photo), detail: PHOTO_DETAIL },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "photo_census",
+            strict: true,
+            schema: photoJsonSchema,
+          },
         },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "photo_census",
-          strict: true,
-          schema: photoJsonSchema,
-        },
-      },
-    });
+      });
+      return PhotoResponse.parse(JSON.parse(outputText));
+    };
+
+    const startedAt = Date.now();
+    let answer = await askPhoto();
+    const firstCallMs = Date.now() - startedAt;
+    // A photograph of several products where the model placed no box on any of them. `box` is
+    // nullable for the product no rectangle contains, which is a per-product judgement; a whole
+    // answer without one is the model declining the question, and it does so all-or-nothing.
+    // Measured over 84 scans on the fifteen clut photographs, between 39% and 55% of answers came
+    // back like this depending on the run, and a product with no box is never cut out and never
+    // read a second time, so every line of such a photograph can only ever be unsure.
+    //
+    // Asked once more it usually answers with boxes, and the retry costs one census call on the
+    // photographs that need it rather than a second reading the shopper is asked to take.
+    // Only when a second call still fits inside the budget this request is answered under. The
+    // retry is worth twelve seconds of a shopper's time and is not worth the whole request
+    // failing: a timed-out census puts nothing in the bag, which is strictly worse than a bag of
+    // unsure lines. Eight of thirty scans were lost this way before this check existed.
+    const budgetMs = configuredTimeoutMs();
+    if (boxless(answer) && firstCallMs * 2 < budgetMs) {
+      console.warn("[recognize] photo census placed no boxes; asking once more");
+      const second = await askPhoto();
+      // Taken only when it placed something. A second answer that declined again, or that came
+      // back with fewer products, is not an improvement, and replacing the first with it would
+      // lose products the first pass had named to buy nothing.
+      if (second.items.some((item) => item.isProduct && item.box !== null)) answer = second;
+    }
     // The model answers in its own compact terms (see `photoJsonSchema`); folded into the census
     // shape here, so every caller and every normalisation below reads what it always has.
-    const parsed = censusFromPhoto(PhotoResponse.parse(JSON.parse(outputText)));
-    return normalizeCensusResponse(parsed, diagnostics);
+    return normalizeCensusResponse(censusFromPhoto(answer), diagnostics);
   }
 
   const composited = await compositeMarks(image, marks, CENSUS_LONG_EDGE);
@@ -890,6 +944,10 @@ export interface VerifiedItem {
  * with the first and assert it.
  */
 export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[] = []): Promise<VerifiedItem[]> {
+  // The shop, if this deployment has one. Retrieval happens here, from the text the wide pass
+  // already produced: each crop is shown the shop's own closest rows so the close read can settle
+  // which variety of a range it is, which is the question a crop answers and text cannot.
+  const catalog = loadCatalog();
   const settled = await Promise.allSettled(
     items.map(async (item): Promise<VerifyResponse> => {
       const outputText = await requestOutputText("runVerify", {
@@ -907,6 +965,7 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
                   { description: item.wide.description, productKey: item.wide.productKey },
                   // Every brand the wide pass read on the other items, not this one's own.
                   brandsInPhoto.filter((b) => b.toLowerCase() !== (item.wide.brand ?? "").toLowerCase()),
+                  shortlist({ name: item.wide.description, brand: item.wide.brand }, catalog).map((c) => c.sku),
                 ),
               },
               { type: "input_image", image_url: dataUrl(item.crop), detail: VERIFY_DETAIL },
@@ -930,6 +989,6 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
       console.warn(`[recognize] close read of ${JSON.stringify(item.id)} failed:`, result.reason);
     }
     const close = result.status === "fulfilled" ? result.value : null;
-    return { id: item.id, close, line: reconcile(item.wide, close) };
+    return { id: item.id, close, line: reconcile(item.wide, close, catalog) };
   });
 }

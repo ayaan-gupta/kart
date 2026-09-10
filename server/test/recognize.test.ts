@@ -93,6 +93,69 @@ describe("runCensus on a photograph (no marks)", () => {
     expect(result.occlusion.itemsLikelyHidden).toBe(true);
   });
 
+  /**
+   * A product with no box is never cut out and never read a second time, so it can only ever be
+   * shown to the shopper as unsure. The model declines to place boxes all-or-nothing, on between
+   * 39% and 55% of answers depending on the run, and asked again it usually places them.
+   */
+  const boxless = {
+    subjectKind: "cart",
+    items: [
+      { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: null },
+      { name: "Nutella", brand: "Nutella", count: 1, confidence: 0.9, isProduct: true, box: null },
+    ],
+    occlusion: { severity: "none", reason: "" },
+  };
+  const boxed = {
+    ...boxless,
+    items: boxless.items.map((item, i) => ({ ...item, box: { x: 10 * i, y: 0, w: 10, h: 10 } })),
+  };
+
+  it("asks again when it listed several products and placed a box on none of them", async () => {
+    mockOutput(boxless);
+    mockOutput(boxed);
+    const result = await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.unmarkedItems.every((item) => item.box !== null)).toBe(true);
+  });
+
+  it("keeps the first answer when the second declines too, rather than losing the products", async () => {
+    mockOutput(boxless);
+    mockOutput({ ...boxless, items: [] });
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.unmarkedItems).toHaveLength(2);
+  });
+
+  it("does not ask again when a second call would not fit the request's budget", async () => {
+    // A timed-out census puts nothing in the bag at all, which is worse than a bag of unsure
+    // lines. Eight of thirty scans were lost that way before this check existed.
+    const previous = process.env.RECOGNITION_TIMEOUT_MS;
+    process.env.RECOGNITION_TIMEOUT_MS = "40";
+    create.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return { output_text: JSON.stringify(boxless) };
+    });
+    mockOutput(boxed);
+    try {
+      const result = await runCensus(await blankJpeg(), []);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(result.unmarkedItems).toHaveLength(2);
+    } finally {
+      if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
+      else process.env.RECOGNITION_TIMEOUT_MS = previous;
+    }
+  });
+
+  it("does not ask again when a box was placed, nor for a single unplaceable product", async () => {
+    mockOutput(boxed);
+    await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(1);
+    create.mockReset();
+    mockOutput({ ...boxless, items: [boxless.items[0]] });
+    await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it("sends the photograph at up to 2048 on its long edge, not the census composite's 1536", async () => {
     mockOutput(emptyPhoto);
     await runCensus(await blankJpeg(3000, 2000), []);
@@ -1121,7 +1184,7 @@ describe("a product held up to the camera fills a bag, a shop's shelf does not",
  */
 describe("runVerify", () => {
   const wide = { description: "Rigatoni", productKey: "priano::rigatoni", brand: "Piano", count: 2, confidence: 0.9 };
-  const closeAnswer = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.98, legible: true, matchesHint: true };
+  const closeAnswer = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.98, legible: true, matchesHint: true, catalogSku: null };
 
   it("asks the photo model about each crop under the verify prompt with the wide reading as the hint", async () => {
     mockOutput(closeAnswer);

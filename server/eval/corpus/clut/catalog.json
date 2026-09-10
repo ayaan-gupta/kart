@@ -1,0 +1,1926 @@
+{
+ "note": "The store catalog for the clut corpus: what this shop sells, as a text list. The photo path retrieves against it by text (server/src/catalog.ts) instead of by image, so it runs without a GPU and without the Python stack. Entries are what a resolver may name; a product not in this list is one the resolver must decline rather than approximate.",
+ "provenance": "Written by hand on 2026-09-09. No image and no licensed dataset: the entries are product names and brands, taken from what is legible in the fifteen photographs of corpus/clut/manifest.json plus the same brands' publicly listed ranges. 'truth' marks an entry a photograph actually contains, and is metadata for the harness only; it is never shown to a model and never read by the resolver.",
+ "why_distractors": "A catalog holding only the answers would measure nothing: every query would have exactly one plausible target. Distractors are chosen adversarially, mostly siblings in the same brand's range (Barilla spaghetti beside thick spaghetti and thin spaghetti; Priano rigatoni beside penne rigate and bucatini), because naming the range but not the variety is the failure this resolver exists to catch.",
+ "counts": {
+  "entries": 250,
+  "truth": 48,
+  "brands": 41
+ },
+ "entries": [
+  {
+   "sku": "Priano rigatoni",
+   "brand": "Priano",
+   "name": "rigatoni",
+   "size": "16 oz",
+   "truth": true
+  },
+  {
+   "sku": "Priano fusilli bucati",
+   "brand": "Priano",
+   "name": "fusilli bucati",
+   "size": "16 oz",
+   "aliases": [
+    "bronze cut fusilli bucati",
+    "bronze cut pasta"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Priano penne rigate",
+   "brand": "Priano",
+   "name": "penne rigate",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano spaghetti",
+   "brand": "Priano",
+   "name": "spaghetti",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano linguine",
+   "brand": "Priano",
+   "name": "linguine",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano bucatini",
+   "brand": "Priano",
+   "name": "bucatini",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano farfalle",
+   "brand": "Priano",
+   "name": "farfalle",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano orecchiette",
+   "brand": "Priano",
+   "name": "orecchiette",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano casarecce",
+   "brand": "Priano",
+   "name": "casarecce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano bronze cut mafalde",
+   "brand": "Priano",
+   "name": "bronze cut mafalde",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano basil pesto",
+   "brand": "Priano",
+   "name": "basil pesto",
+   "size": "6.7 oz",
+   "aliases": [
+    "pesto alla genovese",
+    "pesto genovese"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Priano sun dried tomato pesto",
+   "brand": "Priano",
+   "name": "sun dried tomato pesto",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano marinara sauce",
+   "brand": "Priano",
+   "name": "marinara sauce",
+   "size": "24 oz",
+   "truth": false
+  },
+  {
+   "sku": "Priano vodka sauce",
+   "brand": "Priano",
+   "name": "vodka sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano alfredo sauce",
+   "brand": "Priano",
+   "name": "alfredo sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano grated parmesan",
+   "brand": "Priano",
+   "name": "grated parmesan",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Priano balsamic glaze",
+   "brand": "Priano",
+   "name": "balsamic glaze",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla penne",
+   "brand": "Barilla",
+   "name": "penne",
+   "size": "16 oz",
+   "truth": true
+  },
+  {
+   "sku": "Barilla linguine",
+   "brand": "Barilla",
+   "name": "linguine",
+   "size": "16 oz",
+   "truth": true
+  },
+  {
+   "sku": "Barilla thick spaghetti",
+   "brand": "Barilla",
+   "name": "thick spaghetti",
+   "size": "16 oz",
+   "truth": true
+  },
+  {
+   "sku": "Barilla spaghetti",
+   "brand": "Barilla",
+   "name": "spaghetti",
+   "size": "16 oz",
+   "truth": false
+  },
+  {
+   "sku": "Barilla thin spaghetti",
+   "brand": "Barilla",
+   "name": "thin spaghetti",
+   "size": "16 oz",
+   "truth": false
+  },
+  {
+   "sku": "Barilla angel hair",
+   "brand": "Barilla",
+   "name": "angel hair",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla rotini",
+   "brand": "Barilla",
+   "name": "rotini",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla farfalle",
+   "brand": "Barilla",
+   "name": "farfalle",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla elbows",
+   "brand": "Barilla",
+   "name": "elbows",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla lasagne",
+   "brand": "Barilla",
+   "name": "lasagne",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla ziti",
+   "brand": "Barilla",
+   "name": "ziti",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla protein plus penne",
+   "brand": "Barilla",
+   "name": "protein plus penne",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla whole grain rotini",
+   "brand": "Barilla",
+   "name": "whole grain rotini",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Barilla marinara sauce",
+   "brand": "Barilla",
+   "name": "marinara sauce",
+   "size": "24 oz",
+   "truth": false
+  },
+  {
+   "sku": "Barilla tomato basil sauce",
+   "brand": "Barilla",
+   "name": "tomato basil sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic marinara pasta sauce",
+   "brand": "Simply Nature",
+   "name": "organic marinara pasta sauce",
+   "size": "24 oz",
+   "aliases": [
+    "organic pasta sauce",
+    "organic marinara"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Simply Nature organic black beans",
+   "brand": "Simply Nature",
+   "name": "organic black beans",
+   "size": "15 oz",
+   "truth": true
+  },
+  {
+   "sku": "Simply Nature organic brown rice and quinoa fusilli",
+   "brand": "Simply Nature",
+   "name": "organic brown rice and quinoa fusilli",
+   "size": "8 oz",
+   "aliases": [
+    "brown rice quinoa pasta",
+    "rice and quinoa fusilli"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Simply Nature organic grass fed ground beef",
+   "brand": "Simply Nature",
+   "name": "organic grass fed ground beef",
+   "size": "16 oz",
+   "aliases": [
+    "organic ground beef"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Simply Nature organic garbanzo beans",
+   "brand": "Simply Nature",
+   "name": "organic garbanzo beans",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic kidney beans",
+   "brand": "Simply Nature",
+   "name": "organic kidney beans",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic pinto beans",
+   "brand": "Simply Nature",
+   "name": "organic pinto beans",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic diced tomatoes",
+   "brand": "Simply Nature",
+   "name": "organic diced tomatoes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic tomato basil pasta sauce",
+   "brand": "Simply Nature",
+   "name": "organic tomato basil pasta sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic chunky garden pasta sauce",
+   "brand": "Simply Nature",
+   "name": "organic chunky garden pasta sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic red quinoa",
+   "brand": "Simply Nature",
+   "name": "organic red quinoa",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic chicken broth",
+   "brand": "Simply Nature",
+   "name": "organic chicken broth",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic peanut butter",
+   "brand": "Simply Nature",
+   "name": "organic peanut butter",
+   "size": "16 oz",
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic honey",
+   "brand": "Simply Nature",
+   "name": "organic honey",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic coconut oil",
+   "brand": "Simply Nature",
+   "name": "organic coconut oil",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic apple sauce",
+   "brand": "Simply Nature",
+   "name": "organic apple sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simply Nature organic brown rice cakes",
+   "brand": "Simply Nature",
+   "name": "organic brown rice cakes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's cream of mushroom condensed soup",
+   "brand": "Campbell's",
+   "name": "cream of mushroom condensed soup",
+   "size": "10.5 oz",
+   "aliases": [
+    "cream of mushroom soup",
+    "cream of mushroom"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Campbell's condensed tomato soup",
+   "brand": "Campbell's",
+   "name": "condensed tomato soup",
+   "size": "10.75 oz",
+   "aliases": [
+    "tomato soup"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Campbell's cream of chicken condensed soup",
+   "brand": "Campbell's",
+   "name": "cream of chicken condensed soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's cream of celery condensed soup",
+   "brand": "Campbell's",
+   "name": "cream of celery condensed soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's chicken noodle condensed soup",
+   "brand": "Campbell's",
+   "name": "chicken noodle condensed soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's vegetable beef condensed soup",
+   "brand": "Campbell's",
+   "name": "vegetable beef condensed soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's chunky sirloin burger soup",
+   "brand": "Campbell's",
+   "name": "chunky sirloin burger soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Campbell's cheddar cheese condensed soup",
+   "brand": "Campbell's",
+   "name": "cheddar cheese condensed soup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill organic white quinoa",
+   "brand": "Bob's Red Mill",
+   "name": "organic white quinoa",
+   "size": "26 oz",
+   "aliases": [
+    "quinoa",
+    "tri colour quinoa"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Bob's Red Mill organic farro",
+   "brand": "Bob's Red Mill",
+   "name": "organic farro",
+   "size": "24 oz",
+   "aliases": [
+    "farro"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Bob's Red Mill steel cut oats",
+   "brand": "Bob's Red Mill",
+   "name": "steel cut oats",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill old fashioned rolled oats",
+   "brand": "Bob's Red Mill",
+   "name": "old fashioned rolled oats",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill pearl barley",
+   "brand": "Bob's Red Mill",
+   "name": "pearl barley",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill almond flour",
+   "brand": "Bob's Red Mill",
+   "name": "almond flour",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill all purpose gluten free flour",
+   "brand": "Bob's Red Mill",
+   "name": "all purpose gluten free flour",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill nutritional yeast",
+   "brand": "Bob's Red Mill",
+   "name": "nutritional yeast",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill chia seeds",
+   "brand": "Bob's Red Mill",
+   "name": "chia seeds",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bob's Red Mill flaxseed meal",
+   "brand": "Bob's Red Mill",
+   "name": "flaxseed meal",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner baking soda",
+   "brand": "Baker's Corner",
+   "name": "baking soda",
+   "size": "16 oz",
+   "truth": true
+  },
+  {
+   "sku": "Baker's Corner devil's food cake mix",
+   "brand": "Baker's Corner",
+   "name": "devil's food cake mix",
+   "size": "15.25 oz",
+   "aliases": [
+    "devils food cake mix",
+    "chocolate cake mix"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Baker's Corner yellow cake mix",
+   "brand": "Baker's Corner",
+   "name": "yellow cake mix",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner white cake mix",
+   "brand": "Baker's Corner",
+   "name": "white cake mix",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner brownie mix",
+   "brand": "Baker's Corner",
+   "name": "brownie mix",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner baking powder",
+   "brand": "Baker's Corner",
+   "name": "baking powder",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner powdered sugar",
+   "brand": "Baker's Corner",
+   "name": "powdered sugar",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner granulated sugar",
+   "brand": "Baker's Corner",
+   "name": "granulated sugar",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner light brown sugar",
+   "brand": "Baker's Corner",
+   "name": "light brown sugar",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner all purpose flour",
+   "brand": "Baker's Corner",
+   "name": "all purpose flour",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner semi sweet chocolate chips",
+   "brand": "Baker's Corner",
+   "name": "semi sweet chocolate chips",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner corn starch",
+   "brand": "Baker's Corner",
+   "name": "corn starch",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Baker's Corner vanilla extract",
+   "brand": "Baker's Corner",
+   "name": "vanilla extract",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz avocado oil crackers sea salt",
+   "brand": "Savoritz",
+   "name": "avocado oil crackers sea salt",
+   "size": "4.4 oz",
+   "aliases": [
+    "avocado oil crackers",
+    "sea salt crackers"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Savoritz avocado oil crackers rosemary and sourdough",
+   "brand": "Savoritz",
+   "name": "avocado oil crackers rosemary and sourdough",
+   "size": "4.4 oz",
+   "aliases": [
+    "rosemary sourdough crackers",
+    "rosemary and sourdough"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Savoritz avocado oil crackers everything",
+   "brand": "Savoritz",
+   "name": "avocado oil crackers everything",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz club crackers",
+   "brand": "Savoritz",
+   "name": "club crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz buttery round crackers",
+   "brand": "Savoritz",
+   "name": "buttery round crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz baked cheese crackers",
+   "brand": "Savoritz",
+   "name": "baked cheese crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz woven wheats crackers",
+   "brand": "Savoritz",
+   "name": "woven wheats crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz entertainment crackers",
+   "brand": "Savoritz",
+   "name": "entertainment crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz multigrain crackers",
+   "brand": "Savoritz",
+   "name": "multigrain crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms lactose free whole milk",
+   "brand": "Friendly Farms",
+   "name": "lactose free whole milk",
+   "size": "half gallon",
+   "truth": true
+  },
+  {
+   "sku": "Friendly Farms lactose free 2% reduced fat milk",
+   "brand": "Friendly Farms",
+   "name": "lactose free 2% reduced fat milk",
+   "size": "half gallon",
+   "aliases": [
+    "lactose free 2 percent milk",
+    "lactose free reduced fat milk"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Friendly Farms probiotic lowfat kefir",
+   "brand": "Friendly Farms",
+   "name": "probiotic lowfat kefir",
+   "size": "32 oz",
+   "aliases": [
+    "kefir",
+    "probiotic drink",
+    "yogurt drink"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Friendly Farms whole milk",
+   "brand": "Friendly Farms",
+   "name": "whole milk",
+   "size": "gallon",
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms 2% reduced fat milk",
+   "brand": "Friendly Farms",
+   "name": "2% reduced fat milk",
+   "size": "gallon",
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms skim milk",
+   "brand": "Friendly Farms",
+   "name": "skim milk",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms whole milk vanilla yogurt",
+   "brand": "Friendly Farms",
+   "name": "whole milk vanilla yogurt",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms greek yogurt plain",
+   "brand": "Friendly Farms",
+   "name": "greek yogurt plain",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms heavy whipping cream",
+   "brand": "Friendly Farms",
+   "name": "heavy whipping cream",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms half and half",
+   "brand": "Friendly Farms",
+   "name": "half and half",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms almond milk unsweetened",
+   "brand": "Friendly Farms",
+   "name": "almond milk unsweetened",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms oat milk original",
+   "brand": "Friendly Farms",
+   "name": "oat milk original",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Friendly Farms cottage cheese",
+   "brand": "Friendly Farms",
+   "name": "cottage cheese",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Happy Farms neufchatel cheese",
+   "brand": "Happy Farms",
+   "name": "neufchatel cheese",
+   "size": "8 oz",
+   "aliases": [
+    "neufchatel",
+    "cream cheese",
+    "1/3 less fat cream cheese"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Happy Farms cream cheese spread",
+   "brand": "Happy Farms",
+   "name": "cream cheese spread",
+   "size": "8 oz",
+   "truth": false
+  },
+  {
+   "sku": "Happy Farms sharp cheddar block",
+   "brand": "Happy Farms",
+   "name": "sharp cheddar block",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Happy Farms mozzarella shredded",
+   "brand": "Happy Farms",
+   "name": "mozzarella shredded",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Happy Farms string cheese",
+   "brand": "Happy Farms",
+   "name": "string cheese",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simple Truth sour cream",
+   "brand": "Simple Truth",
+   "name": "sour cream",
+   "size": "16 oz",
+   "aliases": [
+    "organic sour cream"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Simple Truth plain greek yogurt",
+   "brand": "Simple Truth",
+   "name": "plain greek yogurt",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Simple Truth organic whole milk",
+   "brand": "Simple Truth",
+   "name": "organic whole milk",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Countryside Creamery unsalted butter",
+   "brand": "Countryside Creamery",
+   "name": "unsalted butter",
+   "size": "16 oz",
+   "aliases": [
+    "butter",
+    "sweet cream butter"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Countryside Creamery salted butter",
+   "brand": "Countryside Creamery",
+   "name": "salted butter",
+   "size": "16 oz",
+   "truth": false
+  },
+  {
+   "sku": "Countryside Creamery spreadable butter with canola",
+   "brand": "Countryside Creamery",
+   "name": "spreadable butter with canola",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kirkwood chicken breast tenderloins",
+   "brand": "Kirkwood",
+   "name": "chicken breast tenderloins",
+   "size": "40 oz",
+   "aliases": [
+    "chicken tenderloins",
+    "chicken breast tenders"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Kirkwood boneless skinless chicken breast",
+   "brand": "Kirkwood",
+   "name": "boneless skinless chicken breast",
+   "size": "3 lb",
+   "aliases": [
+    "packaged chicken",
+    "chicken breast"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Kirkwood chicken thighs",
+   "brand": "Kirkwood",
+   "name": "chicken thighs",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kirkwood chicken drumsticks",
+   "brand": "Kirkwood",
+   "name": "chicken drumsticks",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kirkwood breaded chicken breast fillets",
+   "brand": "Kirkwood",
+   "name": "breaded chicken breast fillets",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kirkwood whole chicken",
+   "brand": "Kirkwood",
+   "name": "whole chicken",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Appleton Farms uncured hickory bacon",
+   "brand": "Appleton Farms",
+   "name": "uncured hickory bacon",
+   "size": "12 oz",
+   "aliases": [
+    "uncured bacon",
+    "bacon"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Appleton Farms thick cut bacon",
+   "brand": "Appleton Farms",
+   "name": "thick cut bacon",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Appleton Farms sliced ham",
+   "brand": "Appleton Farms",
+   "name": "sliced ham",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Black Angus black angus ribeye steak",
+   "brand": "Black Angus",
+   "name": "black angus ribeye steak",
+   "size": null,
+   "aliases": [
+    "ribeye",
+    "beef ribs",
+    "angus beef",
+    "black angus beef"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Black Angus black angus New York strip steak",
+   "brand": "Black Angus",
+   "name": "black angus New York strip steak",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Black Angus black angus beef short ribs",
+   "brand": "Black Angus",
+   "name": "black angus beef short ribs",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Black Angus 85/15 ground beef",
+   "brand": "Black Angus",
+   "name": "85/15 ground beef",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "bananas",
+   "brand": null,
+   "name": "bananas",
+   "size": null,
+   "truth": true
+  },
+  {
+   "sku": "green apples granny smith",
+   "brand": null,
+   "name": "green apples granny smith",
+   "size": null,
+   "aliases": [
+    "granny smith apples",
+    "green apples"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "red apples gala",
+   "brand": null,
+   "name": "red apples gala",
+   "size": null,
+   "aliases": [
+    "gala apples",
+    "red apples"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "roma tomatoes",
+   "brand": null,
+   "name": "roma tomatoes",
+   "size": null,
+   "aliases": [
+    "plum tomatoes"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "green onions",
+   "brand": null,
+   "name": "green onions",
+   "size": null,
+   "aliases": [
+    "scallions",
+    "spring onions"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "strawberries",
+   "brand": null,
+   "name": "strawberries",
+   "size": "1 lb",
+   "truth": true
+  },
+  {
+   "sku": "mini cucumbers",
+   "brand": null,
+   "name": "mini cucumbers",
+   "size": "1 lb",
+   "aliases": [
+    "baby cucumbers",
+    "persian cucumbers"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "tomatoes on the vine",
+   "brand": null,
+   "name": "tomatoes on the vine",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "grape tomatoes",
+   "brand": null,
+   "name": "grape tomatoes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "yellow onions",
+   "brand": null,
+   "name": "yellow onions",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "red onions",
+   "brand": null,
+   "name": "red onions",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "russet potatoes",
+   "brand": null,
+   "name": "russet potatoes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "carrots",
+   "brand": null,
+   "name": "carrots",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "celery",
+   "brand": null,
+   "name": "celery",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "broccoli crowns",
+   "brand": null,
+   "name": "broccoli crowns",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "cauliflower",
+   "brand": null,
+   "name": "cauliflower",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "romaine hearts",
+   "brand": null,
+   "name": "romaine hearts",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "baby spinach",
+   "brand": null,
+   "name": "baby spinach",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "blueberries",
+   "brand": null,
+   "name": "blueberries",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "raspberries",
+   "brand": null,
+   "name": "raspberries",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "navel oranges",
+   "brand": null,
+   "name": "navel oranges",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "lemons",
+   "brand": null,
+   "name": "lemons",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "limes",
+   "brand": null,
+   "name": "limes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "avocados",
+   "brand": null,
+   "name": "avocados",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "green bell peppers",
+   "brand": null,
+   "name": "green bell peppers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "garlic",
+   "brand": null,
+   "name": "garlic",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "ginger root",
+   "brand": null,
+   "name": "ginger root",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Goldhen large white eggs",
+   "brand": "Goldhen",
+   "name": "large white eggs",
+   "size": "dozen",
+   "aliases": [
+    "eggs",
+    "grade a large eggs"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Goldhen large brown eggs",
+   "brand": "Goldhen",
+   "name": "large brown eggs",
+   "size": "dozen",
+   "truth": false
+  },
+  {
+   "sku": "Goldhen cage free large eggs",
+   "brand": "Goldhen",
+   "name": "cage free large eggs",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Peanut Delight creamy peanut butter",
+   "brand": "Peanut Delight",
+   "name": "creamy peanut butter",
+   "size": "16 oz",
+   "aliases": [
+    "peanut butter"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Peanut Delight crunchy peanut butter",
+   "brand": "Peanut Delight",
+   "name": "crunchy peanut butter",
+   "size": "16 oz",
+   "truth": false
+  },
+  {
+   "sku": "Peanut Delight natural peanut butter",
+   "brand": "Peanut Delight",
+   "name": "natural peanut butter",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Nutella hazelnut spread",
+   "brand": "Nutella",
+   "name": "hazelnut spread",
+   "size": "13 oz",
+   "aliases": [
+    "nutella",
+    "chocolate hazelnut spread"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Nutella hazelnut spread biscuits",
+   "brand": "Nutella",
+   "name": "hazelnut spread biscuits",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Burman's real mayonnaise",
+   "brand": "Burman's",
+   "name": "real mayonnaise",
+   "size": "30 oz",
+   "aliases": [
+    "mayonnaise",
+    "mayo"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Burman's light mayonnaise",
+   "brand": "Burman's",
+   "name": "light mayonnaise",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Burman's tomato ketchup",
+   "brand": "Burman's",
+   "name": "tomato ketchup",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Burman's yellow mustard",
+   "brand": "Burman's",
+   "name": "yellow mustard",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Burman's dill pickle spears",
+   "brand": "Burman's",
+   "name": "dill pickle spears",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Burman's ranch dressing",
+   "brand": "Burman's",
+   "name": "ranch dressing",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "La Costeña salsa casera medium",
+   "brand": "La Costeña",
+   "name": "salsa casera medium",
+   "size": "16 oz",
+   "aliases": [
+    "mexican salsa",
+    "salsa casera",
+    "salsa"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "La Costeña salsa verde",
+   "brand": "La Costeña",
+   "name": "salsa verde",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "La Costeña chipotle peppers in adobo",
+   "brand": "La Costeña",
+   "name": "chipotle peppers in adobo",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "La Costeña refried pinto beans",
+   "brand": "La Costeña",
+   "name": "refried pinto beans",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "La Costeña whole jalapeños",
+   "brand": "La Costeña",
+   "name": "whole jalapeños",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Sempio Korean sweet potato starch noodles",
+   "brand": "Sempio",
+   "name": "Korean sweet potato starch noodles",
+   "size": "500 g",
+   "aliases": [
+    "korean rice noodles",
+    "korean noodles",
+    "glass noodles"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Sempio naturally brewed soy sauce",
+   "brand": "Sempio",
+   "name": "naturally brewed soy sauce",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Sempio gochujang red pepper paste",
+   "brand": "Sempio",
+   "name": "gochujang red pepper paste",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Bibigo roasted seaweed snack",
+   "brand": "Bibigo",
+   "name": "roasted seaweed snack",
+   "size": "5 pack",
+   "aliases": [
+    "seaweed snack",
+    "korean snack",
+    "gim"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Bibigo seaweed snack wasabi",
+   "brand": "Bibigo",
+   "name": "seaweed snack wasabi",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Freshpak rooibos tea bags",
+   "brand": "Freshpak",
+   "name": "rooibos tea bags",
+   "size": "80 bags",
+   "aliases": [
+    "rooibos tea",
+    "freshpak tea",
+    "tea"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Freshpak rooibos tea decaf",
+   "brand": "Freshpak",
+   "name": "rooibos tea decaf",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger roasted salted almonds",
+   "brand": "Kroger",
+   "name": "roasted salted almonds",
+   "size": "16 oz",
+   "aliases": [
+    "roasted almonds",
+    "almonds"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Kroger raw almonds",
+   "brand": "Kroger",
+   "name": "raw almonds",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger dry roasted peanuts",
+   "brand": "Kroger",
+   "name": "dry roasted peanuts",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger cashew halves",
+   "brand": "Kroger",
+   "name": "cashew halves",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger walnut halves",
+   "brand": "Kroger",
+   "name": "walnut halves",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger mixed nuts",
+   "brand": "Kroger",
+   "name": "mixed nuts",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger extra virgin olive oil",
+   "brand": "Kroger",
+   "name": "extra virgin olive oil",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Kroger apple cider vinegar",
+   "brand": "Kroger",
+   "name": "apple cider vinegar",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Specially Selected brioche hamburger buns",
+   "brand": "Specially Selected",
+   "name": "brioche hamburger buns",
+   "size": "8 count",
+   "aliases": [
+    "brioche buns",
+    "brioche rolls"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "King's Hawaiian original Hawaiian sweet rolls",
+   "brand": "King's Hawaiian",
+   "name": "original Hawaiian sweet rolls",
+   "size": "12 count",
+   "aliases": [
+    "hawaiian sweet rolls",
+    "sweet rolls",
+    "hawaiian rolls"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Specially Selected sliced brioche loaf",
+   "brand": "Specially Selected",
+   "name": "sliced brioche loaf",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Specially Selected french baguette",
+   "brand": "Specially Selected",
+   "name": "french baguette",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "L'oven Fresh white sandwich bread",
+   "brand": "L'oven Fresh",
+   "name": "white sandwich bread",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "L'oven Fresh 100% whole wheat bread",
+   "brand": "L'oven Fresh",
+   "name": "100% whole wheat bread",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "L'oven Fresh hamburger buns",
+   "brand": "L'oven Fresh",
+   "name": "hamburger buns",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "L'oven Fresh hot dog buns",
+   "brand": "L'oven Fresh",
+   "name": "hot dog buns",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "L'oven Fresh everything bagels",
+   "brand": "L'oven Fresh",
+   "name": "everything bagels",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Elevation whey protein powder vanilla",
+   "brand": "Elevation",
+   "name": "whey protein powder vanilla",
+   "size": "2 lb",
+   "aliases": [
+    "whey protein",
+    "protein powder"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Elevation whey protein powder chocolate",
+   "brand": "Elevation",
+   "name": "whey protein powder chocolate",
+   "size": "2 lb",
+   "truth": false
+  },
+  {
+   "sku": "Elevation plant protein powder",
+   "brand": "Elevation",
+   "name": "plant protein powder",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Elevation protein bars chocolate chip",
+   "brand": "Elevation",
+   "name": "protein bars chocolate chip",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Boulder heavy duty scour pads",
+   "brand": "Boulder",
+   "name": "heavy duty scour pads",
+   "size": "6 pack",
+   "aliases": [
+    "sponges",
+    "scouring pads",
+    "scrub sponges"
+   ],
+   "truth": false
+  },
+  {
+   "sku": "Boulder cellulose sponges",
+   "brand": "Boulder",
+   "name": "cellulose sponges",
+   "size": "4 pack",
+   "aliases": [
+    "sponges",
+    "kitchen sponges"
+   ],
+   "truth": true
+  },
+  {
+   "sku": "Boulder dish soap lemon",
+   "brand": "Boulder",
+   "name": "dish soap lemon",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Tandil laundry detergent",
+   "brand": "Tandil",
+   "name": "laundry detergent",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Boulder paper towels",
+   "brand": "Boulder",
+   "name": "paper towels",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Boulder aluminium foil",
+   "brand": "Boulder",
+   "name": "aluminium foil",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Boulder parchment paper",
+   "brand": "Boulder",
+   "name": "parchment paper",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Millville corn flakes",
+   "brand": "Millville",
+   "name": "corn flakes",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Millville crispy oats",
+   "brand": "Millville",
+   "name": "crispy oats",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Millville honey nut crunch",
+   "brand": "Millville",
+   "name": "honey nut crunch",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Millville instant oatmeal variety",
+   "brand": "Millville",
+   "name": "instant oatmeal variety",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Millville granola bars chewy",
+   "brand": "Millville",
+   "name": "granola bars chewy",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Clancy's tortilla chips restaurant style",
+   "brand": "Clancy's",
+   "name": "tortilla chips restaurant style",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Clancy's kettle chips sea salt",
+   "brand": "Clancy's",
+   "name": "kettle chips sea salt",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Clancy's wavy potato chips",
+   "brand": "Clancy's",
+   "name": "wavy potato chips",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Clancy's pretzel sticks",
+   "brand": "Clancy's",
+   "name": "pretzel sticks",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Clancy's microwave popcorn butter",
+   "brand": "Clancy's",
+   "name": "microwave popcorn butter",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Earthly Grains long grain white rice",
+   "brand": "Earthly Grains",
+   "name": "long grain white rice",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Earthly Grains jasmine rice",
+   "brand": "Earthly Grains",
+   "name": "jasmine rice",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Earthly Grains basmati rice",
+   "brand": "Earthly Grains",
+   "name": "basmati rice",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Earthly Grains brown rice",
+   "brand": "Earthly Grains",
+   "name": "brown rice",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Earthly Grains couscous",
+   "brand": "Earthly Grains",
+   "name": "couscous",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Chef's Cupboard chicken ramen noodles",
+   "brand": "Chef's Cupboard",
+   "name": "chicken ramen noodles",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Chef's Cupboard beef broth",
+   "brand": "Chef's Cupboard",
+   "name": "beef broth",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Chef's Cupboard french fried onions",
+   "brand": "Chef's Cupboard",
+   "name": "french fried onions",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "PurAqua sparkling water lime",
+   "brand": "PurAqua",
+   "name": "sparkling water lime",
+   "size": "12 pack",
+   "truth": false
+  },
+  {
+   "sku": "PurAqua spring water",
+   "brand": "PurAqua",
+   "name": "spring water",
+   "size": "24 pack",
+   "truth": false
+  },
+  {
+   "sku": "Summit cola",
+   "brand": "Summit",
+   "name": "cola",
+   "size": "12 pack",
+   "truth": false
+  },
+  {
+   "sku": "Summit lemon lime soda",
+   "brand": "Summit",
+   "name": "lemon lime soda",
+   "size": "12 pack",
+   "truth": false
+  },
+  {
+   "sku": "Nature's Nectar orange juice not from concentrate",
+   "brand": "Nature's Nectar",
+   "name": "orange juice not from concentrate",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Nature's Nectar apple juice",
+   "brand": "Nature's Nectar",
+   "name": "apple juice",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Season's Choice frozen blueberries",
+   "brand": "Season's Choice",
+   "name": "frozen blueberries",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Season's Choice frozen broccoli florets",
+   "brand": "Season's Choice",
+   "name": "frozen broccoli florets",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Season's Choice frozen sweet corn",
+   "brand": "Season's Choice",
+   "name": "frozen sweet corn",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Season's Choice frozen french fries",
+   "brand": "Season's Choice",
+   "name": "frozen french fries",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Sundae Shoppe vanilla ice cream",
+   "brand": "Sundae Shoppe",
+   "name": "vanilla ice cream",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Benton's chocolate chip cookies",
+   "brand": "Benton's",
+   "name": "chocolate chip cookies",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Benton's fudge striped cookies",
+   "brand": "Benton's",
+   "name": "fudge striped cookies",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Savoritz saltine crackers",
+   "brand": "Savoritz",
+   "name": "saltine crackers",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Carlini olive oil spray",
+   "brand": "Carlini",
+   "name": "olive oil spray",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Carlini vegetable oil",
+   "brand": "Carlini",
+   "name": "vegetable oil",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Carlini canola oil",
+   "brand": "Carlini",
+   "name": "canola oil",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill iodized salt",
+   "brand": "Stonemill",
+   "name": "iodized salt",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill black pepper ground",
+   "brand": "Stonemill",
+   "name": "black pepper ground",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill garlic powder",
+   "brand": "Stonemill",
+   "name": "garlic powder",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill italian seasoning",
+   "brand": "Stonemill",
+   "name": "italian seasoning",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill crushed red pepper",
+   "brand": "Stonemill",
+   "name": "crushed red pepper",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill ground cinnamon",
+   "brand": "Stonemill",
+   "name": "ground cinnamon",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill chili powder",
+   "brand": "Stonemill",
+   "name": "chili powder",
+   "size": null,
+   "truth": false
+  },
+  {
+   "sku": "Stonemill smoked paprika",
+   "brand": "Stonemill",
+   "name": "smoked paprika",
+   "size": null,
+   "truth": false
+  }
+ ]
+}
