@@ -24,7 +24,7 @@ import {
 } from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
 import { loadCatalog, shortlist, skus } from "./catalog.js";
-import { configuredTimeoutMs } from "./http.js";
+import { configuredTimeoutMs, withTimeout } from "./http.js";
 import { reconcile, type ReconciledLine, type WideReading } from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
 
@@ -948,9 +948,18 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
   // already produced: each crop is shown the shop's own closest rows so the close read can settle
   // which variety of a range it is, which is the question a crop answers and text cannot.
   const catalog = loadCatalog();
+  // Each crop races its own deadline rather than the whole request racing one. A close read that
+  // never comes back leaves its own line unsure, which is what `reconcile` already does with a
+  // failed one; before this it took every other crop in the request down with it, and the shopper
+  // was asked to photograph again a basket they had photographed correctly. Eleven right lines
+  // were lost that way on clut4 and clut5 in a single run.
+  //
+  // The share of the budget leaves room for the answer to be assembled and sent: the request's
+  // own deadline in api/verify.ts is the backstop, and it should not be what fires.
+  const perItemMs = Math.max(1, Math.floor(configuredTimeoutMs() * 0.8));
   const settled = await Promise.allSettled(
     items.map(async (item): Promise<VerifyResponse> => {
-      const outputText = await requestOutputText("runVerify", {
+      const outputText = await withTimeout(requestOutputText("runVerify", {
         model: VERIFY_MODEL(),
         prompt_cache_key: "kart-verify",
         reasoning: { effort: PHOTO_EFFORT },
@@ -975,7 +984,7 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
         text: {
           format: { type: "json_schema", name: "verify", strict: true, schema: verifyJsonSchema },
         },
-      });
+      }), perItemMs);
       const parsed = VerifyResponse.parse(JSON.parse(outputText));
       return { ...parsed, brand: normalizeBrand(parsed.brand) };
     }),

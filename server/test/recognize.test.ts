@@ -1242,6 +1242,27 @@ describe("runVerify", () => {
     expect(items[1].close).not.toBeNull();
   });
 
+  it("gives up on one slow crop rather than losing every close read in the request", async () => {
+    // The whole verify request used to race one deadline. One slow crop took the other twelve
+    // down with it and the shopper was asked to photograph a basket they had photographed
+    // correctly: eleven right lines lost that way on clut4 and clut5 in one run.
+    const previous = process.env.RECOGNITION_TIMEOUT_MS;
+    process.env.RECOGNITION_TIMEOUT_MS = "60";
+    create.mockImplementationOnce(() => new Promise(() => {}));
+    mockOutput(closeAnswer);
+    try {
+      const crop = await blankJpeg();
+      const items = await runVerify([{ id: "slow", crop, wide }, { id: "quick", crop, wide }]);
+      expect(items).toHaveLength(2);
+      expect(items[0].close).toBeNull();
+      expect(items[0].line.sure).toBe(false);
+      expect(items[1].close?.name).toBe("Rigatoni");
+    } finally {
+      if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
+      else process.env.RECOGNITION_TIMEOUT_MS = previous;
+    }
+  });
+
   it("tells the close read which brands the wide pass read elsewhere, leaving out the item's own", async () => {
     mockOutput(closeAnswer);
     await runVerify([{ id: "a", crop: await blankJpeg(), wide }], ["Piano", "Bob's Red Mill", "Nutella"]);

@@ -445,6 +445,35 @@ export const photoJsonSchema = {
  * product listed twice, and their counts are summed exactly as `normalizeCensusResponse` sums
  * a duplicated count; the close read, which counts on its own, is what settles that.
  */
+/**
+ * One photo box, in whole percentages, as a fraction of the frame that is actually inside it.
+ *
+ * The model is asked for a position and a size and sometimes answers with two corners. Measured
+ * over 939 boxes in every saved clut run, 227 have x+w or y+h past the frame edge, and 177 of
+ * those are a valid rectangle if w and h are read as the far edges: "x 65, w 100" is a box whose
+ * right edge is the right edge of the photograph, 35% wide, not one 100% wide beginning two
+ * thirds of the way across. Read literally it is cropped clamped to the image edge, and the
+ * close read is handed the product's neighbours, which is the one thing a second reading exists
+ * to exclude.
+ *
+ * So a box is re-read as corners only when the literal reading is impossible and the corner
+ * reading is not. That guard matters: a box that fits inside the frame is never touched, however
+ * it was meant, because there is no evidence to touch it on. A box that is impossible either way
+ * is trimmed to the frame, and one with nothing left inside the frame becomes no box at all,
+ * which is already how an unplaceable product is reported.
+ */
+function photoBox(box: { x: number; y: number; w: number; h: number } | null): { x: number; y: number; w: number; h: number } | null {
+  if (box === null) return null;
+  const { x, y } = box;
+  let { w, h } = box;
+  if (x + w > 100 && w > x && w <= 100) w -= x;
+  if (y + h > 100 && h > y && h <= 100) h -= y;
+  w = Math.min(w, 100 - x);
+  h = Math.min(h, 100 - y);
+  if (w <= 0 || h <= 0) return null;
+  return { x: x / 100, y: y / 100, w: w / 100, h: h / 100 };
+}
+
 export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
   const unmarkedItems: CensusResponse["unmarkedItems"] = [];
   const counts = new Map<string, number>();
@@ -460,7 +489,7 @@ export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
       approxLocation: "",
       confidence: item.confidence,
       isProduct: item.isProduct,
-      box: item.box === null ? null : { x: item.box.x / 100, y: item.box.y / 100, w: item.box.w / 100, h: item.box.h / 100 },
+      box: photoBox(item.box),
     });
     counts.set(key, (counts.get(key) ?? 0) + Math.max(0, item.count));
   }

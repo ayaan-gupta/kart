@@ -639,6 +639,45 @@ costs a census call on the photographs that need one, and it is skipped when a s
 not fit inside the request's budget, because eight of thirty scans were lost to the timeout when
 it was not.
 
+### Why lines were held back, and three defects that were mine
+
+Asking the catalog to decline more is not the way to a better bag. The question worth asking is
+why a line that was *right* was still shown in amber, and the saved runs answer it without a
+single call. Basket tier, 44 scans across four runs, 78 right lines held back:
+
+| | |
+|---|---|
+| the census placed no box on it, so nothing read it twice | 36 |
+| it was boxed, but the close read never came back | 13 |
+| one of the two readings was under 0.6 | 12 |
+| the close read said the crop held a different product | 6 |
+| the catalog: absent, or the packaging was unreadable | 8 |
+| the two readings counted differently | 1 |
+
+Three of those are defects in this code, not in the model.
+
+**The boxes were being read in the wrong format.** Across all 939 boxes in every saved run, 227
+have x+w or y+h past the edge of the frame, and 177 of those are a perfectly good rectangle if w
+and h are the far edges rather than a size. "x 65, w 100" is not a box covering the whole width
+starting two thirds across; it is one whose right edge is the right edge. Read literally,
+`cropToBox` clamps it and the close read is handed a crop with a median of **1.9 times** the
+product's actual area, and in the worst case nine times it, full of the neighbours a second
+reading exists to exclude. `censusFromPhoto` now re-reads a box as corners when, and only when,
+the literal reading is impossible and the corner reading is not; a box that fits inside the frame
+is never touched, because there is nothing to touch it on.
+
+**One slow crop lost every close read in the request.** The verify request raced a single
+deadline, so one crop that never came back took the other twelve with it: eleven right lines on
+clut4 and clut5 went amber in one run for that reason alone. Each crop now races its own
+deadline at 80% of the budget, and a crop that misses it leaves only its own line unsure, which
+is what `reconcile` already does with a failed one.
+
+**A photograph with no boxes was accepted.** Covered above: asking once more takes boxed products
+from 50% to 87%.
+
+None of the three changes what the model is asked or how a line is judged. They are the
+difference between a second reading looking at the product and looking at half the basket.
+
 ### What is not measured
 
 The configuration as it now stands has not been run end to end. Both providers ran out of credit

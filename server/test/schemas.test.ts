@@ -385,3 +385,43 @@ describe("photo schema", () => {
     expect(census.unmarkedItems.map((u) => u.productKey)).toEqual(["::eggs", "::Eggs"]);
   });
 });
+
+/**
+ * Boxes that cannot mean what they say.
+ *
+ * Across 939 boxes in every saved clut run, 227 have x+w or y+h past the frame edge and 177 of
+ * those are a valid rectangle read as corners: `x0.65 w1.00` is not a box 100% of the frame wide
+ * starting two thirds across, it is one whose right edge is the right edge. Read literally, the
+ * crop cut from it is clamped to the image edge and arrives at the close read full of the
+ * product's neighbours, which is what a second reading is supposed to exclude.
+ */
+describe("photo boxes that overflow the frame", () => {
+  const photo = (box: { x: number; y: number; w: number; h: number }) => ({
+    subjectKind: "cart" as const,
+    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box }],
+    occlusion: { severity: "none" as const, reason: "" },
+  });
+  const boxOf = (b: { x: number; y: number; w: number; h: number }) => censusFromPhoto(PhotoResponse.parse(photo(b))).unmarkedItems[0].box;
+
+  it("reads a box as corners when it cannot be a width and a height", () => {
+    // x 65, right edge 100: 35 wide, not 100 wide starting at 65.
+    expect(boxOf({ x: 65, y: 35, w: 100, h: 68 })).toEqual({ x: 0.65, y: 0.35, w: 0.35, h: 0.33 });
+  });
+
+  it("leaves a box that is a perfectly good width and height alone", () => {
+    expect(boxOf({ x: 10, y: 20, w: 30, h: 40 })).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
+  });
+
+  it("leaves a box flush against the far edge alone", () => {
+    expect(boxOf({ x: 60, y: 50, w: 40, h: 50 })).toEqual({ x: 0.6, y: 0.5, w: 0.4, h: 0.5 });
+  });
+
+  it("clamps a box that is neither, rather than cutting outside the photograph", () => {
+    // w is smaller than x, so corners would give a negative width. Nothing to do but trim it.
+    expect(boxOf({ x: 82, y: 31, w: 46, h: 47 })).toEqual({ x: 0.82, y: 0.31, w: 0.18, h: 0.47 });
+  });
+
+  it("drops a box with no area left at all", () => {
+    expect(boxOf({ x: 100, y: 10, w: 20, h: 20 })).toBeNull();
+  });
+});
