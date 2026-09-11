@@ -15,37 +15,23 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 
 ---
 
-## 0. The text catalog, scored end to end on the build that has it
+## 0. The text catalog, scored end to end on the build that has it (done 2026-09-11)
 
-Added on 2026-09-09 and measured in pieces, never together. Both providers ran out partway through
-the last arm: OpenRouter answers `402` and OpenAI answers `429 credit_balance_exhausted`.
-
-What is already measured: four live arms on the basket tier (`CLUT.md`, "The store's catalog"),
-and an offline replay of the current resolver over 45 scans, which takes asserted-wrong lines from
-22 to 4 and classifies all four survivors as quantity errors. What is not: the four requirements
-scored together on the build as it now stands, which is the catalog plus the brand-clash filter,
-the shortlist floor at the acceptance bar, and the box retry.
-
-One command, about ten minutes and ten cents at Qwen prices:
+Measured on `1893c9e`, 29 of 30 scans, $0.130: `CLUT.md`, "The final build, scored end to end".
+Basket tier, 27 lines asserted and one wrong (a count); found fell to 72% because three scans
+came back with an empty list. The next run is the build that asks an empty answer once more:
 
 ```bash
-./scripts/serve.sh
-node server/node_modules/.bin/tsx server/eval/pipeline/clut-photos.ts --repeat 2 \
-  --out server/eval/clut-photos-catalog-text.json
+npm run serve --prefix server
+node server/node_modules/.bin/tsx server/eval/pipeline/clut-photos.ts --repeat 2 --resume \
+  --out server/eval/clut-photos-<name>.json
 node server/node_modules/.bin/tsx server/eval/pipeline/clut-rescore.ts \
-  server/eval/clut-photos-nocatalog.json server/eval/clut-photos-catalog-text.json
+  server/eval/clut-photos-fixed.json server/eval/clut-photos-<name>.json
 ```
 
-`CATALOG_FILE` must be set in `server/.env.local` or the whole leg is inert and every line comes
-back `catalog: "not-consulted"`, which is the check that the arm actually ran.
-
-Watch two things. The census timing out on the dense pantry photographs, clut9 and clut10, which
-is a 20 second client budget against a photograph holding a dozen products and is not the
-catalog's doing. And "products the census boxed", which the harness now prints: a product with no
-box is never read twice and can only ever be unsure, so that fraction is the ceiling on how much
-of the bag can be asserted at all.
-
----
+Before it: check the balance (`GET /api/v1/credits`) and Parasail's pool with one four-token call,
+and keep the lid open. A Mac asleep on battery runs a few seconds at a time and every photograph
+it touches times out. `--resume` means a run that has to stop loses nothing it paid for.
 
 ## 0a. Sol wide plus Qwen close, the one arm the Qwen measurement could not run
 

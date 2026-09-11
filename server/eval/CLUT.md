@@ -678,13 +678,49 @@ from 50% to 87%.
 None of the three changes what the model is asked or how a line is judged. They are the
 difference between a second reading looking at the product and looking at half the basket.
 
-### What is not measured
+### The final build, scored end to end on 2026-09-11
 
-The configuration as it now stands has not been run end to end. Both providers ran out of credit
-partway through the last arm: OpenRouter answers 402 and OpenAI answers 429
-`credit_balance_exhausted`. The box retry and the two catalog fixes above are each measured or
-pinned on their own, and the offline replay uses the current resolver, but the four requirements
-have not been scored together on the final build. `WHEN-CREDIT-RETURNS.md` carries it.
+Commit `1893c9e`: the text catalog, the box repair, the box retry, per-crop deadlines, and a cap
+on what one answer may write. The fifteen photographs, two passes, Qwen 3 VL 235B on Parasail,
+`clut-photos.ts --repeat 2 --resume`, saved as `clut-photos-fixed.json`. 29 of 30 scans: clut12's
+second pass timed out on all three attempts. $0.130 for the 29, $0.0045 and 4.7 calls a
+photograph. Beside the two runs it is compared with, re-scored with `clut-rescore.ts`:
+
+| basket tier | no catalog | catalog, before the box fixes | final build |
+|---|---|---|---|
+| scans | 7 | 14 | 14 |
+| found | 31/37 (84%) | 60/74 (81%) | 53/74 (72%) |
+| found, on scans that named anything | 31/37 (84%) | 60/68 (88%) | 53/58 (91%) |
+| quantities right | 28/31 (90%) | 55/60 (92%) | 49/53 (92%) |
+| brands right | 24/24 | 47/47 | 42/43 (98%) |
+| hidden flagged | 1/5 | 2/10 | 4/10 |
+| asserted wrong | 3/13 | 1/23 | 1/27 |
+| right but held back | 18 | 33 | 22 |
+
+What improved: more lines are asserted and no more of them are wrong. 27 lines were shown as
+sure and one was wrong, and that one is a count (clut4, one rigatoni where there are two), which
+no reading of the name can catch. A third fewer right lines were held back in amber, 22 against
+33, which is the box repair and the per-crop deadlines doing what the replay said they would.
+
+What fell: found, from 81% to 72%. All of it is one failure. On three of the fourteen basket
+scans the model answered with an empty list (clut6 once, clut7 twice), taking 16 products with
+them, against one scan and six products in the run before. Where it named anything at all it
+found 91%, the best of the three. The empty answer is not new and is not caused by anything
+here: across every saved run since Qwen became the photo tier, **26 of 127 scans** came back
+empty, usually inside three seconds, and the same photograph is often read in full on the next
+pass (clut7 was empty on 5 of 9, clut14 on all 8). This run drew more of them on the basket tier.
+
+The storage tier is unchanged at 42/84 (50%), with 13 lines matching nothing labelled against 6.
+Twelve of the fourteen such lines were shown as unsure. The two that were sure are both celery on
+clut15 with the brand given as the string "Null".
+
+Two things surfaced that the run was not designed to find. The first answer the cap cut off
+began as a census and ended in thousands of characters of newlines; the second wrote 198
+characters, reached `"box":`, and then wrote 5,809 characters of whitespace. The model stalls on
+exactly the one field that may be an object or null, and pretty-prints everything else, which
+costs it two to three times the tokens compact JSON would. The Mac also went to sleep on battery
+with its lid shut partway through; two scans that spanned it were dropped and re-scanned, and the
+driver now runs only with the lid open.
 
 ## What the numbers do not cover
 
