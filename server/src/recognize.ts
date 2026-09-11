@@ -306,6 +306,18 @@ async function requestOutputText(
       response.usage?.output_tokens,
       response.usage?.input_tokens_details?.cached_tokens,
     );
+    // Stopped by max_output_tokens: a model that looped, not a long answer (see
+    // PHOTO_MAX_OUTPUT_TOKENS). Said so rather than left to fail as unparsable JSON, with the
+    // two ends of what it wrote in the log, so the loop itself can be seen.
+    if (response.status === "incomplete") {
+      const reason = response.incomplete_details?.reason ?? "unknown reason";
+      const text = response.output_text ?? "";
+      console.warn(
+        `[recognize] ${context} answer cut off (${reason}) after ${response.usage?.output_tokens ?? "?"} tokens; ` +
+          `it began ${JSON.stringify(text.slice(0, 160))} and ended ${JSON.stringify(text.slice(-160))}`,
+      );
+      throw new Error(`answer cut off (${reason})`);
+    }
     return response.output_text;
   } catch (err) {
     throw toSafeError(context, err);
@@ -653,6 +665,26 @@ const PHOTO_EFFORT: "none" | "low" | "medium" | "high" = (() => {
   return raw === "none" || raw === "low" || raw === "medium" || raw === "high" ? raw : "none";
 })();
 
+/**
+ * The most a photo census may write. The largest real answer in 247 saved scans of the fifteen
+ * clut photographs is about 700 tokens, fifteen products; at the provider's roughly 80 tokens a
+ * second the request's 25 seconds return about 2,000, so nothing longer could reach the shopper.
+ * Uncapped, a model that loops writes until the provider stops it and bills for all of it: on
+ * 2026-09-10 six photo calls wrote 35,005 tokens between them, each past the deadline, so the
+ * shopper saw a timeout and the account paid anyway.
+ */
+const PHOTO_MAX_OUTPUT_TOKENS = 2000;
+/** The close read's whole answer is one small object of about sixty tokens. */
+const VERIFY_MAX_OUTPUT_TOKENS = 400;
+/**
+ * Reasoning tokens count against the same cap on the models that reason, and nothing here
+ * measures how many they need, so above effort "none" (a harness setting; "none" ships) the cap
+ * is left off rather than guessed.
+ */
+function outputCap(tokens: number): { max_output_tokens?: number } {
+  return PHOTO_EFFORT === "none" ? { max_output_tokens: tokens } : {};
+}
+
 type ImageDetail = "low" | "high" | "original" | "auto";
 function detailFromEnv(name: string, fallback: ImageDetail): ImageDetail {
   const raw = process.env[name]?.trim();
@@ -759,6 +791,7 @@ export async function runCensus(
         model: MODELS.photo,
         prompt_cache_key: "kart-photo",
         reasoning: { effort: PHOTO_EFFORT },
+        ...outputCap(PHOTO_MAX_OUTPUT_TOKENS),
         input: [
           { role: "system", content: PHOTO_SYSTEM_PROMPT },
           {
@@ -963,6 +996,7 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
         model: VERIFY_MODEL(),
         prompt_cache_key: "kart-verify",
         reasoning: { effort: PHOTO_EFFORT },
+        ...outputCap(VERIFY_MAX_OUTPUT_TOKENS),
         input: [
           { role: "system", content: VERIFY_SYSTEM_PROMPT },
           {

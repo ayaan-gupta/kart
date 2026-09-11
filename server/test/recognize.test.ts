@@ -1287,3 +1287,61 @@ describe("runCensus on a confirmation photograph", () => {
     expect(text).toContain("Priano rigatoni");
   });
 });
+
+/**
+ * A model that loops keeps writing until something stops it, and every token is billed. On
+ * 2026-09-10 six photo calls came back with 35,005 output tokens between them, against a
+ * largest real answer of about 700 in 247 saved scans; each ran past the request's deadline, so
+ * the shopper got a timeout and the bill came anyway.
+ */
+describe("a looping answer is cut off rather than paid for", () => {
+  const photo = {
+    subjectKind: "cart",
+    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } }],
+    occlusion: { severity: "none", reason: "" },
+  };
+  const wide = { description: "Rigatoni", productKey: "priano::rigatoni", brand: "Priano", count: 1, confidence: 0.9 };
+  const closeAnswer = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.98, legible: true, matchesHint: true, catalogSku: null };
+
+  it("caps the photo census above any real answer and within what the deadline could return", async () => {
+    mockOutput(photo);
+    await runCensus(await blankJpeg(), []);
+    const cap = create.mock.calls[0][0].max_output_tokens;
+    // The largest real answer is about 700 tokens; at the provider's ~80 a second, 25 seconds
+    // is about 2,000, and anything longer could never reach the shopper anyway.
+    expect(cap).toBeGreaterThanOrEqual(1400);
+    expect(cap).toBeLessThanOrEqual(2000);
+  });
+
+  it("caps each close read, whose whole answer is one small object", async () => {
+    mockOutput(closeAnswer);
+    await runVerify([{ id: "a", crop: await blankJpeg(), wide }]);
+    const cap = create.mock.calls[0][0].max_output_tokens;
+    expect(cap).toBeGreaterThanOrEqual(200);
+    expect(cap).toBeLessThanOrEqual(500);
+  });
+
+  it("fails a census cut off at the cap with that reason, not a JSON error", async () => {
+    create.mockResolvedValueOnce({
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output_text: '{"subjectKind":"cart","items":[{"name":"Rigatoni","brand":"Priano"',
+      usage: { input_tokens: 5000, output_tokens: 2000 },
+    });
+    await expect(runCensus(await blankJpeg(), [])).rejects.toThrow(/cut off/);
+  });
+
+  it("gives a close read cut off at the cap no reading, without failing the others", async () => {
+    create.mockResolvedValueOnce({
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output_text: '{"name":"Rigatoni Rigatoni Rigatoni',
+    });
+    mockOutput(closeAnswer);
+    const crop = await blankJpeg();
+    const items = await runVerify([{ id: "looped", crop, wide }, { id: "fine", crop, wide }]);
+    expect(items[0].close).toBeNull();
+    expect(items[0].line.sure).toBe(false);
+    expect(items[1].close?.name).toBe("Rigatoni");
+  });
+});

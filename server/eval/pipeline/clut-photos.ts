@@ -31,6 +31,10 @@
  *     --append        keep the rows already in --out and add these, replacing any with the same
  *                     id. A photograph that timed out is re-run with --only and folded back into
  *                     the run it belongs to, rather than paying for the other fourteen again.
+ *     --resume        continue a run that was stopped: every photograph already in --out for a
+ *                     pass is skipped for that pass, and the summary and cost cover the whole run.
+ *                     Implies --append. The file is written after every photograph, so stopping a
+ *                     run (a rate-limited provider, a dead laptop) loses nothing already paid for.
  *
  * Since 2026-09-06 the shipped path reads every photograph twice (docs/superpowers/specs/
  * 2026-09-06-photo-verification-design.md): the census places a box on each product, the
@@ -235,6 +239,40 @@ interface Row {
 const rows: Row[] = [];
 const usageBefore = await usageSnapshot();
 
+const out = arg('out', join(import.meta.dirname, '../clut-photos.json'));
+const resume = argv.includes('--resume');
+const saved = (resume || argv.includes('--append')) && existsSync(out)
+  ? (JSON.parse(readFileSync(out, 'utf8')) as { rows?: Row[]; cost?: { usd: number; callsPerPhoto: number } | null })
+  : null;
+const earlier: Row[] = saved?.rows ?? [];
+/** The rows from --out that stay: all of them, less any this run has scanned again. */
+const kept = (): Row[] => earlier.filter((r) => !rows.some((fresh) => fresh.id === r.id && fresh.pass === r.pass));
+const alreadyScanned = (id: string, pass: number): boolean =>
+  resume && earlier.some((r) => r.id === id && r.pass === pass);
+if (resume) console.log(`  resuming: ${earlier.length} scans already in ${out}`);
+
+/** This invocation's spend, plus what the run being resumed had spent before it stopped. */
+async function spent(): Promise<{ usd: number; calls: number } | null> {
+  const fresh = usageCostUsd(usageBefore, await usageSnapshot());
+  const prior = resume ? (saved?.cost ?? null) : null;
+  if (!fresh && !prior) return null;
+  return {
+    usd: (fresh?.usd ?? 0) + (prior?.usd ?? 0),
+    calls: (fresh?.calls ?? 0) + (prior ? prior.callsPerPhoto * earlier.length : 0),
+  };
+}
+function costField(cost: { usd: number; calls: number } | null, scans: number) {
+  return cost && scans > 0
+    ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / scans).toFixed(4)), callsPerPhoto: Number((cost.calls / scans).toFixed(2)) }
+    : null;
+}
+/** Written after every photograph, so a run that is stopped keeps every scan it paid for. */
+async function checkpoint(): Promise<void> {
+  const all = [...kept(), ...rows];
+  const cost = costField(await spent(), resume ? all.length : rows.length);
+  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, partial: true, cost, summary: null, rows: all }, null, 1)}\n`);
+}
+
 // The model is not deterministic: two scans of one photograph can differ in a name, a count, and
 // occasionally in whether a product is seen at all. A single pass is therefore an anecdote, and
 // the difference between two changes to the prompt is smaller than the difference between two
@@ -245,6 +283,7 @@ const passes = Math.max(1, Number(arg('repeat', '1')));
 for (let pass = 1; pass <= passes; pass += 1) {
 if (passes > 1) console.log(`\n  pass ${pass} of ${passes}`);
 for (const image of wanted) {
+  if (alreadyScanned(image.id, pass)) continue;
   const file = join(IMAGES, `${image.id}.jpg`);
   if (!existsSync(file)) {
     console.log(`  ${image.id}: absent from the cache, skipped`);
@@ -366,6 +405,7 @@ for (const image of wanted) {
   for (const line of ignoredLines) {
     console.log(`      ignored  ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
   }
+  await checkpoint();
 }
 }
 
@@ -441,25 +481,29 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   return { photographs: subset.length, catalog: Object.fromEntries(catalogVerdicts), listed, boxed, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
 }
 
+// A resumed run is one run, so its summary covers every scan in it, not only this invocation's.
+const scored = resume ? [...kept(), ...rows] : rows;
 const summary = {
-  all: summarise('all', rows),
-  cart: summarise('tier "cart", the shipped use case', rows.filter((r) => r.tier === 'cart')),
-  storage: summarise('tier "storage", pantry and refrigerator', rows.filter((r) => r.tier === 'storage')),
+  all: summarise('all', scored),
+  cart: summarise('tier "cart", the shipped use case', scored.filter((r) => r.tier === 'cart')),
+  storage: summarise('tier "storage", pantry and refrigerator', scored.filter((r) => r.tier === 'storage')),
 };
 
 // Costed by what the service reports it spent between the two snapshots, at the prices in
 // usage.ts. Null when the service does not answer /usage (a deployment rather than serve.ts).
-const cost = usageCostUsd(usageBefore, await usageSnapshot());
-if (cost && rows.length > 0) {
-  console.log(`\n  cost: $${cost.usd.toFixed(3)} for ${rows.length} scans, $${(cost.usd / rows.length).toFixed(4)} and ${(cost.calls / rows.length).toFixed(1)} calls per photograph`);
+const cost = await spent();
+if (cost && scored.length > 0) {
+  console.log(`\n  cost: $${cost.usd.toFixed(3)} for ${scored.length} scans, $${(cost.usd / scored.length).toFixed(4)} and ${(cost.calls / scored.length).toFixed(1)} calls per photograph`);
 }
 
-const out = arg('out', join(import.meta.dirname, '../clut-photos.json'));
 // With --append the rows already in the file stay, and these replace any that share an id. The
 // summary written beside them is this run's, over its own rows; re-score the file with
-// clut-rescore.ts to get one over all of them.
-const kept = argv.includes('--append') && existsSync(out)
-  ? (JSON.parse(readFileSync(out, 'utf8')) as { rows?: Row[] }).rows?.filter((r) => !rows.some((fresh) => fresh.id === r.id && fresh.pass === r.pass)) ?? []
-  : [];
-writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: cost && rows.length > 0 ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / rows.length).toFixed(4)), callsPerPhoto: Number((cost.calls / rows.length).toFixed(2)) } : null, summary, rows: [...kept, ...rows] }, null, 1)}\n`);
-console.log(`\n  written to ${out}`);
+// clut-rescore.ts to get one over all of them. --resume summarises the whole run instead.
+// A run that scanned nothing leaves the file alone: an empty run once overwrote a real one when
+// the provider refused every call.
+if (rows.length === 0 && !(resume && earlier.length > 0)) {
+  console.log(`\n  nothing was scanned, so ${out} is left as it was`);
+} else {
+  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: costField(cost, scored.length), summary, rows: [...kept(), ...rows] }, null, 1)}\n`);
+  console.log(`\n  written to ${out}`);
+}
