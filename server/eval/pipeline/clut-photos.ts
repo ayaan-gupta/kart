@@ -225,6 +225,8 @@ interface Row {
   items?: { name: string; brand: string | null; qty: number; confidence: number; status: string; box: { x: number; y: number; w: number; h: number } | null }[];
   /** Per line, the scorer's verdict, beside `lines`. */
   lineOutcomes?: string[];
+  /** Per sure line, what it asserts judged on the sure lines alone; null for an unsure line. */
+  assertedOutcomes?: (string | null)[];
   verifyFailure?: string;
   /** Seconds until the census answered; the rest of `seconds` is the close read. */
   censusSeconds?: number;
@@ -339,7 +341,7 @@ for (const image of wanted) {
   // assignment rules are in clut-scoring.ts.
   const lines = outcome.lines.map((line) => ({ name: line.name, brand: line.brand, qty: line.qty, sure: !line.unsure }));
   const score = scoreImage(lines, image);
-  const { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, lineOutcomes } = score;
+  const { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, lineOutcomes, assertedOutcomes } = score;
   const items = outcome.items.map((item) => ({
     name: item.name, brand: item.brand, qty: item.qty, confidence: item.confidence, status: item.status, box: item.box,
   }));
@@ -373,6 +375,7 @@ for (const image of wanted) {
     lines,
     items,
     lineOutcomes,
+    assertedOutcomes,
     censusSeconds: Number(censusSeconds.toFixed(2)),
     ...(lastVerifyRaw ? { verify: (lastVerifyRaw as { result?: unknown }).result } : {}),
     ...(outcome.verifyFailure ? { verifyFailure: outcome.verifyFailure } : {}),
@@ -395,8 +398,9 @@ for (const image of wanted) {
   );
   for (const [i, line] of lines.entries()) {
     const verdict = lineOutcomes[i];
-    if (line.sure && (verdict === 'wrong' || (verdict === 'invented' && image.tier === 'cart'))) {
-      console.log(`      ASSERTED ${verdict.padEnd(8)} ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
+    const asserted = assertedOutcomes[i];
+    if (line.sure && asserted !== null && (asserted === 'wrong' || (asserted === 'invented' && image.tier === 'cart'))) {
+      console.log(`      ASSERTED ${asserted.padEnd(8)} ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
     }
     if (!line.sure) console.log(`      unsure   ${verdict.padEnd(8)} ${line.qty} x ${line.name}${line.brand ? ` (${line.brand})` : ''}`);
   }
@@ -458,7 +462,11 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
       if (verdict === 'ignored') return;
       const wrong = verdict === 'wrong' || (verdict === 'invented' && r.tier === 'cart');
       if (verdict === 'invented' && r.tier !== 'cart') return;
-      if (line.sure !== false) wrong ? (gate.assertedWrong += 1) : (gate.assertedRight += 1);
+      // A sure line on what it asserts itself; rows saved before assertedOutcomes existed fall
+      // back to the whole-bag verdict they were scored with.
+      const own = r.assertedOutcomes?.[i];
+      const assertedWrong = own === undefined || own === null ? wrong : own === 'wrong' || (own === 'invented' && r.tier === 'cart');
+      if (line.sure !== false) assertedWrong ? (gate.assertedWrong += 1) : (gate.assertedRight += 1);
       else wrong ? (gate.unsureWrong += 1) : (gate.unsureRight += 1);
     });
   }

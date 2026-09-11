@@ -33,6 +33,8 @@ export interface ScoreLine {
   brand: string | null;
   qty: number;
   confidence?: number;
+  /** The gate's verdict. Absent is treated as sure, which is how a run without a gate reads. */
+  sure?: boolean;
 }
 
 export interface ScoreImage {
@@ -60,6 +62,14 @@ export interface ImageScore {
    * unsure flag beside it, this is what says whether the gate asserted a wrong line.
    */
   lineOutcomes: ('right' | 'wrong' | 'invented' | 'ignored')[];
+  /**
+   * One verdict per sure line on what that line itself asserts, and null for an unsure one. A
+   * label's quantity is taken over its sure lines only, and the brand is the line's own. This is
+   * requirement 4 as the shopper meets it: `lineOutcomes` sums sure and unsure lines together,
+   * so an unsure duplicate beside a right sure line made the sure line "wrong", as a sure "2 x
+   * Campbell's cream of mushroom" for two tins was on clut7 on 2026-09-11.
+   */
+  assertedOutcomes: ('right' | 'wrong' | 'invented' | 'ignored' | null)[];
 }
 
 /** Lowercase ASCII words: accents folded, punctuation dropped, whitespace collapsed. */
@@ -185,5 +195,21 @@ export function scoreImage(lines: ScoreLine[], image: ScoreImage): ImageScore {
     }
   });
 
-  return { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, assigned, lineOutcomes };
+  const sure = (i: number): boolean => lines[i].sure !== false;
+  const assertedOutcomes: ImageScore['assertedOutcomes'] = lines.map((l, i) =>
+    !sure(i) ? null : unmatchedLines.includes(l) ? 'invented' : ignoredLines.includes(l) ? 'ignored' : 'right',
+  );
+  products.forEach((product, l) => {
+    const mine = (assigned.get(l) ?? []).filter(sure);
+    if (mine.length === 0) return;
+    const countWrong = !qtyOk(mine.reduce((sum, i) => sum + lines[i].qty, 0), product.qty);
+    for (const i of mine) {
+      const brand = lines[i].brand;
+      const brandWrong =
+        product.brandMatch !== null && !(brand !== null && product.brandMatch.some((b) => norm(brand).includes(norm(b))));
+      if (countWrong || brandWrong) assertedOutcomes[i] = 'wrong';
+    }
+  });
+
+  return { found, qtyRight, brandRight, brandScored, misses, qtyWrong, brandWrong, unmatchedLines, ignoredLines, assigned, lineOutcomes, assertedOutcomes };
 }

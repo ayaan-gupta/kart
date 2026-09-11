@@ -40,7 +40,7 @@ interface SavedRow {
 
 function rescore(file: string) {
   const data = JSON.parse(readFileSync(file, 'utf8')) as { rows: SavedRow[] };
-  const totals = { photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
+  const totals = { photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
   const perTier: Record<string, typeof totals> = {};
   const misses = new Map<string, number>();
   const qtyWrong = new Map<string, number>();
@@ -73,13 +73,18 @@ function rescore(file: string) {
           const verdict = score.lineOutcomes[i];
           if (verdict === 'ignored' || (verdict === 'invented' && row.tier !== 'cart')) return;
           const wrong = verdict !== 'right';
-          if (l.sure !== false) wrong ? (t.assertedWrong += 1) : (t.assertedRight += 1);
-          else wrong ? (t.unsureWrong += 1) : (t.unsureRight += 1);
+          if (l.sure !== false) {
+            // A sure line on what it asserts itself (see `assertedOutcomes`), and beside it the
+            // count this table printed before 2026-09-11, which blamed a right sure line for an
+            // unsure duplicate beside it.
+            score.assertedOutcomes[i] === 'right' ? (t.assertedRight += 1) : (t.assertedWrong += 1);
+            wrong ? (t.bagAssertedWrong += 1) : (t.bagAssertedRight += 1);
+          } else wrong ? (t.unsureWrong += 1) : (t.unsureRight += 1);
         });
       }
     };
     add(totals);
-    perTier[row.tier] ??= { ...totals, photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
+    perTier[row.tier] ??= { ...totals, photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
     add(perTier[row.tier]);
     for (const m of score.misses) misses.set(`${row.id} ${m}`, (misses.get(`${row.id} ${m}`) ?? 0) + 1);
     for (const q of score.qtyWrong) qtyWrong.set(`${row.id} ${q.label} (${q.expected} got ${q.actual})`, (qtyWrong.get(`${row.id} ${q.label} (${q.expected} got ${q.actual})`) ?? 0) + 1);
@@ -103,6 +108,7 @@ for (const tier of [undefined, 'cart', 'storage']) {
   line('3 hidden flagged', (t) => pct(t.hiddenFlagged, t.hiddenImages), tier);
   line('invented lines', (t) => String(t.invented), tier);
   line('5 asserted wrong', (t) => (t.flagged ? `${t.assertedWrong}/${t.assertedRight + t.assertedWrong}` : '-'), tier);
+  line('  by whole-bag totals', (t) => (t.flagged ? `${t.bagAssertedWrong}/${t.bagAssertedRight + t.bagAssertedWrong}` : '-'), tier);
   line('  unsure wrong/right', (t) => (t.flagged ? `${t.unsureWrong}/${t.unsureRight}` : '-'), tier);
   line('gated (emptied)', (t) => String(t.gated), tier);
   line('seconds/photo', (t) => (t.photographs ? (t.seconds / t.photographs).toFixed(1) : '-'), tier);

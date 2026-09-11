@@ -134,3 +134,50 @@ describe("scoreImage gives an ignorable line with the label's brand the label fi
     expect(s.lineOutcomes).toEqual(["ignored", "right"]);
   });
 });
+
+/**
+ * What the shopper is told for sure has to be right on its own. The per-line verdict above sums
+ * every line a label was given, sure and unsure together, so a sure "2 x Campbell's cream of
+ * mushroom" for two tins was scored wrong on clut7 because an unsure duplicate beside it took the
+ * total to three. The unsure line was the mistake, and it was shown as one. `assertedOutcomes`
+ * judges each sure line on the sure lines alone, and leaves an unsure line null.
+ */
+describe("scoreImage asserted outcomes", () => {
+  const products = [label({ label: "Priano rigatoni", match: ["rigatoni"], brandMatch: ["priano"], qty: 2 })];
+  const sure = (name: string, brand: string | null, qty: number): ScoreLine => ({ ...line(name, brand, qty), sure: true });
+  const unsure = (name: string, brand: string | null, qty: number): ScoreLine => ({ ...line(name, brand, qty), sure: false });
+
+  it("does not blame a right sure line for an unsure duplicate beside it", () => {
+    const s = scoreImage([sure("Rigatoni", "Priano", 2), unsure("Rigatoni", "Priano", 1)], { products, ignoreMatch: [] });
+    expect(s.lineOutcomes).toEqual(["wrong", "wrong"]);
+    expect(s.assertedOutcomes).toEqual(["right", null]);
+  });
+
+  it("calls a sure line that miscounts wrong", () => {
+    const s = scoreImage([sure("Rigatoni", "Priano", 1)], { products, ignoreMatch: [] });
+    expect(s.assertedOutcomes).toEqual(["wrong"]);
+  });
+
+  it("judges sure lines that split one product on their total", () => {
+    expect(scoreImage([sure("Rigatoni", "Priano", 1), sure("Rigatoni", "Priano", 1)], { products, ignoreMatch: [] }).assertedOutcomes)
+      .toEqual(["right", "right"]);
+    expect(scoreImage([sure("Rigatoni", "Priano", 2), sure("Rigatoni", "Priano", 2)], { products, ignoreMatch: [] }).assertedOutcomes)
+      .toEqual(["wrong", "wrong"]);
+  });
+
+  it("judges a sure line's brand on its own brand, not the first line's", () => {
+    const s = scoreImage([unsure("Rigatoni", "Piano", 2), sure("Rigatoni", "Priano", 2)], { products, ignoreMatch: [] });
+    expect(s.assertedOutcomes).toEqual([null, "right"]);
+    expect(scoreImage([sure("Rigatoni", "Piano", 2)], { products, ignoreMatch: [] }).assertedOutcomes).toEqual(["wrong"]);
+  });
+
+  it("keeps invented and ignored for sure lines that match nothing", () => {
+    const s = scoreImage([sure("Wallet", null, 1), sure("Red cup", null, 1)], { products, ignoreMatch: ["cup"] });
+    expect(s.assertedOutcomes).toEqual(["invented", "ignored"]);
+  });
+
+  it("treats a line with no flag at all as sure, as the rescorer always has", () => {
+    const s = scoreImage([line("Rigatoni", "Priano", 2)], { products, ignoreMatch: [] });
+    expect(s.assertedOutcomes).toEqual(["right"]);
+  });
+});
