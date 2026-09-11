@@ -312,9 +312,18 @@ async function requestOutputText(
     if (response.status === "incomplete") {
       const reason = response.incomplete_details?.reason ?? "unknown reason";
       const text = response.output_text ?? "";
+      const written = text.trimEnd();
+      let complete = false;
+      try {
+        JSON.parse(written);
+        complete = true;
+      } catch {
+        // Not complete JSON, which is the point of asking.
+      }
       console.warn(
-        `[recognize] ${context} answer cut off (${reason}) after ${response.usage?.output_tokens ?? "?"} tokens; ` +
-          `it began ${JSON.stringify(text.slice(0, 160))} and ended ${JSON.stringify(text.slice(-160))}`,
+        `[recognize] ${context} answer cut off (${reason}) after ${response.usage?.output_tokens ?? "?"} tokens: ` +
+          `${written.length} characters of answer, ${complete ? "complete" : "unfinished"} JSON, then ` +
+          `${text.length - written.length} of whitespace; the answer ended ${JSON.stringify(written.slice(-200))}`,
       );
       throw new Error(`answer cut off (${reason})`);
     }
