@@ -64,6 +64,11 @@ process.env.EXPO_PUBLIC_KART_API_URL = arg('api', 'http://127.0.0.1:4310');
 
 const { createPhotoScanState, scanPhoto } = await import('../../../src/engine/liveVision/photoScan');
 const { requestCensus, requestVerify } = await import('../../../src/engine/liveVision/recognitionClient');
+const { PHOTO_REQUEST_TIMEOUT_MS } = await import('../../../src/engine/liveVision/config');
+// The phone gives a photograph PHOTO_REQUEST_TIMEOUT_MS, not the live scan's 20 seconds
+// (src/app/photo.tsx), and until 2026-09-11 this harness used the live one: every photograph that
+// took 20 to 25 seconds was scored as a timeout the phone would not have had.
+const photoCall = { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS };
 const { prepareCrops, prepareUpload } = await import('../../../src/engine/liveVision/uploadImage');
 const { sharpManipulator } = await import('./sharp-manipulator');
 const { PRICES_PER_MTOK } = await import('../../src/usage');
@@ -301,14 +306,14 @@ for (const image of wanted) {
     state,
     base64,
     {
-      requestCensus,
+      requestCensus: (request) => requestCensus(request, undefined, photoCall),
       ...(noVerify
         ? {}
         : {
             // The close read, exactly as the phone does it: each box cut from the original
             // photograph through the shipped rule, sharp standing in for the device.
             crop: async (box) => (await prepareCrops(photo, [box], { manipulator: sharpManipulator }))[0],
-            requestVerify,
+            requestVerify: (request) => requestVerify(request, undefined, photoCall),
           }),
     },
     { onCensus: () => { censusSeconds = (Date.now() - started) / 1000; } },

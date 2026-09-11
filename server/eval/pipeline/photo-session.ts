@@ -37,6 +37,12 @@ process.env.EXPO_PUBLIC_KART_API_URL = arg('api', 'http://127.0.0.1:4310');
 // these at call time, but the client module is what binds them into a base URL.
 const { createPhotoScanState, scanPhoto } = await import('../../../src/engine/liveVision/photoScan');
 const { requestCensus } = await import('../../../src/engine/liveVision/recognitionClient');
+const { PHOTO_REQUEST_TIMEOUT_MS } = await import('../../../src/engine/liveVision/config');
+// The phone gives a photograph PHOTO_REQUEST_TIMEOUT_MS, not the live scan's 20 seconds
+// (src/app/photo.tsx), and until 2026-09-11 this harness used the live one: every photograph that
+// took 20 to 25 seconds was scored as a timeout the phone would not have had.
+const photoCall = { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS };
+const photoCensus: typeof requestCensus = (request) => requestCensus(request, undefined, photoCall);
 
 const IMAGES = join(import.meta.dirname, '../.cache/kart/images');
 
@@ -71,7 +77,7 @@ for (const step of SESSION) {
   shot += 1;
   const base64 = readFileSync(file).toString('base64');
   const started = Date.now();
-  const outcome = await scanPhoto(state, base64, { requestCensus });
+  const outcome = await scanPhoto(state, base64, { requestCensus: photoCensus });
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
   if (!outcome.ok) {
@@ -92,7 +98,7 @@ for (const step of SESSION) {
 
 // The three properties this flow has to hold, checked rather than eyeballed. Named so a failure
 // says which one broke.
-const finalLines = (await scanPhoto(state, readFileSync(join(IMAGES, 'PRACTICE_0002.jpg')).toString('base64'), { requestCensus }));
+const finalLines = (await scanPhoto(state, readFileSync(join(IMAGES, 'PRACTICE_0002.jpg')).toString('base64'), { requestCensus: photoCensus }));
 if (finalLines.ok) {
   state = finalLines.state;
   const names = finalLines.lines.map((l) => l.name.toLowerCase());
