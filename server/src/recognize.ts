@@ -863,15 +863,28 @@ export async function runCensus(
               `reason ${JSON.stringify(answer.occlusion.reason)}); asking once more`
           : "[recognize] photo census placed no boxes; asking once more",
       );
-      const second = await askPhoto();
+      // Raced against what is left of the budget, less a tenth for the answer to get back. The
+      // guard above assumes the second call takes as long as the first, and on clut10, 11 and 12
+      // on 2026-09-11 it took longer: the request's deadline fired and took the first answer, and
+      // every product in it, with it. A second asking that misses or fails leaves the first standing.
+      let second: PhotoResponse | null = null;
+      try {
+        second = await withTimeout(askPhoto(), Math.max(1, Math.floor(budgetMs * 0.9) - (Date.now() - startedAt)));
+      } catch (err) {
+        console.warn(
+          `[recognize] photo census's second asking did not answer (${err instanceof Error ? err.message : String(err)}); keeping the first answer`,
+        );
+      }
       // Taken only when it improves on the first. After an empty answer that is any product at
       // all, boxed or not, since an unsure line in the bag beats nothing in it. After a boxless
       // one it is a box: a second answer that declined again, or came back with fewer products,
       // would lose products the first pass had named to buy nothing.
-      const better = empty
-        ? second.items.some((item) => item.isProduct)
-        : second.items.some((item) => item.isProduct && item.box !== null);
-      if (better) answer = second;
+      const better =
+        second !== null &&
+        (empty
+          ? second.items.some((item) => item.isProduct)
+          : second.items.some((item) => item.isProduct && item.box !== null));
+      if (better && second !== null) answer = second;
     }
     // The model answers in its own compact terms (see `photoJsonSchema`); folded into the census
     // shape here, so every caller and every normalisation below reads what it always has.

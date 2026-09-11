@@ -1418,3 +1418,60 @@ describe("a photograph answered with no products is asked about once more", () =
     }
   });
 });
+
+/**
+ * The second asking races what is left of the request's budget, and loses gracefully. The guard
+ * before it assumes the second call takes as long as the first, and on clut10 on 2026-09-11 it
+ * took longer: the request's deadline fired, and the boxless first answer, six products the
+ * shopper could have seen as unsure, went with it. A timed-out census puts nothing in the bag.
+ */
+describe("a second asking that runs out of time keeps the first answer", () => {
+  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: null };
+  const boxless = {
+    subjectKind: "cart",
+    items: [product, { ...product, name: "Nutella", brand: "Nutella" }],
+    occlusion: { severity: "none", reason: "" },
+  };
+  const empty = { subjectKind: "product", items: [], occlusion: { severity: "none", reason: "" } };
+
+  async function withBudget<T>(ms: string, run: () => Promise<T>): Promise<T> {
+    const previous = process.env.RECOGNITION_TIMEOUT_MS;
+    process.env.RECOGNITION_TIMEOUT_MS = ms;
+    try {
+      return await run();
+    } finally {
+      if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
+      else process.env.RECOGNITION_TIMEOUT_MS = previous;
+    }
+  }
+
+  it("answers with the boxless first answer when the retry never comes back", async () => {
+    mockOutput(boxless);
+    create.mockImplementationOnce(() => new Promise(() => {}));
+    const result = await withBudget("200", async () => runCensus(await blankJpeg(), []));
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.unmarkedItems.map((item) => item.description)).toEqual(["Rigatoni", "Nutella"]);
+  });
+
+  it("answers inside the request's budget, not after it", async () => {
+    mockOutput(boxless);
+    create.mockImplementationOnce(() => new Promise(() => {}));
+    const started = Date.now();
+    await withBudget("200", async () => runCensus(await blankJpeg(), []));
+    expect(Date.now() - started).toBeLessThan(200);
+  });
+
+  it("answers with the empty first answer when its retry never comes back", async () => {
+    mockOutput(empty);
+    create.mockImplementationOnce(() => new Promise(() => {}));
+    const result = await withBudget("200", async () => runCensus(await blankJpeg(), []));
+    expect(result.unmarkedItems).toEqual([]);
+  });
+
+  it("keeps the first answer when the retry fails outright", async () => {
+    mockOutput(boxless);
+    create.mockRejectedValueOnce(new APIError(429, undefined, "rate limited", undefined));
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.unmarkedItems).toHaveLength(2);
+  });
+});
