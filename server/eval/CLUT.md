@@ -784,6 +784,51 @@ than whitespace: clut12's "lactose free milk, Friendly Farms", which is what eve
 tonight has been, and clut9's "crackers, Savoritz". The products written before a loop starts
 are a complete, usable answer that is currently thrown away.
 
+### Stopping a loop where it starts, measured on the two photographs that loop
+
+Commit `ff6a33f`: the photo census is streamed, and an answer is stopped at the third writing of
+one product, at a run of whitespace, or at the request's deadline. Every product whose writing was
+finished is kept once, the repeated one below the unsure line (`src/salvage.ts`). The cap fell
+from 2,000 tokens to 1,200. It had assumed 80 tokens a second, and Parasail's median on 2026-09-11
+was 29 (51 at the 90th percentile, OpenRouter's endpoint statistics), so a loop reached no cap
+before the 25 second deadline failed the request.
+
+The change alters a scan only when its answer is stopped, so only the two photographs that loop
+were scanned again, two passes each, $0.0114 as billed by OpenRouter. `clut-photos-salvage.json`
+is `clut-photos-retry.json` with those four scans replaced or added, and is labelled as that
+mix. Basket tier: no photograph re-scanned, every number unchanged.
+
+| scan | retry build | this build |
+|---|---|---|
+| clut12 pass 1 | 3/6 found, 15.5s, no loop | 1/6 found, 5.5s, stopped (loop) |
+| clut12 pass 2 | failed, all three attempts | 1/6 found, 16.0s, stopped (loop) |
+| clut9 pass 1 | 5/6 found, 16.9s | 5/6 found, 27.7s, no stop |
+| clut9 pass 2 | 6/6 found, 24.0s (one failed attempt first) | 6/6 found, 9.4s, second asking stopped (stall) |
+
+Storage tier over the merged file: found 54/84 (64%) became 53/90 (59%), because the scan that
+failed is now scored. Counting that failure as the empty bag the shopper got, it is 54/90 before
+and 53/90 after. Asserted wrong 0/21 became 1/22; hidden flagged 15/15 became 16/16.
+
+**What worked.** No scan failed. Three of the four answers were stopped early and kept what came
+before, and the stall on clut9's second asking was cut at 403 characters instead of running to the
+deadline, which took that scan from 24.0 to 9.4 seconds.
+
+**What did not.** On both clut12 passes the loop began at the first product: "lactose free milk,
+Friendly Farms" three times inside 507 characters. There was nothing before it to keep, so the bag
+got the milk, unsure and right, and none of the other five products. clut12 has looped on five of
+the six attempts tonight whose service log survives, and the one that did not found 3/6.
+
+**The wrong line asserted is not the salvage.** clut9's first pass read two boxes of sea salt
+crackers where there is one sea salt and one rosemary sourdough, on the retry build too. There it
+was unsure because that answer had placed no boxes; here the second asking placed them, the crop
+held both boxes, and the close read counted the same two. It is the rigatoni miscount's shape:
+both readings agree on a count and the gate has nothing to disagree with.
+
+**Cost accounting.** A stopped stream sends no usage, so the service's token count misses those
+calls. `clut-photos.ts` now also records what OpenRouter billed (`cost.billedUsd`, from the free
+key endpoint). Whether Parasail stops generating when the stream is closed is not documented;
+OpenRouter lists it as neither honouring nor ignoring cancellation, and the 1,200 cap bounds it.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing
