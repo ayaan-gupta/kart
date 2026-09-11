@@ -474,13 +474,22 @@ function photoBox(box: { x: number; y: number; w: number; h: number } | null): {
   return { x: x / 100, y: y / 100, w: w / 100, h: h / 100 };
 }
 
+/**
+ * No brand, however the model put it: null, blank, or the word "null" written as a string, which
+ * it does. Celery on clut15 came back branded "Null" on both passes of 2026-09-11 and was shown
+ * to the shopper as a branded product.
+ */
+export function isNoBrand(brand: string | null): boolean {
+  return brand === null || brand.trim().length === 0 || brand.trim().toLowerCase() === "null";
+}
+
 export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
   const unmarkedItems: CensusResponse["unmarkedItems"] = [];
   const counts = new Map<string, number>();
   for (const item of photo.items) {
     const name = item.name.trim();
     if (name.length === 0) continue;
-    const brand = item.brand !== null && item.brand.trim().length > 0 ? item.brand.trim() : null;
+    const brand = isNoBrand(item.brand) ? null : (item.brand ?? "").trim();
     const key = productKey(name, brand);
     unmarkedItems.push({
       description: name,

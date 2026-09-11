@@ -384,6 +384,21 @@ describe("photo schema", () => {
     expect(census.inViewCounts).toEqual([{ productKey: productKey("eggs", null), count: 4 }]);
     expect(census.unmarkedItems.map((u) => u.productKey)).toEqual(["::eggs", "::Eggs"]);
   });
+
+  it("treats a brand written as the word null as none", () => {
+    // Celery on clut15 came back with the brand "Null" on both passes of 2026-09-11 and was
+    // shown to the shopper as a branded product, asserted.
+    const census = censusFromPhoto({
+      subjectKind: "product",
+      items: [
+        { name: "celery", brand: "Null", count: 1, confidence: 0.9, isProduct: true, box: null },
+        { name: "celery", brand: " null ", count: 1, confidence: 0.9, isProduct: true, box: null },
+      ],
+      occlusion: { severity: "none", reason: "" },
+    });
+    expect(census.unmarkedItems.map((u) => u.productKey)).toEqual(["::celery", "::celery"]);
+    expect(census.inViewCounts).toEqual([{ productKey: productKey("celery", null), count: 2 }]);
+  });
 });
 
 /**

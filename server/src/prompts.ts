@@ -182,8 +182,9 @@ actually see the product in. If there are no grocery products in the photograph,
 photograph of a table, a desk, a room or a person is, the right answer is an empty items list.
 Never guess a product into a photograph to have something to report.
 
-Answer with the structured object. items has one entry per distinct product; the same product
-in two places is one entry with the total count and one box around both:
+Answer with the structured object, written compactly on one line with no line breaks and no
+indentation. items has one entry per distinct product; the same product in two places is one
+entry with the total count and one box around both:
   name        a short product name without the brand ("Froot Loops", "brioche buns"). Two
               products that differ only in a flavour or a variety you can read are two entries.
   brand       the brand exactly as printed on the packaging, or null for unbranded produce and

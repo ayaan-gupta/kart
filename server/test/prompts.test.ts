@@ -317,6 +317,13 @@ describe("PHOTO_SYSTEM_PROMPT", () => {
   it("is much shorter than the badge prompt", () => {
     expect(PHOTO_SYSTEM_PROMPT.length).toBeLessThan(CENSUS_SYSTEM_PROMPT.length / 2);
   });
+
+  it("asks for the object on one line", () => {
+    // Qwen pretty-printed every answer, two to three times the tokens of compact JSON, which put
+    // dense photographs past the deadline; and twice on 2026-09-11 it stalled after `"box":`,
+    // writing nothing but whitespace until the output cap stopped it.
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/on one line/);
+  });
 });
 
 /**

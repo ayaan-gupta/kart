@@ -10,6 +10,7 @@ import {
   censusFromPhoto,
   censusJsonSchema,
   identifyJsonSchema,
+  isNoBrand,
   photoJsonSchema,
   productKey,
   verifyJsonSchema,
@@ -343,7 +344,8 @@ async function requestOutputText(
 // ---------------------------------------------------------------------------
 
 /**
- * Treats an empty or whitespace-only brand the same as a genuinely absent one.
+ * Treats an empty or whitespace-only brand, or the word "null" written as a string (see
+ * `isNoBrand`), the same as a genuinely absent one.
  *
  * Both prompts ask the model for `null` when there is no brand (illegible packaging for
  * IDENTIFY, illegible packaging or genuinely brandless items for CENSUS), but a "string or
@@ -355,9 +357,7 @@ async function requestOutputText(
  * normalised here before use.
  */
 function normalizeBrand(brand: string | null): string | null {
-  if (brand === null) return null;
-  const trimmed = brand.trim();
-  return trimmed.length === 0 ? null : brand;
+  return isNoBrand(brand) ? null : brand;
 }
 
 /**
@@ -741,6 +741,19 @@ function boxless(answer: PhotoResponse): boolean {
   return products.length >= 2 && products.every((item) => item.box === null);
 }
 
+/**
+ * A photograph answered with no product in it, from a model that did not call it a shelf.
+ *
+ * Qwen 3 VL 235B does this to about one photograph in five: 26 of 127 scans across every saved
+ * run since it became the photo tier, carts and pantries alike, usually inside three seconds.
+ * It is the model declining rather than a verdict, since the same photograph is often read in
+ * full on the next pass (clut7 came back empty on 5 of 9). A shelf is left alone: the not-a-cart
+ * guard empties that bag on purpose.
+ */
+function productless(answer: PhotoResponse): boolean {
+  return answer.subjectKind !== "shelf" && !answer.items.some((item) => item.isProduct);
+}
+
 /** The photograph as sent: EXIF orientation applied, long edge capped, JPEG. */
 async function photoImage(image: Buffer): Promise<Buffer> {
   return sharp(image)
@@ -839,14 +852,26 @@ export async function runCensus(
     // retry is worth twelve seconds of a shopper's time and is not worth the whole request
     // failing: a timed-out census puts nothing in the bag, which is strictly worse than a bag of
     // unsure lines. Eight of thirty scans were lost this way before this check existed.
+    // The same holds for an answer with no products at all, and more so: it puts nothing in the
+    // bag. One more asking, never two, under the same budget.
     const budgetMs = configuredTimeoutMs();
-    if (boxless(answer) && firstCallMs * 2 < budgetMs) {
-      console.warn("[recognize] photo census placed no boxes; asking once more");
+    const empty = productless(answer);
+    if ((empty || boxless(answer)) && firstCallMs * 2 < budgetMs) {
+      console.warn(
+        empty
+          ? `[recognize] photo census named no products (subjectKind ${answer.subjectKind}, ${answer.items.length} items listed, ` +
+              `reason ${JSON.stringify(answer.occlusion.reason)}); asking once more`
+          : "[recognize] photo census placed no boxes; asking once more",
+      );
       const second = await askPhoto();
-      // Taken only when it placed something. A second answer that declined again, or that came
-      // back with fewer products, is not an improvement, and replacing the first with it would
-      // lose products the first pass had named to buy nothing.
-      if (second.items.some((item) => item.isProduct && item.box !== null)) answer = second;
+      // Taken only when it improves on the first. After an empty answer that is any product at
+      // all, boxed or not, since an unsure line in the bag beats nothing in it. After a boxless
+      // one it is a box: a second answer that declined again, or came back with fewer products,
+      // would lose products the first pass had named to buy nothing.
+      const better = empty
+        ? second.items.some((item) => item.isProduct)
+        : second.items.some((item) => item.isProduct && item.box !== null);
+      if (better) answer = second;
     }
     // The model answers in its own compact terms (see `photoJsonSchema`); folded into the census
     // shape here, so every caller and every normalisation below reads what it always has.

@@ -60,11 +60,17 @@ beforeEach(() => {
  * path runs Sol, under the short photo prompt, at the effort the sweep chose, on the image the
  * phone sent rather than a 1536 composite of it.
  */
-const emptyPhoto = { subjectKind: "cart", items: [], occlusion: { severity: "none", reason: "" } };
+// Any ordinary answer, for the tests about what is sent. Not an empty one: an answer naming no
+// products is asked about again, which is its own behaviour with its own tests below.
+const answeredPhoto = {
+  subjectKind: "cart",
+  items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } }],
+  occlusion: { severity: "none", reason: "" },
+};
 
 describe("runCensus on a photograph (no marks)", () => {
   it("uses the photo model, the photo prompt, the photo schema, and a high-detail image", async () => {
-    mockOutput(emptyPhoto);
+    mockOutput(answeredPhoto);
     await runCensus(await blankJpeg(), []);
 
     const params = create.mock.calls[0][0];
@@ -157,7 +163,7 @@ describe("runCensus on a photograph (no marks)", () => {
   });
 
   it("sends the photograph at up to 2048 on its long edge, not the census composite's 1536", async () => {
-    mockOutput(emptyPhoto);
+    mockOutput(answeredPhoto);
     await runCensus(await blankJpeg(3000, 2000), []);
 
     const url: string = create.mock.calls[0][0].input[1].content[1].image_url;
@@ -167,7 +173,7 @@ describe("runCensus on a photograph (no marks)", () => {
   });
 
   it("still passes the counted list through, so a second photograph reuses the bag's names", async () => {
-    mockOutput(emptyPhoto);
+    mockOutput(answeredPhoto);
     await runCensus(await blankJpeg(), [], undefined, ["Nutella"]);
     const text: string = create.mock.calls[0][0].input[1].content[0].text;
     expect(text).toContain("Nutella");
@@ -1216,6 +1222,12 @@ describe("runVerify", () => {
     expect(item.line.brand).toBe("Priano");
   });
 
+  it("treats a close read's brand written as the word null as none", async () => {
+    mockOutput({ ...closeAnswer, brand: "NULL" });
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide }]);
+    expect(item.close?.brand).toBeNull();
+  });
+
   it("reconciles: agreement is sure", async () => {
     mockOutput(closeAnswer);
     const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide: { ...wide, brand: "Priano" } }]);
@@ -1281,7 +1293,7 @@ describe("runVerify", () => {
 
 describe("runCensus on a confirmation photograph", () => {
   it("puts the confirming names into the user text", async () => {
-    mockOutput(emptyPhoto);
+    mockOutput(answeredPhoto);
     await runCensus(await blankJpeg(), [], undefined, ["Nutella"], ["Priano rigatoni"]);
     const text: string = create.mock.calls[0][0].input[1].content[0].text;
     expect(text).toContain("Priano rigatoni");
@@ -1343,5 +1355,66 @@ describe("a looping answer is cut off rather than paid for", () => {
     expect(items[0].close).toBeNull();
     expect(items[0].line.sure).toBe(false);
     expect(items[1].close?.name).toBe("Rigatoni");
+  });
+});
+
+/**
+ * Qwen 3 VL 235B answers about one photograph in five with no products at all: 26 of 127 scans
+ * across every saved run since it became the photo tier, cart and pantry alike, subjectKind
+ * "cart" or "product" and an empty list, usually inside three seconds. The same photograph is
+ * often read in full on the next pass (clut7 was empty on 5 of 9), so an empty answer is the
+ * model declining, not a verdict on the photograph, and one more asking gets most of it back.
+ */
+describe("a photograph answered with no products is asked about once more", () => {
+  const empty = { subjectKind: "product", items: [], occlusion: { severity: "none", reason: "" } };
+  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } };
+  const full = { subjectKind: "cart", items: [product], occlusion: { severity: "none", reason: "" } };
+
+  it("asks again when the answer lists no products, and takes the one that does", async () => {
+    mockOutput(empty);
+    mockOutput(full);
+    const result = await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.unmarkedItems.map((item) => item.description)).toEqual(["Rigatoni"]);
+  });
+
+  it("counts an answer whose every item is not a product as empty", async () => {
+    mockOutput({ ...empty, items: [{ ...product, name: "shopping cart", isProduct: false, box: null }] });
+    mockOutput(full);
+    await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks only once, and takes products the second answer could not place", async () => {
+    // Found and unsure beats absent: an unboxed line is still in the bag for the shopper to see.
+    mockOutput(empty);
+    mockOutput({ ...full, items: [{ ...product, box: null }, { ...product, name: "Nutella", brand: "Nutella", box: null }] });
+    const result = await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.unmarkedItems).toHaveLength(2);
+  });
+
+  it("does not ask again when the model says the photograph is of a shelf", async () => {
+    mockOutput({ ...empty, subjectKind: "shelf" });
+    await runCensus(await blankJpeg(), []);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask again when a second call would not fit the request's budget", async () => {
+    const previous = process.env.RECOGNITION_TIMEOUT_MS;
+    process.env.RECOGNITION_TIMEOUT_MS = "40";
+    create.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return { output_text: JSON.stringify(empty) };
+    });
+    mockOutput(full);
+    try {
+      const result = await runCensus(await blankJpeg(), []);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(result.unmarkedItems).toEqual([]);
+    } finally {
+      if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
+      else process.env.RECOGNITION_TIMEOUT_MS = previous;
+    }
   });
 });
