@@ -722,6 +722,68 @@ costs it two to three times the tokens compact JSON would. The Mac also went to 
 with its lid shut partway through; two scans that spanned it were dropped and re-scanned, and the
 driver now runs only with the lid open.
 
+### Asking an empty answer again, and the census on one line, measured the same night
+
+Commits `5b1fc08` and `0093567`: an answer naming no products is asked once more, the census is
+asked for compact JSON on one line, a brand written as "null" is none, and a second asking that
+runs out of time keeps the first answer. Same fifteen photographs, two passes, saved as
+`clut-photos-retry.json`, 29 of 30 scans (clut12's second pass failed all three attempts),
+$0.138. The first nine scans ran on `5b1fc08` before the deadline fix; none of them used a retry
+that ran out of time, so the fix cannot change them.
+
+The harness changed underneath this run too, and it matters for comparing seconds and failures.
+Until `5caefa3` every photo harness gave the census the live scan's 20 seconds, where the phone
+gives a photograph 30 (`src/app/photo.tsx`) and the server answers inside 25. Every earlier run
+scored a photograph that took 20 to 25 seconds as a timeout the phone would not have had. Twenty
+of this run's 29 scans had the phone's deadline.
+
+| basket tier | first run tonight (`1893c9e`) | this run |
+|---|---|---|
+| found | 53/74 (72%) | 63/74 (85%) |
+| empty answers | 3 of 14 scans | 0 of 14 |
+| quantities right | 49/53 (92%) | 55/63 (87%) |
+| brands right | 42/43 (98%) | 48/52 (92%) |
+| hidden flagged | 4/10 | 4/10 |
+| asserted wrong | 1/27 | 2/39 |
+| right but held back | 22 | 18 |
+| seconds a photograph | 13.0 | 16.1 |
+
+The storage tier: found 42/84 (50%) to 54/84 (64%), hidden flagged 12/15 to 15/15, nothing
+asserted wrong in 21 sure lines.
+
+**What improved.** No scan came back empty, on either tier. In the 20 scans whose service log
+survives, the retry for an empty answer never fired, so the first answer was never empty: clut14,
+empty on all eight earlier Qwen scans, was read 5/5 and 4/5 at the first asking. The only change
+that could do that is asking for the object on one line. (The log of the first nine scans was
+overwritten when the service restarted.) Found rose thirteen points on the basket tier and fourteen
+on the storage tier. clut12, which timed out on every attempt at 20 seconds, finished its first
+pass in 15.5.
+
+**What fell.** Quantities from 92% to 87% and brands from 98% to 92% on the basket tier. Half the
+new count errors and both new brand errors are clut7, which was empty last run and so scored
+nothing: on one pass the model gave every product in it the brand "Campbells" and a count of 2,
+and the close read held four of those five lines back. The rest are the same as before: clut4's
+rigatoni read as one where there are two, clut5's bronze cut read as two where there is one,
+clut6's PRIANO read as "Palano" and "Paiano". The one wrong line asserted is that rigatoni,
+now on both passes: both readings say one, so nothing in the gate can see it. Seconds went up by
+three, which is the retries and the longer deadline letting slow photographs finish.
+
+**What was measured wrong.** "Asserted wrong" used to sum every line a label was given, sure and
+unsure together, and then call each sure line wrong when the total was. Printed that way this run
+reads 4/39. Two of the four were a sure "2 x Campbell's cream of mushroom" for two tins, blamed
+because an unsure line for a different product carrying the same borrowed brand ("pesto
+(Campbells)", "chickpeas (Campbells)") was counted into its total. `clut-scoring.ts` now also
+gives `assertedOutcomes`, which judges each sure line on the sure lines alone, and
+`clut-rescore.ts` prints both. Every line the new verdict turned from wrong to right, across all
+four runs it was applied to, was checked by hand: ten, all of the same shape, a right sure line
+next to a wrong unsure one. Re-scored: no catalog 5/25 (was 6), catalog before the box fixes 0/29
+(was 3), first run tonight 1/40 (3), this run 2/60 (6).
+
+**What still fails.** Two loops the output cap caught this run, both a product repeated rather
+than whitespace: clut12's "lactose free milk, Friendly Farms", which is what every clut12 failure
+tonight has been, and clut9's "crackers, Savoritz". The products written before a loop starts
+are a complete, usable answer that is currently thrown away.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

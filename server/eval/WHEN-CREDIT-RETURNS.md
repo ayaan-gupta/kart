@@ -19,7 +19,9 @@ everything here goes through `openai.responses.create`. See `server/src/openai.t
 
 Measured on `1893c9e`, 29 of 30 scans, $0.130: `CLUT.md`, "The final build, scored end to end".
 Basket tier, 27 lines asserted and one wrong (a count); found fell to 72% because three scans
-came back with an empty list. The next run is the build that asks an empty answer once more:
+came back with an empty list. The build after it (`clut-photos-retry.json`, same night) found 85%
+with no empty answers and asserted 2 wrong lines of 39, both one miscount. The next run is
+whatever comes after that:
 
 ```bash
 npm run serve --prefix server
