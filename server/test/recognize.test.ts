@@ -1243,8 +1243,8 @@ describe("runVerify", () => {
   });
 
   it("reconciles: agreement is sure", async () => {
-    mockOutput(closeAnswer);
-    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide: { ...wide, brand: "Priano" } }]);
+    mockOutput({ ...closeAnswer, count: 1 });
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide: { ...wide, brand: "Priano", count: 1 } }]);
     expect(item.line.sure).toBe(true);
     expect(item.line.agreed).toBe(true);
   });

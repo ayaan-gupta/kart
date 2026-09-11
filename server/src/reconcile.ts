@@ -4,7 +4,8 @@
  * The wide reading is what the photo census said about the whole photograph. The close reading
  * is what the same model said about a crop of just this product, cut at the box the wide pass
  * gave, at the photograph's own resolution. A line is shown to the shopper as sure only when
- * the two agree on the product, the brand and the count, and neither would bet against itself.
+ * the two agree on the product, the brand and the count, neither would bet against itself, and
+ * the count is one: agreement on more than one is not a second witness (see below).
  * Everything else is unsure, which the app shows in amber and asks for a better photograph of.
  *
  * Measured reason for the rule (server/eval/CLUT.md, "Read wide, then read close"): the wide
@@ -61,6 +62,15 @@ export interface ReconciledLine {
    * "not-consulted" is a deployment with no catalog, where this whole leg is inert.
    */
   catalog: "matched" | "picked" | "ambiguous" | "absent" | "not-reached" | "not-consulted";
+}
+
+/**
+ * Whether a count the two readings agreed on still needs the shopper to check it: any count above
+ * one, for the reason given where `reconcile` asks. Exported so that count-replay.ts replays the
+ * rule that ships rather than a copy of it.
+ */
+export function countNeedsCheck(count: number): boolean {
+  return count > 1;
 }
 
 /** Brands compared the way `productKey` compares them: no case, accents or punctuation. */
@@ -127,6 +137,15 @@ export function reconcile(wide: WideReading, close: VerifyResponse | null, catal
   if (wide.confidence < UNSURE_BELOW || close.confidence < UNSURE_BELOW) {
     return unsure({ brand, confidence: Math.min(wide.confidence, close.confidence) });
   }
+
+  // A count above one that both readings agree on has still had one witness, not two: the crop is
+  // cut from the same pixels the wide pass counted, and Qwen reads look-alike varieties of one
+  // range as the same product in both. On clut9 on 2026-09-11 a box of rosemary sourdough
+  // crackers standing behind a box of sea salt became "2 x sea salt" in the wide pass and the close
+  // read alike, and was asserted. The count stays on the line and the shopper is asked to check
+  // it. Replayed over every saved run (server/eval/pipeline/count-replay.ts) this holds back no
+  // line of one and every line of more than one; see CLUT.md for what that costs.
+  if (countNeedsCheck(wide.count)) return unsure({ brand });
 
   // The two readings agree. What the shop sells is the last question and the only one that can
   // still take the line back: the close read is asked the same question the wide pass was, so two

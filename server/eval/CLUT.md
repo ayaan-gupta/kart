@@ -829,6 +829,54 @@ calls. `clut-photos.ts` now also records what OpenRouter billed (`cost.billedUsd
 key endpoint). Whether Parasail stops generating when the stream is closed is not documented;
 OpenRouter lists it as neither honouring nor ignoring cancellation, and the 1,200 cap bounds it.
 
+### A count above one is no longer asserted, replayed over the saved runs
+
+Every wrong count shown as sure in every saved Qwen run is one of two lines. clut4's Priano
+rigatoni was read as one where there are two, on every one of about fifteen scans across seven
+runs: the two bags stand one behind the other, both labels read RIGATONI, and the wide pass and
+the close read both count one. clut9's crackers were read as two boxes of sea salt where there is
+one sea salt and one rosemary sourdough behind it, once, in the wide pass and the close read
+alike. Both readings agreeing is the gate's whole test, and here they agreed on the wrong number.
+
+**Tried first, and it failed.** The close read was asked to list every package of the product it
+could see, label and position, before counting ("look behind and beside the first one"). Four
+calls on the two crops, $0.0045 with two more to see the raw answers: the rigatoni came back as
+one package, "Rigatoni Authentic Italian, front", and the crackers as two, "Sea Salt, front" and
+"Sea Salt, behind the front one". Listing does not change what the model sees. Reverted.
+
+**What the saved runs say about the models.** Sol, the OpenAI tier this path used before Qwen,
+counted the rigatoni as two on every scan in four runs (`clut-photos-sol.json`, `-verify.json`,
+`-wide-compact.json`, `-verify-luna.json`), and read the two cracker boxes as two products of one
+each. This is a limit of Qwen's perception, not of the gate's rules, and no rule over Qwen's two
+readings can see it.
+
+**The rule.** `reconcile` now leaves a count above one unsure however well the readings agree
+(`countNeedsCheck` in `src/reconcile.ts`): the crop is cut from the same pixels the wide pass
+counted, so their agreement on a number is one witness to it, and the case where Qwen merges two
+look-alike varieties is always a count above one. The catalog was no help in narrowing it: every
+product counted above one in these runs has sibling varieties in the shop (eight Campbell's
+soups, four Simply Nature beans, ten Savoritz crackers).
+
+Replayed exactly over the saved verdicts by `eval/pipeline/count-replay.ts`, no model call, scored
+by `clut-rescore.ts`:
+
+| run | asserted wrong before | after | right lines held back by the rule |
+|---|---|---|---|
+| `clut-photos-salvage.json` (latest build) | 3/61 | 2/57 | 3 |
+| `clut-photos-retry.json` | 2/60 | 2/57 | 3 |
+| `clut-photos-fixed.json` | 1/40 | 1/40 | 0 |
+| `clut-photos-catalog-boxes.json` | 0/29 | 0/28 | 1 |
+
+The one wrong line it catches is clut9's crackers. The right lines it holds back are clut7's two
+tins of Campbell's cream of mushroom (three scans) and its three tins of Simply Nature black beans
+(one scan): the count stays on the line, drawn amber, and the shopper is asked to check it. On the
+latest build the storage tier has nothing asserted wrong (0/21); the cart tier's two are the
+rigatoni, once on each pass.
+
+**What would close the rest.** Only a close read that can see the second bag. On this corpus that
+is Sol, at $4 and $20 per million tokens against Qwen's $0.21 and $1.90: about $0.05 more per
+photograph, ten times what the Qwen path costs now. Not done; it is the owner's call.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reconcile, type WideReading } from "../src/reconcile.js";
+import { UNSURE_BELOW, reconcile, type WideReading } from "../src/reconcile.js";
 import type { VerifyResponse } from "../src/schemas.js";
 import { buildCatalog } from "../src/catalog.js";
 
@@ -9,9 +9,9 @@ import { buildCatalog } from "../src/catalog.js";
  * whether they agree well enough to assert the line to the shopper. Everything the shopper sees
  * as "Not sure" comes from here, so every branch is pinned.
  */
-const wide: WideReading = { description: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9 };
+const wide: WideReading = { description: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9 };
 const close = (over: Partial<VerifyResponse> = {}): VerifyResponse => ({
-  name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null, ...over,
+  name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null, ...over,
 });
 
 describe("reconcile: two readings that agree", () => {
@@ -21,7 +21,7 @@ describe("reconcile: two readings that agree", () => {
     expect(line.confidence).toBeCloseTo((0.9 + 0.95) / 2);
     expect(line.description).toBe("Rigatoni");
     expect(line.brand).toBe("Priano");
-    expect(line.count).toBe(2);
+    expect(line.count).toBe(1);
     expect(line.agreed).toBe(true);
   });
 
@@ -39,6 +39,34 @@ describe("reconcile: two readings that agree", () => {
   it("is not sure when either reading is below the unsure line, even in agreement", () => {
     expect(reconcile({ ...wide, confidence: 0.5 }, close()).sure).toBe(false);
     expect(reconcile(wide, close({ confidence: 0.55 })).sure).toBe(false);
+  });
+});
+
+/**
+ * The close read is cut from the same pixels the wide pass counted, so a count above one that
+ * both agree on has had one witness. On clut9 on 2026-09-11 Qwen read a box of rosemary
+ * sourdough crackers standing behind a box of sea salt as a second box of sea salt, in the wide
+ * pass and the close read alike, and "2 x sea salt" was asserted (server/eval/CLUT.md).
+ */
+describe("reconcile: a count above one", () => {
+  it("is not sure when both readings agree on more than one", () => {
+    expect(reconcile({ ...wide, count: 2 }, close({ count: 2 })).sure).toBe(false);
+  });
+
+  it("keeps the count the two readings agreed on, for the shopper to check", () => {
+    expect(reconcile({ ...wide, count: 3 }, close({ count: 3 })).count).toBe(3);
+  });
+
+  it("reports it below the unsure line, so a client that only reads confidence flags it", () => {
+    expect(reconcile({ ...wide, count: 2 }, close({ count: 2 })).confidence).toBeLessThan(UNSURE_BELOW);
+  });
+
+  it("is not sure of more than one even when the shop sells exactly this", () => {
+    expect(reconcile({ ...wide, count: 2 }, close({ count: 2 }), shop).sure).toBe(false);
+  });
+
+  it("keeps the brand the close read took off the label", () => {
+    expect(reconcile({ ...wide, brand: null, count: 2 }, close({ brand: "Priano", count: 2 })).brand).toBe("Priano");
   });
 });
 
@@ -77,7 +105,7 @@ describe("reconcile: two readings that disagree", () => {
   it("is not sure when the counts differ, and keeps the wide count on the line", () => {
     const line = reconcile(wide, close({ count: 3 }));
     expect(line.sure).toBe(false);
-    expect(line.count).toBe(2);
+    expect(line.count).toBe(1);
   });
 
   it("is not sure when the close pass could not read packaging that carries a brand", () => {
@@ -104,7 +132,7 @@ describe("reconcile: no close reading", () => {
     expect(line.agreed).toBe(false);
     expect(line.confidence).toBeLessThan(0.6);
     expect(line.description).toBe("Rigatoni");
-    expect(line.count).toBe(2);
+    expect(line.count).toBe(1);
   });
 });
 
