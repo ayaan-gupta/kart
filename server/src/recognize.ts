@@ -28,6 +28,7 @@ import { loadCatalog, shortlist, skus } from "./catalog.js";
 import { configuredTimeoutMs, withTimeout } from "./http.js";
 import { reconcile, type ReconciledLine, type WideReading } from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
+import { loopedProduct, salvagePhoto, stalled } from "./salvage.js";
 
 /**
  * The badged frame is sent at this long edge. 1024 was chosen before there was a photograph to
@@ -283,20 +284,27 @@ const IDENTIFY_EFFORT: "none" | "low" | "medium" | "high" = (() => {
  */
 const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || "Parasail";
 
+/**
+ * `allow_fallbacks: false` so a busy upstream fails the call rather than silently answering from
+ * a different one, which would put two resolutions in one run's numbers.
+ * OpenAI has no `provider` field and rejects unknown ones, so the pin rides only on the models
+ * that are routed to OpenRouter, which are exactly the ones whose names carry a vendor.
+ */
+function pinned(params: OpenAI.Responses.ResponseCreateParamsNonStreaming): OpenAI.Responses.ResponseCreateParamsNonStreaming {
+  return String(params.model ?? "").includes("/")
+    ? ({ ...params, provider: { order: [OPENROUTER_PROVIDER], allow_fallbacks: false } } as OpenAI.Responses.ResponseCreateParamsNonStreaming)
+    : params;
+}
+
 async function requestOutputText(
   context: string,
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ): Promise<string> {
-  // Every OpenAI call in this project comes through here, which is the whole reason the token
-  // count is taken here and not in the callers. See `usage.ts` for what went wrong without it.
+  // Every OpenAI call in this project comes through here or through streamPhotoText, which is the
+  // whole reason the token count is taken here and not in the callers. See `usage.ts` for what
+  // went wrong without it.
   installUsageReporter();
-  // `allow_fallbacks: false` so a busy upstream fails the call rather than silently answering
-  // from a different one, which would put two resolutions in one run's numbers.
-  // OpenAI has no `provider` field and rejects unknown ones, so the pin rides only on the models
-  // that are routed to OpenRouter, which are exactly the ones whose names carry a vendor.
-  const sent = String(params.model ?? "").includes("/")
-    ? { ...params, provider: { order: [OPENROUTER_PROVIDER], allow_fallbacks: false } }
-    : params;
+  const sent = pinned(params);
   try {
     const response = await clientFor(String(sent.model ?? "")).responses.create(sent);
     // After the await, so a failed call is not counted as spend. A 429 or a 400 bills nothing,
@@ -332,6 +340,98 @@ async function requestOutputText(
   } catch (err) {
     throw toSafeError(context, err);
   }
+}
+
+/**
+ * The photo census, read as it is written, so an answer that goes wrong is stopped where it goes
+ * wrong rather than paid for to the end.
+ *
+ * Qwen 3 VL 235B writes about 29 tokens a second on Parasail (OpenRouter's median over the last
+ * half hour on 2026-09-11, 51 at the 90th percentile). A model that starts writing one product
+ * over and over therefore reaches no cap before the request's deadline, which then answers the
+ * shopper with a failure and throws away every product listed before the loop began. Read as it
+ * arrives, the loop is seen at the third writing of one product (LOOP_WRITINGS in salvage.ts), a
+ * whitespace stall once it runs long, and the deadline itself keeps whatever was written by
+ * then; the caller reads what can be kept with `salvagePhoto`.
+ *
+ * `stopped` is null for an answer that finished, or says why it did not: "loop", "stall",
+ * "deadline", "ended early" for a stream that closed without its final event, or the provider's
+ * own reason. Stopping closes the connection. Whether the provider then stops generating, and
+ * billing, is up to it: OpenRouter lists the providers that do, and Parasail is on neither of its
+ * lists, which is why PHOTO_MAX_OUTPUT_TOKENS still bounds what a loop can cost.
+ *
+ * A stopped stream never sends its usage, so its tokens are missing from `usageTotals`. The clut
+ * harness records what OpenRouter billed for the same reason.
+ */
+async function streamPhotoText(
+  params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
+  deadlineAt: number,
+): Promise<{ text: string; stopped: string | null }> {
+  installUsageReporter();
+  const sent = pinned(params);
+  const model = typeof params.model === "string" ? params.model : "unknown";
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Raced against every wait below rather than left to the abort signal, so a connection that
+  // neither sends nor honours the abort still cannot hold the request past its deadline.
+  const deadline = new Promise<"deadline">((resolve) => {
+    timer = setTimeout(() => resolve("deadline"), Math.max(0, deadlineAt - Date.now()));
+  });
+  let text = "";
+  let stopped: string | null = null;
+  let finished = false;
+  try {
+    const opening = clientFor(String(sent.model ?? "")).responses.create({ ...sent, stream: true }, { signal: controller.signal });
+    opening.catch(() => {}); // Settled after the deadline won, when nothing is listening.
+    const stream = await Promise.race([opening, deadline]);
+    if (stream === "deadline") {
+      stopped = "deadline";
+      return { text, stopped };
+    }
+    const events = stream[Symbol.asyncIterator]();
+    for (;;) {
+      const pending = events.next();
+      pending.catch(() => {});
+      const next = await Promise.race([pending, deadline]);
+      if (next === "deadline") {
+        stopped = "deadline";
+        break;
+      }
+      if (next.done) {
+        stopped = "ended early";
+        break;
+      }
+      const event = next.value;
+      if (event.type === "response.output_text.delta") {
+        text += event.delta;
+        if (stalled(text)) {
+          stopped = "stall";
+          break;
+        }
+        if (event.delta.includes("}") && loopedProduct(text) !== null) {
+          stopped = "loop";
+          break;
+        }
+      } else if (event.type === "response.completed" || event.type === "response.incomplete") {
+        // After the answer, like requestOutputText: a call that failed is not counted as spend.
+        const usage = event.response.usage;
+        recordUsage(model, usage?.input_tokens, usage?.output_tokens, usage?.input_tokens_details?.cached_tokens);
+        if (event.type === "response.incomplete") stopped = event.response.incomplete_details?.reason ?? "unknown reason";
+        finished = true;
+        break;
+      } else if (event.type === "response.failed") {
+        throw new Error(`answer failed (${event.response.error?.code ?? "no reason given"})`);
+      } else if (event.type === "error") {
+        throw new Error(`answer failed (${event.code ?? "no reason given"})`);
+      }
+    }
+  } catch (err) {
+    throw toSafeError("runCensus", err);
+  } finally {
+    clearTimeout(timer);
+    if (!finished) controller.abort();
+  }
+  return { text, stopped };
 }
 
 // ---------------------------------------------------------------------------
@@ -676,13 +776,15 @@ const PHOTO_EFFORT: "none" | "low" | "medium" | "high" = (() => {
 
 /**
  * The most a photo census may write. The largest real answer in 247 saved scans of the fifteen
- * clut photographs is about 700 tokens, fifteen products; at the provider's roughly 80 tokens a
- * second the request's 25 seconds return about 2,000, so nothing longer could reach the shopper.
+ * clut photographs is about 700 tokens, fifteen products. Parasail writes Qwen at 29 tokens a
+ * second at the median and 51 at the 90th percentile (OpenRouter, 2026-09-11), so the request's
+ * 25 seconds return about 1,275 at best, and nothing longer could reach the shopper.
  * Uncapped, a model that loops writes until the provider stops it and bills for all of it: on
  * 2026-09-10 six photo calls wrote 35,005 tokens between them, each past the deadline, so the
- * shopper saw a timeout and the account paid anyway.
+ * shopper saw a timeout and the account paid anyway. The stream is now stopped at the loop
+ * (streamPhotoText); this is what a provider that keeps generating after the stop can bill.
  */
-const PHOTO_MAX_OUTPUT_TOKENS = 2000;
+const PHOTO_MAX_OUTPUT_TOKENS = 1200;
 /** The close read's whole answer is one small object of about sixty tokens. */
 const VERIFY_MAX_OUTPUT_TOKENS = 400;
 /**
@@ -808,8 +910,8 @@ export async function runCensus(
   // composite of it. See MODELS.photo for the measurement and PHOTO_SYSTEM_PROMPT for the prompt.
   if (marks.length === 0) {
     const photo = await photoImage(image);
-    const askPhoto = async (): Promise<PhotoResponse> => {
-      const outputText = await requestOutputText("runCensus", {
+    const askPhoto = async (deadlineAt: number): Promise<PhotoResponse> => {
+      const { text, stopped } = await streamPhotoText({
         model: MODELS.photo,
         prompt_cache_key: "kart-photo",
         reasoning: { effort: PHOTO_EFFORT },
@@ -832,12 +934,26 @@ export async function runCensus(
             schema: photoJsonSchema,
           },
         },
-      });
-      return PhotoResponse.parse(JSON.parse(outputText));
+      }, deadlineAt);
+      if (stopped === null) return PhotoResponse.parse(JSON.parse(text));
+      // Stopped part way: every product whose writing was finished is kept, once, and the one it
+      // could not stop writing is kept unsure. See salvage.ts for the measurement.
+      const kept = salvagePhoto(text);
+      console.warn(
+        `[recognize] photo census stopped (${stopped}) after ${text.length} characters; ` +
+          (kept === null ? "no product in it was whole" : `kept ${kept.items.length} items written before that`) +
+          `; the answer ended ${JSON.stringify(text.trimEnd().slice(-200))}`,
+      );
+      if (kept === null) throw new Error(`runCensus: answer cut off (${stopped})`);
+      return kept;
     };
 
     const startedAt = Date.now();
-    let answer = await askPhoto();
+    const budgetMs = configuredTimeoutMs();
+    // A tenth of the budget is left for the answer to get back. Both askings answer by this time,
+    // each with what it had written by then, so neither can take the request past its deadline.
+    const deadlineAt = startedAt + Math.floor(budgetMs * 0.9);
+    let answer = await askPhoto(deadlineAt);
     const firstCallMs = Date.now() - startedAt;
     // A photograph of several products where the model placed no box on any of them. `box` is
     // nullable for the product no rectangle contains, which is a per-product judgement; a whole
@@ -854,7 +970,6 @@ export async function runCensus(
     // unsure lines. Eight of thirty scans were lost this way before this check existed.
     // The same holds for an answer with no products at all, and more so: it puts nothing in the
     // bag. One more asking, never two, under the same budget.
-    const budgetMs = configuredTimeoutMs();
     const empty = productless(answer);
     if ((empty || boxless(answer)) && firstCallMs * 2 < budgetMs) {
       console.warn(
@@ -863,13 +978,13 @@ export async function runCensus(
               `reason ${JSON.stringify(answer.occlusion.reason)}); asking once more`
           : "[recognize] photo census placed no boxes; asking once more",
       );
-      // Raced against what is left of the budget, less a tenth for the answer to get back. The
-      // guard above assumes the second call takes as long as the first, and on clut10, 11 and 12
-      // on 2026-09-11 it took longer: the request's deadline fired and took the first answer, and
-      // every product in it, with it. A second asking that misses or fails leaves the first standing.
+      // Held to the same deadline as the first. The guard above assumes the second call takes as
+      // long as the first, and on clut10, 11 and 12 on 2026-09-11 it took longer: the request's
+      // deadline fired and took the first answer, and every product in it, with it. A second
+      // asking that misses or fails leaves the first standing.
       let second: PhotoResponse | null = null;
       try {
-        second = await withTimeout(askPhoto(), Math.max(1, Math.floor(budgetMs * 0.9) - (Date.now() - startedAt)));
+        second = await askPhoto(deadlineAt);
       } catch (err) {
         console.warn(
           `[recognize] photo census's second asking did not answer (${err instanceof Error ? err.message : String(err)}); keeping the first answer`,

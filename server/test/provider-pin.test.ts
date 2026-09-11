@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import sharp from "sharp";
+import { streamOf } from "./streams.js";
 
 // Same reason as recognize.test.ts: the real ./openai.ts wants a key to build a client, which
 // tests never set. One double serves every tier, since routing is client-routing.test.ts's job.
@@ -35,7 +36,7 @@ async function runCensusWith(env: Record<string, string | undefined>, model = "g
   models.photo = model;
   vi.resetModules();
   const { runCensus } = await import("../src/recognize.js");
-  create.mockResolvedValueOnce({ output_text: JSON.stringify(photoAnswer) });
+  create.mockImplementationOnce(async () => streamOf(JSON.stringify(photoAnswer)));
   await runCensus(await blankJpeg(), []);
   process.env = before;
   return create.mock.calls.at(-1)?.[0] as Record<string, unknown>;

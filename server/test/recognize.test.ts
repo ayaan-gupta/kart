@@ -5,6 +5,7 @@ import type { Mark } from "../src/compositor.js";
 import { censusJsonSchema, identifyJsonSchema, photoJsonSchema, productKey, verifyJsonSchema } from "../src/schemas.js";
 import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, verifyUserText } from "../src/prompts.js";
 import type { CensusDiagnostics } from "../src/recognize.js";
+import { streamOf } from "./streams.js";
 
 // The real ./openai.ts throws at import time when OPENAI_API_KEY is unset (by design, so a
 // misconfigured deployment fails loudly). Tests never set that variable, and never should
@@ -31,7 +32,20 @@ async function blankJpeg(w = 200, h = 150): Promise<Buffer> {
 }
 
 function mockOutput(body: unknown): void {
-  create.mockResolvedValueOnce({ output_text: JSON.stringify(body) });
+  const text = JSON.stringify(body);
+  create.mockImplementationOnce(async (params: { stream?: boolean }) => (params.stream ? streamOf(text) : { output_text: text }));
+}
+
+/** Runs with the request's budget set to `ms`, as RECOGNITION_TIMEOUT_MS does for the service. */
+async function withBudget<T>(ms: string, run: () => Promise<T>): Promise<T> {
+  const previous = process.env.RECOGNITION_TIMEOUT_MS;
+  process.env.RECOGNITION_TIMEOUT_MS = ms;
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
+    else process.env.RECOGNITION_TIMEOUT_MS = previous;
+  }
 }
 
 const wellFormedMark = {
@@ -139,7 +153,7 @@ describe("runCensus on a photograph (no marks)", () => {
     process.env.RECOGNITION_TIMEOUT_MS = "40";
     create.mockImplementationOnce(async () => {
       await new Promise((resolve) => setTimeout(resolve, 30));
-      return { output_text: JSON.stringify(boxless) };
+      return streamOf(JSON.stringify(boxless));
     });
     mockOutput(boxed);
     try {
@@ -1319,10 +1333,10 @@ describe("a looping answer is cut off rather than paid for", () => {
     mockOutput(photo);
     await runCensus(await blankJpeg(), []);
     const cap = create.mock.calls[0][0].max_output_tokens;
-    // The largest real answer is about 700 tokens; at the provider's ~80 a second, 25 seconds
-    // is about 2,000, and anything longer could never reach the shopper anyway.
-    expect(cap).toBeGreaterThanOrEqual(1400);
-    expect(cap).toBeLessThanOrEqual(2000);
+    // The largest real answer is about 700 tokens; at Parasail's 90th percentile of 51 tokens a
+    // second, 25 seconds is about 1,275, and anything longer could never reach the shopper.
+    expect(cap).toBeGreaterThanOrEqual(1000);
+    expect(cap).toBeLessThanOrEqual(1275);
   });
 
   it("caps each close read, whose whole answer is one small object", async () => {
@@ -1333,14 +1347,11 @@ describe("a looping answer is cut off rather than paid for", () => {
     expect(cap).toBeLessThanOrEqual(500);
   });
 
-  it("fails a census cut off at the cap with that reason, not a JSON error", async () => {
-    create.mockResolvedValueOnce({
-      status: "incomplete",
-      incomplete_details: { reason: "max_output_tokens" },
-      output_text: '{"subjectKind":"cart","items":[{"name":"Rigatoni","brand":"Priano"',
-      usage: { input_tokens: 5000, output_tokens: 2000 },
-    });
-    await expect(runCensus(await blankJpeg(), [])).rejects.toThrow(/cut off/);
+  it("fails a census cut off at the cap before any product was whole, with that reason, not a JSON error", async () => {
+    create.mockImplementationOnce(async () =>
+      streamOf('{"subjectKind":"cart","items":[{"name":"Rigatoni","brand":"Priano"', { status: "incomplete", reason: "max_output_tokens" }),
+    );
+    await expect(runCensus(await blankJpeg(), [])).rejects.toThrow(/cut off \(max_output_tokens\)/);
   });
 
   it("gives a close read cut off at the cap no reading, without failing the others", async () => {
@@ -1355,6 +1366,83 @@ describe("a looping answer is cut off rather than paid for", () => {
     expect(items[0].close).toBeNull();
     expect(items[0].line.sure).toBe(false);
     expect(items[1].close?.name).toBe("Rigatoni");
+  });
+});
+
+/**
+ * On 2026-09-11 clut12 and clut9 each listed their first products correctly and then wrote one
+ * product over and over; at Parasail's 29 tokens a second the answer reached no cap before the
+ * request's deadline, so the shopper got a failure and none of the good products. Streamed, the
+ * loop is seen as it starts and everything before it is kept.
+ */
+describe("a photo answer that goes wrong is stopped there, and what it wrote is kept", () => {
+  const product = (name: string, brand: string | null, x: number) => ({ name, brand, count: 1, confidence: 0.9, isProduct: true, box: { x, y: 10, w: 20, h: 20 } });
+  const opening = '{"subjectKind":"cart","items":[';
+  const good = [product("Rigatoni", "Priano", 5), product("Hazelnut spread", "Nutella", 40)].map((p) => JSON.stringify(p));
+  const loop = JSON.stringify(product("crackers", "Savoritz", 70));
+  const looping = `${opening}${[...good, loop, loop, loop, loop, loop, loop, loop, loop].join(",")},{"name":"crackers"`;
+  const names = (result: { unmarkedItems: { description: string }[] }) => result.unmarkedItems.map((item) => item.description);
+
+  it("streams the photo census", async () => {
+    mockOutput(answeredPhoto);
+    await runCensus(await blankJpeg(), []);
+    expect(create.mock.calls[0][0].stream).toBe(true);
+  });
+
+  it("stops reading at a product's third writing, and closes the answer", async () => {
+    const stream = streamOf(looping);
+    create.mockImplementationOnce(async () => stream);
+    await runCensus(await blankJpeg(), []);
+    expect(stream.consumed).toBeLessThan(stream.total);
+    expect(create.mock.calls[0][1]?.signal?.aborted).toBe(true);
+  });
+
+  it("keeps the products written before the loop, and the looped one once", async () => {
+    create.mockImplementationOnce(async () => streamOf(looping));
+    const result = await runCensus(await blankJpeg(), []);
+    expect(names(result)).toEqual(["Rigatoni", "Hazelnut spread", "crackers"]);
+    expect(result.inViewCounts.find((c) => c.productKey === productKey("crackers", "Savoritz"))?.count).toBe(1);
+  });
+
+  it("marks only the looped product unsure", async () => {
+    create.mockImplementationOnce(async () => streamOf(looping));
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.unmarkedItems.map((item) => item.confidence < 0.6)).toEqual([false, false, true]);
+  });
+
+  it("keeps what was written when the provider stops the answer at the cap", async () => {
+    create.mockImplementationOnce(async () =>
+      streamOf(`${opening}${good.join(",")},{"name":"cra`, { status: "incomplete", reason: "max_output_tokens" }),
+    );
+    expect(names(await runCensus(await blankJpeg(), []))).toEqual(["Rigatoni", "Hazelnut spread"]);
+  });
+
+  it("stops a stall of whitespace, and keeps the product it stalled in without its box", async () => {
+    const stalling = `${opening}${good[0]},{"name":"apples","brand":null,"count":10,"confidence":0.9,"isProduct":true,"box":{"x":47,${" ".repeat(5000)}`;
+    const stream = streamOf(stalling);
+    create.mockImplementationOnce(async () => stream);
+    const result = await runCensus(await blankJpeg(), []);
+    expect(stream.consumed).toBeLessThan(stream.total);
+    expect(result.unmarkedItems.map((item) => [item.description, item.box === null])).toEqual([["Rigatoni", false], ["apples", true]]);
+  });
+
+  it("answers by the deadline with what was written by then", async () => {
+    create.mockImplementationOnce(async () => streamOf(`${opening}${good.join(",")},{"na`, { hang: true }));
+    const started = Date.now();
+    const result = await withBudget("300", async () => runCensus(await blankJpeg(), []));
+    expect(Date.now() - started).toBeLessThan(300);
+    expect(names(result)).toEqual(["Rigatoni", "Hazelnut spread"]);
+  });
+
+  it("says hidden items are possible when the answer stopped before saying", async () => {
+    create.mockImplementationOnce(async () => streamOf(looping));
+    const result = await runCensus(await blankJpeg(), []);
+    expect(result.occlusion.itemsLikelyHidden).toBe(true);
+  });
+
+  it("fails, saying why, when it stopped before any product was whole", async () => {
+    create.mockImplementationOnce(async () => streamOf(`${opening}{"name":"apples","brand":null,"count":10,${" ".repeat(5000)}`));
+    await expect(runCensus(await blankJpeg(), [])).rejects.toThrow(/cut off \(stall\)/);
   });
 });
 
@@ -1405,7 +1493,7 @@ describe("a photograph answered with no products is asked about once more", () =
     process.env.RECOGNITION_TIMEOUT_MS = "40";
     create.mockImplementationOnce(async () => {
       await new Promise((resolve) => setTimeout(resolve, 30));
-      return { output_text: JSON.stringify(empty) };
+      return streamOf(JSON.stringify(empty));
     });
     mockOutput(full);
     try {
@@ -1433,17 +1521,6 @@ describe("a second asking that runs out of time keeps the first answer", () => {
     occlusion: { severity: "none", reason: "" },
   };
   const empty = { subjectKind: "product", items: [], occlusion: { severity: "none", reason: "" } };
-
-  async function withBudget<T>(ms: string, run: () => Promise<T>): Promise<T> {
-    const previous = process.env.RECOGNITION_TIMEOUT_MS;
-    process.env.RECOGNITION_TIMEOUT_MS = ms;
-    try {
-      return await run();
-    } finally {
-      if (previous === undefined) delete process.env.RECOGNITION_TIMEOUT_MS;
-      else process.env.RECOGNITION_TIMEOUT_MS = previous;
-    }
-  }
 
   it("answers with the boxless first answer when the retry never comes back", async () => {
     mockOutput(boxless);

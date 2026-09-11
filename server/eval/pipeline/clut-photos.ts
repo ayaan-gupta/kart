@@ -243,13 +243,32 @@ interface Row {
   unsureScored: { label: string; confidence: number | null; flagged: boolean }[];
 }
 
+/**
+ * What OpenRouter has billed the key so far, from its free key endpoint, or null off OpenRouter.
+ * The service's token count cannot see a photo answer that was stopped part way, because a
+ * stopped stream sends no usage (streamPhotoText in recognize.ts), so this is the run's cost as
+ * charged. The key goes to OpenRouter and nowhere else, and is never printed.
+ */
+async function billedSoFar(): Promise<number | null> {
+  const key = process.env.KART_QWEN_KEY?.trim();
+  if (!key) return null;
+  try {
+    const res = await realFetch('https://openrouter.ai/api/v1/key', { headers: { Authorization: `Bearer ${key}` } });
+    const body = (await res.json()) as { data?: { usage?: number } };
+    return res.ok && typeof body.data?.usage === 'number' ? body.data.usage : null;
+  } catch {
+    return null;
+  }
+}
+
 const rows: Row[] = [];
 const usageBefore = await usageSnapshot();
+const billedBefore = await billedSoFar();
 
 const out = arg('out', join(import.meta.dirname, '../clut-photos.json'));
 const resume = argv.includes('--resume');
 const saved = (resume || argv.includes('--append')) && existsSync(out)
-  ? (JSON.parse(readFileSync(out, 'utf8')) as { rows?: Row[]; cost?: { usd: number; callsPerPhoto: number } | null })
+  ? (JSON.parse(readFileSync(out, 'utf8')) as { rows?: Row[]; cost?: { usd: number; callsPerPhoto: number; billedUsd?: number } | null })
   : null;
 const earlier: Row[] = saved?.rows ?? [];
 /** The rows from --out that stay: all of them, less any this run has scanned again. */
@@ -268,15 +287,27 @@ async function spent(): Promise<{ usd: number; calls: number } | null> {
     calls: (fresh?.calls ?? 0) + (prior ? prior.callsPerPhoto * earlier.length : 0),
   };
 }
-function costField(cost: { usd: number; calls: number } | null, scans: number) {
+/** What OpenRouter billed for this invocation, plus what the run being resumed had been billed. */
+async function billed(): Promise<number | null> {
+  const now = billedBefore === null ? null : await billedSoFar();
+  const prior = resume ? (saved?.cost?.billedUsd ?? null) : null;
+  if (now === null && prior === null) return null;
+  return (now !== null && billedBefore !== null ? now - billedBefore : 0) + (prior ?? 0);
+}
+function costField(cost: { usd: number; calls: number } | null, scans: number, billedUsd: number | null) {
   return cost && scans > 0
-    ? { usd: Number(cost.usd.toFixed(4)), perPhotoUsd: Number((cost.usd / scans).toFixed(4)), callsPerPhoto: Number((cost.calls / scans).toFixed(2)) }
+    ? {
+        usd: Number(cost.usd.toFixed(4)),
+        perPhotoUsd: Number((cost.usd / scans).toFixed(4)),
+        callsPerPhoto: Number((cost.calls / scans).toFixed(2)),
+        ...(billedUsd === null ? {} : { billedUsd: Number(billedUsd.toFixed(4)) }),
+      }
     : null;
 }
 /** Written after every photograph, so a run that is stopped keeps every scan it paid for. */
 async function checkpoint(): Promise<void> {
   const all = [...kept(), ...rows];
-  const cost = costField(await spent(), resume ? all.length : rows.length);
+  const cost = costField(await spent(), resume ? all.length : rows.length, await billed());
   writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, partial: true, cost, summary: null, rows: all }, null, 1)}\n`);
 }
 
@@ -505,9 +536,13 @@ const summary = {
 // Costed by what the service reports it spent between the two snapshots, at the prices in
 // usage.ts. Null when the service does not answer /usage (a deployment rather than serve.ts).
 const cost = await spent();
+// OpenRouter's count trails the last call by a few seconds, so it is read once more after a wait.
+if (billedBefore !== null && rows.length > 0) await new Promise((resolve) => setTimeout(resolve, 15_000));
+const billedUsd = await billed();
 if (cost && scored.length > 0) {
   console.log(`\n  cost: $${cost.usd.toFixed(3)} for ${scored.length} scans, $${(cost.usd / scored.length).toFixed(4)} and ${(cost.calls / scored.length).toFixed(1)} calls per photograph`);
 }
+if (billedUsd !== null) console.log(`  billed by OpenRouter: $${billedUsd.toFixed(4)}`);
 
 // With --append the rows already in the file stay, and these replace any that share an id. The
 // summary written beside them is this run's, over its own rows; re-score the file with
@@ -517,6 +552,6 @@ if (cost && scored.length > 0) {
 if (rows.length === 0 && !(resume && earlier.length > 0)) {
   console.log(`\n  nothing was scanned, so ${out} is left as it was`);
 } else {
-  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: costField(cost, scored.length), summary, rows: [...kept(), ...rows] }, null, 1)}\n`);
+  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: costField(cost, scored.length, billedUsd), summary, rows: [...kept(), ...rows] }, null, 1)}\n`);
   console.log(`\n  written to ${out}`);
 }
