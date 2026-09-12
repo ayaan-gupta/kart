@@ -40,6 +40,28 @@ function parseBrands(value: unknown): string[] {
   return out;
 }
 
+/**
+ * The box the crop was cut at, normalized to the photograph, or null.
+ *
+ * Optional on the wire: an older client sends no box, and then a crop holding two varieties still
+ * separates but the two lines have no rectangle for the review to draw, which is the honest state
+ * of a line whose position nobody told us. Out-of-range numbers are a malformed client, not a
+ * fuller answer, so they are refused rather than clamped.
+ */
+function parseBox(value: unknown, index: number): { x: number; y: number; w: number; h: number } | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error(`items[${index}].box is malformed`);
+  const raw = value as Record<string, unknown>;
+  const side = (name: "x" | "y" | "w" | "h"): number => {
+    const n = raw[name];
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 1) {
+      throw new Error(`items[${index}].box.${name} must be between 0 and 1`);
+    }
+    return n;
+  };
+  return { x: side("x"), y: side("y"), w: side("w"), h: side("h") };
+}
+
 function text(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) throw new Error(`${field} must be a non-empty string`);
   return value.trim().slice(0, MAX_TEXT_CHARS);
@@ -69,6 +91,7 @@ async function parseItem(raw: unknown, index: number): Promise<VerifyItemInput> 
   return {
     id: item.id,
     crop,
+    box: parseBox(item.box, index),
     wide: {
       description: text(w.description, `items[${index}].wide.description`),
       productKey: text(w.productKey, `items[${index}].wide.productKey`),

@@ -2,8 +2,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
 import { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import type { Mark } from "../src/compositor.js";
-import { censusJsonSchema, identifyJsonSchema, photoJsonSchema, productKey, verifyJsonSchema } from "../src/schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, verifyUserText } from "../src/prompts.js";
+import { censusJsonSchema, identifyJsonSchema, photoJsonSchema, productKey, unitsJsonSchema, verifyJsonSchema } from "../src/schemas.js";
+import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, UNITS_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, unitsUserText, verifyUserText } from "../src/prompts.js";
 import type { CensusDiagnostics } from "../src/recognize.js";
 import { streamOf } from "./streams.js";
 
@@ -1250,10 +1250,13 @@ describe("runVerify", () => {
   });
 
   it("runs the crops in parallel and keeps their order", async () => {
-    mockOutput({ ...closeAnswer, name: "first" });
-    mockOutput({ ...closeAnswer, name: "second" });
+    // One package each, which is the ordinary crop and the one that costs a single call: the unit
+    // pass below is asked only where the close read counted more than one.
+    mockOutput({ ...closeAnswer, name: "first", count: 1 });
+    mockOutput({ ...closeAnswer, name: "second", count: 1 });
     const crop = await blankJpeg();
-    const items = await runVerify([{ id: "a", crop, wide }, { id: "b", crop, wide }]);
+    const one = { ...wide, count: 1 };
+    const items = await runVerify([{ id: "a", crop, wide: one }, { id: "b", crop, wide: one }]);
     expect(items.map((i) => i.id)).toEqual(["a", "b"]);
     expect(create).toHaveBeenCalledTimes(2);
   });
@@ -1550,5 +1553,94 @@ describe("a second asking that runs out of time keeps the first answer", () => {
     create.mockRejectedValueOnce(new APIError(429, undefined, "rate limited", undefined));
     const result = await runCensus(await blankJpeg(), []);
     expect(result.unmarkedItems).toHaveLength(2);
+  });
+});
+
+/**
+ * The unit pass: a third question at the same crop, asked only where the close read counted more
+ * than one package. It is what lets a count above one be asserted again, and what separates two
+ * varieties of one range that both readings called several of the first. Measured in
+ * server/eval/CLUT.md, "Something else to separate the packages".
+ */
+describe("runVerify asks again where the close read counted more than one", () => {
+  const wide = { description: "crackers", productKey: "savoritz::crackers", brand: "Savoritz", count: 2, confidence: 0.9 };
+  const closeAnswer = { name: "crackers", brand: "Savoritz", count: 2, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null };
+  const box = { x: 0.4, y: 0.4, w: 0.4, h: 0.4 };
+  const units = (...labels: { label: string; x?: number; y?: number }[]) => ({
+    units: labels.map((l, i) => ({ label: l.label, x: l.x ?? 200 + i * 500, y: l.y ?? 500 })),
+  });
+
+  it("does not ask at all when the crop holds one package", async () => {
+    mockOutput({ ...closeAnswer, count: 1 });
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide: { ...wide, count: 1 } }]);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(item.units).toBeUndefined();
+    expect(item.split).toBeUndefined();
+  });
+
+  it("asks under its own prompt, naming the product and not its brand, on a crop bounded at 768", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(units({ label: "crackers" }, { label: "crackers" }));
+    await runVerify([{ id: "a", crop: await blankJpeg(2000, 1000), box, wide }]);
+
+    const params = create.mock.calls[1][0];
+    expect(params.input[0]).toEqual({ role: "system", content: UNITS_SYSTEM_PROMPT });
+    expect(params.input[1].content[0].text).toBe(unitsUserText("crackers"));
+    expect(params.text.format.schema).toEqual(unitsJsonSchema);
+    const url: string = params.input[1].content[1].image_url;
+    const meta = await sharp(Buffer.from(url.split(",")[1], "base64")).metadata();
+    expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(768);
+  });
+
+  it("asserts a count the gate was holding back when the packages are counted one by one", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(units({ label: "Savoritz crackers" }, { label: "Savoritz crackers" }));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(true);
+    expect(item.line.count).toBe(2);
+    expect(item.units).toHaveLength(2);
+  });
+
+  it("leaves the count held back when the unit pass finds a different number", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(units({ label: "Savoritz crackers" }));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+  });
+
+  it("separates two varieties into a line each, with a share of the box and neither asserted", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(units({ label: "crackers with sea salt", x: 250 }, { label: "crackers with rosemary sourdough", x: 750 }));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+
+    expect(item.split?.map((l) => l.description)).toEqual(["crackers with sea salt", "crackers with rosemary sourdough"]);
+    expect(item.split?.every((l) => l.sure === false)).toBe(true);
+    expect(item.split?.[0].box.w).toBeCloseTo(0.2);
+    expect(item.line.sure).toBe(false);
+  });
+
+  it("has nothing to split when the client sent no box", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(units({ label: "crackers with sea salt", x: 250 }, { label: "crackers with rosemary sourdough", x: 750 }));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), wide }]);
+    expect(item.split).toBeUndefined();
+    expect(item.units).toHaveLength(2);
+  });
+
+  it("leaves the line exactly as the two readings left it when the unit pass fails", async () => {
+    mockOutput(closeAnswer);
+    create.mockRejectedValueOnce(new APIError(500, undefined, "boom", undefined));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+    expect(item.line.count).toBe(2);
+    expect(item.units).toBeUndefined();
+    expect(item.split).toBeUndefined();
+  });
+
+  it("does not let the unit pass rescue a line the two readings disagreed on", async () => {
+    mockOutput({ ...closeAnswer, brand: "Barilla" });
+    mockOutput(units({ label: "crackers" }, { label: "crackers" }));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
   });
 });

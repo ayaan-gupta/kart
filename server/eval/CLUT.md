@@ -969,6 +969,28 @@ Reproduce it without paying for the model again, from the points already saved:
       --gate-count --variety-only --confirm-counts \
       --from server/eval/units-probe.json,server/eval/units-probe-pass2.json
 
+### Built, and run on the shipped path
+
+The rule above is what `runVerify` now does: where the close read counts more than one package it
+shrinks the same crop to 768 pixels and asks `UNITS_SYSTEM_PROMPT` for one entry per package, and
+`reconcile` takes that as the second method the count needed. A crop that turns out to hold two
+varieties comes back as one line each, with a share of the box so the review points at the right
+half of the pair, and neither is asserted.
+
+Run end to end over the fifteen photographs twice on 2026-09-12: $0.082 for 29 scans, $0.0028 and
+3.8 calls per photograph, against $0.0029 and 3.75 calls for the build before it. The unit pass
+was asked at six crops, every one where the close read counted more than one, and nowhere else. It
+confirmed two counts the gate was holding back, clut7's three tins of Simply Nature black beans
+and clut5's two bags of Bob's Red Mill quinoa, and refused two, clut4's quinoa and clut7's soup,
+where it counted one package against the close read's two. No crop in that run held two varieties.
+
+**The four requirements from that run are not comparable to the build before it, and are not
+quoted here.** Parasail cut eight of the twenty-nine census answers short (five stalls, two
+deadlines, one loop) and rate-limited a ninth out of the run, so six scans reached the bag with a
+single product in them and one photograph has only one pass. That is the shared pool on the night
+and not this change, which touches nothing before the close read. What the stage is worth is the
+replay above, which asks the new question of answers already paid for.
+
 ### One box for every product, and why the obvious rule for it is refused
 
 Cutting the crops turned up something the runs had never been read for: on 17 of 265 saved scans

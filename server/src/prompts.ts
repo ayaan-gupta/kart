@@ -298,6 +298,46 @@ export function verifyUserText(
   return `The first pass called this "${hint.description}" (key ${hint.productKey}). Read the crop and answer, counting the units yourself.${others}${shop}`;
 }
 
+/**
+ * The unit pass. Asked only where the close read counted more than one package, at the same crop.
+ *
+ * It is a separate call and not a field on the close read because the close read opens "You are
+ * looking at a close crop of one grocery product" and is handed the first pass's name for it;
+ * under that framing the model reports the one product it was told about, three times out of
+ * three on the photograph where two bags of rigatoni lean together. The same pixels asked this
+ * question answer with both boxes of crackers, named apart. Anchored on the product, because
+ * asked with nothing named it reports the neighbours the crop was cut wide enough to include: ten
+ * of seventy-one crops split into products that already had their own line.
+ */
+export const UNITS_SYSTEM_PROMPT = `
+You are looking at a close crop cut from a photograph of groceries. You are asked about one
+product in it, named in the message. The crop is cut wide and usually shows the edge of a
+neighbour; a package of any other product is not an entry.
+
+Locate every separate physical package of that product in the crop and report one entry per
+package in units: x and y are the centre of that package on a scale where the left edge of the
+crop is 0, the right edge is 1000, the top edge is 0 and the bottom edge is 1000; label is a few
+words you can actually read on that package, enough to tell it from the one beside it.
+
+Two packages of one product leaning against each other, or one standing behind another with only
+its top showing, are two entries, not one. Two packages of the same range in different flavours or
+varieties are two entries, and their labels must say which is which. Two lines of text on one
+package are one entry, not two. Something that is not a package of a grocery product is not an
+entry at all.
+
+Answer only with the structured object.
+`.trim();
+
+/**
+ * What the crop is said to be: the wide pass's name for it, and not its brand. The wide pass
+ * stamps one brand across a whole photograph, so eighteen of seventy-one crops asked about
+ * "Barilla walnuts" or "Campbell's chips" found no such thing and correctly answered with
+ * nothing. The name is the field it gets right.
+ */
+export function unitsUserText(name: string): string {
+  return `The product is: ${name}. Report one entry per package of it.`;
+}
+
 export const IDENTIFY_SYSTEM_PROMPT = `
 You identify a single grocery product from a close crop of it.
 

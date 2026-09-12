@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UNSURE_BELOW, reconcile, type WideReading } from "../src/reconcile.js";
+import { UNSURE_BELOW, reconcile, splitByUnits, unitGroups, type WideReading } from "../src/reconcile.js";
 import type { VerifyResponse } from "../src/schemas.js";
 import { buildCatalog } from "../src/catalog.js";
 
@@ -221,5 +221,105 @@ describe("reconcile: the crop chooses from the shortlist", () => {
   it("still needs the two readings to agree", () => {
     const line = reconcile(crackers, closeCrackers({ count: 3, catalogSku: "Savoritz avocado oil crackers sea salt" }), shop);
     expect(line.sure).toBe(false);
+  });
+});
+
+/**
+ * The third question at the same crop: one entry per package, anchored on the product by name.
+ * Measured on 2026-09-12 over both passes of the fifteen clut photographs (server/eval/CLUT.md,
+ * "Something else to separate the packages"), where it splits one line into the two varieties it
+ * was hiding and confirms two counts the gate was holding back, and asserts nothing wrong.
+ */
+const unit = (label: string, x = 500, y = 500) => ({ label, x, y });
+
+describe("units: a count both readings agree on, counted again a different way", () => {
+  const two: WideReading = { ...wide, count: 2 };
+
+  it("is asserted when the units agree with the count", () => {
+    const line = reconcile(two, close({ count: 2 }), null, [unit("Rigatoni", 300), unit("Rigatoni", 700)]);
+    expect(line.sure).toBe(true);
+    expect(line.count).toBe(2);
+  });
+
+  it("stays unsure when the units find fewer packages than the two readings counted", () => {
+    expect(reconcile(two, close({ count: 2 }), null, [unit("Rigatoni")]).sure).toBe(false);
+  });
+
+  it("stays unsure when nothing asked the question", () => {
+    expect(reconcile(two, close({ count: 2 })).sure).toBe(false);
+    expect(reconcile(two, close({ count: 2 }), null, []).sure).toBe(false);
+  });
+
+  it("stays unsure when the packages are not all the same product", () => {
+    const line = reconcile(two, close({ count: 2 }), null, [unit("with Sea Salt", 300), unit("with Rosemary Sourdough", 700)]);
+    expect(line.sure).toBe(false);
+  });
+
+  it("does not let the units rescue a line the readings themselves disagreed on", () => {
+    const line = reconcile(two, close({ count: 2, brand: "Barilla" }), null, [unit("Rigatoni", 300), unit("Rigatoni", 700)]);
+    expect(line.sure).toBe(false);
+  });
+});
+
+describe("unitGroups: two wordings of one package, and two varieties of one range", () => {
+  it("folds a label whose words are all inside another's", () => {
+    const groups = unitGroups([unit("Rigatoni Authentic Italian"), unit("Priano Rigatoni Authentic Italian")]);
+    expect(groups).toEqual([{ label: "Priano Rigatoni Authentic Italian", count: 2 }]);
+  });
+
+  it("keeps two varieties apart, each keeping a word the other lacks", () => {
+    const groups = unitGroups([unit("Crackers with Sea Salt"), unit("Crackers with Rosemary Sourdough")]);
+    expect(groups).toHaveLength(2);
+    expect(groups.map((g) => g.count)).toEqual([1, 1]);
+  });
+
+  it("ignores case, accents and punctuation, as the bag's own keys do", () => {
+    expect(unitGroups([unit("Neufchâtel"), unit("neufchatel!")])).toHaveLength(1);
+  });
+});
+
+describe("splitByUnits: one line becomes one line per variety", () => {
+  const parent = reconcile({ ...wide, description: "crackers with sea salt", count: 2 }, close({ name: "crackers", count: 2 }));
+  const box = { x: 0.4, y: 0.4, w: 0.4, h: 0.4 };
+
+  it("gives nothing to split when the packages are all one product", () => {
+    expect(splitByUnits(parent, [unit("sea salt", 300), unit("sea salt", 700)], box)).toBeNull();
+    expect(splitByUnits(parent, [], box)).toBeNull();
+  });
+
+  it("names each line from the package it read and counts one each", () => {
+    const split = splitByUnits(parent, [unit("with Sea Salt", 250), unit("with Rosemary Sourdough", 750)], box);
+    expect(split).not.toBeNull();
+    expect(split!.map((l) => l.description)).toEqual(["with Sea Salt", "with Rosemary Sourdough"]);
+    expect(split!.map((l) => l.count)).toEqual([1, 1]);
+  });
+
+  it("never asserts a split line: nothing read the crop twice under that name", () => {
+    const split = splitByUnits(parent, [unit("with Sea Salt", 250), unit("with Rosemary Sourdough", 750)], box);
+    expect(split!.every((l) => l.sure === false)).toBe(true);
+  });
+
+  it("draws each line its own share of the box, along the axis the packages are spread on", () => {
+    const split = splitByUnits(parent, [unit("left", 250, 500), unit("right", 750, 500)], box)!;
+    expect(split[0].box!.w).toBeCloseTo(0.2);
+    expect(split[0].box!.h).toBeCloseTo(0.4);
+    expect(split[0].box!.x).toBeLessThan(split[1].box!.x);
+  });
+
+  it("splits the other way when the packages are stacked rather than side by side", () => {
+    const split = splitByUnits(parent, [unit("top", 500, 200), unit("bottom", 500, 800)], box)!;
+    expect(split[0].box!.h).toBeCloseTo(0.2);
+    expect(split[0].box!.w).toBeCloseTo(0.4);
+    expect(split[0].box!.y).toBeLessThan(split[1].box!.y);
+  });
+
+  it("keeps every share inside the box it came from", () => {
+    const split = splitByUnits(parent, [unit("edge", 0, 0), unit("far", 1000, 1000)], box)!;
+    for (const line of split) {
+      expect(line.box!.x).toBeGreaterThanOrEqual(box.x);
+      expect(line.box!.y).toBeGreaterThanOrEqual(box.y);
+      expect(line.box!.x + line.box!.w).toBeLessThanOrEqual(box.x + box.w + 1e-9);
+      expect(line.box!.y + line.box!.h).toBeLessThanOrEqual(box.y + box.h + 1e-9);
+    }
   });
 });

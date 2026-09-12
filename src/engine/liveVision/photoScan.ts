@@ -238,6 +238,7 @@ export async function scanPhoto(
     const crops = await Promise.all(items.map((item) => (item.box ? deps.crop!(item.box) : Promise.resolve(null))));
     const sent = items.filter((_, i) => crops[i] !== null);
     const lines = new Map<string, VerifyPayload['items'][number]['line']>();
+    const splits = new Map<string, NonNullable<VerifyPayload['items'][number]['split']>>();
     if (sent.length > 0) {
       const brands = [...new Set(items.map((item) => item.brand).filter((b): b is string => b !== null))];
       const verified = await deps.requestVerify({
@@ -245,6 +246,7 @@ export async function scanPhoto(
         items: sent.map((item) => ({
           id: item.id,
           imageBase64: crops[items.indexOf(item)] as string,
+          box: item.box,
           wide: {
             description: item.name,
             productKey: products[Number(item.id.slice(1))].productKey,
@@ -254,15 +256,19 @@ export async function scanPhoto(
           },
         })),
       });
-      if (verified.ok) for (const entry of verified.value.items) lines.set(entry.id, entry.line);
-      else verifyFailure = verified.failure;
+      if (verified.ok) {
+        for (const entry of verified.value.items) {
+          lines.set(entry.id, entry.line);
+          if (entry.split !== undefined) splits.set(entry.id, entry.split);
+        }
+      } else verifyFailure = verified.failure;
     }
 
     // What fusion is given is the reconciled reading, not the census's. A line nothing read
     // twice is capped below the unsure line, so the bag flags it the same way a disagreement is.
     const unmarkedItems: UnmarkedItem[] = [];
     const inViewCounts: CensusPayload['inViewCounts'] = [];
-    items = items.map((item, index) => {
+    items = items.flatMap((item, index) => {
       const line = lines.get(item.id);
       const brand = line ? line.brand : item.brand;
       const qty = line ? Math.max(1, line.count) : item.qty;
@@ -272,10 +278,42 @@ export async function scanPhoto(
         line ? line.confidence : Math.min(item.confidence, UNSURE_BELOW - 0.1),
         doubted.has(index) ? UNSURE_BELOW - 0.1 : 1,
       );
+
+      // One crop that held two varieties becomes one item per variety, each with its share of the
+      // box so the review points at the right half of the pair. The crop's own line is dropped:
+      // it named the pair as several of the front one, which is the error being corrected. None
+      // of them is asserted, because only the unit pass has read these names.
+      const split = splits.get(item.id);
+      if (split !== undefined && split.length > 1) {
+        return split.map((piece, n) => {
+          const pieceKey = productKey(piece.description, piece.brand);
+          const pieceQty = Math.max(1, piece.count);
+          unmarkedItems.push({
+            ...products[index],
+            description: piece.description,
+            productKey: `${piece.brand ?? ''}::${piece.description}`,
+            box: piece.box,
+            confidence: piece.confidence,
+          });
+          inViewCounts.push({ productKey: pieceKey, count: pieceQty });
+          return {
+            ...item,
+            id: `${item.id}u${n}`,
+            key: pieceKey,
+            name: piece.description,
+            brand: piece.brand,
+            qty: pieceQty,
+            confidence: piece.confidence,
+            box: piece.box,
+            status: 'unsure' as const,
+          };
+        });
+      }
+
       const key = productKey(item.name, brand);
       unmarkedItems.push({ ...products[index], productKey: `${brand ?? ''}::${item.name}`, confidence });
       inViewCounts.push({ productKey: key, count: qty });
-      return { ...item, key, brand, qty, confidence, status: confidence >= UNSURE_BELOW && line?.sure ? 'sure' : 'unsure' };
+      return [{ ...item, key, brand, qty, confidence, status: confidence >= UNSURE_BELOW && line?.sure ? 'sure' : 'unsure' } as PhotoItem];
     });
     payload = { ...census, unmarkedItems, inViewCounts };
   } else if (doubted.size > 0) {

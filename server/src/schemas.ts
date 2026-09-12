@@ -334,6 +334,48 @@ export const identifyJsonSchema = {
   additionalProperties: false,
 } as const;
 
+/**
+ * The unit pass: one entry per physical package in a crop the close read said holds several.
+ *
+ * The coordinates are on the [0, 1000] scale Qwen3-VL's grounding is trained on, not the whole
+ * percentages the rest of this pipeline uses. That is deliberate: asked for whole percentages
+ * inside the close read's own schema the model answers with one package, and asked in the format
+ * it was taught, on its own, it answers with both. See server/eval/CLUT.md, "Something else to
+ * separate the packages", for the five ways of asking that do not work.
+ */
+export const UnitsResponse = z.object({
+  units: z.array(
+    z.object({
+      /** A few words read off this package, enough to tell it from the one beside it. */
+      label: z.string(),
+      x: z.number().int().min(0).max(1000),
+      y: z.number().int().min(0).max(1000),
+    }),
+  ),
+});
+export type UnitsResponse = z.infer<typeof UnitsResponse>;
+
+export const unitsJsonSchema = {
+  type: "object",
+  properties: {
+    units: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          x: { type: "integer", minimum: 0, maximum: 1000 },
+          y: { type: "integer", minimum: 0, maximum: 1000 },
+        },
+        required: ["label", "x", "y"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["units"],
+  additionalProperties: false,
+} as const;
+
 export const verifyJsonSchema = {
   type: "object",
   properties: {

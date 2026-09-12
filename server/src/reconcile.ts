@@ -8,6 +8,14 @@
  * the count is one: agreement on more than one is not a second witness (see below).
  * Everything else is unsure, which the app shows in amber and asks for a better photograph of.
  *
+ * Since 2026-09-12 a count above one can be asserted after all, by a fourth question asked only
+ * where the close read counted more than one package: the same crop again, anchored on the
+ * product by name, one entry per package with a point and a few words read off each. A count it
+ * agrees with has been counted twice by two methods rather than once by two readings. The same
+ * answer separates two varieties of one range that both readings called two of the first, and
+ * `splitByUnits` turns that into one line each. Measured in server/eval/CLUT.md, "Something else
+ * to separate the packages".
+ *
  * Measured reason for the rule (server/eval/CLUT.md, "Read wide, then read close"): the wide
  * pass's own confidence does not separate its right lines from its wrong ones. It read a
  * stylised PRIANO as "Piano" at 0.97 and a jar of Simply Nature marinara as "Murphy's Naturals"
@@ -28,6 +36,7 @@
  *
  * Pure, so every branch is pinned in reconcile.test.ts without a model call.
  */
+import type { Box } from "./compositor.js";
 import { resolve, shortlist, type Catalog } from "./catalog.js";
 import type { VerifyResponse } from "./schemas.js";
 
@@ -73,6 +82,114 @@ export function countNeedsCheck(count: number): boolean {
   return count > 1;
 }
 
+/**
+ * One package the unit pass pointed at: a few words read off it, and where it is in the crop on
+ * the [0, 1000] scale Qwen3-VL's grounding is trained on.
+ */
+export interface UnitReading {
+  label: string;
+  x: number;
+  y: number;
+}
+
+/** A line the unit pass separated out of another, with its own share of the parent's box. */
+export type SplitLine = ReconciledLine & { box: Box };
+
+/** Words folded the way `foldBrand` and the bag's keys fold them, dropping the very short ones. */
+function words(label: string): Set<string> {
+  return new Set(
+    label
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2),
+  );
+}
+
+/**
+ * The packages the unit pass found, folded to one entry per product.
+ *
+ * One label's words being all of another's is one product written twice: a bag photographed from
+ * the side reads "Rigatoni Authentic Italian" and the one behind it reads "Priano Rigatoni
+ * Authentic Italian", and those are two of one thing. Two varieties of one range each keep a word
+ * the other lacks, "sea salt" against "rosemary sourdough", and stay apart. That distinction is
+ * the whole reason this pass exists, so it is drawn here and not by string equality.
+ */
+export function unitGroups(units: UnitReading[]): { label: string; count: number }[] {
+  const groups: { label: string; tokens: Set<string>; count: number }[] = [];
+  for (const unit of units) {
+    const tokens = words(unit.label);
+    const into = groups.find((g) => {
+      const [small, big] = g.tokens.size <= tokens.size ? [g.tokens, tokens] : [tokens, g.tokens];
+      return small.size > 0 && [...small].every((t) => big.has(t));
+    });
+    if (into === undefined) groups.push({ label: unit.label, tokens, count: 1 });
+    else {
+      into.count += 1;
+      // The fuller wording wins, since it is the one that names the product rather than a phrase
+      // off the side of the packet.
+      if (tokens.size > into.tokens.size) {
+        into.label = unit.label;
+        into.tokens = tokens;
+      }
+    }
+  }
+  return groups.map((g) => ({ label: g.label, count: g.count }));
+}
+
+/** Whether the unit pass counted the same number of one product that the two readings did. */
+function unitsConfirm(units: UnitReading[], count: number): boolean {
+  const groups = unitGroups(units);
+  return groups.length === 1 && groups[0].count === count;
+}
+
+/**
+ * One line per variety, when the crop held more than one.
+ *
+ * Null when there is nothing to separate, which is the ordinary case. A split line is never
+ * asserted: the close read confirmed one product under one name, and these are names only this
+ * pass has read, so the review shows them amber and asks the shopper to check. Measured on the
+ * fifteen clut photographs, the split finds a product the bag was missing and corrects the
+ * quantity of the one it was hiding behind.
+ *
+ * Each line gets its own share of the parent's box so the review does not draw two rectangles on
+ * top of each other. The share is cut along the axis the packages are spread on, which for two
+ * boxes of crackers side by side is the width and for two tins stacked is the height.
+ */
+export function splitByUnits(line: ReconciledLine, units: UnitReading[], box: Box): SplitLine[] | null {
+  const groups = unitGroups(units);
+  if (groups.length < 2) return null;
+
+  const first = (label: string): UnitReading => units.find((u) => u.label === label) ?? units[0];
+  const points = groups.map((g) => first(g.label));
+  const spread = (get: (u: UnitReading) => number): number =>
+    Math.max(...points.map(get)) - Math.min(...points.map(get));
+  const horizontal = spread((u) => u.x) >= spread((u) => u.y);
+  const share = 1 / groups.length;
+  const w = horizontal ? box.w * share : box.w;
+  const h = horizontal ? box.h : box.h * share;
+
+  return groups.map((group, i) => {
+    const point = points[i];
+    const centreX = box.x + (Math.min(1000, Math.max(0, point.x)) / 1000) * box.w;
+    const centreY = box.y + (Math.min(1000, Math.max(0, point.y)) / 1000) * box.h;
+    return {
+      ...line,
+      description: group.label,
+      count: group.count,
+      sure: false,
+      box: {
+        x: Math.min(box.x + box.w - w, Math.max(box.x, centreX - w / 2)),
+        y: Math.min(box.y + box.h - h, Math.max(box.y, centreY - h / 2)),
+        w,
+        h,
+      },
+    };
+  });
+}
+
 /** Brands compared the way `productKey` compares them: no case, accents or punctuation. */
 function foldBrand(brand: string | null): string {
   return (brand ?? "")
@@ -84,7 +201,12 @@ function foldBrand(brand: string | null): string {
     .trim();
 }
 
-export function reconcile(wide: WideReading, close: VerifyResponse | null, catalog: Catalog | null = null): ReconciledLine {
+export function reconcile(
+  wide: WideReading,
+  close: VerifyResponse | null,
+  catalog: Catalog | null = null,
+  units: UnitReading[] = [],
+): ReconciledLine {
   const unsure = (over: Partial<ReconciledLine> = {}): ReconciledLine => ({
     description: wide.description,
     brand: wide.brand,
@@ -145,7 +267,11 @@ export function reconcile(wide: WideReading, close: VerifyResponse | null, catal
   // read alike, and was asserted. The count stays on the line and the shopper is asked to check
   // it. Replayed over every saved run (server/eval/pipeline/count-replay.ts) this holds back no
   // line of one and every line of more than one; see CLUT.md for what that costs.
-  if (countNeedsCheck(wide.count)) return unsure({ brand });
+  // Unless a third question at the same crop counted the packages one by one and got the same
+  // number. Two readings of a count are one witness because both read the whole crop the same
+  // way; a pass that points at each package and is asked what is printed on it is a different
+  // method, and a count two methods agree on has been counted twice.
+  if (countNeedsCheck(wide.count) && !unitsConfirm(units, wide.count)) return unsure({ brand });
 
   // The two readings agree. What the shop sells is the last question and the only one that can
   // still take the line back: the close read is asked the same question the wide pass was, so two

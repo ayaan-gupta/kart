@@ -291,6 +291,68 @@ describe('scanPhoto with a close read', () => {
   }
   const crop = async (b: typeof box | null) => (b === null ? null : `crop@${b.x}`);
 
+  /**
+   * The unit pass separating one crop into the varieties it held. The server asks it only where
+   * the close read counted more than one package, and answers with one line per variety and each
+   * one's share of the box (`splitByUnits` in server/src/reconcile.ts).
+   */
+  function splitter(split: { description: string; count?: number; box: typeof box }[]) {
+    return {
+      async requestVerify(request: { items: { id: string; imageBase64: string; box?: typeof box | null; wide: { description: string; brand: string | null; count: number; confidence: number } }[] }) {
+        return {
+          ok: true as const,
+          value: {
+            items: request.items.map((item) => ({
+              id: item.id,
+              close: null,
+              line: { description: item.wide.description, brand: item.wide.brand, count: item.wide.count, confidence: 0.5, sure: false, agreed: true },
+              split: split.map((piece) => ({
+                description: piece.description,
+                brand: item.wide.brand,
+                count: piece.count ?? 1,
+                confidence: 0.5,
+                sure: false,
+                agreed: true,
+                box: piece.box,
+              })),
+            })),
+          },
+        };
+      },
+    };
+  }
+
+  it('sends the box the crop was cut at, so a split line has a share of it to point at', async () => {
+    const census = stubCensus([boxedReply([{ name: 'crackers', brand: 'Savoritz', count: 2 }])]);
+    const verify = verifier({});
+    await scanPhoto(createPhotoScanState(), 'IMG', { ...census, crop, requestVerify: verify.requestVerify });
+
+    expect((verify.asked[0][0] as { box?: unknown }).box).toEqual(box);
+  });
+
+  it('turns one crop that held two varieties into one line each, neither of them asserted', async () => {
+    const left = { x: 0.1, y: 0.1, w: 0.15, h: 0.3 };
+    const right = { x: 0.25, y: 0.1, w: 0.15, h: 0.3 };
+    const census = stubCensus([boxedReply([{ name: 'crackers with sea salt', brand: 'Savoritz', count: 2 }])]);
+    const verify = splitter([
+      { description: 'crackers with sea salt', box: left },
+      { description: 'crackers with rosemary sourdough', box: right },
+    ]);
+
+    const outcome = await scanPhoto(createPhotoScanState(), 'IMG', { ...census, crop, requestVerify: verify.requestVerify });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.items.map((i) => i.name)).toEqual(['crackers with sea salt', 'crackers with rosemary sourdough']);
+    expect(outcome.items.map((i) => i.qty)).toEqual([1, 1]);
+    expect(outcome.items.map((i) => i.box)).toEqual([left, right]);
+    expect(outcome.items.every((i) => i.status === 'unsure')).toBe(true);
+    expect(outcome.items[0].id).not.toBe(outcome.items[1].id);
+    // Both reach the bag as separate lines, which is the product the photograph was missing.
+    expect(outcome.lines).toHaveLength(2);
+    expect(outcome.lines.every((l) => l.unsure)).toBe(true);
+  });
+
   it('crops every boxed item, sends the crops with the wide reading, and asserts what agreed', async () => {
     const census = stubCensus([boxedReply([{ name: 'rigatoni', brand: 'Priano', count: 2, confidence: 0.9 }])]);
     const verify = verifier({});

@@ -13,20 +13,32 @@ import {
   isNoBrand,
   photoJsonSchema,
   productKey,
+  UnitsResponse,
+  unitsJsonSchema,
   verifyJsonSchema,
 } from "./schemas.js";
 import {
   CENSUS_SYSTEM_PROMPT,
   IDENTIFY_SYSTEM_PROMPT,
   PHOTO_SYSTEM_PROMPT,
+  UNITS_SYSTEM_PROMPT,
   VERIFY_SYSTEM_PROMPT,
   censusUserText,
+  unitsUserText,
   verifyUserText,
 } from "./prompts.js";
 import { localCensusUrl, runCensusLocally } from "./localCensus.js";
 import { loadCatalog, shortlist, skus } from "./catalog.js";
 import { configuredTimeoutMs, withTimeout } from "./http.js";
-import { reconcile, type ReconciledLine, type WideReading } from "./reconcile.js";
+import {
+  countNeedsCheck,
+  reconcile,
+  splitByUnits,
+  type ReconciledLine,
+  type SplitLine,
+  type UnitReading,
+  type WideReading,
+} from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
 import { loopedProduct, salvagePhoto, stalled } from "./salvage.js";
 
@@ -787,6 +799,14 @@ const PHOTO_EFFORT: "none" | "low" | "medium" | "high" = (() => {
 const PHOTO_MAX_OUTPUT_TOKENS = 1200;
 /** The close read's whole answer is one small object of about sixty tokens. */
 const VERIFY_MAX_OUTPUT_TOKENS = 400;
+/** The unit pass answers with a label and two numbers per package, so a handful of packages. */
+const UNITS_MAX_OUTPUT_TOKENS = 300;
+/**
+ * What the crop goes out at for the unit pass. Measured on the two photographs this pass exists
+ * for: 768 pixels on the long edge still separates two boxes of crackers and reads both varieties
+ * off them, at about 550 input tokens against the close read's two thousand.
+ */
+const UNITS_LONG_EDGE = 768;
 /**
  * Reasoning tokens count against the same cap on the models that reason, and nothing here
  * measures how many they need, so above effort "none" (a harness setting; "none" ships) the cap
@@ -1115,6 +1135,13 @@ export interface VerifyItemInput {
   crop: Buffer;
   /** What the census said about it. */
   wide: WideReading & { productKey: string };
+  /**
+   * The box the crop was cut at, when the client sent it. Only the split needs it, to give each
+   * separated line its own share of the rectangle the review draws; without it a crop holding two
+   * varieties still splits, and both lines carry no box, which the review shows as a line with
+   * nothing to point at.
+   */
+  box?: Box | null;
 }
 
 export interface VerifiedItem {
@@ -1123,6 +1150,14 @@ export interface VerifiedItem {
   close: VerifyResponse | null;
   /** The two readings reconciled: what the bag shows, and whether it is sure. */
   line: ReconciledLine;
+  /** What the unit pass pointed at, when it was asked. Empty when it was not, or found nothing. */
+  units?: UnitReading[];
+  /**
+   * One line per variety, when the unit pass found the crop held more than one. The line above
+   * stays as the bag's reading of the crop as a whole; a client that knows about this field shows
+   * these instead, and one that does not is no worse off than before the field existed.
+   */
+  split?: SplitLine[];
 }
 
 /**
@@ -1186,6 +1221,44 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
     }),
   );
 
+  const closes = items.map((_, i) => (settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<VerifyResponse>).value : null));
+
+  // The unit pass, asked only of the crops the close read says hold more than one package. That
+  // is where a hidden variety can be and where the count gate is holding a line back, and it is
+  // about a sixth of the boxes on the fifteen clut photographs, so the stage costs a sixth of
+  // what asking at every box would. Everything else here is unchanged: a crop with one package
+  // is answered by the two readings alone, exactly as before.
+  const counted = await Promise.allSettled(
+    items.map(async (item, i): Promise<UnitReading[]> => {
+      const close = closes[i];
+      if (close === null || !countNeedsCheck(close.count)) return [];
+      const small = await sharp(item.crop)
+        .resize({ width: UNITS_LONG_EDGE, height: UNITS_LONG_EDGE, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      const outputText = await withTimeout(requestOutputText("runUnits", {
+        model: VERIFY_MODEL(),
+        prompt_cache_key: "kart-units",
+        reasoning: { effort: PHOTO_EFFORT },
+        ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
+        input: [
+          { role: "system", content: UNITS_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: unitsUserText(item.wide.description) },
+              { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
+            ],
+          },
+        ],
+        text: {
+          format: { type: "json_schema", name: "units", strict: true, schema: unitsJsonSchema },
+        },
+      }), perItemMs);
+      return UnitsResponse.parse(JSON.parse(outputText)).units;
+    }),
+  );
+
   return items.map((item, i) => {
     const result = settled[i];
     if (result.status === "rejected") {
@@ -1193,7 +1266,24 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
       // message, so nothing about the failure can reach the client.
       console.warn(`[recognize] close read of ${JSON.stringify(item.id)} failed:`, result.reason);
     }
-    const close = result.status === "fulfilled" ? result.value : null;
-    return { id: item.id, close, line: reconcile(item.wide, close, catalog) };
+    const close = closes[i];
+    // A failed unit pass is no units, which is what a crop that was never asked also carries, and
+    // both mean the line stands on the two readings alone. It can only ever add certainty or
+    // separate a line, so losing it costs nothing that was there before.
+    const unitsResult = counted[i];
+    if (unitsResult.status === "rejected") {
+      console.warn(`[recognize] unit pass of ${JSON.stringify(item.id)} failed:`, unitsResult.reason);
+    }
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
+    const line = reconcile(item.wide, close, catalog, units);
+    const box = item.box ?? null;
+    const split = box === null ? null : splitByUnits(line, units, box);
+    return {
+      id: item.id,
+      close,
+      line,
+      ...(units.length > 0 ? { units } : {}),
+      ...(split === null ? {} : { split }),
+    };
   });
 }

@@ -109,7 +109,7 @@ export interface WideReading {
 }
 
 export interface VerifyRequest {
-  items: { id: string; imageBase64: string; wide: WideReading }[];
+  items: { id: string; imageBase64: string; wide: WideReading; box?: Box | null }[];
   /** Every brand the census read in the same photograph, so a logo crumpled on one bag can be read off the bag beside it. */
   brands?: string[];
 }
@@ -124,8 +124,17 @@ export interface VerifiedLine {
   agreed: boolean;
 }
 
+/**
+ * One line the unit pass separated out of a crop that held more than one variety, with its own
+ * share of the box the crop was cut at. See `splitByUnits` on the server for what it is worth,
+ * measured; here it is only carried.
+ */
+export interface SplitLine extends VerifiedLine {
+  box: Box;
+}
+
 export interface VerifyPayload {
-  items: { id: string; line: VerifiedLine }[];
+  items: { id: string; line: VerifiedLine; split?: SplitLine[] }[];
 }
 
 export interface IdentifyRequest {
@@ -440,7 +449,7 @@ function parseVerify(value: unknown): VerifyPayload | null {
     if (!isRecord(raw) || typeof raw.id !== 'string' || !isRecord(raw.line)) return null;
     const line = raw.line;
     if (typeof line.description !== 'string') return null;
-    items.push({
+    const parsed: VerifyPayload['items'][number] = {
       id: raw.id,
       line: {
         description: line.description,
@@ -450,7 +459,32 @@ function parseVerify(value: unknown): VerifyPayload | null {
         sure: line.sure === true,
         agreed: line.agreed === true,
       },
-    });
+    };
+    // Absent on every answer but the few where one crop held two varieties, and absent from any
+    // server that predates the unit pass, so it is read leniently: a malformed entry is dropped
+    // and the line it came with still stands.
+    if (Array.isArray(raw.split)) {
+      const split: SplitLine[] = [];
+      for (const entry of raw.split) {
+        if (!isRecord(entry) || typeof entry.description !== 'string' || !isRecord(entry.box)) continue;
+        split.push({
+          description: entry.description,
+          brand: nullableStr(entry.brand),
+          count: Math.max(0, Math.round(num(entry.count))),
+          confidence: Math.min(1, Math.max(0, num(entry.confidence))),
+          sure: entry.sure === true,
+          agreed: entry.agreed === true,
+          box: {
+            x: num(entry.box.x),
+            y: num(entry.box.y),
+            w: num(entry.box.w),
+            h: num(entry.box.h),
+          },
+        });
+      }
+      if (split.length > 1) parsed.split = split;
+    }
+    items.push(parsed);
   }
   return { items };
 }
@@ -497,7 +531,14 @@ export function requestVerify(
   return post(
     '/api/verify',
     {
-      items: req.items.map((item) => ({ id: item.id, image: item.imageBase64, wide: item.wide })),
+      items: req.items.map((item) => ({
+        id: item.id,
+        image: item.imageBase64,
+        wide: item.wide,
+        // The rectangle the crop was cut at, so a crop the server separates into two varieties
+        // comes back with a share of it on each line and the review has something to draw.
+        ...(item.box ? { box: item.box } : {}),
+      })),
       ...(req.brands && req.brands.length > 0 ? { brands: req.brands } : {}),
     },
     parseVerify,
