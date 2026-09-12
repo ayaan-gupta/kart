@@ -877,6 +877,113 @@ rigatoni, once on each pass.
 is Sol, at $4 and $20 per million tokens against Qwen's $0.21 and $1.90: about $0.05 more per
 photograph, ten times what the Qwen path costs now. Not done; it is the owner's call.
 
+## Something else to separate the packages, measured on 2026-09-12
+
+The owner asked for a stage that separates two packages so that Qwen only has to name each one,
+and asked for it not to be "use a better model". This is what was tried, what each cost, and what
+the one thing that worked is worth.
+
+The two failures it is aimed at are the ones the section above leaves open. On clut4 two bags of
+Priano rigatoni lean against each other and every saved scan counts one. On clut9 a box of
+rosemary sourdough crackers stands behind a box of sea salt, and both readings call the pair "2 x
+sea salt", which is the right number of the wrong product.
+
+### Five ways of separating them that do not work
+
+Every one of these was run on the crops the phone actually sends, cut at the census box by the
+shipped rule, and all but the last are one call each.
+
+| asked | clut4 rigatoni | clut9 crackers |
+|---|---|---|
+| `units` added to the shipped close read, points inside the call already made | 1 package | 1 package |
+| the same, asked for the tight region first and the points inside it | 1 package, 3 of 3 | region shrank onto the front box |
+| the same again on the crop re-cut at that region and shrunk to 512 | 1 package | 1 package |
+| Grounding DINO, the detector `server/enumerator` already runs, prompted with the wide pass's own words | 1 box over both bags | not reached |
+| SAM automatic masks, facebook/sam-vit-base at 1024 pixels | no mask on either bag | not reached |
+
+Grounding DINO at a lower threshold does not find the second bag either, it finds parts: at 0.10
+it puts six boxes on one jar of Nutella and still one box across both rigatoni bags. SAM's masks
+land on the worktop and on the worksheet behind the basket. The two bags are the same paper, the
+same print and the same shape, touching along their whole length, and nothing local separates
+them.
+
+The close read answers "one package" for a reason that is worth writing down: it opens with "You
+are looking at a close crop of one grocery product" and is handed the first pass's name for that
+product. Asked the same question as a bare one, with nothing said about what the crop is supposed
+to be, the same pixels answer with both cracker boxes, named apart. The framing is what loses the
+second package, not the resolution.
+
+### What does work, and it is a separate call
+
+A second question at the same crop, anchored to the product by name, asking for one entry per
+package with a point and a few words read off each. It is `units-probe.ts`, and both arms of the
+anchor were measured over every box of pass 1, seventy-one crops:
+
+| arm | crops split | splits into two varieties | crops answered with nothing |
+|---|---|---|---|
+| neutral, naming nothing | 10 | 10 | 1 |
+| anchored on the product | 3 | 2 | 18 |
+
+The neutral arm is unusable: the crop is cut wide, so it reports the neighbours, and ten of
+seventy-one lines would have been split into products that already have their own line. The
+anchored arm's eighteen silent crops are not a defect of the stage. Eleven of them are clut7 and
+clut10, where the wide pass answered with **one box repeated for every product**: all six of
+clut7's items carry the box {0.21, 0.21, 0.21, 0.21}. Asked about the black beans while looking at
+the tin of soup, the model correctly answers with nothing. See below for what that costs.
+
+### What it is worth, over both passes of all fifteen photographs
+
+The rule that ships out of this is narrow, and each narrowing was measured rather than assumed:
+
+1. **ask only where the close read says more than one package.** 21 of 133 crops, and it holds the
+   one case that matters. At every box instead, the probe cost $0.027; gated it is about $0.004.
+2. **split a line only when the packages are different varieties, never to correct a count.** The
+   second question is worse at counting than the close read: it read one carton of eggs as three
+   and one bag of quinoa as two. Acting on its counts costs an asserted wrong line; acting only on
+   its varieties does not.
+3. **let it confirm a count the gate is holding back.** A line whose two readings agree on a count
+   above one is not asserted (`countNeedsCheck`), because both counted the same pixels the same
+   way. This is a different question at the same crop, so a count it agrees with has been counted
+   twice by two methods, and the line is asserted again.
+
+Against the shipped build, which is the salvage run with the count rule replayed over it:
+
+| | before | after |
+|---|---|---|
+| 1 found | 116/164 71% | 117/164 71% |
+| 2 quantity right | 99/116 85% | 101/117 86% |
+| brands right | 78/88 89% | 79/89 89% |
+| 3 hidden flagged | 20/26 77% | 20/26 77% |
+| 5 asserted wrong | 2/57 | 2/59 |
+| lines matching nothing real | 16 | 16 |
+
+Two more lines asserted, neither of them wrong, one more product found and two more quantities
+right, and nothing worse anywhere. The stage fires on one crop of the hundred and thirty-three
+(clut9's crackers, split into sea salt and rosemary sourdough) and confirms two counts the gate
+was holding back. It does not fix clut4's rigatoni, and nothing tried here does.
+
+Reproduce it without paying for the model again, from the points already saved:
+
+    node server/node_modules/.bin/tsx server/eval/pipeline/units-probe.ts \
+      server/eval/.cache/count-replay/clut-photos-salvage.json --arm anchored --pass 0 \
+      --gate-count --variety-only --confirm-counts \
+      --from server/eval/units-probe.json,server/eval/units-probe-pass2.json
+
+### One box for every product, and why the obvious rule for it is refused
+
+Cutting the crops turned up something the runs had never been read for: on 17 of 265 saved scans
+the wide pass answers with one box repeated, and 78 of 1,594 items share a box with another item.
+Five of clut7's six close reads were reading the tin of soup and answering about the black beans,
+the pesto, the Nutella, the chips and the seeds. They agreed with the wide pass and the lines were
+asserted.
+
+The rule that suggests itself is that an item sharing its box with another item has had one
+witness and not two, exactly the argument `countNeedsCheck` makes, so it should not be asserted.
+Replayed over the saved runs (`box-replay.ts`), it holds back four asserted lines on the salvage
+run and **every one of them was right**. It catches nothing wrong. Three of the four are counts
+above one that the shipped build already holds back, so its real cost today is one right line for
+no gain, and it is not added. The defect is real; this is not the fix for it.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

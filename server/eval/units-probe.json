@@ -1,0 +1,1494 @@
+{
+ "ranAt": "2026-09-12T09:00:38.061Z",
+ "model": "qwen/qwen3-vl-235b-a22b-instruct",
+ "pass": 1,
+ "longEdge": 768,
+ "arms": [
+  "anchored"
+ ],
+ "runs": [
+  "server/eval/clut-photos-salvage.json"
+ ],
+ "summary": {
+  "anchored": {
+   "crops": 71,
+   "split": 3,
+   "splitIntoVarieties": 2,
+   "countsDiffering": 21,
+   "emptied": 18
+  }
+ },
+ "calls": 71,
+ "cost": 0.0142,
+ "probes": [
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut1",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "Rigatoni",
+    "brand": "PRIANO",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "PRIANO RIGATONI",
+      "x": 480,
+      "y": 340
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut1",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "Hawaiian Brioche Buns",
+    "brand": "Priano",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "HAWAIIAN BRIOCHE",
+      "x": 405,
+      "y": 484
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut1",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "Fusilli Bucati",
+    "brand": "PRIANO",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "PRIANO FUSILLI BUCATI",
+      "x": 550,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut2",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "organic bananas",
+    "brand": "Key Robinson FRESH",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Key Robinson organic bananas",
+      "x": 340,
+      "y": 400
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut2",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "Mexican Salsa",
+    "brand": "La Costeña",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "La Costeña Mexican Salsa",
+      "x": 247,
+      "y": 543
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut2",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "peanut butter",
+    "brand": "Kroger",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "PEANUT BUTTER",
+      "x": 254,
+      "y": 496
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut2",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "Cream of Mushroom Soup",
+    "brand": "Campbell's",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Campbell's Cream of Mushroom SOUP",
+      "x": 478,
+      "y": 542
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut2",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "roasted almonds",
+    "brand": "Kroger",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Kroger ROASTED ALMONDS",
+      "x": 517,
+      "y": 324
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut3",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "roasted almonds",
+    "brand": "Kroger",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Kroger ROASTED ALMONDS SALTED WITH SEA SALT",
+      "x": 486,
+      "y": 316
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut3",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "Mexican salsa",
+    "brand": "La Costeña",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "La Costeña HOMESTYLE MEXICAN SALSA",
+      "x": 550,
+      "y": 410
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut3",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "peanut butter",
+    "brand": "Jif",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Jif Peanut Butter",
+      "x": 552,
+      "y": 370
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut3",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "cream of mushroom soup",
+    "brand": "Campbell's",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Campbell's Cream of Mushroom",
+      "x": 500,
+      "y": 417
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "quinoa",
+    "brand": "Bob's Red Mill",
+    "qty": 1
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Bob's Red Mill QUINOA",
+      "x": 473,
+      "y": 346
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "farro",
+    "brand": "Bob's Red Mill",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Bob's Red Mill FARRO",
+      "x": 342,
+      "y": 302
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "rigatoni",
+    "brand": "Priano",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "PRIANO RIGATONI",
+      "x": 543,
+      "y": 387
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "bronze cut pasta",
+    "brand": "PRIANO",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "PRIANO Bronze Cut Pasta",
+      "x": 470,
+      "y": 505
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "marinara sauce",
+    "brand": "Simply Nature",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Simply Nature MARINARA PASTA SAUCE",
+      "x": 493,
+      "y": 507
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "hazelnut spread",
+    "brand": "nutella",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "nutella HAZELNUT SPREAD",
+      "x": 475,
+      "y": 541
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "quinoa",
+    "brand": "Bob's Red Mill",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Bob's Red Mill QUINOA",
+      "x": 450,
+      "y": 375
+     },
+     {
+      "label": "Bob's Red Mill QUINOA",
+      "x": 800,
+      "y": 440
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "farro",
+    "brand": "Bob's Red Mill",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Bob's Red Mill FARRO",
+      "x": 339,
+      "y": 333
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "bronze cut pasta",
+    "brand": "PRIANO",
+    "qty": 2
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "PRIANO Bronze Cut Pasta",
+      "x": 450,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "marinara pasta sauce",
+    "brand": "Simply Nature",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Simply Nature ORGANIC MARINARA PASTA SAUCE",
+      "x": 520,
+      "y": 520
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "nutella",
+    "brand": "nutella",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "nutella HAZELNUT SPREAD WITH COCOA",
+      "x": 500,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "condensed soup",
+    "brand": "Campbell's",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Campbell's Condensed",
+      "x": 380,
+      "y": 499
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "Cream of Mushroom soup",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Cream of Mushroom",
+      "x": 350,
+      "y": 499
+     },
+     {
+      "label": "Cream Mushro",
+      "x": 830,
+      "y": 499
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "Black Beans",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "pesto",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "hazelnut spread",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "chips",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "seeds",
+    "brand": "Campbell's",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut8",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "marinara pasta sauce",
+    "brand": "Happy Belly",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "PASTA SAUCE",
+      "x": 289,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut8",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "brown sugar",
+    "brand": "Baker's Corner",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut8",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "chocolate chip cookies",
+    "brand": "Baker's Corner",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Baker's Corner Chocolate Chip Cookies",
+      "x": 509,
+      "y": 502
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut8",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "devil's food cake mix",
+    "brand": "Baker's Corner",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Baker's Corner Devil's Food Cake Mix",
+      "x": 500,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut8",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "sugar",
+    "brand": "Baker's Corner",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Baker's Corner CHOCOLATE CHIP COOKIES",
+      "x": 473,
+      "y": 876
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "linguine",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Barilla Linguine",
+      "x": 370,
+      "y": 745
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "thick spaghetti",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Barilla THICK SPAGHETTI",
+      "x": 741,
+      "y": 431
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "avocado oil crackers with sea salt",
+    "brand": "Barilla",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "penne",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "walnuts",
+    "brand": "Barilla",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "coffee beans",
+    "brand": "Barilla",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 6,
+   "wide": {
+    "name": "bread",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut10",
+   "pass": 1,
+   "index": 7,
+   "wide": {
+    "name": "rice",
+    "brand": "Barilla",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "strawberries",
+    "brand": "simple truth",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "simple truth strawberries",
+      "x": 148,
+      "y": 317
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "sour cream",
+    "brand": "simple truth",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "simple truth SOUR CREAM",
+      "x": 474,
+      "y": 303
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "Neufchatel cheese",
+    "brand": "Friendly Farms",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "eggs",
+    "brand": "Friendly Farms",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "lactose free milk",
+    "brand": "Friendly Farms",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Friendly Farms LACTOSE FREE MILK WHOLE",
+      "x": 500,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "probiotic drink",
+    "brand": "Love Your Gut",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Love Your Gut",
+      "x": 546,
+      "y": 508
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut13",
+   "pass": 1,
+   "index": 6,
+   "wide": {
+    "name": "bottled water",
+    "brand": "Friendly Farms",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "chicken breast tenderloins",
+    "brand": "Kirkwood",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "KIRKWOOD CHICKEN BREAST TENDERLOINS",
+      "x": 500,
+      "y": 570
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "beef chuck",
+    "brand": "Go Texan",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "GO TEXAN BEEF CHUCK",
+      "x": 370,
+      "y": 151
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "green onions",
+    "brand": null,
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "green onions",
+      "x": 483,
+      "y": 512
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "ground beef",
+    "brand": "Simple Truth",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "SIMPLE TRUTH GROUND BEEF",
+      "x": 510,
+      "y": 184
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "ham",
+    "brand": "Go Texan",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut14",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "half gallon milk",
+    "brand": null,
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "HALF GAL",
+      "x": 500,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut15",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "milk",
+    "brand": "REAL",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "REAL milk",
+      "x": 470,
+      "y": 470
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut15",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "celery",
+    "brand": "Dole",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Dole celery",
+      "x": 338,
+      "y": 276
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut15",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "Roma Tomatoes",
+    "brand": "Dole",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Roma Tomatoes",
+      "x": 503,
+      "y": 276
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut15",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "apples",
+    "brand": null,
+    "qty": 10
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "linguine",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Barilla Linguine",
+      "x": 234,
+      "y": 515
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 1,
+   "wide": {
+    "name": "thick spaghetti",
+    "brand": "Savoritz",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Barilla THICK SPAGHETTI",
+      "x": 331,
+      "y": 507
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 2,
+   "wide": {
+    "name": "avocado oil crackers with sea salt",
+    "brand": "Savoritz",
+    "qty": 2
+   },
+   "savedCount": 2,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Savoritz AVOCADO OIL Crackers with Sea Salt",
+      "x": 273,
+      "y": 500
+     },
+     {
+      "label": "Savoritz AVOCADO OIL Crackers with Rosemary Sourdough",
+      "x": 675,
+      "y": 494
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 3,
+   "wide": {
+    "name": "penne",
+    "brand": "Barilla",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Barilla PENNE",
+      "x": 215,
+      "y": 536
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 4,
+   "wide": {
+    "name": "brown rice & quinoa fusilli",
+    "brand": "Simply Nature",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": true,
+   "units": {
+    "anchored": [
+     {
+      "label": "Simply Nature Brown Rice & Quinoa Fusilli",
+      "x": 240,
+      "y": 527
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 5,
+   "wide": {
+    "name": "uncooked spaghetti",
+    "brand": "Savoritz",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": []
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 6,
+   "wide": {
+    "name": "walnuts",
+    "brand": null,
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "walnuts",
+      "x": 499,
+      "y": 500
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 7,
+   "wide": {
+    "name": "uncooked oats",
+    "brand": null,
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "uncooked oats",
+      "x": 100,
+      "y": 476
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 8,
+   "wide": {
+    "name": "salsa",
+    "brand": null,
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "NET WT 23.5 OZ (1 LB 7.5 OZ) 666g",
+      "x": 520,
+      "y": 416
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut9",
+   "pass": 1,
+   "index": 9,
+   "wide": {
+    "name": "refrigerator freshener",
+    "brand": "Baker's Corner",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "Baker's Corner REFRIGERATOR FRESHENER",
+      "x": 499,
+      "y": 499
+     }
+    ]
+   }
+  },
+  {
+   "run": "clut-photos-salvage.json",
+   "id": "clut12",
+   "pass": 1,
+   "index": 0,
+   "wide": {
+    "name": "lactose free milk",
+    "brand": "Friendly Farms",
+    "qty": 1
+   },
+   "savedCount": 1,
+   "savedSure": false,
+   "units": {
+    "anchored": [
+     {
+      "label": "WHOLE LACTOSE FREE",
+      "x": 500,
+      "y": 670
+     }
+    ]
+   }
+  }
+ ]
+}
