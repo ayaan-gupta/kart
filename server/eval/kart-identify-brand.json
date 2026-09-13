@@ -4,7 +4,7 @@
   "badge": 1,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.95,
   "stillUnclear": false,
   "ok": true
  },
@@ -13,7 +13,7 @@
   "badge": 1,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.95,
   "stillUnclear": false,
   "ok": true
  },
@@ -22,7 +22,7 @@
   "badge": 1,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.98,
   "stillUnclear": false,
   "ok": true
  },
@@ -31,7 +31,7 @@
   "badge": 1,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.95,
   "stillUnclear": false,
   "ok": true
  },
@@ -40,7 +40,7 @@
   "badge": 2,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.95,
   "stillUnclear": false,
   "ok": true
  },
@@ -49,7 +49,7 @@
   "badge": 2,
   "brand": "Mr. Lucky",
   "name": "Cauliflower",
-  "confidence": 0.99,
+  "confidence": 0.98,
   "stillUnclear": false,
   "ok": true
  }

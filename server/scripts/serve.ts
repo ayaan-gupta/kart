@@ -16,19 +16,29 @@ import { networkInterfaces } from "node:os";
 const DEFAULT_PORT = 4310;
 
 /**
- * The key is checked before the handlers are imported, not after, because `src/openai.ts`
- * throws at module scope when it is missing. Importing first meant this process died with a
- * stack trace from inside a dependency, and a friendlier message placed further down could
- * never run. The import below is therefore dynamic and deliberately ordered.
+ * The keys are checked before the handlers are imported, not after, so this process says what is
+ * missing instead of dying with a stack trace from inside a dependency on the first request. The
+ * imports below are therefore dynamic and deliberately ordered.
+ *
+ * Which keys, rather than one fixed key: every tier ran on OpenAI once, the photograph tier moved
+ * to Qwen on 2026-09-07 and the last two moved on 2026-09-13, and a check hardcoded to
+ * `OPENAI_API_KEY` would now stop a machine that can serve every request from starting. `MODELS`
+ * is the only thing that knows which provider each tier is on, so it is what is asked.
  */
-if ((process.env.OPENAI_API_KEY ?? "") === "") {
-  console.error("[serve] OPENAI_API_KEY is not set, so nothing could be recognized.");
+const { missingKeys, keyFor, MODELS } = await import("../src/openai.js");
+const missing = missingKeys();
+if (missing.length > 0) {
+  const tiers = Object.entries(MODELS)
+    .filter(([, model]) => missing.includes(keyFor(model)))
+    .map(([tier, model]) => `${tier} (${model})`);
+  console.error(`[serve] ${missing.join(" and ")} is not set, so nothing could be recognized.`);
+  console.error(`[serve] The tiers that need it: ${tiers.join(", ")}.`);
   console.error("[serve] Put a key in server/.env.local, which git ignores, then start it with:");
   console.error("[serve]");
   console.error("[serve]   npm run serve --prefix server");
   console.error("[serve]");
   console.error("[serve] `npm run serve` reads that file itself. ./scripts/setup.sh writes it for");
-  console.error("[serve] you, or: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local");
+  console.error(`[serve] you, or: echo '${missing[0]}=...' >> server/.env.local`);
   process.exit(1);
 }
 

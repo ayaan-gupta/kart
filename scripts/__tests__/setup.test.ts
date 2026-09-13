@@ -7,7 +7,7 @@ import path from 'path';
 /**
  * `scripts/setup.sh` is the one command a stranger runs after cloning, on a Mac this project has
  * never seen, with a phone plugged in. Its promise is that nothing else is needed: it installs
- * what is missing, asks for the one thing only the person has (the OpenAI key), works out the
+ * what is missing, asks for the one thing only the person has (the OpenRouter key), works out the
  * Apple team and the Mac's address, builds, installs, and starts the service.
  *
  * These run the real script in a throwaway repository with fake Apple and Homebrew tools on
@@ -348,7 +348,7 @@ describe('scripts/setup.sh on a Mac that has everything', () => {
     expect(rig.read('.env')).toMatch(/^EXPO_PUBLIC_KART_API_URL=http:\/\/.+:4310$/m);
     expect(rig.read('.kartrc')).toContain('KART_TEAM_ID=ABCDE12345');
     expect(rig.read('.kartrc')).toContain('KART_BUNDLE_ID=dev.kart.abcde12345');
-    expect(rig.read('server/.env.local')).toBe('OPENAI_API_KEY=sk-test-0123456789\n');
+    expect(rig.read('server/.env.local')).toBe('KART_QWEN_KEY=sk-test-0123456789\n');
     expect(r.out).not.toContain('sk-test-0123456789');
   });
 
@@ -437,7 +437,7 @@ describe('scripts/setup.sh on a Mac that is missing things', () => {
     const r = await rig.run({ phoneAfterCalls: Infinity });
     expect(r.status).toBe(0);
     expect(r.out).toMatch(/not attached/i);
-    expect(rig.read('server/.env.local')).toContain('OPENAI_API_KEY=');
+    expect(rig.read('server/.env.local')).toContain('KART_QWEN_KEY=');
     expect(rig.calls().filter((c) => /^xcodebuild .* build/.test(c))).toEqual([]);
   });
 

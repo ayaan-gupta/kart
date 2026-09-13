@@ -19,6 +19,23 @@ This file grew by appending across forty-one investigations, so it reads chronol
 early figures are superseded. This section is the current state; everything below is how it was
 arrived at.
 
+**The live scan stopped working, and every figure below it predates the fix.** On 2026-09-13 the
+OpenAI account ran out of credit, so `runCensus` and `runIdentify` answered every call with "You
+have no credits remaining" and a scan filled no bag at all. Both tiers moved to
+`qwen/qwen3-vl-235b-a22b-instruct`, which the photograph path has run on since 2026-09-07. What
+that could be measured against, it was: on the six crops of `identify-brand.ts`, Qwen reads the
+brand right 6 of 6 at $0.0005 a call, which is what gpt-5.6-luna read at the same price on
+2026-09-03. The census could only be shown to work, not compared, because the thing to compare
+against returns a 429: on `video-census-live.ts` it found 6 of the 9 products in IMG_0252 and read
+Sara Lee, Oreo and Lucky correctly, at $0.0023 a call.
+
+**One keyframe now fires where four used to, and that is not the model.** The run above made a
+single census call against a cap of eight. The keyframe gate's adaptive blur floor
+(`adaptiveMinSharpness`) climbs to about 263 on this video, because the video swings between
+sharpness 12 and 392, and then refuses every later frame as "blurry". The recorded 8.17 of 9 for
+this path came from four calls a session, so it is not comparable with the 6 of 9 above, and the
+gap between them is a live-scan defect waiting to be measured on its own.
+
 **Scored by contents, not only by size.** A unit count cannot tell a right bag from a lucky one:
 one scan run scored a perfect nine while holding one product twice and missing two others. Both
 harnesses assign each bag line to at most one real product and report two numbers, because this

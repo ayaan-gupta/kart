@@ -46,6 +46,35 @@ function requireKey(variable: string, hint: string): string {
   return key;
 }
 
+/**
+ * The environment variable that carries `model`'s key, by the same rule `clientFor` routes on: a
+ * vendor prefix means OpenRouter, a bare name means OpenAI.
+ */
+export function keyFor(model: string): "KART_QWEN_KEY" | "OPENAI_API_KEY" {
+  return model.includes("/") ? "KART_QWEN_KEY" : "OPENAI_API_KEY";
+}
+
+/**
+ * The keys a machine is missing to serve `models`, in the order they are first needed.
+ *
+ * `npm run serve` used to demand `OPENAI_API_KEY` whatever the tiers were set to. That was right
+ * while every tier was OpenAI's, and from 2026-09-13 no tier is: the check stopped a machine that
+ * could serve every request, over a key nothing would have used. A key is only asked for when a
+ * configured tier would reach for it, which is also what makes the eval harnesses able to measure
+ * one provider on a machine that has no account with the other.
+ */
+export function missingKeys(
+  env: Record<string, string | undefined> = process.env,
+  models: readonly string[] = Object.values(MODELS),
+): string[] {
+  const out: string[] = [];
+  for (const model of models) {
+    const variable = keyFor(model);
+    if ((env[variable] ?? "").trim() === "" && !out.includes(variable)) out.push(variable);
+  }
+  return out;
+}
+
 const clients = new Map<string, OpenAI>();
 
 /**
@@ -132,7 +161,24 @@ export const MODELS = {
    * brand for every unmarked product; `brandFromKey` in fusion.ts now reads it back out, so the
    * subtitle shows the brand on either model.
    */
-  census: process.env.KART_CENSUS_MODEL?.trim() || "gpt-5.6-luna",
+  /**
+   * Moved from gpt-5.6-luna to qwen3-vl-235b-a22b-instruct on 2026-09-13, because the OpenAI
+   * account has no credit and this tier had stopped working. Every call returned
+   * "You have no credits remaining", which reaches the shopper as a live scan that fills no bag
+   * at all. There is no arm to run against that: any model that answers beats a 429.
+   *
+   * What was measured is that the replacement answers well. `video-census-live.ts` on the nine
+   * seconds of IMG_0252, catalog shortlist attached: 6 of 9 products found on the one keyframe
+   * this corpus now fires, brands read (Sara Lee Baguette, Oreo, Lucky Cauliflower, Lucky
+   * Brussels Sprouts), $0.0023 a call. The recorded Luna number for this path is 8.17 of 9, and
+   * it is NOT a comparison: that was four census calls a session and this run made one. The
+   * keyframe gate's adaptive blur floor climbs to about 263 on this video and refuses everything
+   * after it, which is a live-scan defect of its own and nothing to do with the model.
+   *
+   * The comment below is the history of the tiers this one passed through while OpenAI was
+   * paying, and is kept because the reasoning about what this task is still holds.
+   */
+  census: process.env.KART_CENSUS_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
   /**
    * Identify: one tight crop of an uncertain item.
    *
@@ -176,7 +222,20 @@ export const MODELS = {
    * `prompt_cache_key` on the call is correct and simply has nothing to bite on; the "no prompt
    * cache hits" warning is expected on this path and is not a fault to chase.
    */
-  identify: process.env.KART_IDENTIFY_MODEL?.trim() || "gpt-5.6-luna",
+  /**
+   * Moved from gpt-5.6-luna to qwen3-vl-235b-a22b-instruct on 2026-09-13, for the same reason as
+   * the census above, and here the move is measured rather than merely necessary.
+   * `identify-brand.ts`, the six crops this corpus can score against a wrapper that legibly reads
+   * MR. LUCKY:
+   *
+   *     gpt-5.6-luna                    6 of 6 brands right, confidence 0.99,         $0.0005 a call
+   *     qwen3-vl-235b-a22b-instruct     6 of 6 brands right, confidence 0.95 to 0.98, $0.0005 a call
+   *
+   * Same answer on every crop, at the same price. The luna row is the one recorded below on
+   * 2026-09-03; the qwen row was run on 2026-09-13. Reading large text off a sharp crop does not
+   * separate these tiers, which is the same finding the luna move made against gpt-5.4.
+   */
+  identify: process.env.KART_IDENTIFY_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
   /**
    * Photograph census: one shopper photograph, no badges, every product through unmarkedItems.
    *
@@ -236,6 +295,4 @@ export const MODELS = {
    * Pinned to one OpenRouter provider by `OPENROUTER_PROVIDER` in recognize.ts. Do not unpin it.
    */
   photo: process.env.KART_PHOTO_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
-  /** Escalation for items identify still cannot resolve. Used sparingly. */
-  escalate: "gpt-5.5",
 } as const;

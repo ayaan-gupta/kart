@@ -242,29 +242,35 @@ command -v python3 >/dev/null 2>&1 && ok "Python: $(python3 --version 2>&1)" \
   || warn "No python3. Only needed to build replay clips for the offline harness, not to run the app."
 
 # ---------------------------------------------------------------------------------------------
-step "The one thing only you have: an OpenAI key"
+step "The one thing only you have: an OpenRouter key"
 
 # Asked first, before the installs, so everything this script needs from a person is asked in
 # the first minute and the slow part runs unattended. Nothing else in this script asks a question
 # except your Mac password, and the phone asking to trust this Mac.
+#
+# OpenRouter and not OpenAI since 2026-09-13. Every recognition tier now runs on Qwen through
+# OpenRouter (see MODELS in server/src/openai.ts), so an OpenAI key buys nothing, and asking for
+# one stopped machines that could serve every request. An OPENAI_API_KEY already in .env.local is
+# left alone: it costs nothing, and pointing a tier back at OpenAI with KART_CENSUS_MODEL is how
+# the eval harnesses compare providers.
 if [ "$CHECK" = 1 ]; then
-  grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
-    && ok "OpenAI key configured" \
-    || warn "no OpenAI key yet. The app runs and names nothing until there is one."
-elif [ ! -f server/.env.local ] || ! grep -q '^OPENAI_API_KEY=sk-' server/.env.local; then
+  grep -q '^KART_QWEN_KEY=.' server/.env.local 2>/dev/null \
+    && ok "OpenRouter key configured" \
+    || warn "no OpenRouter key yet. The app runs and names nothing until there is one."
+elif [ ! -f server/.env.local ] || ! grep -q '^KART_QWEN_KEY=.' server/.env.local; then
   cat <<'MSG'
 
-      The recognition service needs an OpenAI API key. Without one the app still installs,
+      The recognition service needs an OpenRouter API key. Without one the app still installs,
       the camera works, items get outlined and tracked, and barcodes still resolve, but
       nothing is ever named.
 
       The key is yours and is never committed, never sent to the phone, and never put in
       the app binary: it lives only in server/.env.local, which git ignores.
 
-      Get one at https://platform.openai.com/api-keys
+      Get one at https://openrouter.ai/keys
 
 MSG
-  printf '      Paste an OpenAI key now, or press Return to skip: '
+  printf '      Paste an OpenRouter key now, or press Return to skip: '
   # Not echoed. This is the only secret in the project, the rule about it is that it never
   # appears in a log or a message, and a terminal that prints it leaves it in the scrollback of
   # whatever window the reader pastes into next. `read -s` costs the reader the reassurance of
@@ -272,20 +278,20 @@ MSG
   read -rs KEY
   printf '\n'
   if [ -n "$KEY" ]; then
-    if [ -f server/.env.local ] && grep -q '^OPENAI_API_KEY=' server/.env.local; then
-      sed -i '' "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=$KEY|" server/.env.local
+    if [ -f server/.env.local ] && grep -q '^KART_QWEN_KEY=' server/.env.local; then
+      sed -i '' "s|^KART_QWEN_KEY=.*|KART_QWEN_KEY=$KEY|" server/.env.local
     else
-      printf 'OPENAI_API_KEY=%s\n' "$KEY" >> server/.env.local
+      printf 'KART_QWEN_KEY=%s\n' "$KEY" >> server/.env.local
     fi
     chmod 600 server/.env.local
     # The length, never the value, so a mis-paste is visible without the key being printed.
     ok "saved to server/.env.local, readable only by you (${#KEY} characters)"
   else
     warn "skipped. The app will install and run and will not name anything."
-    warn "Add one later: echo 'OPENAI_API_KEY=sk-...' >> server/.env.local"
+    warn "Add one later: echo 'KART_QWEN_KEY=...' >> server/.env.local"
   fi
 else
-  ok "OpenAI key already configured"
+  ok "OpenRouter key already configured"
 fi
 
 # ---------------------------------------------------------------------------------------------
@@ -625,9 +631,9 @@ for port in 4310 4330; do
   fi
 done
 
-grep -q '^OPENAI_API_KEY=sk-' server/.env.local 2>/dev/null \
-  && ok "OpenAI key in place" \
-  || warn "no OpenAI key, so the service will refuse to start. Add one and run this again."
+grep -q '^KART_QWEN_KEY=.' server/.env.local 2>/dev/null \
+  && ok "OpenRouter key in place" \
+  || warn "no OpenRouter key, so the service will refuse to start. Add one and run this again."
 
 # ---------------------------------------------------------------------------------------------
 step "Checking the grounded enumerator"
