@@ -1006,6 +1006,123 @@ run and **every one of them was right**. It catches nothing wrong. Three of the 
 above one that the shipped build already holds back, so its real cost today is one right line for
 no gain, and it is not added. The defect is real; this is not the fix for it.
 
+## Asking for the rectangle the way the model points, measured on 2026-09-13
+
+The repeated box above turned out to be a question of what the request asks for, not of what the
+model can see. It was asked for `box`, a position and a size in whole percentages. Qwen3-VL grounds
+in `bbox_2d`, two corners on a 0 to 1000 scale, and it kept half answering in corners anyway: of
+939 boxes across the saved runs, 227 ran past the frame edge and 177 of those were a valid
+rectangle read as corners, which is why `photoBox` existed at all.
+
+`box-arms.ts` asks the same fifteen photographs both ways, wide pass only, and counts how many
+products were handed a rectangle another product in the same photograph already had.
+
+| | items | boxed | items sharing a rectangle | photographs with one rectangle for everything |
+|---|---|---|---|---|
+| percentages, as it was | 82 | 72 | 10 | 2 |
+| corners, as it is now | 109 | **109** | **0** | **0** |
+
+The percentages row is both passes of `clut-photos-units.json`, the last saved run of the old
+request, read back rather than paid for again.
+
+### Which half of the change did it: the format, not the position
+
+Two more arms separate them, because they cost different things. `boxfirst` moves the rectangle to
+the front of the item and keeps percentages: it answers null for every product on every
+photograph, so the model asked to point before it has looked simply declines. `native` moves the
+rectangle to the front and asks in corners: it places them as well as the shipped arm does.
+
+So the format is the whole fix and the position buys nothing, which settles where the field goes.
+It stays last, because `salvage.ts` reads an answer the provider cut off by keeping everything
+written before `"bbox_2d"`, and a rectangle written before the name would leave a truncated
+product with a rectangle and nothing else.
+
+### One entry per package does not separate two identical bags
+
+While the request was open it was worth asking whether clut4's two touching rigatoni bags come
+apart when the prompt stops telling the model to put one rectangle around both. A fifth arm,
+`perpackage`, asks for one entry per package and says two identical bags of one pasta are two
+entries of 1 rather than one entry of 2. On clut4 and clut5 alike the answer is unchanged: one
+entry, one rectangle across both bags. It is recorded in the harness as a negative and is not in
+the shipped prompt.
+
+### A row of tins is not a loop
+
+The first scored run of the new request found **fewer** products on clut7, both passes, and the
+service log said why: `photo census stopped (loop) after 582 characters; kept 2 items`, with the
+answer cut off while it was writing the third of three Simply Nature black bean tins, each
+correctly placed on its own tin.
+
+`loopedProduct` counted writings by name alone, which was right while a name written three times
+could only be a model repeating itself. Now that every package gets its own rectangle, three tins
+of one soup are three entries of one name and a correct answer. The guard now compares where the
+writings are: a loop rewrites one product in one place, wandering by a point or two, which is an
+overlap above 0.9; packages stand side by side and barely touch, which is an overlap near 0. Half
+is the threshold and nothing lands near it. A product placed nowhere has no place to compare, so
+those fall back to the count alone, exactly as before.
+
+### The four requirements, both passes of all fifteen photographs
+
+`clut-photos-units.json` (2026-09-12) against `clut-photos-corners.json` (2026-09-13), same
+labels, same scorer, the shipped path end to end.
+
+| | before | after |
+|---|---|---|
+| products the census boxed | 82 of 120 | **196 of 196** |
+| 1 every item reaches the bag | 94 of 157 (60%) | **128 of 164 (78%)** |
+| 2 quantities right | 84 of 94 | **111 of 128** |
+| brands right | 63 of 67 | **86 of 91** |
+| 3 hidden items flagged | 20 of 25 | 19 of 26 |
+| 4 asserted lines wrong | 1 | **3** |
+| asserted lines right | 40 | **84** |
+| unsure, right / wrong | 43 / 14 | 29 / 26 |
+| lines matching nothing real | 9 | **27** |
+| per photograph | $0.0028, 3.8 calls | **$0.0051, 7.9 calls** |
+
+Read the caveat before the recall number. The 2026-09-12 run was damaged by the provider: 8 of its
+29 census answers were cut short, five of them stalls. The 2026-09-13 run had none of those, two
+deadline stops and no loop stops. Part of 60% to 78% is a better afternoon at Parasail rather than
+this change, and the honest claim from these two runs is the box column, which is entirely the
+change, and the direction of the rest.
+
+The cart tier, the shipped use case, is the half where both runs were undamaged:
+
+| cart tier | before (13 scans) | after (14 scans) |
+|---|---|---|
+| found | 58 of 67 | 65 of 74 |
+| quantities right | 54 | 57 |
+| brands right | 44 of 45 | 52 of 53 |
+| boxed | 54 of 61 | **78 of 78** |
+| asserted right | 32 | **46** |
+| asserted lines wrong | 1 | **3** |
+| lines matching nothing real | 1 | **7** |
+
+### What it costs, stated plainly
+
+Three things got worse and none of them is hidden by the recall.
+
+**Asserted lines wrong went from 1 to 3, against a bar of 0.** All three are the same defect and
+it is not a new one: two identical touching bags of Priano rigatoni, read as one bag of 1, on
+clut4 twice and clut5 once. The box fix did not cause the misreading; it promoted it. A product
+with no box is never read twice and sits unsure, and 38 of 120 products had no box before. Now
+every product is read twice, so a line the two readings agree on is asserted, and the two readings
+agree on this one because both of them see one bag. Nothing measured on this corpus separates
+those bags: not a units call, not a detector, not per-package prompting, only a model ten times
+the price.
+
+**Lines matching nothing real went from 9 to 27, 7 of them on the cart tier.** Every one of the
+seven is **unsure**, so the shopper is asked about them rather than shown them as fact. Two are the
+census boxing part of a package rather than a package: on clut4 and clut5 one Bob's Red Mill quinoa
+bag comes back as two entries with two adjacent rectangles of exactly equal width, which is the
+model halving one bag. Two more are a nutrition panel and a "snack bag" on clut7. Asking for a
+rectangle per package buys sharper attention to where things are and some of that attention lands
+on parts of things.
+
+**A photograph costs $0.0051 instead of $0.0028.** The wide pass now places a rectangle on every
+product instead of two thirds of them, and every rectangle is a crop and a second call: 7.9 calls a
+photograph against 3.8. The price of the change is almost exactly the price of reading twice the
+things that were never read at all.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

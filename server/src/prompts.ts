@@ -184,7 +184,7 @@ Never guess a product into a photograph to have something to report.
 
 Answer with the structured object, written compactly on one line with no line breaks and no
 indentation. items has one entry per distinct product; the same product in two places is one
-entry with the total count and one box around both:
+entry with the total count and one rectangle around both:
   name        a short product name without the brand ("Froot Loops", "brioche buns"). Two
               products that differ only in a flavour or a variety you can read are two entries.
   brand       the brand exactly as printed on the packaging, or null for unbranded produce and
@@ -197,13 +197,16 @@ entry with the total count and one box around both:
   isProduct   true when this is a supermarket product as defined above, false when it is
               something else you felt you should mention. Anything false is dropped before it
               reaches the shopper, so it costs nothing to be honest here.
-  box         where it is: the smallest rectangle that encloses every visible unit of this
-              product, as x, y, w and h in whole percentages of the image width and height, 0 to
-              100, with the origin at the top-left corner. Tight to the product, not to the shelf
-              or basket around it. Give a box for every product you list. The box is cut out of
-              the photograph and read again close up, and that second reading is the only thing
-              that can confirm a product; one with no box cannot be checked, so it is shown to the
-              shopper as unsure and they are asked to photograph it again. A roughly right
+  bbox_2d     where it is: [x1, y1, x2, y2], the top-left and bottom-right corners of the
+              smallest rectangle that encloses every visible unit of this product, each a whole
+              number from 0 to 1000 across the width or down the height of the image. Tight to
+              the product, not to the shelf or basket around it. Give a rectangle for every
+              product you list. Every product gets its own rectangle. Two entries never have the
+              same four numbers: if you cannot see two products apart well enough to put a
+              rectangle around each, they are one entry, not two. The rectangle is cut out of the
+              photograph and read again close up, and that second reading is the only thing that
+              can confirm a product; one with no rectangle cannot be checked, so it is shown to
+              the shopper as unsure and they are asked to photograph it again. A roughly right
               rectangle is far better than none. Use null only when the product is so scattered or
               so buried that no rectangle contains it.
 Include a product that is partly hidden if you can still name it. Do not list furniture, the

@@ -352,12 +352,12 @@ describe("photo schema", () => {
     walkAligned(PhotoResponse, photoJsonSchema, "photo");
   });
 
-  it("folds into a census: the key derived from name and brand, the box scaled to 0 to 1, the count beside it", () => {
+  it("folds into a census: the key derived from name and brand, the corners turned into a box, the count beside it", () => {
     const census = censusFromPhoto({
       subjectKind: "cart",
       items: [
-        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, box: { x: 58, y: 24, w: 42, h: 37 } },
-        { name: "Bananas", brand: null, count: 1, confidence: 0.95, isProduct: true, box: null },
+        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, bbox_2d: [580, 240, 1000, 610] },
+        { name: "Bananas", brand: null, count: 1, confidence: 0.95, isProduct: true, bbox_2d: null },
       ],
       occlusion: { severity: "some", reason: "a tin is behind the jar" },
     });
@@ -376,8 +376,8 @@ describe("photo schema", () => {
     const census = censusFromPhoto({
       subjectKind: "product",
       items: [
-        { name: "eggs", brand: " ", count: 3, confidence: 0.9, isProduct: true, box: null },
-        { name: "Eggs", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null },
+        { name: "eggs", brand: " ", count: 3, confidence: 0.9, isProduct: true, bbox_2d: null },
+        { name: "Eggs", brand: null, count: 1, confidence: 0.6, isProduct: true, bbox_2d: null },
       ],
       occlusion: { severity: "none", reason: "" },
     });
@@ -391,8 +391,8 @@ describe("photo schema", () => {
     const census = censusFromPhoto({
       subjectKind: "product",
       items: [
-        { name: "celery", brand: "Null", count: 1, confidence: 0.9, isProduct: true, box: null },
-        { name: "celery", brand: " null ", count: 1, confidence: 0.9, isProduct: true, box: null },
+        { name: "celery", brand: "Null", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null },
+        { name: "celery", brand: " null ", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null },
       ],
       occlusion: { severity: "none", reason: "" },
     });
@@ -402,41 +402,59 @@ describe("photo schema", () => {
 });
 
 /**
- * Boxes that cannot mean what they say.
+ * Two corners, which is how the model actually points at things.
  *
- * Across 939 boxes in every saved clut run, 227 have x+w or y+h past the frame edge and 177 of
- * those are a valid rectangle read as corners: `x0.65 w1.00` is not a box 100% of the frame wide
- * starting two thirds across, it is one whose right edge is the right edge. Read literally, the
- * crop cut from it is clamped to the image edge and arrives at the close read full of the
- * product's neighbours, which is what a second reading is supposed to exclude.
+ * Until 2026-09-13 this asked for x, y, a width and a height as percentages, and the model
+ * answered in corners often enough that `photoBox` existed to re-read them: of 939 boxes across
+ * every saved clut run, 227 ran past the frame edge and 177 of those were a valid rectangle read
+ * as corners. It also had a worse failure, one rectangle repeated for every product in the
+ * photograph, which `server/eval/pipeline/box-arms.ts` measured away by asking in the form
+ * Qwen3-VL grounds in: `bbox_2d`, two corners on a 0 to 1000 scale. Asked that way, all 109
+ * products across the fifteen photographs came back with a rectangle and no two shared one.
+ *
+ * The reader is deliberately forgiving, because a rectangle it refuses costs the shopper a whole
+ * product: the crop is never cut, nothing reads it twice, and the line is shown as unsure.
  */
-describe("photo boxes that overflow the frame", () => {
-  const photo = (box: { x: number; y: number; w: number; h: number }) => ({
+describe("photo rectangles", () => {
+  const photo = (bbox_2d: number[] | null) => ({
     subjectKind: "cart" as const,
-    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box }],
+    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d }],
     occlusion: { severity: "none" as const, reason: "" },
   });
-  const boxOf = (b: { x: number; y: number; w: number; h: number }) => censusFromPhoto(PhotoResponse.parse(photo(b))).unmarkedItems[0].box;
+  const boxOf = (b: number[] | null) => censusFromPhoto(PhotoResponse.parse(photo(b))).unmarkedItems[0].box;
 
-  it("reads a box as corners when it cannot be a width and a height", () => {
-    // x 65, right edge 100: 35 wide, not 100 wide starting at 65.
-    expect(boxOf({ x: 65, y: 35, w: 100, h: 68 })).toEqual({ x: 0.65, y: 0.35, w: 0.35, h: 0.33 });
+  it("turns two corners into a box as a fraction of the frame", () => {
+    expect(boxOf([580, 240, 1000, 610])).toEqual({ x: 0.58, y: 0.24, w: 0.42, h: 0.37 });
   });
 
-  it("leaves a box that is a perfectly good width and height alone", () => {
-    expect(boxOf({ x: 10, y: 20, w: 30, h: 40 })).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
+  it("reads corners given in either order", () => {
+    expect(boxOf([1000, 610, 580, 240])).toEqual({ x: 0.58, y: 0.24, w: 0.42, h: 0.37 });
   });
 
-  it("leaves a box flush against the far edge alone", () => {
-    expect(boxOf({ x: 60, y: 50, w: 40, h: 50 })).toEqual({ x: 0.6, y: 0.5, w: 0.4, h: 0.5 });
+  it("trims a rectangle that runs past the frame rather than dropping it", () => {
+    expect(boxOf([900, 900, 1200, 1400])).toEqual({ x: 0.9, y: 0.9, w: 0.1, h: 0.1 });
   });
 
-  it("clamps a box that is neither, rather than cutting outside the photograph", () => {
-    // w is smaller than x, so corners would give a negative width. Nothing to do but trim it.
-    expect(boxOf({ x: 82, y: 31, w: 46, h: 47 })).toEqual({ x: 0.82, y: 0.31, w: 0.18, h: 0.47 });
+  it("keeps a rectangle flush against the far edge", () => {
+    expect(boxOf([600, 500, 1000, 1000])).toEqual({ x: 0.6, y: 0.5, w: 0.4, h: 0.5 });
   });
 
-  it("drops a box with no area left at all", () => {
-    expect(boxOf({ x: 100, y: 10, w: 20, h: 20 })).toBeNull();
+  it("drops a rectangle with no area", () => {
+    expect(boxOf([500, 500, 500, 800])).toBeNull();
+    expect(boxOf([500, 500, 800, 500])).toBeNull();
+  });
+
+  it("drops a rectangle wholly outside the frame", () => {
+    expect(boxOf([1100, 200, 1400, 600])).toBeNull();
+  });
+
+  it("drops a rectangle that is not four numbers", () => {
+    expect(boxOf([500, 500])).toBeNull();
+    expect(boxOf([])).toBeNull();
+    expect(boxOf(null)).toBeNull();
+  });
+
+  it("keeps the first four when the model writes more", () => {
+    expect(boxOf([580, 240, 1000, 610, 0])).toEqual({ x: 0.58, y: 0.24, w: 0.42, h: 0.37 });
   });
 });

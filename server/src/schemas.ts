@@ -411,15 +411,12 @@ export const PhotoItem = z.object({
   count: z.number().int().min(0),
   confidence: z.number().min(0).max(1),
   isProduct: z.boolean(),
-  /** Percentages of the frame's width and height, origin top left, 0 to 100. */
-  box: z
-    .object({
-      x: z.number().min(0).max(100),
-      y: z.number().min(0).max(100),
-      w: z.number().min(0).max(100),
-      h: z.number().min(0).max(100),
-    })
-    .nullable(),
+  /**
+   * Two corners, `[x1, y1, x2, y2]`, each 0 to 1000 across the frame. Lenient on purpose: the
+   * length and the range are checked by `cornersBox`, which answers "no rectangle" where this
+   * would throw away the whole answer. See the comment on `cornersBox`.
+   */
+  bbox_2d: z.array(z.number()).nullable(),
 });
 export type PhotoItem = z.infer<typeof PhotoItem>;
 
@@ -448,19 +445,23 @@ export const photoJsonSchema = {
           count: { type: "integer" },
           confidence: { type: "number", minimum: 0, maximum: 1 },
           isProduct: { type: "boolean" },
-          box: {
-            type: ["object", "null"],
-            properties: {
-              x: { type: "number", minimum: 0, maximum: 100 },
-              y: { type: "number", minimum: 0, maximum: 100 },
-              w: { type: "number", minimum: 0, maximum: 100 },
-              h: { type: "number", minimum: 0, maximum: 100 },
-            },
-            required: ["x", "y", "w", "h"],
-            additionalProperties: false,
+          // Last, and it must stay last: `salvage.ts` reads an answer the provider cut off by
+          // keeping everything written before this key, which is only whole while nothing
+          // follows it. `minItems`/`maxItems` are not part of OpenAI's strict subset; this tier
+          // is pinned to Qwen through OpenRouter (MODELS.photo), where they are honoured, and a
+          // harness that points this schema at OpenAI is the one caller that has to drop them.
+          // Four numbers, and no range on them. The shape is worth constraining; the range is
+          // not, because a grammar that refuses 1024 turns a rectangle that is four pixels past
+          // the edge into a parse failure, and a parse failure loses the whole photograph.
+          // `cornersBox` trims instead, which is the same answer without the cliff.
+          bbox_2d: {
+            type: ["array", "null"],
+            items: { type: "number" },
+            minItems: 4,
+            maxItems: 4,
           },
         },
-        required: ["name", "brand", "count", "confidence", "isProduct", "box"],
+        required: ["name", "brand", "count", "confidence", "isProduct", "bbox_2d"],
         additionalProperties: false,
       },
     },
@@ -488,32 +489,43 @@ export const photoJsonSchema = {
  * a duplicated count; the close read, which counts on its own, is what settles that.
  */
 /**
- * One photo box, in whole percentages, as a fraction of the frame that is actually inside it.
+ * One product's rectangle, as a fraction of the frame that is actually inside it.
  *
- * The model is asked for a position and a size and sometimes answers with two corners. Measured
- * over 939 boxes in every saved clut run, 227 have x+w or y+h past the frame edge, and 177 of
- * those are a valid rectangle if w and h are read as the far edges: "x 65, w 100" is a box whose
- * right edge is the right edge of the photograph, 35% wide, not one 100% wide beginning two
- * thirds of the way across. Read literally it is cropped clamped to the image edge, and the
- * close read is handed the product's neighbours, which is the one thing a second reading exists
- * to exclude.
+ * Two corners on a 0 to 1000 scale, which is the form Qwen3-VL grounds in, and since 2026-09-13
+ * the form this project asks for. It was asked for x, y, a width and a height as percentages
+ * until then, which the model answered badly in two ways. The smaller: it kept giving corners
+ * anyway, 227 of 939 boxes across the saved clut runs running past the frame edge and 177 of
+ * those a valid rectangle read as corners. The larger: on some photographs it gave every product
+ * the same rectangle. clut7 did it on every saved run and both passes, which cost five products
+ * a crop each time, because a repeated rectangle is worse than none: a missing one is honest and
+ * the shopper is asked to photograph the item again, while a repeated one sends a confident wrong
+ * crop to the one stage that exists to catch a wrong reading.
  *
- * So a box is re-read as corners only when the literal reading is impossible and the corner
- * reading is not. That guard matters: a box that fits inside the frame is never touched, however
- * it was meant, because there is no evidence to touch it on. A box that is impossible either way
- * is trimmed to the frame, and one with nothing left inside the frame becomes no box at all,
- * which is already how an unplaceable product is reported.
+ * `server/eval/pipeline/box-arms.ts` measured the two against each other. Asked in corners, all
+ * 109 products across the fifteen photographs came back with a rectangle and no two products in
+ * a photograph shared one, against 10 items sharing a rectangle and two photographs where every
+ * product shared one.
+ *
+ * Forgiving, in the order that matters. Corners in the wrong order are still a rectangle. One
+ * that runs past the frame is trimmed to it rather than refused. Fewer than four numbers, or a
+ * rectangle with no area left inside the frame, is no rectangle, which is already how an
+ * unplaceable product is reported: shown to the shopper as unsure, with a request for a better
+ * photograph.
  */
-function photoBox(box: { x: number; y: number; w: number; h: number } | null): { x: number; y: number; w: number; h: number } | null {
-  if (box === null) return null;
-  const { x, y } = box;
-  let { w, h } = box;
-  if (x + w > 100 && w > x && w <= 100) w -= x;
-  if (y + h > 100 && h > y && h <= 100) h -= y;
-  w = Math.min(w, 100 - x);
-  h = Math.min(h, 100 - y);
+function cornersBox(corners: number[] | null): { x: number; y: number; w: number; h: number } | null {
+  if (corners === null || corners.length < 4) return null;
+  const [x1, y1, x2, y2] = corners.slice(0, 4).map((n) => (Number.isFinite(n) ? n / 1000 : NaN));
+  if ([x1, y1, x2, y2].some(Number.isNaN)) return null;
+  const x = Math.max(0, Math.min(x1, x2));
+  const y = Math.max(0, Math.min(y1, y2));
+  const w = Math.min(1, Math.max(x1, x2)) - x;
+  const h = Math.min(1, Math.max(y1, y2)) - y;
   if (w <= 0 || h <= 0) return null;
-  return { x: x / 100, y: y / 100, w: w / 100, h: h / 100 };
+  // Rounded, because a thousandth of a frame is already finer than the model can point and a
+  // subtraction in binary floating point is not: 1000/1000 - 580/1000 is 0.42000000000000004,
+  // which travels to the phone, into a crop rectangle, and into every log that shows a box.
+  const round = (n: number): number => Math.round(n * 1e4) / 1e4;
+  return { x: round(x), y: round(y), w: round(w), h: round(h) };
 }
 
 /**
@@ -540,7 +552,7 @@ export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
       approxLocation: "",
       confidence: item.confidence,
       isProduct: item.isProduct,
-      box: photoBox(item.box),
+      box: cornersBox(item.bbox_2d),
     });
     counts.set(key, (counts.get(key) ?? 0) + Math.max(0, item.count));
   }

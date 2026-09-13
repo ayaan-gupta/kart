@@ -63,15 +63,19 @@ function parsedItem(text: string): PhotoItem | null {
 }
 
 /**
- * The product cut off inside its box, read as having none: everything before `"box"` is whole.
- * A key can be matched with a pattern here because a quote inside a JSON string is always
- * escaped, so `"box"` followed by a colon only ever appears as the key itself.
+ * The product cut off inside its rectangle, read as having none: everything before `"bbox_2d"`
+ * is whole. A key can be matched with a pattern here because a quote inside a JSON string is
+ * always escaped, so `"bbox_2d"` followed by a colon only ever appears as the key itself.
+ *
+ * This is why `bbox_2d` is the last field in `photoJsonSchema` and has to stay there. Moving it
+ * to the front reads better to the model, and was measured to place rectangles just as well, but
+ * it would leave a cut-off product with a rectangle and no name, which is nothing.
  */
 function boxlessItem(partial: string): PhotoItem | null {
-  const at = partial.search(/,\s*"box"\s*:/);
+  const at = partial.search(/,\s*"bbox_2d"\s*:/);
   if (at < 0) return null;
   try {
-    const parsed = PhotoItem.safeParse({ ...JSON.parse(`${partial.slice(0, at)}}`), box: null });
+    const parsed = PhotoItem.safeParse({ ...JSON.parse(`${partial.slice(0, at)}}`), bbox_2d: null });
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
@@ -125,14 +129,59 @@ function readWritten(text: string): Written {
   return written;
 }
 
-/** The key of a product written LOOP_WRITINGS times or more, among those whose writing is finished. */
+/**
+ * How much two rectangles are the same rectangle, 0 to 1, on the model's own 0 to 1000 scale.
+ * Not exported: nothing else compares two `bbox_2d`s, and the server's own boxes are a different
+ * shape on a different scale.
+ */
+function sameness(a: number[], b: number[]): number {
+  const box = (r: number[]) => ({
+    x1: Math.min(r[0], r[2]), y1: Math.min(r[1], r[3]),
+    x2: Math.max(r[0], r[2]), y2: Math.max(r[1], r[3]),
+  });
+  const p = box(a), q = box(b);
+  const w = Math.min(p.x2, q.x2) - Math.max(p.x1, q.x1);
+  const h = Math.min(p.y2, q.y2) - Math.max(p.y1, q.y1);
+  if (w <= 0 || h <= 0) return 0;
+  const overlap = w * h;
+  const union = (p.x2 - p.x1) * (p.y2 - p.y1) + (q.x2 - q.x1) * (q.y2 - q.y1) - overlap;
+  return union <= 0 ? 0 : overlap / union;
+}
+
+/**
+ * Two writings of one product in one place, rather than two packages of it side by side.
+ *
+ * Half is a wide margin either way and nothing lands near it. A loop rewrites a product where it
+ * already wrote it, wandering by a point or two, which is a sameness above 0.9; two packages of
+ * one product stand next to each other and barely touch, which is a sameness near 0.
+ */
+const SAME_PLACE = 0.5;
+
+/**
+ * The key of a product written LOOP_WRITINGS times or more in the same place, among those whose
+ * writing is finished.
+ *
+ * The place is the point of it. Until 2026-09-13 this counted writings by name alone, which was
+ * right while the request asked for one entry per product: a name written three times could only
+ * be a model repeating itself. The request now asks for one entry per package, so three tins of
+ * one soup are three entries of one name and a correct answer. On clut7 that answer was cut off
+ * at two products on both passes of the run of 2026-09-13, while the model was writing the third
+ * of three Simply Nature black bean tins, each correctly placed on its own tin.
+ *
+ * A product the model placed nowhere has no place to compare, so those writings fall back to the
+ * count alone and a name written three times with no rectangle is the loop it always was.
+ */
 export function loopedProduct(text: string): string | null {
-  const writings = new Map<string, number>();
+  const writings = new Map<string, (number[] | null)[]>();
   for (const item of readWritten(text).items) {
     const key = keyOf(item);
-    const n = (writings.get(key) ?? 0) + 1;
-    if (n >= LOOP_WRITINGS) return key;
-    writings.set(key, n);
+    const seen = writings.get(key) ?? [];
+    const here = item.bbox_2d !== null && item.bbox_2d.length >= 4 ? item.bbox_2d : null;
+    const together =
+      1 + seen.filter((other) => (here === null || other === null ? other === here : sameness(here, other) >= SAME_PLACE)).length;
+    if (together >= LOOP_WRITINGS) return key;
+    seen.push(here);
+    writings.set(key, seen);
   }
   return null;
 }

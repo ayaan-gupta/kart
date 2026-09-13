@@ -16,7 +16,7 @@ import { streamOf } from "./streams.js";
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock("../src/openai.js", () => ({
   clientFor: () => ({ responses: { create } }),
-  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol", escalate: "gpt-5.5" },
+  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol" },
 }));
 
 const { MODELS } = await import("../src/openai.js");
@@ -78,7 +78,7 @@ beforeEach(() => {
 // products is asked about again, which is its own behaviour with its own tests below.
 const answeredPhoto = {
   subjectKind: "cart",
-  items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } }],
+  items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d: [100, 100, 300, 300] }],
   occlusion: { severity: "none", reason: "" },
 };
 
@@ -100,8 +100,8 @@ describe("runCensus on a photograph (no marks)", () => {
     mockOutput({
       subjectKind: "product",
       items: [
-        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, box: { x: 58, y: 24, w: 42, h: 37 } },
-        { name: "leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, box: null },
+        { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, bbox_2d: [580, 240, 1000, 610] },
+        { name: "leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, bbox_2d: null },
       ],
       occlusion: { severity: "some", reason: "a tin is behind the jar" },
     });
@@ -121,14 +121,14 @@ describe("runCensus on a photograph (no marks)", () => {
   const boxless = {
     subjectKind: "cart",
     items: [
-      { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: null },
-      { name: "Nutella", brand: "Nutella", count: 1, confidence: 0.9, isProduct: true, box: null },
+      { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null },
+      { name: "Nutella", brand: "Nutella", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null },
     ],
     occlusion: { severity: "none", reason: "" },
   };
   const boxed = {
     ...boxless,
-    items: boxless.items.map((item, i) => ({ ...item, box: { x: 10 * i, y: 0, w: 10, h: 10 } })),
+    items: boxless.items.map((item, i) => ({ ...item, bbox_2d: [100 * i, 0, 100 * i + 100, 100] })),
   };
 
   it("asks again when it listed several products and placed a box on none of them", async () => {
@@ -199,8 +199,8 @@ describe("runCensus drops what the model says is not a product", () => {
     mockOutput({
       subjectKind: "product",
       items: [
-        { name: "Bananas", brand: null, count: 1, confidence: 0.9, isProduct: true, box: null },
-        { name: "Food leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, box: null },
+        { name: "Bananas", brand: null, count: 1, confidence: 0.9, isProduct: true, bbox_2d: null },
+        { name: "Food leftovers in a tub", brand: null, count: 1, confidence: 0.5, isProduct: false, bbox_2d: null },
       ],
       occlusion: { severity: "none", reason: "" },
     });
@@ -592,7 +592,7 @@ describe("a census that means \"nothing here\" does not reach the shopper as an 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockOutput({
       subjectKind: "cart",
-      items: [{ name: "None.", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null }],
+      items: [{ name: "None.", brand: null, count: 1, confidence: 0.6, isProduct: true, bbox_2d: null }],
       occlusion: { severity: "none", reason: "" },
     });
     const result = await runCensus(await blankJpeg(), []);
@@ -607,7 +607,7 @@ describe("a census that means \"nothing here\" does not reach the shopper as an 
     // The filter is whole-name only. "no bake cheesecake" starts with "no" and is a product.
     mockOutput({
       subjectKind: "cart",
-      items: [{ name: "No Bake Cheesecake", brand: null, count: 1, confidence: 0.6, isProduct: true, box: null }],
+      items: [{ name: "No Bake Cheesecake", brand: null, count: 1, confidence: 0.6, isProduct: true, bbox_2d: null }],
       occlusion: { severity: "none", reason: "" },
     });
     const result = await runCensus(await blankJpeg(), []);
@@ -1326,7 +1326,7 @@ describe("runCensus on a confirmation photograph", () => {
 describe("a looping answer is cut off rather than paid for", () => {
   const photo = {
     subjectKind: "cart",
-    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } }],
+    items: [{ name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d: [100, 100, 300, 300] }],
     occlusion: { severity: "none", reason: "" },
   };
   const wide = { description: "Rigatoni", productKey: "priano::rigatoni", brand: "Priano", count: 1, confidence: 0.9 };
@@ -1379,7 +1379,7 @@ describe("a looping answer is cut off rather than paid for", () => {
  * loop is seen as it starts and everything before it is kept.
  */
 describe("a photo answer that goes wrong is stopped there, and what it wrote is kept", () => {
-  const product = (name: string, brand: string | null, x: number) => ({ name, brand, count: 1, confidence: 0.9, isProduct: true, box: { x, y: 10, w: 20, h: 20 } });
+  const product = (name: string, brand: string | null, x: number) => ({ name, brand, count: 1, confidence: 0.9, isProduct: true, bbox_2d: [x, 100, x + 200, 300] });
   const opening = '{"subjectKind":"cart","items":[';
   const good = [product("Rigatoni", "Priano", 5), product("Hazelnut spread", "Nutella", 40)].map((p) => JSON.stringify(p));
   const loop = JSON.stringify(product("crackers", "Savoritz", 70));
@@ -1421,7 +1421,7 @@ describe("a photo answer that goes wrong is stopped there, and what it wrote is 
   });
 
   it("stops a stall of whitespace, and keeps the product it stalled in without its box", async () => {
-    const stalling = `${opening}${good[0]},{"name":"apples","brand":null,"count":10,"confidence":0.9,"isProduct":true,"box":{"x":47,${" ".repeat(5000)}`;
+    const stalling = `${opening}${good[0]},{"name":"apples","brand":null,"count":10,"confidence":0.9,"isProduct":true,"bbox_2d":[470,${" ".repeat(5000)}`;
     const stream = streamOf(stalling);
     create.mockImplementationOnce(async () => stream);
     const result = await runCensus(await blankJpeg(), []);
@@ -1458,7 +1458,7 @@ describe("a photo answer that goes wrong is stopped there, and what it wrote is 
  */
 describe("a photograph answered with no products is asked about once more", () => {
   const empty = { subjectKind: "product", items: [], occlusion: { severity: "none", reason: "" } };
-  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: { x: 10, y: 10, w: 20, h: 20 } };
+  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d: [100, 100, 300, 300] };
   const full = { subjectKind: "cart", items: [product], occlusion: { severity: "none", reason: "" } };
 
   it("asks again when the answer lists no products, and takes the one that does", async () => {
@@ -1470,7 +1470,7 @@ describe("a photograph answered with no products is asked about once more", () =
   });
 
   it("counts an answer whose every item is not a product as empty", async () => {
-    mockOutput({ ...empty, items: [{ ...product, name: "shopping cart", isProduct: false, box: null }] });
+    mockOutput({ ...empty, items: [{ ...product, name: "shopping cart", isProduct: false, bbox_2d: null }] });
     mockOutput(full);
     await runCensus(await blankJpeg(), []);
     expect(create).toHaveBeenCalledTimes(2);
@@ -1479,7 +1479,7 @@ describe("a photograph answered with no products is asked about once more", () =
   it("asks only once, and takes products the second answer could not place", async () => {
     // Found and unsure beats absent: an unboxed line is still in the bag for the shopper to see.
     mockOutput(empty);
-    mockOutput({ ...full, items: [{ ...product, box: null }, { ...product, name: "Nutella", brand: "Nutella", box: null }] });
+    mockOutput({ ...full, items: [{ ...product, bbox_2d: null }, { ...product, name: "Nutella", brand: "Nutella", bbox_2d: null }] });
     const result = await runCensus(await blankJpeg(), []);
     expect(create).toHaveBeenCalledTimes(2);
     expect(result.unmarkedItems).toHaveLength(2);
@@ -1517,7 +1517,7 @@ describe("a photograph answered with no products is asked about once more", () =
  * shopper could have seen as unsure, went with it. A timed-out census puts nothing in the bag.
  */
 describe("a second asking that runs out of time keeps the first answer", () => {
-  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, box: null };
+  const product = { name: "Rigatoni", brand: "Priano", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null };
   const boxless = {
     subjectKind: "cart",
     items: [product, { ...product, name: "Nutella", brand: "Nutella" }],

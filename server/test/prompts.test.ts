@@ -351,12 +351,24 @@ describe("only supermarket products, and nothing is a valid answer", () => {
   });
 });
 
-describe("PHOTO_SYSTEM_PROMPT asks for a box per item", () => {
-  it("names the box and its frame: origin top left, whole percentages 0 to 100", () => {
-    expectPromptNamesField(PHOTO_SYSTEM_PROMPT, "box");
+describe("PHOTO_SYSTEM_PROMPT asks for a rectangle per item", () => {
+  it("names the rectangle and its frame: two corners, 0 to 1000 across the image", () => {
+    expectPromptNamesField(PHOTO_SYSTEM_PROMPT, "bbox_2d");
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/top[- ]left/i);
-    expect(PHOTO_SYSTEM_PROMPT).toMatch(/0 to\s+100/);
-    expect(PHOTO_SYSTEM_PROMPT).toMatch(/percentages/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/bottom[- ]right/i);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/0 to\s+1000/);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/\[x1, y1, x2, y2\]/);
+  });
+
+  /**
+   * The repeated rectangle, measured in `server/eval/pipeline/box-arms.ts`. Asking in
+   * percentages, clut7 gave every one of its products the same rectangle on every saved run and
+   * both passes; asking in corners, no two products in any of the fifteen photographs shared one.
+   * The prompt says so as well as the schema, because the schema cannot say it.
+   */
+  it("forbids two products from sharing one rectangle", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/own rectangle/i);
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/never have the\s+same four numbers/i);
   });
 });
 

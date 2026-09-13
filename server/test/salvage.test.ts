@@ -4,18 +4,20 @@ import { loopedProduct, salvagePhoto, stalled } from "../src/salvage.js";
 
 /**
  * The shapes below are the ones Qwen 3 VL 235B actually wrote when it was stopped, taken from the
- * service log of 2026-09-11: clut12 repeating "lactose free milk, Friendly Farms" with the box
- * wandering by a point or two, clut9 repeating "crackers, Savoritz" with tabs inside the box, and
- * an answer that stalled on whitespace inside the first product's box.
+ * service log of 2026-09-11: clut12 repeating "lactose free milk, Friendly Farms" with the rectangle
+ * wandering by a point or two, clut9 repeating "crackers, Savoritz" with tabs inside the
+ * rectangle, and an answer that stalled on whitespace inside the first product's rectangle. They
+ * are written here in the `bbox_2d` corners the request has asked for since 2026-09-13; what is
+ * being tested is the walk over a cut-off answer, which does not care what a rectangle holds.
  */
 const item = (name: string, brand: string | null, x: number, extra: Partial<Record<string, unknown>> = {}) =>
-  JSON.stringify({ name, brand, count: 1, confidence: 0.95, isProduct: true, box: { x, y: 18, w: 18, h: 10 }, ...extra });
+  JSON.stringify({ name, brand, count: 1, confidence: 0.95, isProduct: true, bbox_2d: [x, 180, x + 180, 280], ...extra });
 
 const head = '{"subjectKind": "product", "items": [';
 const milk = (y: number) =>
-  `{"name": "lactose free milk", "brand": "Friendly Farms", "count": 1, "confidence": 0.98, "isProduct": true, "box": {"x": 34,  \n\n\n\n"y": ${y}, "w": 18, "h": 18}}`;
+  `{"name": "lactose free milk", "brand": "Friendly Farms", "count": 1, "confidence": 0.98, "isProduct": true, "bbox_2d": [340,  \n\n\n\n${y}, 520, 360]}`;
 const beforeLoop = [item("probiotic drink", null, 5), item("cream cheese", null, 60, { count: 2 })];
-const clut12 = `${head}${[...beforeLoop, milk(18), milk(19), milk(18), milk(19)].join(", ")}, {"name": "lactose free milk", "brand": "Friendly Farms", "count`;
+const clut12 = `${head}${[...beforeLoop, milk(180), milk(190), milk(180), milk(190)].join(", ")}, {"name": "lactose free milk", "brand": "Friendly Farms", "count`;
 
 describe("salvagePhoto", () => {
   it("keeps every product written before a loop, and the looped one once", () => {
@@ -34,7 +36,7 @@ describe("salvagePhoto", () => {
   it("keeps the looped product's first count and box, not their sum", () => {
     const looped = salvagePhoto(clut12)?.items[2];
     expect(looped?.count).toBe(1);
-    expect(looped?.box).toEqual({ x: 34, y: 18, w: 18, h: 18 });
+    expect(looped?.bbox_2d).toEqual([340, 180, 520, 360]);
   });
 
   it("keeps the products written before it untouched", () => {
@@ -42,9 +44,9 @@ describe("salvagePhoto", () => {
     expect(cheese).toEqual(JSON.parse(beforeLoop[1]));
   });
 
-  it("keeps a product cut off inside its box, without the box", () => {
-    const text = `{"subjectKind": "product", "items": [{"name": "apples", "brand": null, "count": 10, "confidence": 0.95, "isProduct": true, "box": {"x": 47,${" ".repeat(400)}`;
-    expect(salvagePhoto(text)?.items).toEqual([{ name: "apples", brand: null, count: 10, confidence: 0.95, isProduct: true, box: null }]);
+  it("keeps a product cut off inside its rectangle, without the rectangle", () => {
+    const text = `{"subjectKind": "product", "items": [{"name": "apples", "brand": null, "count": 10, "confidence": 0.95, "isProduct": true, "bbox_2d": [470,${" ".repeat(400)}`;
+    expect(salvagePhoto(text)?.items).toEqual([{ name: "apples", brand: null, count: 10, confidence: 0.95, isProduct: true, bbox_2d: null }]);
   });
 
   it("drops a product cut off before its fields were all written", () => {
@@ -55,7 +57,7 @@ describe("salvagePhoto", () => {
   it("returns nothing when no product was written", () => {
     expect(salvagePhoto('{"subjectKind":"cart","items":[{"name":"Rigatoni","brand":"Priano"')).toBeNull();
     expect(salvagePhoto('{"subjectKind":"cart","items":[')).toBeNull();
-    expect(salvagePhoto(`${head}${item("shopping cart", null, 0, { isProduct: false, box: null })}, {"na`)).toBeNull();
+    expect(salvagePhoto(`${head}${item("shopping cart", null, 0, { isProduct: false, bbox_2d: null })}, {"na`)).toBeNull();
   });
 
   it("returns nothing when it cannot tell what the photograph is of", () => {
@@ -89,22 +91,53 @@ describe("salvagePhoto", () => {
 });
 
 describe("loopedProduct", () => {
-  it("names a product written three times", () => {
-    expect(loopedProduct(`${head}${[milk(18), milk(19), milk(18)].join(", ")}, {"na`)).toBe("friendly farms::lactose free milk");
+  it("names a product written three times in the same place", () => {
+    expect(loopedProduct(`${head}${[milk(180), milk(190), milk(180)].join(", ")}, {"na`)).toBe("friendly farms::lactose free milk");
   });
 
   it("allows a product written twice, which can be two packs of one name", () => {
-    expect(loopedProduct(`${head}${[milk(18), milk(60)].join(", ")}, {"na`)).toBeNull();
+    expect(loopedProduct(`${head}${[milk(180), milk(600)].join(", ")}, {"na`)).toBeNull();
   });
 
   it("counts only products whose writing is finished", () => {
-    expect(loopedProduct(`${head}${[milk(18), milk(19)].join(", ")}, ${milk(18).slice(0, -2)}`)).toBeNull();
+    expect(loopedProduct(`${head}${[milk(180), milk(190)].join(", ")}, ${milk(180).slice(0, -2)}`)).toBeNull();
+  });
+
+  /**
+   * The request has asked for one entry per package since 2026-09-13, so three tins of the same
+   * soup are three entries of one name, correctly answered. This guard stopped exactly that on
+   * clut7, both passes of the run of 2026-09-13: the answer was cut off at two products while it
+   * was writing the third of three Simply Nature black bean tins, each with its own rectangle.
+   *
+   * A loop and a row of tins are told apart by where they are. A loop rewrites one product in one
+   * place, wandering by a point or two; packages sit side by side and their rectangles barely
+   * touch.
+   */
+  it("allows a product written three times in three places, which is three packages", () => {
+    const beans = (x: number) =>
+      `{"name": "Black Beans", "brand": "Simply Nature", "count": 1, "confidence": 0.9, "isProduct": true, "bbox_2d": [${x}, 414, ${x + 155}, 657]}`;
+    expect(loopedProduct(`${head}${[beans(195), beans(346), beans(577)].join(", ")}, {"na`)).toBeNull();
+  });
+
+  it("still names a product rewritten three times where it barely moves", () => {
+    const drift = (x: number) =>
+      `{"name": "Black Beans", "brand": "Simply Nature", "count": 1, "confidence": 0.9, "isProduct": true, "bbox_2d": [${x}, 414, ${x + 155}, 657]}`;
+    expect(loopedProduct(`${head}${[drift(195), drift(200), drift(197)].join(", ")}, {"na`)).toBe("simply nature::black bean");
+  });
+
+  /**
+   * A product the model placed nowhere cannot be told apart by place, so it falls back to the
+   * count alone. Three writings of one name and no rectangle is the loop it always was.
+   */
+  it("names a product written three times with no rectangle at all", () => {
+    const nowhere = '{"name": "quinoa", "brand": null, "count": 1, "confidence": 0.9, "isProduct": true, "bbox_2d": null}';
+    expect(loopedProduct(`${head}${[nowhere, nowhere, nowhere].join(", ")}, {"na`)).toBe("::quinoa");
   });
 });
 
 describe("stalled", () => {
   it("is true once the answer ends in a long run of whitespace", () => {
-    expect(stalled(`${head}{"name": "apples", "box": {"x": 47,${" \n\t".repeat(100)}`)).toBe(true);
+    expect(stalled(`${head}{"name": "apples", "bbox_2d": [470,${" \n\t".repeat(100)}`)).toBe(true);
   });
 
   it("is false for the short runs a real answer has inside a box", () => {

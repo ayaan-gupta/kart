@@ -860,7 +860,7 @@ const PHOTO_STOCK_LIST = process.env.KART_PHOTO_STOCK_LIST === "1";
 /** Two or more products listed and not one of them placed. See the call site for the measurement. */
 function boxless(answer: PhotoResponse): boolean {
   const products = answer.items.filter((item) => item.isProduct);
-  return products.length >= 2 && products.every((item) => item.box === null);
+  return products.length >= 2 && products.every((item) => item.bbox_2d === null);
 }
 
 /**
@@ -1018,7 +1018,7 @@ export async function runCensus(
         second !== null &&
         (empty
           ? second.items.some((item) => item.isProduct)
-          : second.items.some((item) => item.isProduct && item.box !== null));
+          : second.items.some((item) => item.isProduct && item.bbox_2d !== null));
       if (better && second !== null) answer = second;
     }
     // The model answers in its own compact terms (see `photoJsonSchema`); folded into the census

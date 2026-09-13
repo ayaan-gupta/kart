@@ -7,7 +7,7 @@ import { streamOf } from "./streams.js";
 // MODELS is mutable so a case can put an OpenRouter model in the photo tier.
 const { create, models } = vi.hoisted(() => ({
   create: vi.fn(),
-  models: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol", escalate: "gpt-5.5" },
+  models: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol" },
 }));
 vi.mock("../src/openai.js", () => ({
   clientFor: () => ({ responses: { create } }),
@@ -22,7 +22,7 @@ async function blankJpeg(): Promise<Buffer> {
 
 const photoAnswer = {
   subjectKind: "product",
-  items: [{ name: "oat milk", brand: "Friendly Farms", count: 1, confidence: 0.9, isProduct: true, box: null }],
+  items: [{ name: "oat milk", brand: "Friendly Farms", count: 1, confidence: 0.9, isProduct: true, bbox_2d: null }],
   occlusion: { severity: "none", reason: "" },
 };
 
