@@ -298,3 +298,29 @@ export function reconcile(
   }
   return { ...agreed, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
 }
+
+/**
+ * A line the two readings agreed on, held back because a second reader finds more packages in the
+ * crop than the line claims.
+ *
+ * The last witness, and the only one allowed to take certainty away. Both readings count from the
+ * same crop, so when they agree on a count they are one witness and not two, which is the same
+ * argument `countNeedsCheck` makes about a count above one. On clut4 two bags of Priano rigatoni
+ * lean against each other and every reading this pipeline makes of them says one bag; twelve ways
+ * of asking were measured and the photo model answers one every time, so it is a limit of the
+ * reader and not of the request.
+ *
+ * Doubt only, and that is the whole safety argument for acting on a second reader at all. It never
+ * takes the check's count, never renames anything and never adds a line, so a reader that
+ * over-counts cannot put a product in the bag that is not there; the worst it can do is ask the
+ * shopper about something that was right. Fewer packages than the line claims is left alone for
+ * the same reason in reverse: a crop can hide a unit behind another, and the count the readings
+ * agreed on is the better witness to a thing that cannot be seen.
+ *
+ * No packages at all is silence, not a count of zero: a call that failed, timed out or declined
+ * leaves the line exactly as the readings left it.
+ */
+export function doubtByPackages(line: ReconciledLine, packages: number): ReconciledLine {
+  if (!line.sure || packages <= line.count) return line;
+  return { ...line, sure: false };
+}

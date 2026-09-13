@@ -1130,6 +1130,80 @@ product instead of two thirds of them, and every rectangle is a crop and a secon
 photograph against 3.8. The price of the change is almost exactly the price of reading twice the
 things that were never read at all.
 
+## A second reader for the lines about to be asserted, measured on 2026-09-13
+
+The two identical bags of Priano rigatoni are the one case this corpus has never read, and the
+section above records twelve ways of asking the photo model that all answer "one". A thirteenth
+thing was never tried: asking a different reader.
+
+`openai/gpt-5.6-luna` is reachable on the same OpenRouter key that pays for everything else, so
+the empty OpenAI account was never the obstacle it was reported as. On the ten crops of clut4 and
+clut5 whose package count is known, one call each:
+
+| reader | right | both touching pairs | per crop |
+|---|---|---|---|
+| gpt-5.6-luna | 9 of 10 | 2 and 2 | $0.0002 |
+| gpt-5.6-sol | 9 of 10 | 2 and 1 | $0.0021 |
+
+The cheap tier is the better one and a tenth of the price, which is the third time this project has
+measured that and the second time on a counting task.
+
+### Doubt only, which is what makes a second reader safe to act on
+
+The check never takes its own count, never renames anything and never adds a line. It can only
+hold back a line the two readings already agreed on. A reader that over-counts therefore cannot
+put a product in the bag that is not there; the worst it can do is ask the shopper about something
+that was right. It is asked only where a line came out sure, because an unsure line is already in
+front of the shopper, which is 94 of the 196 crops.
+
+Replayed over both passes of the fifteen photographs against the run above:
+
+| | before | after |
+|---|---|---|
+| **5 asserted lines wrong** | **3 of 87** | **0 of 81** |
+| the same by whole-bag totals | 6 of 87 | 3 of 81 |
+| 1 every item reaches the bag | 128 of 164 | 128 of 164 |
+| 2 quantities right | 111 of 128 | 111 of 128 |
+| brands right | 86 of 91 | 86 of 91 |
+| 3 hidden items flagged | 19 of 26 | 19 of 26 |
+| lines matching nothing real | 27 | 27 |
+| per photograph | $0.0051 | $0.0071 |
+
+Nothing but the certainty column moves, which is the whole design.
+
+### It is a mitigation and not a cure, and here is its real rate
+
+That 0 is one sample. Sampled eight times per scale on the exact bytes the service sends, the
+check finds the second bag on clut4 in 2 of 8 looks at 1536 and clut5 in 3 of 8 at 1024, and
+neither at the other's scale. No single scale reads both pairs, which is why it looks twice. What
+does hold across every sample is the safety: **0 false alarms in 72 looks at single packages**. It
+never once called one package two.
+
+So the honest claim is that this removes about a third of the wrong assertions, not all of them,
+and that a live run can still assert a wrong count. Two live runs of clut4 and clut5 did exactly
+that before this was measured properly.
+
+### Two framings that read both pairs every time, and why neither ships
+
+The enumeration above is safe and insensitive. The opposite exists too, and the wall between them
+is real. Five samples on each of eleven crops whose count is known:
+
+| framing | clut4's pair | clut5's pair | false alarms on one package |
+|---|---|---|---|
+| enumerate the packages (**ships**) | 2 of 8 | 3 of 8 | **0 of 72** |
+| is there more than one, yes or no | 5 of 5 | 5 of 5 | 4 of 5 on one crop |
+| count the sealed tops | 5 of 5 | 3 of 5 | 9 of 40 |
+| count the sealed tops, anchored on the named product | 5 of 5 | 5 of 5 | 9 of 45 |
+
+The anchored version was written after reading what the plain one got wrong: it counts a lid that
+belongs to the neighbour. Anchoring it moved the false alarms around rather than removing them.
+The clut4 Nutella crop is the clearest case, five false alarms of five: the crop holds one Nutella
+jar, and the red lid at its left edge is the marinara sauce.
+
+A framing that holds back a fifth of every asserted line to catch two wrong ones is worse than the
+defect. The safe one ships and the others are recorded here so the next person does not spend the
+afternoon finding them again.
+
 ## What the numbers do not cover
 
 The basket tier's labels are complete, so both its recall and its count of lines matching nothing

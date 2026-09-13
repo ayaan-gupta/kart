@@ -2,8 +2,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import sharp from "sharp";
 import { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import type { Mark } from "../src/compositor.js";
-import { censusJsonSchema, identifyJsonSchema, photoJsonSchema, productKey, unitsJsonSchema, verifyJsonSchema } from "../src/schemas.js";
-import { CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT, UNITS_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, unitsUserText, verifyUserText } from "../src/prompts.js";
+import {
+  censusJsonSchema, identifyJsonSchema, packageCheckJsonSchema, photoJsonSchema, productKey,
+  unitsJsonSchema, verifyJsonSchema,
+} from "../src/schemas.js";
+import {
+  CENSUS_SYSTEM_PROMPT, IDENTIFY_SYSTEM_PROMPT, PACKAGE_CHECK_SYSTEM_PROMPT, PHOTO_SYSTEM_PROMPT,
+  UNITS_SYSTEM_PROMPT, VERIFY_SYSTEM_PROMPT, censusUserText, packageCheckUserText, unitsUserText,
+  verifyUserText,
+} from "../src/prompts.js";
 import type { CensusDiagnostics } from "../src/recognize.js";
 import { streamOf } from "./streams.js";
 
@@ -16,7 +23,7 @@ import { streamOf } from "./streams.js";
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock("../src/openai.js", () => ({
   clientFor: () => ({ responses: { create } }),
-  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol" },
+  MODELS: { census: "gpt-5.4-mini", identify: "gpt-5.4", photo: "gpt-5.6-sol", check: "openai/gpt-5.6-luna" },
 }));
 
 const { MODELS } = await import("../src/openai.js");
@@ -1572,8 +1579,14 @@ describe("runVerify asks again where the close read counted more than one", () =
 
   it("does not ask at all when the crop holds one package", async () => {
     mockOutput({ ...closeAnswer, count: 1 });
+    mockOutput({ packages: [{ label: "Savoritz crackers" }] });
+    mockOutput({ packages: [{ label: "Savoritz crackers" }] });
     const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide: { ...wide, count: 1 } }]);
-    expect(create).toHaveBeenCalledTimes(1);
+    // The close read and the package check's two looks, and no unit pass between them: the check
+    // asks a different question under a different schema. See "runVerify checks the packages in a
+    // line it is about to assert".
+    const schemas = create.mock.calls.map((c: any[]) => c[0].text.format.name);
+    expect(schemas).toEqual(["verify", "package_check", "package_check"]);
     expect(item.units).toBeUndefined();
     expect(item.split).toBeUndefined();
   });
@@ -1642,5 +1655,103 @@ describe("runVerify asks again where the close read counted more than one", () =
     mockOutput(units({ label: "crackers" }, { label: "crackers" }));
     const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
     expect(item.line.sure).toBe(false);
+  });
+});
+
+/**
+ * The package check: a second reader, asked only about the lines that are about to be asserted.
+ *
+ * The photo model cannot see two identical bags leaning against each other. Twelve ways of asking
+ * it were measured; it answers one every time. A reader that can count them is cheap when counting
+ * is all it has to do, and `MODELS.check` is that reader.
+ *
+ * It is asked only where a line came out sure, because an unsure line is already in front of the
+ * shopper, and it can only ever hold a line back. Measured over both passes of the fifteen
+ * photographs, asserted lines wrong went from 3 to 0 with every other number unchanged.
+ */
+describe("runVerify checks the packages in a line it is about to assert", () => {
+  const wide = { description: "rigatoni", productKey: "priano::rigatoni", brand: "Priano", count: 1, confidence: 0.95 };
+  const closeAnswer = { name: "rigatoni", brand: "Priano", count: 1, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null };
+  const box = { x: 0.5, y: 0.2, w: 0.4, h: 0.3 };
+  const packages = (...labels: string[]) => ({ packages: labels.map((label) => ({ label })) });
+
+  it("looks twice per sure line, under its own prompt and model, at two scales", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    await runVerify([{ id: "a", crop: await blankJpeg(4000, 2000), box, wide }]);
+
+    expect(create).toHaveBeenCalledTimes(3);
+    for (const call of create.mock.calls.slice(1)) {
+      const params = call[0];
+      expect(params.model).toBe(MODELS.check);
+      expect(params.input[0]).toEqual({ role: "system", content: PACKAGE_CHECK_SYSTEM_PROMPT });
+      expect(params.input[1].content[0].text).toBe(packageCheckUserText("rigatoni"));
+      expect(params.text.format.schema).toEqual(packageCheckJsonSchema);
+    }
+    const edges = await Promise.all(create.mock.calls.slice(1).map(async (call: any[]) => {
+      const url: string = call[0].input[1].content[1].image_url;
+      const meta = await sharp(Buffer.from(url.split(",")[1], "base64")).metadata();
+      return Math.max(meta.width ?? 0, meta.height ?? 0);
+    }));
+    // No single scale reads both of this corpus's touching pairs; see CHECK_LONG_EDGES.
+    expect(edges.sort((a, b) => b - a)).toEqual([1536, 1024]);
+  });
+
+  it("holds the line back when either look finds a package the readings did not", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Rigatoni Bronze Cut", "Priano Rigatoni Authentic Italian"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+  });
+
+  it("keeps the line asserted when one look fails and the other agrees", async () => {
+    mockOutput(closeAnswer);
+    create.mockRejectedValueOnce(new Error("no endpoints"));
+    mockOutput(packages("Priano Rigatoni"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(true);
+  });
+
+  it("holds the line back when the check finds a package the readings did not", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Rigatoni Authentic Italian", "Priano Rigatoni Authentic Italian"));
+    mockOutput(packages("Rigatoni Authentic Italian", "Priano Rigatoni Authentic Italian"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+    // Doubt, not a reading: the count and the name are the ones the two readings agreed on.
+    expect(item.line.count).toBe(1);
+    expect(item.line.description).toBe("rigatoni");
+  });
+
+  it("leaves a line the check agrees with asserted", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(true);
+  });
+
+  it("does not ask about a line that is already held back", async () => {
+    mockOutput({ ...closeAnswer, name: "penne", brand: "Barilla" });
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the line as the readings left it when the check fails", async () => {
+    mockOutput(closeAnswer);
+    create.mockRejectedValueOnce(new Error("no endpoints"));
+    create.mockRejectedValueOnce(new Error("no endpoints"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(true);
+  });
+
+  it("does not ask about a crop the close read never came back for", async () => {
+    create.mockRejectedValueOnce(new Error("timed out"));
+    const [item] = await runVerify([{ id: "a", crop: await blankJpeg(), box, wide }]);
+    expect(item.line.sure).toBe(false);
+    expect(create).toHaveBeenCalledTimes(1);
   });
 });

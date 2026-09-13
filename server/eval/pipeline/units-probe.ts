@@ -71,6 +71,11 @@
  *       --gate-count      ask only where the close read counted more than one package
  *       --variety-only    act only on a crop holding more than one variety, never on a count
  *       --confirm-counts  assert a count the gate is holding back when the units agree with it
+ *       --sure-only       ask only where the saved line came out sure, which is the only place a
+ *                         second opinion can protect anything
+ *       --doubt-counts    hold back a line the readings agreed on where the second question finds
+ *                         more packages in the crop than the line claims. Doubt only: the count,
+ *                         the name and the number of lines are all left exactly as they were
  *       --from <paths>    comma-separated earlier runs of this harness: the points are read back
  *                         and no model call is made, so a policy is re-measured for nothing
  *       --out <path>      result JSON, default server/eval/units-probe.json
@@ -93,6 +98,8 @@ import { basename, join } from 'node:path';
 import sharp from 'sharp';
 import OpenAI from 'openai';
 import { MODELS } from '../../src/openai';
+import { PACKAGE_CHECK_SYSTEM_PROMPT } from '../../src/prompts';
+import { packageCheckJsonSchema } from '../../src/schemas';
 import { PRICES_PER_MTOK } from '../../src/usage';
 import { orientedSize } from '../../src/compositor';
 import { norm, type ScoreLine } from './clut-scoring';
@@ -111,7 +118,13 @@ const wantedPass = Number(arg('pass', '1'));
 const only = arg('only', '');
 const out = arg('out', join(import.meta.dirname, '../units-probe.json'));
 const outDir = arg('out-dir', join(import.meta.dirname, '../.cache/units-probe'));
-const longEdge = Number(arg('long-edge', '768'));
+/**
+ * The scales one crop is looked at, comma separated. More than one is what the shipped package
+ * check does (`CHECK_LONG_EDGES` in recognize.ts): the answer is the look that found the most,
+ * which is safe because the check is one-sided and never calls one package two.
+ */
+const longEdges = arg('long-edge', '768').split(',').map((s) => Number(s.trim())).filter((n) => n > 0);
+const longEdge = longEdges[0];
 const writeCrops = argv.includes('--write-crops');
 const from = arg('from', '');
 const varietyOnly = argv.includes('--variety-only');
@@ -130,6 +143,21 @@ const gateCount = argv.includes('--gate-count');
  * reconciled it as sure, so nothing the gate held back for another reason is let through.
  */
 const confirmCounts = argv.includes('--confirm-counts');
+/**
+ * Ask only where the saved run's line came out sure, which is the only place the answer can
+ * protect anything: an unsure line is already in front of the shopper to check.
+ */
+const sureOnly = argv.includes('--sure-only');
+/**
+ * Hold back a line the readings agreed on, where the second question finds more packages in the
+ * crop than the line claims.
+ *
+ * Doubt only. It never takes the second question's count, never renames anything and never splits
+ * a line in two, so it cannot put a product in the bag that is not there; the worst it can do is
+ * ask the shopper about something that was right. That asymmetry is the whole reason it is safe to
+ * act on a reader that is better than this pipeline's but not perfect.
+ */
+const doubtCounts = argv.includes('--doubt-counts');
 const arms = arg('arm', 'neutral,anchored').split(',').map((s) => s.trim()).filter((s) => s.length > 0);
 
 const IMAGES = join(import.meta.dirname, '../.cache/clut');
@@ -214,31 +242,6 @@ const cornerJsonSchema = {
   additionalProperties: false,
 } as const;
 
-/**
- * The same question with no coordinates in it at all.
- *
- * Every other arm asks the model to point at something, and on clut4 every one of them answers
- * with a single package covering the whole crop. This one asks only for the list, to separate
- * "cannot see two bags" from "cannot point at two bags". It can confirm or deny a count and can
- * never split a box, which is one of the two uses the shipped stage puts the answer to.
- */
-const wordsJsonSchema = {
-  type: 'object',
-  properties: {
-    units: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: { label: { type: 'string' } },
-        required: ['label'],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ['units'],
-  additionalProperties: false,
-} as const;
-
 const COMMON = `
 Locate every separate physical package in the crop and report one entry per package in units:
 x and y are the centre of that package on a scale where the left edge of the crop is 0, the right
@@ -267,30 +270,20 @@ that encloses that package, on a scale where the left edge of the crop is 0, the
 );
 if (CORNERS === COMMON) throw new Error('units-probe: the corners arm no longer matches COMMON');
 
-const WORDS = `
-List every separate physical package in the crop, one entry per package in units: label is a few
-words you can actually read on that package, enough to tell it from the one beside it.
-
-Two packages of one product leaning against each other, or one standing behind another with only
-its top showing, are two entries, not one. Two packages of the same range in different flavours or
-varieties are two entries, and their labels must say which is which. Two lines of text on one
-package are one entry, not two. Something that is not a package of a grocery product is not an
-entry at all.
-
-Answer only with the structured object.
-`.trim();
 
 const SYSTEM: Record<string, string> = {
   neutral: `You are looking at a close crop cut from a photograph of groceries.\n\n${COMMON}`,
   anchored: `${ANCHORED}\n\n${COMMON}`,
   named: `${ANCHORED}\n\n${COMMON}`,
   corners: `${ANCHORED}\n\n${CORNERS}`,
-  words: `${ANCHORED}\n\n${WORDS}`,
+  // The shipped text itself, imported rather than copied: this arm is what `runVerify` sends, and
+  // a second copy of a prompt is a measurement of last month's build waiting to happen.
+  words: PACKAGE_CHECK_SYSTEM_PROMPT,
 };
 /** The corners arm is anchored on the name alone, which is what `named` measured as the best. */
 const SCHEMA: Record<string, unknown> = {
   neutral: pointJsonSchema, anchored: pointJsonSchema, named: pointJsonSchema,
-  corners: cornerJsonSchema, words: wordsJsonSchema,
+  corners: cornerJsonSchema, words: packageCheckJsonSchema as unknown as Record<string, unknown>,
 };
 /**
  * What the crop is said to be. `anchored` gives the wide pass's brand as well as its name, and
@@ -312,8 +305,18 @@ const client = new OpenAI({
   apiKey: process.env.KART_QWEN_KEY,
   baseURL: process.env.KART_OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
 });
-const provider = model.includes('/')
-  ? { provider: { order: [process.env.KART_OPENROUTER_PROVIDER?.trim() || 'Parasail'], allow_fallbacks: false } }
+/**
+ * The upstream pin, and how to turn it off.
+ *
+ * Pinning one provider is what makes a Qwen run reproducible: OpenRouter otherwise answers from
+ * whichever upstream is free, which puts two resolutions in one arm's numbers. It is wrong for a
+ * first-party model, though. `openai/gpt-5.6-sol` is served by OpenAI itself and by nobody else,
+ * so pinning Parasail to it returns "No endpoints found" and the whole run comes back empty.
+ * `KART_OPENROUTER_PROVIDER=none` asks for no pin, which is what a first-party model needs.
+ */
+const pinned = process.env.KART_OPENROUTER_PROVIDER?.trim() || 'Parasail';
+const provider = model.includes('/') && pinned.toLowerCase() !== 'none'
+  ? { provider: { order: [pinned], allow_fallbacks: false } }
   : {};
 
 let inputTokens = 0;
@@ -354,7 +357,13 @@ async function askUnits(arm: string, item: Item, crop: string): Promise<Unit[]> 
   inputTokens += response.usage?.input_tokens ?? 0;
   outputTokens += response.usage?.output_tokens ?? 0;
   calls += 1;
-  const answered = (JSON.parse(response.output_text) as { units: (Unit & { bbox_2d?: number[] })[] }).units;
+  const body = JSON.parse(response.output_text) as {
+    units?: (Unit & { bbox_2d?: number[] })[];
+    packages?: { label: string }[];
+  };
+  // The shipped package check answers in `packages` and reports no position at all: it is only
+  // ever counted. Read back into the shape the rest of this harness works in.
+  const answered = body.units ?? (body.packages ?? []).map((p) => ({ label: p.label } as Unit));
   // Corners folded to the centre the rest of this harness works in, so the question is the only
   // thing that differs between the arms.
   return answered.map((unit) => {
@@ -418,7 +427,8 @@ const probes: Probe[] = [];
 /** Per arm and certainty policy, per run file, the rows with the stage applied. */
 const rebuilt = new Map<string, Map<string, Row[]>>();
 const bucket = (arm: string, policy: 'sure' | 'unsure'): string =>
-  `${arm}${gateCount ? '-gated' : ''}${varietyOnly ? '-variety' : ''}${confirmCounts ? '-confirmed' : ''}-${policy}`;
+  `${arm}${gateCount ? '-gated' : ''}${sureOnly ? '-sureonly' : ''}${varietyOnly ? '-variety' : ''}`
+  + `${confirmCounts ? '-confirmed' : ''}${doubtCounts ? '-doubted' : ''}-${policy}`;
 for (const arm of arms) for (const policy of ['sure', 'unsure'] as const) rebuilt.set(bucket(arm, policy), new Map());
 
 for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clut-photos-salvage.json')]) {
@@ -442,12 +452,16 @@ for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clu
     const { width, height } = orientedSize(await sharp(photo).metadata());
     const crops = await prepareCrops({ uri: photo, width, height }, items.map((i) => i.box), { manipulator: sharpManipulator });
     /** Per arm, per line index, the lines that replace it. */
-    const replacement = new Map<string, Map<number, (ScoreLine & { sure?: boolean; confirmed?: boolean })[]>>();
+    const replacement = new Map<string, Map<number, (ScoreLine & { sure?: boolean; confirmed?: boolean; doubted?: boolean })[]>>();
     for (const arm of arms) replacement.set(arm, new Map());
 
     for (const [index, item] of items.entries()) {
       const shipped = crops[index];
       if (shipped === null || shipped === undefined) continue;
+      const looks = await Promise.all(longEdges.map((edge) => sharp(Buffer.from(shipped, 'base64'))
+        .resize({ width: edge, height: edge, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 90 })
+        .toBuffer()));
       const small = await sharp(Buffer.from(shipped, 'base64'))
         .resize({ width: longEdge, height: longEdge, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 90 })
@@ -465,7 +479,7 @@ for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clu
         savedSure: saved?.line?.sure === true,
         units: {},
       };
-      if (gateCount && (probe.savedCount ?? 0) <= 1) {
+      if ((gateCount && (probe.savedCount ?? 0) <= 1) || (sureOnly && !probe.savedSure)) {
         for (const arm of arms) probe.units[arm] = [];
         probes.push(probe);
         continue;
@@ -477,7 +491,16 @@ for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clu
           continue;
         }
         try {
-          probe.units[arm] = await askUnits(arm, item, small.toString('base64'));
+          // Every scale, and the look that found the most stands. One failing look contributes
+          // nothing, exactly as a look that found nothing does.
+          const answers = await Promise.allSettled(looks.map((look) => askUnits(arm, item, look.toString('base64'))));
+          probe.units[arm] = answers.reduce<Unit[]>(
+            (most, a) => (a.status === 'fulfilled' && a.value.length > most.length ? a.value : most),
+            [],
+          );
+          if (answers.every((a) => a.status === 'rejected')) {
+            throw (answers[0] as PromiseRejectedResult).reason;
+          }
         } catch (err) {
           probe.units[arm] = [];
           probe.error = err instanceof Error ? err.message : String(err);
@@ -489,6 +512,15 @@ for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clu
       for (const arm of arms) {
         const groups = groupUnits(probe.units[arm] ?? []);
         if (line === undefined || groups.length === 0) continue;
+        // Doubt first, and instead of everything else: a line the readings asserted and the second
+        // question finds more of is held back, with its name and its count untouched.
+        if (doubtCounts && probe.savedSure) {
+          const packages = groups.reduce((total, g) => total + g.count, 0);
+          if (packages > line.qty) {
+            replacement.get(arm)!.set(index, [{ ...line, sure: false, doubted: true }]);
+            continue;
+          }
+        }
         if (groups.length === 1) {
           if (confirmCounts && groups[0].count === line.qty && probe.savedSure) {
             replacement.get(arm)!.set(index, [{ ...line, sure: true, confirmed: true }]);
@@ -523,9 +555,14 @@ for (const file of files.length > 0 ? files : [join(import.meta.dirname, '../clu
           lines: lines.flatMap((line, index) => {
             const next = replacement.get(arm)!.get(index);
             if (next === undefined) return [line];
-            return next.map(({ confirmed, ...l }) => ({
+            // `doubted` forces held back, the mirror of `confirmed` forcing asserted, and both
+            // outrank the policy. Without it the `-sure` bucket would hand a doubted line the
+            // certainty of the line it came from, which is the certainty being doubted.
+            return next.map(({ confirmed, doubted, ...l }) => ({
               ...l,
-              sure: confirmed === true ? true : policy === 'sure' ? line.sure : false,
+              sure: doubted === true ? false
+                : confirmed === true ? true
+                : policy === 'sure' ? line.sure : false,
             }));
           }),
         });
@@ -564,7 +601,7 @@ const cost = price ? (inputTokens * price.input + outputTokens * price.output) /
 
 writeFileSync(
   out,
-  `${JSON.stringify({ ranAt: new Date().toISOString(), model, pass: wantedPass, longEdge, arms, runs: files, summary, calls, cost: cost === null ? null : Number(cost.toFixed(4)), probes }, null, 1)}\n`,
+  `${JSON.stringify({ ranAt: new Date().toISOString(), model, pass: wantedPass, longEdges, arms, runs: files, summary, calls, cost: cost === null ? null : Number(cost.toFixed(4)), probes }, null, 1)}\n`,
 );
 
 console.log(`\n  ${probes.length} crops`);

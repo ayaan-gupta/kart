@@ -5,12 +5,14 @@ import { compositeMarks, orientedSize, type Box, type Mark } from "./compositor.
 import {
   CensusResponse,
   IdentifyResponse,
+  PackageCheckResponse,
   PhotoResponse,
   VerifyResponse,
   censusFromPhoto,
   censusJsonSchema,
   identifyJsonSchema,
   isNoBrand,
+  packageCheckJsonSchema,
   photoJsonSchema,
   productKey,
   UnitsResponse,
@@ -20,10 +22,12 @@ import {
 import {
   CENSUS_SYSTEM_PROMPT,
   IDENTIFY_SYSTEM_PROMPT,
+  PACKAGE_CHECK_SYSTEM_PROMPT,
   PHOTO_SYSTEM_PROMPT,
   UNITS_SYSTEM_PROMPT,
   VERIFY_SYSTEM_PROMPT,
   censusUserText,
+  packageCheckUserText,
   unitsUserText,
   verifyUserText,
 } from "./prompts.js";
@@ -32,6 +36,7 @@ import { loadCatalog, shortlist, skus } from "./catalog.js";
 import { configuredTimeoutMs, withTimeout } from "./http.js";
 import {
   countNeedsCheck,
+  doubtByPackages,
   reconcile,
   splitByUnits,
   type ReconciledLine,
@@ -302,8 +307,19 @@ const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || "Par
  * OpenAI has no `provider` field and rejects unknown ones, so the pin rides only on the models
  * that are routed to OpenRouter, which are exactly the ones whose names carry a vendor.
  */
+/**
+ * Vendors that serve their own models on OpenRouter and are the only ones who can.
+ *
+ * A pin names a third-party upstream, and there is no third party for these: pinning Parasail to
+ * `openai/gpt-5.6-luna` returns "No endpoints found" and the call fails outright. The rule is the
+ * vendor prefix, the same rule `clientFor` routes on.
+ */
+const FIRST_PARTY = new Set(["openai", "google", "anthropic", "x-ai"]);
+
 function pinned(params: OpenAI.Responses.ResponseCreateParamsNonStreaming): OpenAI.Responses.ResponseCreateParamsNonStreaming {
-  return String(params.model ?? "").includes("/")
+  const model = String(params.model ?? "");
+  const vendor = model.includes("/") ? model.slice(0, model.indexOf("/")).toLowerCase() : "";
+  return vendor !== "" && !FIRST_PARTY.has(vendor)
     ? ({ ...params, provider: { order: [OPENROUTER_PROVIDER], allow_fallbacks: false } } as OpenAI.Responses.ResponseCreateParamsNonStreaming)
     : params;
 }
@@ -808,6 +824,24 @@ const UNITS_MAX_OUTPUT_TOKENS = 300;
  */
 const UNITS_LONG_EDGE = 768;
 /**
+ * The scales the package check looks at one crop at, and why there are two of them.
+ *
+ * The check is one-sided: it can only take certainty away, never add a line or raise a count, and
+ * across forty control samples on single packages it never once answered more than one. So asking
+ * again at another scale cannot cost precision, and it buys sensitivity, because which of two
+ * touching bags it separates depends on how big the crop is when it looks. Measured on the two
+ * pairs this corpus has, five samples each, the shipped crop cut the way the phone cuts it:
+ *
+ *                  clut4's two bags      clut5's two bags     false alarms on one package
+ *     768            3 of 5                0 of 5                        0 of 10
+ *     1024           0 of 5                5 of 5                        0 of 10
+ *     1536           4 of 5                0 of 5                        0 of 10
+ *
+ * No single scale reads both. 1536 and 1024 together read clut4 in four samples of five and clut5
+ * in five of five, and still never call one package two.
+ */
+const CHECK_LONG_EDGES = [1536, 1024] as const;
+/**
  * Reasoning tokens count against the same cap on the models that reason, and nothing here
  * measures how many they need, so above effort "none" (a harness setting; "none" ships) the cap
  * is left off rather than guessed.
@@ -838,6 +872,8 @@ const PHOTO_DETAIL = detailFromEnv("KART_PHOTO_DETAIL", "high");
  */
 const VERIFY_DETAIL = detailFromEnv("KART_VERIFY_DETAIL", "high");
 const VERIFY_MODEL = (): string => process.env.KART_VERIFY_MODEL?.trim() || MODELS.photo;
+/** The package check's reader, overridable for the harnesses exactly as the others are. */
+const CHECK_MODEL = (): string => process.env.KART_CHECK_MODEL?.trim() || MODELS.check;
 
 /**
  * Whether the wide pass is shown the shop's whole product list. Off, and only an eval arm turns
@@ -1259,6 +1295,53 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
     }),
   );
 
+  const reconciled = items.map((item, i) => {
+    const unitsResult = counted[i];
+    const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
+    return reconcile(item.wide, closes[i], catalog, units);
+  });
+
+  // The package check, asked only of the lines that are about to be asserted. An unsure line is
+  // already in front of the shopper, so a second opinion on it buys nothing and costs a call; on
+  // the fifteen clut photographs that is 94 of 196 crops. See `MODELS.check` for why it is a
+  // different reader, and `doubtByPackages` for why it may only ever take certainty away.
+  const checked = await Promise.allSettled(
+    items.map(async (item, i): Promise<number> => {
+      if (!reconciled[i].sure) return 0;
+      const looks = await Promise.allSettled(
+        CHECK_LONG_EDGES.map(async (edge): Promise<number> => {
+          const small = await sharp(item.crop)
+            .resize({ width: edge, height: edge, fit: "inside", withoutEnlargement: true })
+            .jpeg({ quality: 90 })
+            .toBuffer();
+          const outputText = await withTimeout(requestOutputText("runPackageCheck", {
+            model: CHECK_MODEL(),
+            prompt_cache_key: "kart-package-check",
+            reasoning: { effort: "none" },
+            ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
+            input: [
+              { role: "system", content: PACKAGE_CHECK_SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: [
+                  { type: "input_text", text: packageCheckUserText(item.wide.description) },
+                  { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
+                ],
+              },
+            ],
+            text: {
+              format: { type: "json_schema", name: "package_check", strict: true, schema: packageCheckJsonSchema },
+            },
+          }), perItemMs);
+          return PackageCheckResponse.parse(JSON.parse(outputText)).packages.length;
+        }),
+      );
+      // The most any look found. A look that failed contributes nothing, which is what a look that
+      // found nothing also contributes, and both leave the line as the two readings left it.
+      return looks.reduce((most, look) => (look.status === "fulfilled" ? Math.max(most, look.value) : most), 0);
+    }),
+  );
+
   return items.map((item, i) => {
     const result = settled[i];
     if (result.status === "rejected") {
@@ -1275,7 +1358,14 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
       console.warn(`[recognize] unit pass of ${JSON.stringify(item.id)} failed:`, unitsResult.reason);
     }
     const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
-    const line = reconcile(item.wide, close, catalog, units);
+    // A failed check is no packages, and no packages is silence rather than a count of zero: the
+    // line stands exactly as the two readings left it. See `doubtByPackages`.
+    const checkResult = checked[i];
+    if (checkResult.status === "rejected") {
+      console.warn(`[recognize] package check of ${JSON.stringify(item.id)} failed:`, checkResult.reason);
+    }
+    const packages = checkResult.status === "fulfilled" ? checkResult.value : 0;
+    const line = doubtByPackages(reconciled[i], packages);
     const box = item.box ?? null;
     const split = box === null ? null : splitByUnits(line, units, box);
     return {

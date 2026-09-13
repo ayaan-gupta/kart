@@ -569,3 +569,32 @@ export function censusFromPhoto(photo: PhotoResponse): CensusResponse {
     },
   };
 }
+
+/**
+ * The package check's answer: one entry per separate package of the product in the crop.
+ *
+ * Labels and nothing else. The answer is only ever used to count, and to hold a line back when the
+ * count is higher than the one the two readings agreed on, so a position would be a field nothing
+ * reads. See `doubtByPackages` in reconcile.ts for why it can only remove certainty.
+ */
+export const PackageCheckResponse = z.object({
+  packages: z.array(z.object({ label: z.string() })),
+});
+export type PackageCheckResponse = z.infer<typeof PackageCheckResponse>;
+
+export const packageCheckJsonSchema = {
+  type: "object",
+  properties: {
+    packages: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { label: { type: "string" } },
+        required: ["label"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["packages"],
+  additionalProperties: false,
+} as const;

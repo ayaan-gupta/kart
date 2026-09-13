@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { UNSURE_BELOW, reconcile, splitByUnits, unitGroups, type WideReading } from "../src/reconcile.js";
+import {
+  UNSURE_BELOW, doubtByPackages, reconcile, splitByUnits, unitGroups,
+  type ReconciledLine, type WideReading,
+} from "../src/reconcile.js";
 import type { VerifyResponse } from "../src/schemas.js";
 import { buildCatalog } from "../src/catalog.js";
 
@@ -321,5 +324,64 @@ describe("splitByUnits: one line becomes one line per variety", () => {
       expect(line.box!.x + line.box!.w).toBeLessThanOrEqual(box.x + box.w + 1e-9);
       expect(line.box!.y + line.box!.h).toBeLessThanOrEqual(box.y + box.h + 1e-9);
     }
+  });
+});
+
+/**
+ * The last witness, and the only one allowed to take certainty away.
+ *
+ * Both readings count from the same crop, so when they agree on a count they are one witness and
+ * not two. On clut4 two bags of Priano rigatoni lean against each other and every reading this
+ * pipeline has ever made of them says one bag. Twelve ways of asking were measured
+ * (`server/eval/pipeline/units-probe.ts` and `box-arms.ts`) and Qwen answers one every time, at
+ * every framing, format, anchoring and resolution: it is a limit of the reader.
+ *
+ * A second reader that can count them answers the question, and a reader is cheap when all it has
+ * to do is count: `gpt-5.6-luna` through OpenRouter reads both of this corpus's touching pairs and
+ * costs about two hundredths of a cent a crop.
+ *
+ * Doubt only, and that is the whole safety argument. It never takes the check's count, never
+ * renames anything and never adds a line, so a reader that over-counts cannot put a product in
+ * the bag that is not there. The worst it can do is ask the shopper about something that was
+ * right. Measured over both passes of the fifteen photographs, it took asserted lines wrong from
+ * 3 to 0 and left found, quantities, brands, hidden and invented lines all exactly where they
+ * were.
+ */
+describe("doubtByPackages", () => {
+  const sure = (count: number): ReconciledLine => ({
+    description: "rigatoni", brand: "Priano", count, confidence: 0.95, sure: true, agreed: true,
+    sku: null, catalog: "not-consulted",
+  });
+
+  it("holds back a sure line the check finds more packages in than it claims", () => {
+    const line = doubtByPackages(sure(1), 2);
+    expect(line.sure).toBe(false);
+  });
+
+  it("leaves the count and the name exactly as they were, because it is doubt and not a reading", () => {
+    const line = doubtByPackages(sure(1), 3);
+    expect(line.count).toBe(1);
+    expect(line.description).toBe("rigatoni");
+    expect(line.brand).toBe("Priano");
+    expect(line.confidence).toBe(0.95);
+  });
+
+  it("leaves a line the check agrees with alone", () => {
+    expect(doubtByPackages(sure(1), 1).sure).toBe(true);
+    expect(doubtByPackages(sure(2), 2).sure).toBe(true);
+  });
+
+  it("leaves a line the check finds fewer packages in alone, since a crop can hide one", () => {
+    expect(doubtByPackages(sure(3), 1).sure).toBe(true);
+    expect(doubtByPackages(sure(3), 1).count).toBe(3);
+  });
+
+  it("never acts on silence: no packages is a call that failed or declined, not a count of zero", () => {
+    expect(doubtByPackages(sure(1), 0).sure).toBe(true);
+  });
+
+  it("leaves a line that was already held back alone, rather than reporting it twice", () => {
+    const held: ReconciledLine = { ...sure(1), sure: false };
+    expect(doubtByPackages(held, 2)).toEqual(held);
   });
 });

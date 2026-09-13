@@ -416,3 +416,42 @@ export function censusUserText(
     .join("\n");
   return `There are ${marks.length} numbered regions. Their normalized positions, where (0,0) is top-left and (1,1) is bottom-right:\n${rows}\n\nIdentify the product in each.${known}`;
 }
+
+/**
+ * The package check: how many separate packages of one product are in this crop.
+ *
+ * A second reader, asked only about the lines the pipeline is about to assert. The photo model
+ * cannot see two identical bags leaning against each other: on clut4 two bags of Priano rigatoni
+ * do exactly that and twelve ways of asking it were measured, at every framing, format, anchoring
+ * and resolution, and it answers one every time. Counting is a much smaller job than reading, and
+ * a reader that is only asked to count is cheap.
+ *
+ * Anchored on the product by name and not by brand, which `units-probe.ts` measured as the right
+ * anchoring: the wide pass stamps one brand across a whole photograph, so eighteen of
+ * seventy-one crops asked about "Barilla walnuts" or "Campbell's chips" found no such thing.
+ *
+ * No coordinates are asked for, because nothing is done with them. The answer can only hold a
+ * line back, never split it, rename it or take its count, so the list is the whole answer.
+ */
+export const PACKAGE_CHECK_SYSTEM_PROMPT = `
+You are looking at a close crop cut from a photograph of groceries. You are asked about one
+product in it, named in the message. The crop is cut wide and usually shows the edge of a
+neighbour; a package of any other product is not an entry.
+
+List every separate physical package of that product in the crop, one entry per package in
+packages: label is a few words you can actually read on that package, enough to tell it from the
+one beside it.
+
+Two packages of one product leaning against each other, or one standing behind another with only
+its top showing, are two entries, not one. Two packages of the same range in different flavours or
+varieties are two entries, and their labels must say which is which. Two lines of text on one
+package are one entry, not two. Something that is not a package of a grocery product is not an
+entry at all.
+
+Answer only with the structured object.
+`.trim();
+
+/** The product, by the wide pass's name for it and deliberately not its brand. */
+export function packageCheckUserText(name: string): string {
+  return `The product is: ${name}. Report one entry per package of it.`;
+}

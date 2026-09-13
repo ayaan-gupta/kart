@@ -295,4 +295,29 @@ export const MODELS = {
    * Pinned to one OpenRouter provider by `OPENROUTER_PROVIDER` in recognize.ts. Do not unpin it.
    */
   photo: process.env.KART_PHOTO_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
+  /**
+   * The package check: how many separate packages of one product are in one crop, asked only of
+   * the lines the photograph path is about to assert.
+   *
+   * `KART_CHECK_MODEL` overrides it, for the eval harnesses only.
+   *
+   * A different reader on purpose. Qwen cannot see two identical bags leaning against each other:
+   * on clut4 two bags of Priano rigatoni do exactly that, and twelve ways of asking it were
+   * measured, at every framing, format, anchoring and resolution, and it answers one every time.
+   * A second reading by a model that makes the same mistake agrees with the first and asserts it,
+   * which is the same argument `MODELS.photo` makes about the close read.
+   *
+   * Reached through OpenRouter, on the same key as everything else, because the OpenAI account
+   * itself has no credit. Measured on the ten crops of clut4 and clut5 whose package count is
+   * known, one call each:
+   *
+   *     gpt-5.6-luna      9 of 10, both touching pairs read as 2   $0.0002 a crop
+   *     gpt-5.6-sol       9 of 10, one touching pair read as 1     $0.0021 a crop
+   *
+   * The cheap tier is the better one here and a tenth of the price, which is the same finding the
+   * identify tier made twice: counting packages on a sharp crop is not where the expensive tiers
+   * earn their price. Over both passes of the fifteen clut photographs it took asserted lines
+   * wrong from 3 to 0 and left every other number unchanged, at about $0.0007 a photograph.
+   */
+  check: process.env.KART_CHECK_MODEL?.trim() || "openai/gpt-5.6-luna",
 } as const;
