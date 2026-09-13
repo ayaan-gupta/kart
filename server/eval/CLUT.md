@@ -1106,9 +1106,16 @@ it is not a new one: two identical touching bags of Priano rigatoni, read as one
 clut4 twice and clut5 once. The box fix did not cause the misreading; it promoted it. A product
 with no box is never read twice and sits unsure, and 38 of 120 products had no box before. Now
 every product is read twice, so a line the two readings agree on is asserted, and the two readings
-agree on this one because both of them see one bag. Nothing measured on this corpus separates
-those bags: not a units call, not a detector, not per-package prompting, only a model ten times
-the price.
+agree on this one because both of them see one bag. Nothing measured on this corpus separates those bags. Ten ways of asking, across two stages,
+three formats, two resolutions and three framings, every one of which answers "one package":
+units inside the close read, a tight region then a point inside it, re-cutting at that region,
+Grounding DINO, SAM, per-package prompting in the wide pass, the units call in `bbox_2d` corners
+rather than a point, the same at 1536 rather than 768, the same with no coordinates in the
+question at all, and the neutral framing that worked on clut9. The photograph plainly holds two
+bags: two red tops, two barcodes, two printings of RIGATONI AUTHENTIC ITALIAN. This reader sees
+one, and because no witness anywhere ever says two there is nothing to gate on either, so it
+cannot be held back rather than asserted. It is a limit of the reader and the only thing measured
+to read it is gpt-5.6-sol, at roughly ten times the price a photograph.
 
 **Lines matching nothing real went from 9 to 27, 7 of them on the cart tier.** Every one of the
 seven is **unsure**, so the shopper is asked about them rather than shown them as fact. Two are the

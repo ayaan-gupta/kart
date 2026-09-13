@@ -24,6 +24,28 @@
  *   - SAM's automatic masks (facebook/sam-vit-base): no mask on either bag, masks on the counter
  *     and the worksheet behind them.
  *
+ * And what was tried on 2026-09-13, after asking the wide pass for `bbox_2d` corners turned out to
+ * be the whole fix for the repeated box (`box-arms.ts`), on the chance that the same was true one
+ * level down:
+ *
+ *   - the `corners` arm, the same question in `bbox_2d` rather than a centre point. On the fifteen
+ *     crops of clut4 and clut5 it makes byte for byte the same decisions as the point arm: 1 crop
+ *     split, 0 varieties, 3 counts differing. On clut4's rigatoni it answers one package whose
+ *     rectangle is [108, 44, 999, 997], which is the whole crop.
+ *   - the same arm with the crop at 1536 rather than 768, in case the bags needed the pixels.
+ *     One package.
+ *   - the `words` arm, which asks for the list with no coordinates in it at all, to separate
+ *     "cannot see two bags" from "cannot point at two bags". One package.
+ *   - asking for one entry per package in the wide pass itself (`box-arms.ts --arms perpackage`),
+ *     so the two bags never share a box to begin with. One entry, one rectangle across both.
+ *
+ * That is ten distinct ways of asking, across two stages, three formats, two resolutions and
+ * three framings. The photograph plainly holds two bags: two red tops, two barcodes, two
+ * printings of RIGATONI AUTHENTIC ITALIAN. This model reads them as one package every time, and
+ * no witness anywhere in the pipeline ever says two, so there is nothing to gate on either. It is
+ * a limit of the reader and not of the request, and the only thing measured to read it is
+ * gpt-5.6-sol at roughly ten times the price a photograph.
+ *
  * What does work is asking on its own, with nothing said about what the crop is supposed to be.
  * The same crop that answers "one" inside the close read answers with both cracker boxes, named
  * apart, as a bare question. So this is a separate call, and the arms are how it is asked:
@@ -40,8 +62,11 @@
  *
  *       --pass <n>        which pass of the saved run to replay, 0 for every pass, default 1
  *       --only <ids>      comma-separated image ids
- *       --arm <names>     comma-separated: neutral, anchored, named. Default "neutral,anchored".
- *                         `named` anchors on the wide pass's name without its brand.
+ *       --arm <names>     comma-separated: neutral, anchored, named, corners. Default
+ *                         "neutral,anchored". `named` anchors on the wide pass's name without its
+ *                         brand; `corners` asks the same question in `bbox_2d` corners rather than
+ *                         a centre point, and folds them back to a centre so nothing downstream
+ *                         can tell the difference.
  *       --long-edge <n>   what the crop goes out at, default 768
  *       --gate-count      ask only where the close read counted more than one package
  *       --variety-only    act only on a crop holding more than one variety, never on a count
@@ -127,7 +152,7 @@ interface Row {
   verify?: { items?: VerifyEntry[] } | null;
 }
 
-const unitsJsonSchema = {
+const pointJsonSchema = {
   type: 'object',
   properties: {
     units: {
@@ -143,6 +168,69 @@ const unitsJsonSchema = {
           y: { type: 'integer', minimum: 0, maximum: 1000 },
         },
         required: ['label', 'x', 'y'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['units'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * The same question asked in corners rather than in a centre point.
+ *
+ * On 2026-09-13 the wide pass stopped asking for a box as a position and a size in percentages
+ * and started asking for `bbox_2d`, two corners on a 0 to 1000 scale, which is the form Qwen3-VL
+ * grounds in. That one change took the wide pass from 10 items sharing a rectangle to none, and
+ * from 72 of 82 products placed to 109 of 109 (`box-arms.ts`). This arm asks whether the same
+ * thing is true one level down: a centre point is `point_2d`, also a grounding format, but it is
+ * the weaker of the two and it is the one this stage has always used.
+ *
+ * The centre is derived from the corners afterwards, so every policy downstream of the question
+ * is byte for byte the one the point arms are scored under and the only variable is the asking.
+ */
+const cornerJsonSchema = {
+  type: 'object',
+  properties: {
+    units: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          bbox_2d: {
+            type: 'array',
+            items: { type: 'number' },
+            minItems: 4,
+            maxItems: 4,
+          },
+        },
+        required: ['label', 'bbox_2d'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['units'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * The same question with no coordinates in it at all.
+ *
+ * Every other arm asks the model to point at something, and on clut4 every one of them answers
+ * with a single package covering the whole crop. This one asks only for the list, to separate
+ * "cannot see two bags" from "cannot point at two bags". It can confirm or deny a count and can
+ * never split a box, which is one of the two uses the shipped stage puts the answer to.
+ */
+const wordsJsonSchema = {
+  type: 'object',
+  properties: {
+    units: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { label: { type: 'string' } },
+        required: ['label'],
         additionalProperties: false,
       },
     },
@@ -170,10 +258,39 @@ const ANCHORED =
   `You are looking at a close crop cut from a photograph of groceries. You are asked about one `
   + `product in it, named in the message. The crop is cut wide and usually shows the edge of a `
   + `neighbour; a package of any other product is not an entry.`;
+const CORNERS = COMMON.replace(
+  `x and y are the centre of that package on a scale where the left edge of the crop is 0, the right
+edge is 1000, the top edge is 0 and the bottom edge is 1000;`,
+  `bbox_2d is [x1, y1, x2, y2], the top-left and bottom-right corners of the smallest rectangle
+that encloses that package, on a scale where the left edge of the crop is 0, the right edge is
+1000, the top edge is 0 and the bottom edge is 1000;`,
+);
+if (CORNERS === COMMON) throw new Error('units-probe: the corners arm no longer matches COMMON');
+
+const WORDS = `
+List every separate physical package in the crop, one entry per package in units: label is a few
+words you can actually read on that package, enough to tell it from the one beside it.
+
+Two packages of one product leaning against each other, or one standing behind another with only
+its top showing, are two entries, not one. Two packages of the same range in different flavours or
+varieties are two entries, and their labels must say which is which. Two lines of text on one
+package are one entry, not two. Something that is not a package of a grocery product is not an
+entry at all.
+
+Answer only with the structured object.
+`.trim();
+
 const SYSTEM: Record<string, string> = {
   neutral: `You are looking at a close crop cut from a photograph of groceries.\n\n${COMMON}`,
   anchored: `${ANCHORED}\n\n${COMMON}`,
   named: `${ANCHORED}\n\n${COMMON}`,
+  corners: `${ANCHORED}\n\n${CORNERS}`,
+  words: `${ANCHORED}\n\n${WORDS}`,
+};
+/** The corners arm is anchored on the name alone, which is what `named` measured as the best. */
+const SCHEMA: Record<string, unknown> = {
+  neutral: pointJsonSchema, anchored: pointJsonSchema, named: pointJsonSchema,
+  corners: cornerJsonSchema, words: wordsJsonSchema,
 };
 /**
  * What the crop is said to be. `anchored` gives the wide pass's brand as well as its name, and
@@ -184,7 +301,9 @@ const SYSTEM: Record<string, string> = {
  */
 const userText = (arm: string, item: Item): string => {
   if (arm === 'neutral') return 'Report one entry per package.';
-  const said = arm === 'named' ? item.name : [item.brand, item.name].filter((s) => s !== null && s !== '').join(' ');
+  const said = arm === 'named' || arm === 'corners' || arm === 'words'
+    ? item.name
+    : [item.brand, item.name].filter((s) => s !== null && s !== '').join(' ');
   return `The product is: ${said}. Report one entry per package of it.`;
 };
 
@@ -200,7 +319,7 @@ const provider = model.includes('/')
 let inputTokens = 0;
 let outputTokens = 0;
 let calls = 0;
-interface Unit { label: string; x: number; y: number }
+interface Unit { label: string; x: number; y: number; /** Corners on the crop's 0 to 1000 scale, from the `corners` arm only. */ bbox_2d?: number[] }
 
 /**
  * A finished run of this harness, read back so the verdicts can be rebuilt under another policy
@@ -229,13 +348,31 @@ async function askUnits(arm: string, item: Item, crop: string): Promise<Unit[]> 
         ],
       },
     ],
-    text: { format: { type: 'json_schema', name: 'units', strict: true, schema: unitsJsonSchema } },
+    text: { format: { type: 'json_schema', name: 'units', strict: true, schema: SCHEMA[arm] } },
     ...provider,
   } as never)) as unknown as { output_text: string; usage?: { input_tokens?: number; output_tokens?: number } };
   inputTokens += response.usage?.input_tokens ?? 0;
   outputTokens += response.usage?.output_tokens ?? 0;
   calls += 1;
-  return (JSON.parse(response.output_text) as { units: Unit[] }).units;
+  const answered = (JSON.parse(response.output_text) as { units: (Unit & { bbox_2d?: number[] })[] }).units;
+  // Corners folded to the centre the rest of this harness works in, so the question is the only
+  // thing that differs between the arms.
+  return answered.map((unit) => {
+    // The words arm reports no position at all. The centre of the crop stands in, so grouping and
+    // counting read as they do for every other arm; nothing may split a box on it.
+    if (typeof unit.x !== 'number') return { label: unit.label, x: 500, y: 500 };
+    if (!Array.isArray(unit.bbox_2d) || unit.bbox_2d.length < 4) return unit;
+    const [x1, y1, x2, y2] = unit.bbox_2d;
+    // The rectangle is kept beside the centre, not instead of it: every policy in this harness
+    // reads x and y, and the rectangle answers a different question, which is how much of the
+    // crop the packages it found actually account for.
+    return {
+      label: unit.label,
+      x: Math.round((x1 + x2) / 2),
+      y: Math.round((y1 + y2) / 2),
+      bbox_2d: [x1, y1, x2, y2],
+    };
+  });
 }
 
 /**
