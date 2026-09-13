@@ -29,12 +29,41 @@ brand right 6 of 6 at $0.0005 a call, which is what gpt-5.6-luna read at the sam
 against returns a 429: on `video-census-live.ts` it found 6 of the 9 products in IMG_0252 and read
 Sara Lee, Oreo and Lucky correctly, at $0.0023 a call.
 
-**One keyframe now fires where four used to, and that is not the model.** The run above made a
-single census call against a cap of eight. The keyframe gate's adaptive blur floor
-(`adaptiveMinSharpness`) climbs to about 263 on this video, because the video swings between
-sharpness 12 and 392, and then refuses every later frame as "blurry". The recorded 8.17 of 9 for
-this path came from four calls a session, so it is not comparable with the 6 of 9 above, and the
-gap between them is a live-scan defect waiting to be measured on its own.
+**The blur floor was stranding short scans on one census call, and is fixed.** That first run
+made a single call against a cap of eight. The adaptive floor is a quantile of the last 40 frames,
+which at this frame rate is longer than the whole nine seconds, so a scan that opens on its
+sharpest view and then pans keeps being measured against a view it has left: the floor settles near
+263 off the first three seconds and refuses all 18 frames after it.
+
+Two is the ceiling on this clip and not four. `minIntervalMs` is 6000 deliberately, so 8.7 seconds
+has room for a call at the start and one at the end; the four calls recorded further down this file
+were measured while it was 2000. What was lost was the second call, and on a longer scan the rule
+costs pacing rather than calls.
+
+The floor now gives way when the gate has sat past its pacing interval on blur alone: the quantile
+falls from its usual place towards the blurriest frame in the window as the wait lengthens, so the
+gate keeps preferring better frames while it can afford to and takes what there is rather than
+nothing. `keyframe-arms.ts` replays the real frame signals through the real gate and costs nothing
+to run. Over the nine seconds every arm recovers the second call, so the arms are told apart by a
+minute-long scan, seven replays of the same views arriving later:
+
+| arm | calls of 8 | median sharpness fired on | last call at |
+|---|---|---|---|
+| shipped | 8 | 180 | 47.7s |
+| give way after 1s | 8 | 175 | 44.7s |
+| **give way after 2s** | **8** | **180** | **44.7s** |
+| give way after 4s | 8 | 180 | 44.7s |
+| window of 12 frames | 8 | 180 | 44.7s |
+| quantile 0.3 | 8 | **67** | 44.3s |
+
+Lowering the quantile outright recovers the calls by taking much worse frames, which is the one
+thing the blur test exists to prevent. Two seconds keeps the shipped arm's frame quality exactly
+and spends the budget three seconds sooner.
+
+On the shipped path, `video-census-live.ts` over the same nine seconds: **2 census calls and 7 of
+the 9 products, against 1 call and 6 of 9**, at $0.0042 a scan against $0.0023. The second call
+found the asparagus and the Seedtastic bread, lost the brussels sprouts bag, and added one line
+matching nothing real ("bag of tomatoes").
 
 **Scored by contents, not only by size.** A unit count cannot tell a right bag from a lucky one:
 one scan run scored a perfect nine while holding one product twice and missing two others. Both

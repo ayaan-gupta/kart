@@ -10,9 +10,9 @@
     {
      "id": 1,
      "name": "Baguette",
-     "brand": "Sara Lee",
+     "brand": "Signature Select",
      "size": null,
-     "category": "bread",
+     "category": "bakery",
      "confidence": 0.95,
      "needsCloserLook": false,
      "isProduct": true,
@@ -21,7 +21,7 @@
     {
      "id": 2,
      "name": "Granny Smith Apples",
-     "brand": "Best Grown",
+     "brand": "Signature Select",
      "size": null,
      "category": "produce",
      "confidence": 0.95,
@@ -31,7 +31,7 @@
     },
     {
      "id": 3,
-     "name": "Oreo",
+     "name": "Oreo Cookies",
      "brand": "Oreo",
      "size": "Family Size",
      "category": "snacks",
@@ -54,7 +54,7 @@
     {
      "id": 5,
      "name": "Brussels Sprouts",
-     "brand": "Lucky",
+     "brand": "Signature Select",
      "size": null,
      "category": "produce",
      "confidence": 0.95,
@@ -65,7 +65,7 @@
     {
      "id": 6,
      "name": "Purple Produce Bag",
-     "brand": null,
+     "brand": "Signature Select",
      "size": null,
      "category": "produce",
      "confidence": 0.9,
@@ -77,15 +77,15 @@
    "unmarkedItems": [],
    "inViewCounts": [
     {
-     "productKey": "sara lee::baguette",
+     "productKey": "oreo::oreo cooky",
      "count": 1
     },
     {
-     "productKey": "best grown::granny smith apple",
+     "productKey": "signature select::baguette",
      "count": 1
     },
     {
-     "productKey": "oreo::oreo",
+     "productKey": "signature select::granny smith apple",
      "count": 1
     },
     {
@@ -93,18 +93,104 @@
      "count": 1
     },
     {
-     "productKey": "lucky::brussel sprout",
+     "productKey": "signature select::brussel sprout",
      "count": 1
     },
     {
-     "productKey": "::purple produce bag",
+     "productKey": "signature select::purple produce bag",
      "count": 1
     }
    ],
    "occlusion": {
     "itemsLikelyHidden": false,
     "severity": "none",
-    "reason": "All items are clearly visible in the cart."
+    "reason": "All items are clearly visible in the cart with no stacking or covering."
+   }
+  }
+ },
+ {
+  "t": 5,
+  "order": 15,
+  "marks": 2,
+  "census": {
+   "subjectIsCart": true,
+   "subjectKind": "cart",
+   "marks": [
+    {
+     "id": 1,
+     "name": "Seedtastic Bread",
+     "brand": "Kart",
+     "size": "27 oz",
+     "category": "bakery",
+     "confidence": 0.95,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": "kart_seedtastic_bread"
+    },
+    {
+     "id": 2,
+     "name": "asparagus",
+     "brand": null,
+     "size": null,
+     "category": "produce",
+     "confidence": 0.9,
+     "needsCloserLook": false,
+     "isProduct": true,
+     "catalogSku": "kart_asparagus"
+    }
+   ],
+   "unmarkedItems": [
+    {
+     "description": "bag of tomatoes",
+     "productKey": "::tomatoes",
+     "catalogSku": null,
+     "approxLocation": "top right of cart",
+     "confidence": 0.85,
+     "isProduct": true,
+     "box": {
+      "x": 0.58,
+      "y": 0.1,
+      "w": 0.4,
+      "h": 0.3
+     }
+    },
+    {
+     "description": "baguette",
+     "productKey": "::baguette",
+     "catalogSku": "kart_baguette",
+     "approxLocation": "top of cart",
+     "confidence": 0.8,
+     "isProduct": true,
+     "box": {
+      "x": 0.25,
+      "y": 0.05,
+      "w": 0.7,
+      "h": 0.15
+     }
+    }
+   ],
+   "inViewCounts": [
+    {
+     "productKey": "kart::seedtastic bread",
+     "count": 1
+    },
+    {
+     "productKey": "::asparagu",
+     "count": 1
+    },
+    {
+     "productKey": "::tomatoe",
+     "count": 1
+    },
+    {
+     "productKey": "::baguette",
+     "count": 1
+    }
+   ],
+   "occlusion": {
+    "itemsLikelyHidden": true,
+    "severity": "some",
+    "reason": "produce bag and bread partially cover items below them"
    }
   }
  }

@@ -124,6 +124,15 @@ export interface KeyframeConfig {
   sceneChangeCount: number;
   /** Floor on the interval even for a scene change, so a churning detector cannot spam. */
   sceneChangeIntervalMs: number;
+  /** How many recent frames the adaptive blur floor is drawn from. */
+  sharpnessWindow: number;
+  /** Where in that window the floor sits, 0 for its blurriest frame and 1 for its sharpest. */
+  sharpnessQuantile: number;
+  /**
+   * How long the gate may sit past its pacing interval, held back by blur alone, before the
+   * floor gives way to whatever the scene is offering now. 0 turns the relief off.
+   */
+  starvationMs: number;
 }
 
 export interface BarcodeHit {

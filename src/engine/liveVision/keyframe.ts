@@ -2,6 +2,41 @@ import { MAX_KEYFRAME_MOTION, MIN_KEYFRAME_SHARPNESS } from './config';
 import type { KeyframeConfig, KeyframeReason, KeyframeSignals, KeyframeState } from './types';
 
 /**
+ * How many recent frames the adaptive blur floor is drawn from, and where in that window it sits.
+ *
+ * At the detector's few-frames-a-second pace, 40 samples is roughly the last ten seconds: long
+ * enough that one lucky frame cannot drag the floor up and strand the gate, short enough to
+ * follow a shopper walking from a dim aisle into a bright one.
+ *
+ * The quantile is what decides how often the gate can fire at all. At 0.6 the sharpest 40% of
+ * recent frames are eligible, so the pacing interval, not the blur test, sets the rate. That is
+ * the correct division of labour: `minIntervalMs` already caps spend at one call every two
+ * seconds, so the blur test's only remaining job is picking the better frames out of whatever is
+ * on offer, not deciding whether to scan at all.
+ */
+const SHARPNESS_WINDOW = 40;
+const SHARPNESS_QUANTILE = 0.6;
+
+/**
+ * How long the gate may sit past its pacing interval, blocked on blur alone, before the floor
+ * gives way.
+ *
+ * The window above is roughly ten seconds of frames, which is longer than many scans, so a scan
+ * that opens on its sharpest view and then pans keeps being measured against a view it has left.
+ * On the nine seconds of IMG_0252 the floor settles near 263 off the first three seconds and
+ * refuses all 18 frames after it, and the scan spends one census call of eight.
+ *
+ * The relief is a ramp rather than a switch: the quantile falls from its usual place towards the
+ * blurriest frame in the window as the wait lengthens, so the gate keeps preferring the better
+ * frames on offer for as long as it can afford to, and takes what there is rather than nothing.
+ * It cannot fire on a dead frame at any point, because `ABSOLUTE_SHARPNESS_FLOOR` is below the
+ * ramp and not on it.
+ *
+ * Measured over the same footage in `server/eval/pipeline/keyframe-arms.ts`.
+ */
+const STARVATION_MS = 2000;
+
+/**
  * `minSharpness` and `maxMotion` come from `config.ts`, the single home for both thresholds:
  * the same two values gate the native keyframe encode (see `frameProcessor.ts`, which sends
  * `MIN_KEYFRAME_SHARPNESS`/`MAX_KEYFRAME_MOTION` to the plugin). This module used to carry its
@@ -31,27 +66,14 @@ const DEFAULT_CONFIG: KeyframeConfig = {
   minIntervalMs: 6000,
   sceneChangeCount: 4,
   sceneChangeIntervalMs: 800,
+  sharpnessWindow: SHARPNESS_WINDOW,
+  sharpnessQuantile: SHARPNESS_QUANTILE,
+  starvationMs: STARVATION_MS,
 };
 
 export function createKeyframeState(): KeyframeState {
   return { lastFiredAt: 0, lastTrackCount: 0, recentSharpness: [], awaitingKeyframe: false };
 }
-
-/**
- * How many recent frames the adaptive blur floor is drawn from, and where in that window it sits.
- *
- * At the detector's few-frames-a-second pace, 40 samples is roughly the last ten seconds: long
- * enough that one lucky frame cannot drag the floor up and strand the gate, short enough to
- * follow a shopper walking from a dim aisle into a bright one.
- *
- * The quantile is what decides how often the gate can fire at all. At 0.6 the sharpest 40% of
- * recent frames are eligible, so the pacing interval, not the blur test, sets the rate. That is
- * the correct division of labour: `minIntervalMs` already caps spend at one call every two
- * seconds, so the blur test's only remaining job is picking the better frames out of whatever is
- * on offer, not deciding whether to scan at all.
- */
-const SHARPNESS_WINDOW = 40;
-const SHARPNESS_QUANTILE = 0.6;
 
 /**
  * A floor that rejects a genuinely dead frame no matter what the window says.
@@ -69,14 +91,27 @@ const ABSOLUTE_SHARPNESS_FLOOR = 0.5;
  * the gate: the two must apply an identical floor or a frame JavaScript asked for gets refused
  * on arrival.
  */
-export function adaptiveMinSharpness(recent: number[]): number {
+export function adaptiveMinSharpness(
+  recent: number[],
+  quantile: number = SHARPNESS_QUANTILE,
+): number {
   // Below a useful sample the window says nothing, so fall back to the absolute floor rather
   // than to `MIN_KEYFRAME_SHARPNESS`. Opening a scan on the old constant would reject the first
   // seconds of every session on exactly the devices this change exists for.
   if (recent.length < 8) return ABSOLUTE_SHARPNESS_FLOOR;
   const sorted = [...recent].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.floor(sorted.length * SHARPNESS_QUANTILE));
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * quantile)));
   return Math.max(ABSOLUTE_SHARPNESS_FLOOR, sorted[index]);
+}
+
+/**
+ * How far past its pacing interval the gate has waited, 0 to 1, where 1 means the floor gives way
+ * entirely. Before the interval is up there is nothing to relieve: the gate is not being held
+ * back by blur, it is being paced.
+ */
+function starvation(waited: number, required: number, starvationMs: number): number {
+  if (starvationMs <= 0) return 0;
+  return Math.max(0, Math.min(1, (waited - required) / starvationMs));
 }
 
 export function evaluateKeyframe(
@@ -96,16 +131,30 @@ export function evaluateKeyframe(
   // this scene looks like, and it is the most common frame in exactly the sessions the adaptive
   // floor exists to rescue; dropping those samples would leave the window describing only frames
   // that already passed.
-  const recentSharpness = [...state.recentSharpness, signals.sharpness].slice(-SHARPNESS_WINDOW);
+  const recentSharpness =
+    [...state.recentSharpness, signals.sharpness].slice(-config.sharpnessWindow);
   // `awaitingKeyframe: false` on every path that holds. A frame the gate declines to fire on
   // asks native for nothing, so there is no outstanding decision for the next frame to settle.
   const next = { ...state, recentSharpness, awaitingKeyframe: false };
 
-  // An explicit override still wins outright. `server/eval/pipeline/video-states.ts` sweeps these
-  // thresholds to measure them, and a swept value silently replaced by an adaptive one would
-  // report the adaptive gate's behaviour under every arm of the sweep.
+  // The pacing decision comes first now, because how long the gate has been waiting is what the
+  // blur floor is allowed to give way to. The order of the answers the caller sees is unchanged:
+  // a frame with nothing in it is still "nothing-to-see", and a blurry one still "blurry".
+  const elapsed = signals.now - state.lastFiredAt;
+  const sceneChanged =
+    Math.abs(signals.trackCount - state.lastTrackCount) >= config.sceneChangeCount;
+  const required = sceneChanged ? config.sceneChangeIntervalMs : config.minIntervalMs;
+
+  // An explicit `minSharpness` override still wins outright. `video-states.ts` sweeps that
+  // threshold to measure it, and a swept value silently replaced by an adaptive one would report
+  // the adaptive gate's behaviour under every arm of the sweep.
+  const relief = starvation(elapsed, required, config.starvationMs);
   const minSharpness =
-    overrides.minSharpness ?? adaptiveMinSharpness(state.recentSharpness);
+    overrides.minSharpness
+    ?? adaptiveMinSharpness(
+      recentSharpness.slice(0, -1).slice(-config.sharpnessWindow),
+      config.sharpnessQuantile * (1 - relief),
+    );
 
   const hold = (reason: KeyframeReason) => ({
     fire: false, reason, state: next, minSharpness,
@@ -114,11 +163,6 @@ export function evaluateKeyframe(
   if (signals.trackCount === 0) return hold('nothing-to-see');
   if (signals.sharpness < minSharpness) return hold('blurry');
   if (signals.motion > config.maxMotion) return hold('moving');
-
-  const elapsed = signals.now - state.lastFiredAt;
-  const sceneChanged =
-    Math.abs(signals.trackCount - state.lastTrackCount) >= config.sceneChangeCount;
-  const required = sceneChanged ? config.sceneChangeIntervalMs : config.minIntervalMs;
 
   if (elapsed < required) return hold('too-soon');
 

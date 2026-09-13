@@ -1,0 +1,94 @@
+{
+ "ranAt": "2026-09-13T07:50:29.668Z",
+ "frames": "/Users/ayaangupta/projects/scanline/server/eval/video-frames-catalog.json",
+ "loops": 1,
+ "seconds": 8.667,
+ "results": [
+  {
+   "arm": "shipped",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    }
+   ],
+   "heldBlurry": 19,
+   "heldTooSoon": 6
+  },
+  {
+   "arm": "starve-1s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 7.33,
+     "sharpness": 31
+    }
+   ],
+   "heldBlurry": 18,
+   "heldTooSoon": 6
+  },
+  {
+   "arm": "starve-2s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8,
+     "sharpness": 45
+    }
+   ],
+   "heldBlurry": 18,
+   "heldTooSoon": 6
+  },
+  {
+   "arm": "starve-4s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.33,
+     "sharpness": 55
+    }
+   ],
+   "heldBlurry": 18,
+   "heldTooSoon": 6
+  },
+  {
+   "arm": "window-12",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.67,
+     "sharpness": 92
+    }
+   ],
+   "heldBlurry": 17,
+   "heldTooSoon": 7
+  },
+  {
+   "arm": "quantile-0.3",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.33,
+     "sharpness": 55
+    }
+   ],
+   "heldBlurry": 12,
+   "heldTooSoon": 12
+  }
+ ]
+}

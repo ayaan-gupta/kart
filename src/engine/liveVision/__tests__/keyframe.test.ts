@@ -284,3 +284,76 @@ describe('settleKeyframeRequest', () => {
     expect(evaluateKeyframe(settled, GOOD).fire).toBe(true);
   });
 });
+
+/**
+ * A scan that opens on the sharpest thing it will ever see, then pans.
+ *
+ * These are the 27 frames of IMG_0252 in `video-frames-catalog.json`, the nine seconds of real
+ * trolley footage this project scores the live scan against, at their real times and real
+ * sharpness. The shopper starts with the phone steady over the trolley (386, 263, 392, 279) and
+ * then pans along it, and nothing after three seconds is sharper than 180.
+ *
+ * The blur floor is drawn from the last 40 frames, which at this frame rate is longer than the
+ * whole scan, so it never forgets that opening: it settles around 263 and refuses every frame
+ * after it. The gate fired once in nine seconds against a budget of eight, and the census that
+ * never happened is products the shopper never gets.
+ *
+ * Two is the most this clip can fire, not four: `minIntervalMs` is 6000, deliberately, so a
+ * 8.7-second clip has room for a call at the start and a call at the end. This is about the
+ * second one.
+ */
+const IMG_0252_SHARPNESS = [
+  386, 70, 263, 392, 279, 206, 233, 128, 245, 57, 29, 45, 107, 175,
+  163, 90, 67, 180, 60, 42, 25, 45, 31, 12, 45, 55, 92,
+];
+
+/**
+ * Fires and delivers the way the real loop does, so the pacing clock advances on delivery.
+ *
+ * The clock starts a long way from zero because a real session's does: `lastFiredAt` opens at 0
+ * and `now` is a device timestamp, so the first frame of a scan is always past its pacing
+ * interval and fires at once. Replaying from now=0 would instead hold the first frame as
+ * "too-soon" and measure a session that never starts.
+ */
+const SESSION_START = 1_000_000;
+function replayImg0252(overrides: Parameters<typeof evaluateKeyframe>[2] = {}): number[] {
+  let state = createKeyframeState();
+  const firedAt: number[] = [];
+  for (const [i, sharpness] of IMG_0252_SHARPNESS.entries()) {
+    const now = SESSION_START + Math.round((i * 1000) / 3);
+    const signals: KeyframeSignals = { sharpness, motion: 0.08, trackCount: 3, now };
+    const result = evaluateKeyframe(state, signals, overrides);
+    state = result.state;
+    if (!result.fire) continue;
+    firedAt.push(now - SESSION_START);
+    state = settleKeyframeRequest(state, { requested: true, delivered: true }, now, 3);
+  }
+  return firedAt;
+}
+
+describe('the adaptive blur floor on nine seconds of real footage', () => {
+  it('does not strand the scan on one census when the scene gets durably blurrier', () => {
+    const fired = replayImg0252();
+    expect(fired.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('spends the second call late in the clip, where the pacing interval allows it', () => {
+    const fired = replayImg0252();
+    expect(fired[0]).toBe(0);
+    expect(fired[1]).toBeGreaterThanOrEqual(6000);
+  });
+
+  it('still refuses every frame of a scan that carries no signal at all', () => {
+    let state = createKeyframeState();
+    let fired = 0;
+    for (let i = 0; i < 30; i += 1) {
+      const now = SESSION_START + Math.round((i * 1000) / 3);
+      const r = evaluateKeyframe(state, { sharpness: 0, motion: 0.08, trackCount: 3, now });
+      state = r.state;
+      if (r.fire) fired += 1;
+    }
+    // The first frame fires on the absolute floor before there is any window; nothing after it
+    // may, however starved the gate gets, or a covered lens uploads black frames all scan.
+    expect(fired).toBeLessThanOrEqual(1);
+  });
+});

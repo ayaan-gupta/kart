@@ -1,0 +1,242 @@
+{
+ "ranAt": "2026-09-13T07:50:34.189Z",
+ "frames": "/Users/ayaangupta/projects/scanline/server/eval/video-frames-catalog.json",
+ "loops": 7,
+ "seconds": 62.669000000000004,
+ "results": [
+  {
+   "arm": "shipped",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 9.67,
+     "sharpness": 263
+    },
+    {
+     "atSeconds": 17.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 23.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 29.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 35.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 41.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 47.67,
+     "sharpness": 245
+    }
+   ],
+   "heldBlurry": 121,
+   "heldTooSoon": 43
+  },
+  {
+   "arm": "starve-1s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 7.33,
+     "sharpness": 31
+    },
+    {
+     "atSeconds": 13.33,
+     "sharpness": 175
+    },
+    {
+     "atSeconds": 19.33,
+     "sharpness": 279
+    },
+    {
+     "atSeconds": 26,
+     "sharpness": 45
+    },
+    {
+     "atSeconds": 32.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 38.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 44.67,
+     "sharpness": 92
+    }
+   ],
+   "heldBlurry": 96,
+   "heldTooSoon": 44
+  },
+  {
+   "arm": "starve-2s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8,
+     "sharpness": 45
+    },
+    {
+     "atSeconds": 14.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 20.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 26.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 32.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 38.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 44.67,
+     "sharpness": 92
+    }
+   ],
+   "heldBlurry": 98,
+   "heldTooSoon": 43
+  },
+  {
+   "arm": "starve-4s",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.33,
+     "sharpness": 55
+    },
+    {
+     "atSeconds": 14.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 20.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 26.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 32.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 38.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 44.67,
+     "sharpness": 92
+    }
+   ],
+   "heldBlurry": 101,
+   "heldTooSoon": 43
+  },
+  {
+   "arm": "window-12",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 14.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 20.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 26.67,
+     "sharpness": 92
+    },
+    {
+     "atSeconds": 32.67,
+     "sharpness": 180
+    },
+    {
+     "atSeconds": 38.67,
+     "sharpness": 245
+    },
+    {
+     "atSeconds": 44.67,
+     "sharpness": 92
+    }
+   ],
+   "heldBlurry": 119,
+   "heldTooSoon": 44
+  },
+  {
+   "arm": "quantile-0.3",
+   "fires": [
+    {
+     "atSeconds": 0.33,
+     "sharpness": 70
+    },
+    {
+     "atSeconds": 8.33,
+     "sharpness": 55
+    },
+    {
+     "atSeconds": 14.33,
+     "sharpness": 67
+    },
+    {
+     "atSeconds": 20.33,
+     "sharpness": 128
+    },
+    {
+     "atSeconds": 26.33,
+     "sharpness": 55
+    },
+    {
+     "atSeconds": 32.33,
+     "sharpness": 67
+    },
+    {
+     "atSeconds": 38.33,
+     "sharpness": 128
+    },
+    {
+     "atSeconds": 44.33,
+     "sharpness": 55
+    }
+   ],
+   "heldBlurry": 55,
+   "heldTooSoon": 94
+  }
+ ]
+}
