@@ -201,11 +201,47 @@ function foldBrand(brand: string | null): string {
     .trim();
 }
 
+/**
+ * The shop's spelling of a brand the reading misspelled.
+ *
+ * Applied at every exit of `reconcile`, not only the one that asserts. A line the gate holds back
+ * still shows the shopper a brand, and every brand error on the clut corpus is one of those: Qwen
+ * writes PAIANO and PALANO for PRIANO, the resolver matches it fuzzily and knows which entry it
+ * is, and the line then asks "is this Paiano rigatoni?" about a shop that sells Priano.
+ *
+ * `matched` is precondition enough. A brand the shop does not stock scores BRAND_MISMATCH, which
+ * sinks the entry below ACCEPT and answers `absent`, so a reading that gets to `matched` has
+ * misspelled a brand this shop sells. It corrects a misreading and never substitutes for one: a
+ * line whose readings gave no brand keeps none, since the entry's brand would then be the catalog
+ * naming the product rather than confirming it. Nothing else about the line moves, the `sure` flag
+ * least of all.
+ *
+ * Replayed over six saved runs (`eval/pipeline/reconcile-replay.ts`), 45 lines of 222 are
+ * respelled and brands right go 155/159 to 159/159, with `found` and `asserted wrong` unchanged.
+ * Confined to the asserted lines it is worth nothing at all, 155/159 either way, because the
+ * scorer's own brand match is fuzzy and those were already scored right.
+ */
+function respell(line: ReconciledLine, catalog: Catalog | null): ReconciledLine {
+  if (catalog === null || line.brand === null) return line;
+  const verdict = resolve({ name: line.description, brand: line.brand }, catalog);
+  if (verdict.status !== "matched" || verdict.entry.brand === null) return line;
+  return verdict.entry.brand === line.brand ? line : { ...line, brand: verdict.entry.brand };
+}
+
 export function reconcile(
   wide: WideReading,
   close: VerifyResponse | null,
   catalog: Catalog | null = null,
   units: UnitReading[] = [],
+): ReconciledLine {
+  return respell(reconcileLine(wide, close, catalog, units), catalog);
+}
+
+function reconcileLine(
+  wide: WideReading,
+  close: VerifyResponse | null,
+  catalog: Catalog | null,
+  units: UnitReading[],
 ): ReconciledLine {
   const unsure = (over: Partial<ReconciledLine> = {}): ReconciledLine => ({
     description: wide.description,
@@ -296,22 +332,8 @@ export function reconcile(
     if (picked !== undefined) return { ...agreed, sure: true, sku: picked.sku, catalog: "picked" };
     return unsure({ ...agreed, confidence: Math.min(DISAGREED_CONFIDENCE, agreed.confidence), catalog: verdict.status });
   }
-  // The shop's spelling of its own brand, not the reader's. `matched` already means the reading's
-  // brand is this brand: `brandFactor` matches it fuzzily and a brand the shop does not stock
-  // scores BRAND_MISMATCH, which sinks the entry below ACCEPT and makes the verdict `absent`. So a
-  // reading that reaches here and spells it differently has misread a logo, and Qwen misreads this
-  // one constantly: PAIANO and PALANO for PRIANO across the clut runs. Carrying the misreading to
-  // the shopper is what the line did until 2026-09-14, and the scorer counted it wrong for it.
-  // Replayed over five saved runs, 37 lines of 158 change and brands right go 130/133 to 133/133
-  // with found and asserted wrong both unchanged; `eval/pipeline/reconcile-replay.ts`.
-  //
-  // A correction of something read, never a substitute for reading nothing: a line whose readings
-  // gave no brand keeps none, because the entry's brand would then be the catalog naming the
-  // product rather than the catalog confirming it.
-  const spelled = verdict.status === "matched" && agreed.brand !== null && verdict.entry.brand !== null
-    ? verdict.entry.brand
-    : agreed.brand;
-  return { ...agreed, brand: spelled, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
+  // The brand is respelled at the exit, for every line and not only this one; see `respell`.
+  return { ...agreed, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
 }
 
 /**

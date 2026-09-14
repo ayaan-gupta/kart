@@ -1460,16 +1460,47 @@ worked out. `matched` is a strong enough precondition to correct it: a brand the
 stock scores `BRAND_MISMATCH` and sinks the entry below `ACCEPT`, so a reading that gets to
 `matched` has misspelled a brand this shop sells.
 
-Over all five saved runs of the day, 37 lines of 158 change their spelling:
+**And it has to apply to the lines the gate holds back, which is the correction to the first
+version of this entry.** Confining it to asserted lines was measured at 37 lines respelled and
+brands right 130/133 to 133/133, and that number was wrong: the replay was respelling every line
+while the change only respelled the asserted ones. Re-measured with the two separated, over six
+saved runs:
 
-|  | shipped | the shop's spelling |
-|---|---|---|
-| brands right | 130/133 98% | **133/133 100%** |
-| every item reaches the bag | 168/185 | 168/185 |
-| asserted wrong or invented | 5 | 5 |
+|  | shipped before | asserted lines only | **every line** |
+|---|---|---|---|
+| brands right | 155/159 97% | 155/159 97% | **159/159 100%** |
+| every item reaches the bag | 201/222 | 201/222 | 201/222 |
+| asserted wrong or invented | 6 | 6 | 6 |
+| lines respelled | | 32 | 45 |
+
+On the asserted lines it is worth exactly nothing, because the scorer's own brand match is fuzzy
+and those lines were already scored right. Every brand error on this corpus is on a line the gate
+is holding back, which is clut6's "bronze cut pasta (Paiano)" on every run of the day. Respelling
+one asserts nothing: the line stays unsure, the shopper is still asked for another photograph, and
+the only thing that changes is that the question is asked under the brand the shop actually sells
+rather than under a misreading the pipeline had already resolved.
 
 Nothing else moves, because nothing else can: the name, the count and the gate's verdict are
 untouched. A line whose readings gave no brand at all keeps none, since the entry's brand would
 then be the catalog naming a product rather than confirming one.
 
 This is what the catalog leg is for, and it cost no call.
+
+### Why the gate holds a line back, counted, 2026-09-14
+
+The gate's cost is its largest number and nothing had ever said which of `reconcile`'s exits
+produced it. Every unsure line of six saved runs, attributed to the first condition that failed:
+
+| held back by | lines | right | wrong | invented | ignored |
+|---|---|---|---|---|---|
+| low confidence | 39 | 25 | 5 | 5 | 4 |
+| the two counts differ | 19 | 14 | 5 | 0 | 0 |
+| the close read says it is something else | 4 | 4 | 0 | 0 | 0 |
+
+Low confidence is the largest and it is doing real work: the 25 right lines are the cost, and the
+10 wrong or invented ones are what the exit is for. That is why the catalog rescue above is
+refused; nothing tested so far separates those two halves.
+
+The count exit is the more interesting one. Fourteen of nineteen lines held back for a count
+disagreement were right, meaning the wide count was correct and the close read's was not. A third
+witness that counts packages already exists and is asked only of lines that are already sure.

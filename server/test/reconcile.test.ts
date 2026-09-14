@@ -201,6 +201,18 @@ describe("reconcile: against the store's catalog", () => {
     expect(line.brand).toBe("Priano");
   });
 
+  it("shows the shop's spelling on a line it is holding back too", () => {
+    // Where every brand error on this corpus lives. A line held back for any other reason still
+    // shows the shopper a brand, and asking "is this Paiano rigatoni?" about a shop that sells
+    // Priano is the pipeline volunteering a misreading it had already resolved. Nothing is
+    // asserted by this: the line stays unsure and the shopper is still asked.
+    const reading: WideReading = { description: "rigatoni", brand: "PAIANO", count: 1, confidence: 0.4 };
+    const line = reconcile(reading, close({ name: "rigatoni", brand: "PAIANO", count: 1 }), shop);
+    expect(line.sure).toBe(false);
+    expect(line.brand).toBe("Priano");
+    expect(line.sku).toBeNull();
+  });
+
   it("leaves the brand alone when the catalog did not match one entry", () => {
     const reading: WideReading = { description: "pull-tab tin", brand: "Paiano", count: 1, confidence: 0.95 };
     const line = reconcile(reading, close({ name: "pull-tab tin", brand: "Paiano", count: 1 }), shop);
