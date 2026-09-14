@@ -40,7 +40,7 @@ interface SavedRow {
 
 function rescore(file: string) {
   const data = JSON.parse(readFileSync(file, 'utf8')) as { rows: SavedRow[] };
-  const totals = { photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
+  const totals = { photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, openImages: 0, openFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
   const perTier: Record<string, typeof totals> = {};
   const misses = new Map<string, number>();
   const qtyWrong = new Map<string, number>();
@@ -61,6 +61,10 @@ function rescore(file: string) {
       t.invented += score.unmatchedLines.length;
       t.hiddenImages += hiddenExpected ? 1 : 0;
       t.hiddenFlagged += hiddenExpected && flagged ? 1 : 0;
+      // The other half of requirement 3: a notice raised over a basket that hides nothing. Without
+      // it a flag that is never off scores a perfect recall; see clut-photos.ts.
+      t.openImages += hiddenExpected ? 0 : 1;
+      t.openFlagged += hiddenExpected || !flagged ? 0 : 1;
       t.gated += row.gated ? 1 : 0;
       t.seconds += row.seconds;
       t.cost += row.costUsd ?? 0;
@@ -84,7 +88,7 @@ function rescore(file: string) {
       }
     };
     add(totals);
-    perTier[row.tier] ??= { ...totals, photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
+    perTier[row.tier] ??= { ...totals, photographs: 0, labelled: 0, found: 0, qtyRight: 0, brandRight: 0, brandScored: 0, invented: 0, hiddenImages: 0, hiddenFlagged: 0, openImages: 0, openFlagged: 0, gated: 0, seconds: 0, cost: 0, assertedRight: 0, assertedWrong: 0, bagAssertedRight: 0, bagAssertedWrong: 0, unsureRight: 0, unsureWrong: 0, flagged: 0 };
     add(perTier[row.tier]);
     for (const m of score.misses) misses.set(`${row.id} ${m}`, (misses.get(`${row.id} ${m}`) ?? 0) + 1);
     for (const q of score.qtyWrong) qtyWrong.set(`${row.id} ${q.label} (${q.expected} got ${q.actual})`, (qtyWrong.get(`${row.id} ${q.label} (${q.expected} got ${q.actual})`) ?? 0) + 1);
@@ -106,6 +110,7 @@ for (const tier of [undefined, 'cart', 'storage']) {
   line('2 qty right', (t) => pct(t.qtyRight, t.found), tier);
   line('  brands right', (t) => pct(t.brandRight, t.brandScored), tier);
   line('3 hidden flagged', (t) => pct(t.hiddenFlagged, t.hiddenImages), tier);
+  line('  wrongly flagged', (t) => pct(t.openFlagged, t.openImages), tier);
   line('invented lines', (t) => String(t.invented), tier);
   line('5 asserted wrong', (t) => (t.flagged ? `${t.assertedWrong}/${t.assertedRight + t.assertedWrong}` : '-'), tier);
   line('  by whole-bag totals', (t) => (t.flagged ? `${t.bagAssertedWrong}/${t.bagAssertedRight + t.bagAssertedWrong}` : '-'), tier);

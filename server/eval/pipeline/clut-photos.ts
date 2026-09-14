@@ -461,6 +461,13 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   const kindRight = subset.filter((r) => r.subjectKind === r.expectSubjectKind).length;
   const hiddenImages = subset.filter((r) => r.hiddenExpected);
   const hiddenFlagged = hiddenImages.filter((r) => r.occlusionFlag).length;
+  // Requirement 3 counted only recall until 2026-09-14, and a flag that is never off scores a
+  // perfect one: gpt-5.6-sol raised the notice on all fourteen scans of a seven photograph run,
+  // including the two photographs that hide nothing, and read 10/10. The notice costs the shopper
+  // a search of a basket that has nothing to find, so the photographs that hide nothing are
+  // scored too and both numbers are printed together.
+  const openImages = subset.filter((r) => !r.hiddenExpected);
+  const openFlagged = openImages.filter((r) => r.occlusionFlag).length;
   const unsure = subset.flatMap((r) => r.unsureScored);
   // What the store's catalog said about each line, read back off the close read's own answer.
   // "not-consulted" on every line means the deployment has no catalog and this leg is inert, which
@@ -506,7 +513,8 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   console.log(`    1. every item reaches the bag   ${found}/${labelled} products (${((100 * found) / Math.max(1, labelled)).toFixed(0)}%)`);
   console.log(`    2. quantities are right         ${qtyRight}/${found} of the products found (${((100 * qtyRight) / Math.max(1, found)).toFixed(0)}%)`);
   console.log(`       brands right                 ${brandRight}/${brandScored} legible-brand products (${((100 * brandRight) / Math.max(1, brandScored)).toFixed(0)}%)`);
-  console.log(`    3. hidden items are flagged     ${hiddenFlagged}/${hiddenImages.length} photographs that have one`);
+  console.log(`    3. hidden items are flagged     ${hiddenFlagged}/${hiddenImages.length} photographs that have one`
+    + `, and ${openFlagged}/${openImages.length} that have none`);
   console.log(`    4. unsure items are flagged     ${unsureFlagged}/${unsure.length} illegible products came back under 0.6`);
   console.log(`       lines matching nothing real  ${invented} (a further ${ignored} named something in frame the shopper is not buying)`);
   console.log(`       scene gate correct           ${kindRight}/${subset.length} (${gated} emptied as "shelf")`);
@@ -522,7 +530,7 @@ function summarise(name: string, subset: Row[]): Record<string, unknown> {
   console.log(`       products the census boxed    ${boxed}/${listed} (only these can be read twice)`);
   console.log(`       seconds per photograph       ${seconds.toFixed(1)}`);
 
-  return { photographs: subset.length, catalog: Object.fromEntries(catalogVerdicts), listed, boxed, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
+  return { photographs: subset.length, catalog: Object.fromEntries(catalogVerdicts), listed, boxed, labelled, found, qtyRight, brandRight, brandScored, invented, ignored, gated, kindRight, hiddenImages: hiddenImages.length, hiddenFlagged, openImages: openImages.length, openFlagged, unsure: unsure.length, unsureFlagged, secondsAvg: Number(seconds.toFixed(2)), ...(gate.gated > 0 ? { gate } : {}) };
 }
 
 // A resumed run is one run, so its summary covers every scan in it, not only this invocation's.

@@ -1302,6 +1302,7 @@ requested but a list of what is covered and why (`hidden-probe.ts`).
 |---|---|---|
 | the shipped census field | 2/5 | 0/2 |
 | asked alone, three looks each | 2/5 | 0/2 |
+| asked alone of openai/gpt-5.6-luna | 5/5 | 2/2 |
 
 No change. clut3 and clut4 came back with an empty list on all three looks each, so this is not the
 census being distracted. Looking at clut4 says why: the Campbell's tin is behind the Nutella jar
@@ -1309,8 +1310,15 @@ with a thumbnail of red and white label showing, and a person has to be told it 
 the one photograph where asking alone saw something the census did not, naming the peanut butter
 jar on one look of three.
 
-Requirement 3 on this corpus is close to what the photograph holds, and the lever is not the
-prompt. Left as it is.
+Asking a different reader is the third row, and it is the whole lesson. Luna flags every
+photograph, including the two that hide nothing, and on clut1 the things it names as covered are
+"Bread rolls; Brioche buns; Fusilli bucati pasta", which are the products in plain view. Sol does
+the same, 10 of 10 and 4 of 4 (below). Both score a perfect recall by never being off.
+
+Requirement 3 on this corpus is close to what the photograph holds, the lever is not the prompt,
+and it is not a different reader either. Left as it is. What did change is the metric: it now
+prints the photographs wrongly flagged beside the ones correctly flagged, because without that
+column the useless answer scores best.
 
 ### Painting the neighbours out of the crop, 2026-09-14
 
@@ -1390,7 +1398,7 @@ path, on the bytes the phone sends. The shipped column is the two Qwen-wide draw
 | 1 every item reaches the bag | 64/74 86% | **71/74 96%** |
 | 2 quantities are right | 58/64 91% | **67/71 94%** |
 | &nbsp;&nbsp;brands right | 50/52 96% | **54/54 100%** |
-| 3 hidden items are flagged | 4/10 | **10/10** |
+| 3 hidden items are flagged | 4/10, and 1/4 wrongly | 10/10, **and 4/4 wrongly** |
 | 4 unsure items are flagged | 0/6 | 2/11 |
 | lines matching nothing real | 6 | **2** |
 | scene gate correct | 11/14 | 11/14 |
@@ -1399,17 +1407,31 @@ path, on the bytes the phone sends. The shipped column is the two Qwen-wide draw
 | seconds per photograph | 15.2 | **12.1** |
 | billed per photograph | $0.0060 | $0.0102 |
 
-Better on every requirement, and faster, because only one call of the fourteen a photograph makes
-is Sol: the census. The close reads and the package check stay on Qwen, which is where the calls
+Better on requirements 1, 2 and 5, and faster, because only one call of the fourteen a photograph
+makes is Sol: the census. Not better on 3, which is read below and is the opposite of what the
+recall column says. The close reads and the package check stay on Qwen, which is where the calls
 are. Cost is 1.7x, not the 11x of Sol-on-both.
 
-Requirement 3 is the clearest single result. The census's occlusion field was 12 of 13 on Sol in
-September and has been 2 of 5 since the switch, and asking the question as its own call did not
-recover it on Qwen (above). It is 10 of 10 here. The hidden flag is a property of the reader.
+**Requirement 3 is not a result at all, and finding that out is what this run was worth.** Sol
+raised the occlusion notice on all fourteen scans, including the four over clut1 and clut6, which
+hide nothing. A flag that is never off has perfect recall by construction. The metric had no
+false-alarm column until this run, so it read 10 of 10 and said nothing; the column was added the
+same day, to `clut-photos.ts` and `clut-rescore.ts`, and every saved run re-scored. Under it Qwen
+is 4 of 10 with 1 of 4 wrongly raised and Sol is 10 of 10 with 4 of 4, and Qwen's is the signal
+that carries information. The same correction applies to the September row that reads "flags every
+photograph that has something hidden, 12 of 13": that is recall on a corpus where 13 of 15
+photographs hide something, and it was never checked against the other two.
 
 The second draw asserted nothing wrong at all, 0 of 24, which is the first time this corpus has met
 its own bar on the shipped path.
 
-**Not adopted here.** The wide tier was moved to Qwen on 2026-09-07 on the owner's explicit
-decision to run it on an open-weight model, and this configuration moves it back. The measurement
-is what makes that decision answerable; the decision is not this file's to take.
+**Not adopted.** Put to the owner on 2026-09-14 with these numbers and declined, and the reasoning
+is worth recording because it is also the reasoning this file has been carrying since 2026-09-07:
+an open-weight reader is the one you can put a harness around. The catalog leg exists precisely to
+be that harness and no run in this document has ever had a shortlist in front of the reader, so
+86% is this configuration's floor and not its ceiling. A tier swap buys ten points once; the
+harness is where the rest is. `MODELS.photo` has said so in the code the whole time.
+
+Kept here because a measurement that was run should not have to be run again, and because it is
+two environment variables away if it is ever wanted. What it actually settled is smaller and more
+useful than the table looks: requirement 3 was never measuring what it claimed.
