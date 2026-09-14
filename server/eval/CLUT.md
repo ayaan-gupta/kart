@@ -1257,3 +1257,32 @@ clut7. Three of the four are occlusion, and requirement 3 caught two photographs
 
 clut7 is also the one scene gate miss, answering `product` rather than `cart` on a basket of tins
 photographed from above inside a pantry.
+
+### A third scale for the check, tried and reverted, 2026-09-14
+
+The 09-14 run above asserted clut4's pair as one bag. The scale table in `CHECK_LONG_EDGES` says
+768 is the only measured scale that reads clut4 when 1536 does not, so adding it as a third look
+should have turned one miss in five into one in twelve, at a call on a crop a quarter the area.
+
+Same harness, same seven photographs, one pass each:
+
+| | 1536 + 1024 (ships) | 1536 + 1024 + 768 |
+|---|---|---|
+| asserted lines wrong | **1/21** | 2/25 |
+| clut4's pair | asserted as one | asserted as one |
+| clut5's pair | held back | asserted as one |
+| every item reaches the bag | 33/37 | 33/37 |
+| quantities are right | 30/33 | 30/33 |
+| unsure lines | 14: 5 wrong, 9 right | 10: 4 wrong, 6 right |
+| calls per photograph | 12.6 | 17.6 |
+| cost per photograph | $0.0071 | $0.0083 |
+
+Reverted. One draw each, so the arms are not separated by this, and that is the finding: at two
+scales or three, whether either pair is caught is a coin flip, and the run-to-run spread is larger
+than anything a third look adds. The scale table was five samples on a fixed crop; in the shipped
+path the census box moves between runs, and a box drawn tight on one bag cannot be read as two at
+any scale. So the sampling that justified 768 does not transfer, and the cost is real.
+
+The check stays what its commit called it: a mitigation, not a cure. Two touching identical
+packages are still the open defect, and the lever is the census box rather than another look at
+the crop it cuts.
