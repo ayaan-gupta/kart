@@ -296,7 +296,22 @@ export function reconcile(
     if (picked !== undefined) return { ...agreed, sure: true, sku: picked.sku, catalog: "picked" };
     return unsure({ ...agreed, confidence: Math.min(DISAGREED_CONFIDENCE, agreed.confidence), catalog: verdict.status });
   }
-  return { ...agreed, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
+  // The shop's spelling of its own brand, not the reader's. `matched` already means the reading's
+  // brand is this brand: `brandFactor` matches it fuzzily and a brand the shop does not stock
+  // scores BRAND_MISMATCH, which sinks the entry below ACCEPT and makes the verdict `absent`. So a
+  // reading that reaches here and spells it differently has misread a logo, and Qwen misreads this
+  // one constantly: PAIANO and PALANO for PRIANO across the clut runs. Carrying the misreading to
+  // the shopper is what the line did until 2026-09-14, and the scorer counted it wrong for it.
+  // Replayed over five saved runs, 37 lines of 158 change and brands right go 130/133 to 133/133
+  // with found and asserted wrong both unchanged; `eval/pipeline/reconcile-replay.ts`.
+  //
+  // A correction of something read, never a substitute for reading nothing: a line whose readings
+  // gave no brand keeps none, because the entry's brand would then be the catalog naming the
+  // product rather than the catalog confirming it.
+  const spelled = verdict.status === "matched" && agreed.brand !== null && verdict.entry.brand !== null
+    ? verdict.entry.brand
+    : agreed.brand;
+  return { ...agreed, brand: spelled, sure: true, sku: verdict.status === "matched" ? verdict.sku : null, catalog: verdict.status };
 }
 
 /**

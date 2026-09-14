@@ -1435,3 +1435,41 @@ harness is where the rest is. `MODELS.photo` has said so in the code the whole t
 Kept here because a measurement that was run should not have to be run again, and because it is
 two environment variables away if it is ever wanted. What it actually settled is smaller and more
 useful than the table looks: requirement 3 was never measuring what it claimed.
+
+### The catalog leg is switched off exactly where it is strongest, 2026-09-14
+
+Qwen's confidence is quantised and 0.5 is one of the values it answers with constantly. `reconcile`
+holds a line back when either reading is under `UNSURE_BELOW` (0.6), and it does that *before*
+asking the catalog, so those lines report `catalog: "not-reached"`. On clut7, six of eight lines.
+The closed-world assumption in CLAUDE.md says the shop's list is the complete set of things that
+can be in the cart, and the leg built to use it is off on the lines with the weakest reader
+evidence, which are the lines where an outside witness is worth the most.
+
+`reconcile-replay.ts` rebuilds every line of every saved run from the readings that produced it,
+with no model call. It reproduces the shipped verdict on 150 of 158 lines before changing anything,
+which is the check that it is replaying the pipeline and not its own arithmetic.
+
+**Asserting a low-confidence line on a unique catalog match: refused.** Over five runs it asserts
+7 lines the gate holds back, 3 right and 3 wrong. The bar is 0.
+
+**Showing the shop's spelling of its own brand: adopted.** The three wrong ones above are the same
+defect and it is not about confidence at all. Qwen writes PAIANO and PALANO for PRIANO; `resolve`
+matches a brand fuzzily and resolves it to the right entry anyway, and then the line shows the
+shopper the misreading and the scorer counts the line wrong for a brand the pipeline had already
+worked out. `matched` is a strong enough precondition to correct it: a brand the shop does not
+stock scores `BRAND_MISMATCH` and sinks the entry below `ACCEPT`, so a reading that gets to
+`matched` has misspelled a brand this shop sells.
+
+Over all five saved runs of the day, 37 lines of 158 change their spelling:
+
+|  | shipped | the shop's spelling |
+|---|---|---|
+| brands right | 130/133 98% | **133/133 100%** |
+| every item reaches the bag | 168/185 | 168/185 |
+| asserted wrong or invented | 5 | 5 |
+
+Nothing else moves, because nothing else can: the name, the count and the gate's verdict are
+untouched. A line whose readings gave no brand at all keeps none, since the entry's brand would
+then be the catalog naming a product rather than confirming one.
+
+This is what the catalog leg is for, and it cost no call.

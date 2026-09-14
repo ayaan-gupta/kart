@@ -184,6 +184,37 @@ describe("reconcile: against the store's catalog", () => {
     expect(line.sure).toBe(false);
   });
 
+  /**
+   * Replayed over the five saved runs of 2026-09-14, 37 lines of 158 show a brand spelled some
+   * other way than the shop spells it, and taking the shop's spelling moves brands right from
+   * 130/133 to 133/133 with `found` and `asserted wrong` both unchanged
+   * (`eval/pipeline/reconcile-replay.ts`).
+   */
+  it("shows the shop's spelling of the brand, not the reader's misreading of it", () => {
+    // Qwen writes PAIANO and PALANO for PRIANO on the clut photographs, and the line carried the
+    // misreading to the shopper. `matched` already means this is the shop's brand: a brand the
+    // shop does not stock scores BRAND_MISMATCH and sinks the entry below ACCEPT.
+    const reading: WideReading = { description: "rigatoni", brand: "PAIANO", count: 1, confidence: 0.95 };
+    const line = reconcile(reading, close({ name: "rigatoni", brand: "PAIANO", count: 1 }), shop);
+    expect(line.sure).toBe(true);
+    expect(line.sku).toBe("Priano rigatoni");
+    expect(line.brand).toBe("Priano");
+  });
+
+  it("leaves the brand alone when the catalog did not match one entry", () => {
+    const reading: WideReading = { description: "pull-tab tin", brand: "Paiano", count: 1, confidence: 0.95 };
+    const line = reconcile(reading, close({ name: "pull-tab tin", brand: "Paiano", count: 1 }), shop);
+    expect(line.catalog).toBe("absent");
+    expect(line.brand).toBe("Paiano");
+  });
+
+  it("does not invent a brand the readings never gave", () => {
+    // An entry's brand is a correction of what was read, not a substitute for reading nothing.
+    const reading: WideReading = { description: "rigatoni", brand: null, count: 1, confidence: 0.95 };
+    const line = reconcile(reading, close({ name: "rigatoni", brand: null, count: 1 }), shop);
+    expect(line.brand).toBeNull();
+  });
+
   it("changes nothing at all when there is no catalog", () => {
     const line = reconcile(wide, close());
     expect(line.sure).toBe(true);
