@@ -1215,3 +1215,45 @@ something really there that the file does not list.
 
 Three labels were corrected on 2026-09-04 by going back to the photograph after a model answer
 disagreed with one. `labels.json` records which.
+
+## The shipped HEAD, on the bytes the phone sends, 2026-09-14
+
+Every arm measured between 09-06 and 09-13 was run on the original files, `asPhone: false`. The
+phone has never sent those: `photo.tsx` routes both the camera and the library through
+`prepareUpload`, so what leaves the device is always the 2048 bound. The last phone-bytes run was
+09-05, four commits before the corners fix, the salvage change and the second reader. So the
+shipped path had not once been measured on its own input since any of that landed.
+
+`clut-photos.ts --tier cart --as-phone`, one pass over the seven basket photographs, against the
+service at 8642476:
+
+| | as-phone, HEAD (09-14) | originals, corners run (09-13) |
+|---|---|---|
+| 1 every item reaches the bag | 33/37 **89%** | 65/78 83% |
+| 2 quantities are right | 30/33 **91%** | 57/65 88% |
+| &nbsp;&nbsp;brands right | 25/26 **96%** | 52/53 98% |
+| 3 hidden items are flagged | 2/5 | 3/10 |
+| 4 unsure items are flagged | 0/4 | 0/6 |
+| lines matching nothing real | 2 | 7 |
+| scene gate correct | 6/7 | 14/14 |
+| **5 asserted lines wrong** | **1/21** | 3/49 |
+| &nbsp;&nbsp;unsure lines | 14: 5 wrong, 9 right | 25: 14 wrong, 11 right |
+| seconds per photograph | 15.3 | 14.9 |
+| cost per photograph | $0.0071 | $0.0051 |
+
+Seven scans against fourteen, so the percentages carry a wide spread and the two columns are not a
+before and after. What the column is for is the one question it settles: the 2048 bound does not
+cost the shipped path anything, and nothing in the corners fix or the second reader depended on
+pixels the phone throws away.
+
+The hard bar is still not met. One line came back sure and wrong, and it is the case this corpus
+has never read: clut4's two touching bags of Priano rigatoni, counted as one. The check called it
+right on clut5's pair and missed it here, which is what a witness that finds the second bag in 2 of
+8 looks does when it is asked twice.
+
+Four products never reached the bag: a peanut butter jar behind a box on clut3, a Campbell's tin
+under the quinoa on clut4, one of the rigatoni bags on clut5, and an unlabelled pull-tab tin on
+clut7. Three of the four are occlusion, and requirement 3 caught two photographs of five.
+
+clut7 is also the one scene gate miss, answering `product` rather than `cart` on a basket of tins
+photographed from above inside a pantry.

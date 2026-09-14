@@ -20,7 +20,7 @@
 # Everything else is done here, on any Mac, asking for nothing but the Mac password where Apple
 # or Homebrew require it: pointing the command line tools at an installed Xcode, Xcode's licence
 # and first launch, Homebrew, Node and CocoaPods when they are missing, the node path Xcode's
-# build phases need, the OpenAI key (asked first, so the slow part runs unattended), waiting for
+# build phases need, the OpenRouter key (asked first, so the slow part runs unattended), waiting for
 # the phone to be plugged in and trusted, and the two things that would otherwise fail
 # confusingly on any machine that is not the original author's:
 #
