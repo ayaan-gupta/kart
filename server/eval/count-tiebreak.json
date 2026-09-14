@@ -1,0 +1,448 @@
+{
+ "ranAt": "2026-09-14T07:25:12.369Z",
+ "model": "openai/gpt-5.6-luna",
+ "scales": [
+  1536,
+  1024
+ ],
+ "samples": 3,
+ "runs": [
+  "server/eval/clut-photos-asphone.json",
+  "server/eval/clut-photos-masked.json",
+  "server/eval/clut-photos-asphone-3scale.json",
+  "server/eval/clut-photos-spelling.json",
+  "server/eval/clut-photos-respell.json",
+  "server/eval/clut-photos-solwide.json",
+  "server/eval/clut-photos-solwide2.json"
+ ],
+ "calls": 126,
+ "tally": {
+  "lines": 21,
+  "labelled": 21,
+  "agreesWide": 12,
+  "agreesClose": 8,
+  "agreesNeither": 1,
+  "settledRight": 17,
+  "settledWrong": 3,
+  "unsettled": 1
+ },
+ "probes": [
+  {
+   "run": "server/eval/clut-photos-asphone.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 2,
+   "name": "bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 1,
+   "name": "Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 5,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 2,
+   "name": "Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 5,
+   "close": 2,
+   "looks": [
+    2,
+    2,
+    2,
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-masked.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-masked.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-masked.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 2,
+   "name": "bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone-3scale.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    0,
+    0,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone-3scale.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 1,
+   "name": "Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 4,
+   "close": 3,
+   "looks": [
+    2,
+    2,
+    2,
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-asphone-3scale.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 2,
+   "name": "Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 4,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-respell.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-respell.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 2,
+   "name": "bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 0,
+   "name": "organic whole grain quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 3,
+   "name": "rigatoni",
+   "label": "Priano rigatoni",
+   "truth": 2,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 1,
+   "name": "Organic Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 4,
+   "close": 3,
+   "looks": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 0,
+   "name": "Organic whole grain quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 2,
+   "name": "Bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    2,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut4",
+   "pass": 1,
+   "index": 3,
+   "name": "Rigatoni",
+   "label": "Priano rigatoni",
+   "truth": 2,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    2,
+    2,
+    2,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "organic whole grain quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "wide": 1,
+   "close": 2,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut5",
+   "pass": 1,
+   "index": 3,
+   "name": "rigatoni pasta",
+   "label": "Priano rigatoni",
+   "truth": 2,
+   "wide": 2,
+   "close": 1,
+   "looks": [
+    1,
+    1,
+    1,
+    1,
+    2,
+    2
+   ]
+  },
+  {
+   "run": "server/eval/clut-photos-solwide2.json",
+   "id": "clut7",
+   "pass": 1,
+   "index": 1,
+   "name": "Organic Black Beans",
+   "label": "Simply Nature black beans",
+   "truth": [
+    3,
+    4
+   ],
+   "wide": 4,
+   "close": 3,
+   "looks": [
+    2,
+    3,
+    3,
+    3,
+    3,
+    3
+   ]
+  }
+ ]
+}

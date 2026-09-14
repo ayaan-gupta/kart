@@ -1504,3 +1504,35 @@ refused; nothing tested so far separates those two halves.
 The count exit is the more interesting one. Fourteen of nineteen lines held back for a count
 disagreement were right, meaning the wide count was correct and the close read's was not. A third
 witness that counts packages already exists and is asked only of lines that are already sure.
+
+### The package check cannot settle a count the two readings disagree on, 2026-09-14
+
+The count exit holds back 19 lines over six runs and fourteen of them were right, so it is the
+largest recoverable pool the gate has. The package check is the obvious third witness: it counts by
+enumerating, which is a different method from either reading, and the two candidate counts already
+exist, so using it as a tiebreaker cannot invent a number.
+
+`count-tiebreak.ts` cuts the crop the phone would cut for each of those lines, paints the
+neighbours out exactly as the service does, and asks the check three times at each shipped scale.
+Twenty-one lines, 126 calls, scored against the labels:
+
+| how the check's looks are read | settled right | settled wrong | left unsure |
+|---|---|---|---|
+| the most any look found (how `runVerify` reads it) | 17 | 3 | 1 |
+| the value a majority of looks gave | 11 | 3 | 7 |
+| only where every look agreed | 7 | 2 | 12 |
+| the fewest any look found | 8 | 6 | 7 |
+
+Refused. The bar is 0 and nothing reaches it, and two of the three wrong ones are the same defect
+under every policy: clut7's stack of black bean tins, where the truth is three or four, the close
+read says one and the check says one on all six looks. The check counts what it can see, and a tin
+behind a tin with only its lid showing is not visible from the crop. The wide pass, which saw the
+whole basket, was the only witness that got near it.
+
+The third is narrower and is a property of reading the looks by their maximum: on clut4's bronze
+cut pasta one look of six answered two and the maximum took it. A majority reading fixes that one
+and costs six of the right settles, which is the trade the whole table is made of.
+
+Worth keeping from it: the check agreed with the wide count 12 times and the close count 8, so
+neither reading is the better witness to a count in general, and there is nothing here to prefer
+one by. The gate is right to hold these lines back.
