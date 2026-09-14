@@ -35,7 +35,32 @@ Before it: check the balance (`GET /api/v1/credits`) and Parasail's pool with on
 and keep the lid open. A Mac asleep on battery runs a few seconds at a time and every photograph
 it touches times out. `--resume` means a run that has to stop loses nothing it paid for.
 
-## 0a. Sol wide plus Qwen close, the one arm the Qwen measurement could not run
+## 0a. Sol wide plus Qwen close: RUN on 2026-09-14, and it wins on every requirement
+
+Neither blocker survives. OpenRouter serves `openai/gpt-5.6-sol` first-party on `KART_QWEN_KEY`,
+so the empty OpenAI account never applied to it; and `clientFor` has picked the client per model
+name since 0bda67c, so "the single-client openai.ts cannot do this today" is no longer true. Two
+draws of the seven basket photographs, the numbers and the caveats in `CLUT.md`, "Sol wide plus
+Qwen close":
+
+    every item reaches the bag   86%  ->  96%
+    quantities                   91%  ->  94%
+    brands                       96%  ->  100%
+    hidden flagged              4/10  ->  10/10
+    asserted lines wrong        2/42  ->  1/50
+    seconds                     15.2  ->  12.1
+    billed per photograph    $0.0060  ->  $0.0102
+
+Two environment variables and no new code:
+
+```bash
+PORT=4311 KART_PHOTO_MODEL=openai/gpt-5.6-sol   KART_VERIFY_MODEL=qwen/qwen3-vl-235b-a22b-instruct   node --env-file=server/.env.local server/node_modules/.bin/tsx server/scripts/serve.ts
+node --env-file=server/.env.local server/node_modules/.bin/tsx   server/eval/pipeline/clut-photos.ts --tier cart --as-phone --api http://127.0.0.1:4311   --out server/eval/clut-photos-solwide.json
+```
+
+Not adopted: the wide tier is on Qwen by the owner's explicit decision, and this moves it back.
+
+### The original entry, kept for what it got wrong
 
 Qwen was measured against Sol on 2026-09-07 and not adopted (`CLUT.md`, "Qwen instead of Sol").
 The finding that matters for this list: the two-reading gate works on the two readers failing

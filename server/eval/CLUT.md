@@ -1372,3 +1372,44 @@ lose a line). A change worth five points of separation on a gate that fires on t
 photograph is invisible in seven photographs, and three consecutive runs of this corpus have now
 been decided by which boxes the census happened to draw. The crop-level number is the measurement;
 the end-to-end run is the check that nothing broke.
+
+### Sol wide plus Qwen close, the arm that was blocked, measured on 2026-09-14
+
+`WHEN-CREDIT-RETURNS.md` item 0a has named this the next arm to run since 2026-09-07, blocked on
+two things that are both gone. The OpenAI account is still empty, but OpenRouter serves
+`openai/gpt-5.6-sol` first-party on the same key that pays for Qwen, which is how the package
+check already runs. And "the single-client `server/src/openai.ts` cannot do today" stopped being
+true at 0bda67c: `clientFor` picks the client per model name, so a wide pass on one provider and a
+close read on another is two environment variables and no new code.
+
+So it was run. Two independent draws of the seven basket photographs each, against the shipped
+path, on the bytes the phone sends. The shipped column is the two Qwen-wide draws of the same day:
+
+|  | Qwen wide (ships) | **Sol wide, Qwen close** |
+|---|---|---|
+| 1 every item reaches the bag | 64/74 86% | **71/74 96%** |
+| 2 quantities are right | 58/64 91% | **67/71 94%** |
+| &nbsp;&nbsp;brands right | 50/52 96% | **54/54 100%** |
+| 3 hidden items are flagged | 4/10 | **10/10** |
+| 4 unsure items are flagged | 0/6 | 2/11 |
+| lines matching nothing real | 6 | **2** |
+| scene gate correct | 11/14 | 11/14 |
+| **5 asserted lines wrong** | 2/42 | **1/50** |
+| &nbsp;&nbsp;unsure lines | 29: 13 wrong, 16 right | 25: 6 wrong, 19 right |
+| seconds per photograph | 15.2 | **12.1** |
+| billed per photograph | $0.0060 | $0.0102 |
+
+Better on every requirement, and faster, because only one call of the fourteen a photograph makes
+is Sol: the census. The close reads and the package check stay on Qwen, which is where the calls
+are. Cost is 1.7x, not the 11x of Sol-on-both.
+
+Requirement 3 is the clearest single result. The census's occlusion field was 12 of 13 on Sol in
+September and has been 2 of 5 since the switch, and asking the question as its own call did not
+recover it on Qwen (above). It is 10 of 10 here. The hidden flag is a property of the reader.
+
+The second draw asserted nothing wrong at all, 0 of 24, which is the first time this corpus has met
+its own bar on the shipped path.
+
+**Not adopted here.** The wide tier was moved to Qwen on 2026-09-07 on the owner's explicit
+decision to run it on an open-weight model, and this configuration moves it back. The measurement
+is what makes that decision answerable; the decision is not this file's to take.

@@ -296,6 +296,21 @@ export const MODELS = {
    */
   photo: process.env.KART_PHOTO_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
   /**
+   * The close read: one crop of one product, cut at the box the wide pass placed.
+   *
+   * Named on its own rather than following `photo`, which is what it did until 2026-09-14. The
+   * gate asserts a line when the wide pass and the close read agree, and CLUT.md measured what
+   * happens when those are the same weights: qwen3.5-27b through both seats found fewer items
+   * than through the wide seat alone and asserted six wrong lines of thirty-one, because two calls
+   * to one reader agree on their own mistakes and agreement then certifies the error instead of
+   * catching it. While `photo` held both seats, changing the wide tier silently moved the close
+   * one onto it and took the gate's independence with it, with nothing in the way.
+   *
+   * The value is the same qwen3-vl-235b it has been since 2026-09-07. `KART_VERIFY_MODEL`
+   * overrides it, for the harnesses.
+   */
+  close: process.env.KART_VERIFY_MODEL?.trim() || "qwen/qwen3-vl-235b-a22b-instruct",
+  /**
    * The package check: how many separate packages of one product are in one crop, asked only of
    * the lines the photograph path is about to assert.
    *

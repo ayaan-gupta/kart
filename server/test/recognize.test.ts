@@ -1213,13 +1213,15 @@ describe("runVerify", () => {
   const wide = { description: "Rigatoni", productKey: "priano::rigatoni", brand: "Piano", count: 2, confidence: 0.9 };
   const closeAnswer = { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.98, legible: true, matchesHint: true, catalogSku: null };
 
-  it("asks the photo model about each crop under the verify prompt with the wide reading as the hint", async () => {
+  it("asks the close reader about each crop under the verify prompt with the wide reading as the hint", async () => {
     mockOutput(closeAnswer);
     const crop = await blankJpeg(300, 400);
     const [item] = await runVerify([{ id: "a", crop, wide }]);
 
     const params = create.mock.calls[0][0];
-    expect(params.model).toBe(MODELS.photo);
+    // MODELS.close and not MODELS.photo. The gate asserts on the two readings agreeing, which is
+    // worth nothing when both seats hold the same weights; see MODELS.close.
+    expect(params.model).toBe(MODELS.close);
     expect(params.input[0]).toEqual({ role: "system", content: VERIFY_SYSTEM_PROMPT });
     expect(params.input[1].content[0].text).toBe(verifyUserText({ description: "Rigatoni", productKey: "priano::rigatoni" }));
     expect(params.input[1].content[1].detail).toBe("high");

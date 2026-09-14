@@ -1,0 +1,387 @@
+{
+ "ranAt": "2026-09-14T06:25:49.938Z",
+ "model": "openai/gpt-5.6-luna",
+ "samples": 3,
+ "runs": [
+  "server/eval/clut-photos-asphone.json"
+ ],
+ "calls": 21,
+ "summary": {
+  "census": {
+   "hits": 2,
+   "falseAlarms": 0
+  },
+  "alone": {
+   "hits": 5,
+   "falseAlarms": 2
+  },
+  "withHidden": 5,
+  "without": 2
+ },
+ "probes": [
+  {
+   "id": "clut1",
+   "hiddenExpected": false,
+   "hiddenLabels": [],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "Bread rolls",
+      "why": "Covered by the ham and brioche packaging"
+     },
+     {
+      "what": "Brioche buns",
+      "why": "Covered by the ham package"
+     },
+     {
+      "what": "Fusilli bucati pasta",
+      "why": "Partly covered by the basket edge"
+     }
+    ],
+    [
+     {
+      "what": "Hamburger buns",
+      "why": "A clear plastic bread bag and the focaccia package cover them"
+     },
+     {
+      "what": "Hamburger buns",
+      "why": "The focaccia package is partly over them"
+     }
+    ],
+    [
+     {
+      "what": "Hot dog buns",
+      "why": "A hamburger bun package is covering them"
+     },
+     {
+      "what": "Hamburger buns",
+      "why": "A Hawkin brioche package is covering part of them"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut2",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "peanut butter jar"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "Peanut butter jar",
+      "why": "Covered by the salsa can stacked on top"
+     },
+     {
+      "what": "Almond container",
+      "why": "Partly covered by the peanut butter jar and salsa can"
+     }
+    ],
+    [
+     {
+      "what": "Peanut butter jar",
+      "why": "Covered by the salsa can"
+     },
+     {
+      "what": "Almond container",
+      "why": "Partly covered by the peanut butter jar and salsa can"
+     }
+    ],
+    [
+     {
+      "what": "Peanut butter jar",
+      "why": "Covered by the salsa can"
+     },
+     {
+      "what": "Almond container label",
+      "why": "Partly covered by the salsa can"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut3",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "peanut butter jar"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "Lower jar of salsa",
+      "why": "The upper salsa can is stacked on top of it"
+     }
+    ],
+    [
+     {
+      "what": "Lower can of salsa",
+      "why": "Can of salsa stacked on top"
+     },
+     {
+      "what": "Product behind the bananas",
+      "why": "Banana bunch"
+     }
+    ],
+    [
+     {
+      "what": "Lower jar of peanut butter",
+      "why": "The salsa jar is stacked on top of it"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut4",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "Campbell's condensed soup"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "Rigatoni pasta",
+      "why": "A paper bag is folded over and obscures part of it"
+     },
+     {
+      "what": "Fusilli pasta",
+      "why": "Another pasta bag overlaps and covers part of it"
+     },
+     {
+      "what": "Marinara pasta sauce",
+      "why": "The jar is partly obscured by the Nutella jar"
+     },
+     {
+      "what": "Nutella",
+      "why": "The jar is partly obscured by the marinara sauce jar"
+     }
+    ],
+    [
+     {
+      "what": "Rigatoni pasta",
+      "why": "Behind the front rigatoni pasta bag"
+     },
+     {
+      "what": "Penne pasta",
+      "why": "Behind the front rigatoni pasta bag"
+     },
+     {
+      "what": "Marinara sauce",
+      "why": "Behind the Nutella jar"
+     },
+     {
+      "what": "Pasta package",
+      "why": "Behind the marinara sauce jar"
+     }
+    ],
+    [
+     {
+      "what": "Rigatoni pasta package",
+      "why": "Another rigatoni package is in front of it"
+     },
+     {
+      "what": "Penne pasta package",
+      "why": "The front rigatoni package partially covers it"
+     },
+     {
+      "what": "Marinara sauce jar",
+      "why": "The large Nutella jar partially covers it"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut5",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "Campbell's condensed soup"
+   ],
+   "census": {
+    "severity": "some",
+    "flag": true
+   },
+   "alone": [
+    [
+     {
+      "what": "Rigatoni pasta",
+      "why": "A marinara sauce jar is in front of it"
+     },
+     {
+      "what": "Fusilli pasta",
+      "why": "Another pasta package overlaps it"
+     },
+     {
+      "what": "Pasta package",
+      "why": "The marinara sauce jar covers part of it"
+     }
+    ],
+    [
+     {
+      "what": "Rigatoni pasta",
+      "why": "A second pasta bag is in front of it"
+     },
+     {
+      "what": "Fusilli pasta",
+      "why": "Another pasta bag partially covers it"
+     }
+    ],
+    [
+     {
+      "what": "Rigatoni pasta",
+      "why": "A larger rigatoni pasta bag is in front of it"
+     },
+     {
+      "what": "Farro grain bag",
+      "why": "The marinara sauce jar is in front of it"
+     },
+     {
+      "what": "Pasta bag",
+      "why": "The quinoa bag is in front of it"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut6",
+   "hiddenExpected": false,
+   "hiddenLabels": [],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "Short pasta bag",
+      "why": "Partly covered by the long Barilla linguine box"
+     },
+     {
+      "what": "Unidentified item inside the closed pasta bag",
+      "why": "Inside the closed short-pasta bag"
+     }
+    ],
+    [
+     {
+      "what": "spiral pasta bag",
+      "why": "partly covered by the Barilla penne box"
+     },
+     {
+      "what": "jar",
+      "why": "partly covered by the Barilla linguine box"
+     }
+    ],
+    [
+     {
+      "what": "Piano pasta package",
+      "why": "partly covered by the Barilla pasta box"
+     },
+     {
+      "what": "Barilla penne box",
+      "why": "partly covered by the Piano pasta package"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut7",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "pesto alla Genovese",
+    "Nutella",
+    "jar of pasta sauce",
+    "unlabelled pull-tab tin"
+   ],
+   "census": {
+    "severity": "some",
+    "flag": true
+   },
+   "alone": [
+    [
+     {
+      "what": "Can of soup behind the front Campbell’s soup",
+      "why": "The front Campbell’s soup can is blocking it"
+     },
+     {
+      "what": "Can behind the black beans",
+      "why": "The large black-beans can is blocking it"
+     },
+     {
+      "what": "Black-beans can behind the front black-beans can",
+      "why": "Another black-beans can is in front of it"
+     },
+     {
+      "what": "Can at the bottom center",
+      "why": "The basket wall and other groceries obscure most of it"
+     },
+     {
+      "what": "Bagged grocery on the left",
+      "why": "Its packaging is partly hidden by the basket and other bags"
+     },
+     {
+      "what": "Jar at the bottom right",
+      "why": "The basket wall and its white-lidded jar obscure it"
+     }
+    ],
+    [
+     {
+      "what": "Green can behind the black beans",
+      "why": "Large black-beans can"
+     },
+     {
+      "what": "Lower black-beans can",
+      "why": "Cream-of-mushroom soup can"
+     },
+     {
+      "what": "Pesto jar",
+      "why": "Black-beans can in front"
+     },
+     {
+      "what": "Red-labeled can at the front",
+      "why": "Basket wall and other groceries"
+     },
+     {
+      "what": "Large white-lidded jar",
+      "why": "Basket wall and front container"
+     }
+    ],
+    [
+     {
+      "what": "green can behind the soup cans",
+      "why": "partly hidden behind the Campbell’s soup cans"
+     },
+     {
+      "what": "black bean can at lower left",
+      "why": "partly covered by the can of cream of mushroom soup"
+     },
+     {
+      "what": "black bean can in the center",
+      "why": "partly covered by the cream of mushroom soup can"
+     },
+     {
+      "what": "red-labeled can at the bottom",
+      "why": "blocked by the front wall of the basket"
+     },
+     {
+      "what": "large jar at lower right",
+      "why": "blocked by the basket and its white lid obscures the label"
+     }
+    ]
+   ]
+  }
+ ]
+}

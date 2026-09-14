@@ -877,7 +877,7 @@ const PHOTO_DETAIL = detailFromEnv("KART_PHOTO_DETAIL", "high");
  * of the close read get measured rather than assumed.
  */
 const VERIFY_DETAIL = detailFromEnv("KART_VERIFY_DETAIL", "high");
-const VERIFY_MODEL = (): string => process.env.KART_VERIFY_MODEL?.trim() || MODELS.photo;
+const VERIFY_MODEL = (): string => MODELS.close;
 /**
  * Two census names for one product. The wide pass names the same thing differently from one box to
  * the next ("rigatoni", "Priano Rigatoni Authentic Italian"), so containment either way is the
