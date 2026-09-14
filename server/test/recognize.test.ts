@@ -27,7 +27,7 @@ vi.mock("../src/openai.js", () => ({
 }));
 
 const { MODELS } = await import("../src/openai.js");
-const { runCensus, runIdentify, runVerify, cropToBox } = await import("../src/recognize.js");
+const { runCensus, runIdentify, runVerify, cropToBox, CROP_PADDING } = await import("../src/recognize.js");
 
 
 async function blankJpeg(w = 200, h = 150): Promise<Buffer> {
@@ -1696,6 +1696,74 @@ describe("runVerify checks the packages in a line it is about to assert", () => 
     }));
     // No single scale reads both of this corpus's touching pairs; see CHECK_LONG_EDGES.
     expect(edges.sort((a, b) => b - a)).toEqual([1536, 1024]);
+  });
+
+  /**
+   * The census boxes every product in the photograph, so the crop of one of them already knows
+   * where its neighbours are. `neighbourPatches` turns that into rectangles and they are filled
+   * before the check counts, which is what took the false alarms on a single package from 5 of 110
+   * looks to 2 and the separations on a real pair from 5 of 20 to 9. See `mask-neighbours.ts`.
+   */
+  it("paints a neighbour out of the crop before the check counts it", async () => {
+    // Red across the top fifth, grey below. The subject's box sits low enough that the red band
+    // falls in the crop's padding and not in the box itself.
+    const striped = await sharp({
+      create: { width: 400, height: 400, channels: 3, background: { r: 180, g: 180, b: 180 } },
+    })
+      .composite([{
+        input: { create: { width: 400, height: 80, channels: 3, background: { r: 220, g: 20, b: 20 } } },
+        left: 0,
+        top: 0,
+      }])
+      .jpeg()
+      .toBuffer();
+    const subject = { x: 0.1, y: 0.3, w: 0.8, h: 0.5 };
+    // Full width, so its painted strip starts at the crop's own left edge and a sample taken in
+    // the corner lands inside it.
+    const above = { x: 0.0, y: 0.0, w: 1, h: 0.31 };
+
+    const topLeft = async (call: unknown[]): Promise<{ r: number; g: number; b: number }> => {
+      const url: string = (call[0] as { input: { content: { image_url: string }[] }[] }).input[1].content[1].image_url;
+      const { data } = await sharp(Buffer.from(url.split(",")[1], "base64"))
+        .extract({ left: 2, top: 2, width: 4, height: 4 })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      return { r: data[0], g: data[1], b: data[2] };
+    };
+
+    // One neighbour, whose box covers the red band. Its own line is held back by a close read that
+    // disagrees, so it is never checked and the calls after the two close reads are all the
+    // subject's.
+    mockOutput(closeAnswer);
+    mockOutput({ ...closeAnswer, name: "shoelaces", matchesHint: false });
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    await runVerify([
+      { id: "a", crop: striped, box: subject, wide },
+      { id: "b", crop: striped, box: above, wide: { ...wide, description: "marinara", productKey: "sn::marinara" } },
+    ]);
+    const masked = await topLeft(create.mock.calls[2]);
+    expect(masked.r).toBeLessThan(200);
+
+    // The same crop with the neighbour somewhere else: the red band is left alone.
+    create.mockClear();
+    mockOutput(closeAnswer);
+    mockOutput({ ...closeAnswer, name: "shoelaces", matchesHint: false });
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    await runVerify([
+      { id: "a", crop: striped, box: subject, wide },
+      { id: "b", crop: striped, box: { x: 0.0, y: 0.9, w: 0.05, h: 0.05 }, wide: { ...wide, description: "marinara", productKey: "sn::marinara" } },
+    ]);
+    const plain = await topLeft(create.mock.calls[2]);
+    expect(plain.r).toBeGreaterThan(200);
+  });
+
+  it("pads the crop by the same fraction the phone does", async () => {
+    // `withNeighboursPainted` locates a neighbour inside a crop the phone cut, from the boxes
+    // alone. It can only do that if both sides widen the box by the same amount.
+    const { CROP_PADDING: phone } = await import("../../src/engine/liveVision/uploadImage");
+    expect(CROP_PADDING).toBe(phone);
   });
 
   it("holds the line back when either look finds a package the readings did not", async () => {

@@ -1,0 +1,269 @@
+{
+ "ranAt": "2026-09-14T06:01:29.848Z",
+ "model": "qwen/qwen3-vl-235b-a22b-instruct",
+ "samples": 3,
+ "runs": [
+  "server/eval/clut-photos-asphone.json"
+ ],
+ "calls": 21,
+ "summary": {
+  "census": {
+   "hits": 2,
+   "falseAlarms": 0
+  },
+  "alone": {
+   "hits": 2,
+   "falseAlarms": 0
+  },
+  "withHidden": 5,
+  "without": 2
+ },
+ "probes": [
+  {
+   "id": "clut1",
+   "hiddenExpected": false,
+   "hiddenLabels": [],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [],
+    [],
+    []
+   ]
+  },
+  {
+   "id": "clut2",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "peanut butter jar"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [
+     {
+      "what": "peanut butter jar",
+      "why": "partly under La Costeña can"
+     },
+     {
+      "what": "roasted almonds container",
+      "why": "partly behind Campbell’s can"
+     }
+    ],
+    [],
+    []
+   ]
+  },
+  {
+   "id": "clut3",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "peanut butter jar"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [],
+    [],
+    []
+   ]
+  },
+  {
+   "id": "clut4",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "Campbell's condensed soup"
+   ],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [],
+    [],
+    []
+   ]
+  },
+  {
+   "id": "clut5",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "Campbell's condensed soup"
+   ],
+   "census": {
+    "severity": "some",
+    "flag": true
+   },
+   "alone": [
+    [
+     {
+      "what": "Campbell's condensed soup can",
+      "why": "partly hidden behind Nutella jar"
+     },
+     {
+      "what": "Priano Bronze Cut Pasta bag",
+      "why": "partly under the Nutella jar and behind the marinara sauce jar"
+     },
+     {
+      "what": "Bob's Red Mill Farro bag",
+      "why": "partly behind the marinara sauce jar"
+     },
+     {
+      "what": "Bob's Red Mill Quinoa bag",
+      "why": "partly behind the Priano pasta bag and the marinara sauce jar"
+     }
+    ],
+    [
+     {
+      "what": "Campbell's condensed soup can",
+      "why": "partly under Nutella jar"
+     },
+     {
+      "what": "bottom of Nutella jar",
+      "why": "obscured by Campbell's can"
+     },
+     {
+      "what": "lower part of pasta sauce jar",
+      "why": "partly inside basket and behind Nutella"
+     },
+     {
+      "what": "back of Farro bag",
+      "why": "behind pasta sauce jar and Nutella"
+     },
+     {
+      "what": "back of Quinoa bag",
+      "why": "behind Farro bag and pasta sauce jar"
+     },
+     {
+      "what": "lower portion of Priano rigatoni bag",
+      "why": "behind Nutella jar and pasta sauce jar"
+     }
+    ],
+    [
+     {
+      "what": "Campbell's condensed soup can",
+      "why": "partly hidden behind Nutella jar"
+     },
+     {
+      "what": "Priano Bronze Cut Pasta bag",
+      "why": "partly under the Nutella jar and behind the marinara sauce"
+     },
+     {
+      "what": "Bob's Red Mill Farro bag",
+      "why": "partly behind the marinara sauce jar"
+     }
+    ]
+   ]
+  },
+  {
+   "id": "clut6",
+   "hiddenExpected": false,
+   "hiddenLabels": [],
+   "census": {
+    "severity": "none",
+    "flag": false
+   },
+   "alone": [
+    [],
+    [],
+    []
+   ]
+  },
+  {
+   "id": "clut7",
+   "hiddenExpected": true,
+   "hiddenLabels": [
+    "pesto alla Genovese",
+    "Nutella",
+    "jar of pasta sauce",
+    "unlabelled pull-tab tin"
+   ],
+   "census": {
+    "severity": "some",
+    "flag": true
+   },
+   "alone": [
+    [
+     {
+      "what": "can under Campbell's soup",
+      "why": "Campbell's Cream of Mushroom can on top"
+     },
+     {
+      "what": "can under Simply Nature black beans",
+      "why": "Simply Nature Black Beans can on top"
+     },
+     {
+      "what": "jar behind white-lidded jar",
+      "why": "white-lidded jar in front"
+     },
+     {
+      "what": "green bag on left",
+      "why": "partially behind purple bag and in shadow"
+     },
+     {
+      "what": "can behind front basket",
+      "why": "plastic basket front obscures label"
+     },
+     {
+      "what": "jar with red lid",
+      "why": "partially behind Simply Nature can and white-lidded jar"
+     }
+    ],
+    [
+     {
+      "what": "can behind Campbell's soup",
+      "why": "partly hidden behind Campbell's Cream of Mushroom can"
+     },
+     {
+      "what": "can under Campbell's soup",
+      "why": "mostly obscured by the Campbell's can on top"
+     },
+     {
+      "what": "jar behind white-lidded jar",
+      "why": "partially blocked by the white-lidded jar in front"
+     },
+     {
+      "what": "product inside green bag",
+      "why": "inside opaque green packaging"
+     },
+     {
+      "what": "items below basket",
+      "why": "obscured by the plastic basket grate"
+     }
+    ],
+    [
+     {
+      "what": "Campbell's soup can",
+      "why": "partially behind another can"
+     },
+     {
+      "what": "Simply Nature black beans can",
+      "why": "partially behind another can"
+     },
+     {
+      "what": "jar with green lid",
+      "why": "partially behind a jar with white lid"
+     },
+     {
+      "what": "bag with purple label",
+      "why": "partially behind a green bag"
+     },
+     {
+      "what": "can with red label",
+      "why": "inside basket, label obscured by basket side"
+     },
+     {
+      "what": "jar with white lid",
+      "why": "label turned away, not visible"
+     }
+    ]
+   ]
+  }
+ ]
+}

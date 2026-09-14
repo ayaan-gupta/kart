@@ -213,3 +213,111 @@ export async function compositeMarks(
     .jpeg({ quality: 88 })
     .toBuffer();
 }
+
+/** A rectangle to fill inside a crop, in that crop's own pixels. */
+export interface CropPatch {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Where the neighbours are in one product's crop, so they can be painted out before it is counted.
+ *
+ * The package check is asked how many packages of one product a crop holds, and the crop is cut
+ * wide (`CROP_PADDING`) so it almost always shows the edge of something else. Every false alarm
+ * CLUT.md records for the sensitive framings is that edge: a red lid at the border of the Nutella
+ * crop that belongs to the marinara jar beside it. The census has already boxed that jar in the
+ * same pass, so the pipeline knows exactly where it is and does not have to ask anyone.
+ *
+ * Measured over 130 looks per arm on the two touching pairs this corpus has and the eleven single
+ * packages around them (`eval/pipeline/mask-neighbours.ts`):
+ *
+ *     plain   separated 5 of 20 looks at a real pair    5 of 110 false alarms on one package
+ *     ring    separated 9 of 20                         2 of 110
+ *
+ * Better on both counts for no extra call, since it changes the pixels rather than the question.
+ *
+ * Three neighbours are left alone, and the last is what keeps this safe:
+ *
+ *   - one the census named as the same product, because another package of this product is the
+ *     whole thing being counted.
+ *   - one covering the middle of the crop, or more than `maxCover` of it. Census boxes overlap
+ *     freely and a box over the middle is describing this product, not one beside it.
+ *   - the part of any neighbour that falls inside the subject's own box. Filling a neighbour's
+ *     whole rectangle reaches the same 9 of 20 and takes the subject with it: on clut5 it filled
+ *     the bottom third of the crop and cut the bottoms off both bags of the pair it was meant to
+ *     separate. Nothing outside the subject's box is the subject, so clipping to that ring cannot.
+ */
+export function neighbourPatches(
+  box: Box,
+  others: Box[],
+  crop: { width: number; height: number },
+  padding: number,
+  maxCover = 0.4,
+): CropPatch[] {
+  const clamp = (v: number): number => Math.max(0, Math.min(1, v));
+  const padX = box.w * padding;
+  const padY = box.h * padding;
+  // The same rectangle `cropRect` cuts on the device, in normalized terms, so the pixels arriving
+  // here can be addressed without knowing what the photograph behind them measured.
+  const cropLeft = clamp(box.x - padX);
+  const cropTop = clamp(box.y - padY);
+  const cropW = clamp(box.x + box.w + padX) - cropLeft;
+  const cropH = clamp(box.y + box.h + padY) - cropTop;
+  if (!(cropW > 0) || !(cropH > 0) || !(crop.width > 0) || !(crop.height > 0)) return [];
+
+  const patches: CropPatch[] = [];
+  const add = (left: number, top: number, right: number, bottom: number): void => {
+    if (!(right > left) || !(bottom > top)) return;
+    const x = Math.round(((left - cropLeft) / cropW) * crop.width);
+    const y = Math.round(((top - cropTop) / cropH) * crop.height);
+    const w = Math.min(crop.width, Math.round(((right - cropLeft) / cropW) * crop.width)) - x;
+    const h = Math.min(crop.height, Math.round(((bottom - cropTop) / cropH) * crop.height)) - y;
+    if (w > 0 && h > 0 && x >= 0 && y >= 0) patches.push({ left: x, top: y, width: w, height: h });
+  };
+
+  for (const other of others) {
+    const left = Math.max(cropLeft, other.x);
+    const top = Math.max(cropTop, other.y);
+    const right = Math.min(cropLeft + cropW, other.x + other.w);
+    const bottom = Math.min(cropTop + cropH, other.y + other.h);
+    if (!(right > left) || !(bottom > top)) continue;
+    if (((right - left) * (bottom - top)) / (cropW * cropH) > maxCover) continue;
+    const midX = cropLeft + cropW / 2;
+    const midY = cropTop + cropH / 2;
+    if (left <= midX && midX <= right && top <= midY && midY <= bottom) continue;
+    // The rectangle with the subject's own box cut out of it: the strip above it, the strip below
+    // it, and the two beside it over the band the box spans.
+    add(left, top, right, Math.min(bottom, box.y));
+    add(left, Math.max(top, box.y + box.h), right, bottom);
+    add(left, Math.max(top, box.y), Math.min(right, box.x), Math.min(bottom, box.y + box.h));
+    add(Math.max(left, box.x + box.w), Math.max(top, box.y), right, Math.min(bottom, box.y + box.h));
+  }
+  return patches;
+}
+
+/**
+ * Fills each patch with the crop's own dominant colour, which leaves a dull piece of the same
+ * scene rather than a rectangle that itself looks like an object in the photograph.
+ */
+export async function maskPatches(crop: Buffer, patches: CropPatch[]): Promise<Buffer> {
+  if (patches.length === 0) return crop;
+  const { dominant } = await sharp(crop).stats();
+  return sharp(crop)
+    .composite(patches.map((patch) => ({
+      input: {
+        create: {
+          width: patch.width,
+          height: patch.height,
+          channels: 3 as const,
+          background: { r: dominant.r, g: dominant.g, b: dominant.b },
+        },
+      },
+      left: patch.left,
+      top: patch.top,
+    })))
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}

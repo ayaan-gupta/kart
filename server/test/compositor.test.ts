@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import {
   compositeMarks,
+  neighbourPatches,
   orientedSize,
   placeLabel,
   resolveLabelPositions,
@@ -164,5 +165,71 @@ describe("resolveLabelPositions", () => {
     const second = resolveLabelPositions(marks, 400, 400);
 
     expect(second).toEqual(first);
+  });
+});
+
+/**
+ * The neighbours painted out of a package check crop.
+ *
+ * The check counts the packages of one product in a crop, and the crop is cut wide enough that it
+ * usually shows a neighbour. Measured over 130 looks at each arm on the two touching pairs this
+ * corpus has and the eleven single packages around them (`mask-neighbours.ts`):
+ *
+ *     plain   separated 5/20 looks at a real pair    5/110 false alarms on one package
+ *     ring    separated 9/20                         2/110
+ *
+ * The rectangles are clipped to the part of the crop outside the subject's own box, which is what
+ * makes this safe: census boxes overlap freely, and painting a neighbour's whole rectangle takes
+ * the subject with it. Filling every rectangle whole reached the same 9/20 and took the bottoms
+ * off both bags of clut5's pair on the way.
+ */
+describe("neighbourPatches", () => {
+  const crop = { width: 1000, height: 1000 };
+  // The subject fills the middle; with 8% padding the crop reaches from 0.168 to 0.632.
+  const subject = { x: 0.2, y: 0.2, w: 0.4, h: 0.4 };
+
+  it("paints the part of a neighbour that falls in the padding, and none of the subject", () => {
+    // Sits above the subject and reaches down into it.
+    const patches = neighbourPatches(subject, [{ x: 0.2, y: 0.1, w: 0.4, h: 0.25 }], crop, 0.08);
+    expect(patches).toHaveLength(1);
+    const [patch] = patches;
+    // Cut off exactly where the subject's own box begins, at 0.2 of the photograph, which is
+    // (0.2 - 0.168) / 0.464 of the way down the crop.
+    expect(patch.top).toBe(0);
+    expect(patch.top + patch.height).toBe(Math.round(((0.2 - 0.168) / 0.464) * 1000));
+  });
+
+  it("leaves a neighbour alone when it covers the middle of the crop", () => {
+    expect(neighbourPatches(subject, [{ x: 0.1, y: 0.1, w: 0.6, h: 0.6 }], crop, 0.08)).toEqual([]);
+  });
+
+  it("leaves a neighbour alone when it covers more than the cover bound", () => {
+    // Down the whole left side: not over the middle, but most of the crop.
+    expect(neighbourPatches(subject, [{ x: 0.0, y: 0.0, w: 0.5, h: 1 }], crop, 0.08, 0.4)).toEqual([]);
+  });
+
+  it("has nothing to paint for a neighbour that misses the crop", () => {
+    expect(neighbourPatches(subject, [{ x: 0.8, y: 0.8, w: 0.1, h: 0.1 }], crop, 0.08)).toEqual([]);
+  });
+
+  it("keeps every patch inside the crop", () => {
+    const patches = neighbourPatches(
+      subject,
+      [{ x: -0.5, y: 0.1, w: 0.75, h: 0.05 }, { x: 0.5, y: 0.55, w: 0.8, h: 0.2 }],
+      crop,
+      0.08,
+    );
+    for (const patch of patches) {
+      expect(patch.left).toBeGreaterThanOrEqual(0);
+      expect(patch.top).toBeGreaterThanOrEqual(0);
+      expect(patch.left + patch.width).toBeLessThanOrEqual(crop.width);
+      expect(patch.top + patch.height).toBeLessThanOrEqual(crop.height);
+      expect(patch.width).toBeGreaterThan(0);
+      expect(patch.height).toBeGreaterThan(0);
+    }
+  });
+
+  it("paints nothing when there are no neighbours", () => {
+    expect(neighbourPatches(subject, [], crop, 0.08)).toEqual([]);
   });
 });

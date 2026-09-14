@@ -1286,3 +1286,89 @@ any scale. So the sampling that justified 768 does not transfer, and the cost is
 The check stays what its commit called it: a mitigation, not a cure. Two touching identical
 packages are still the open defect, and the lever is the census box rather than another look at
 the crop it cuts.
+
+### Asking about what is hidden on its own does not help, 2026-09-14
+
+Requirement 3 is the weakest of the four and it fails the same way twice. On both runs above the
+census answered severity "none" for clut2, clut3 and clut4, all three of which hold a product the
+labels mark hidden, and on clut3 and clut4 that product was never found either: the shopper loses
+an item and is told nothing is covered.
+
+The census answers six things in one call and occlusion is the only one nothing downstream checks,
+so the fix that worked for the package count was tried here: ask it on its own, one call, nothing
+requested but a list of what is covered and why (`hidden-probe.ts`).
+
+|  | photographs with a hidden product flagged | without one, wrongly flagged |
+|---|---|---|
+| the shipped census field | 2/5 | 0/2 |
+| asked alone, three looks each | 2/5 | 0/2 |
+
+No change. clut3 and clut4 came back with an empty list on all three looks each, so this is not the
+census being distracted. Looking at clut4 says why: the Campbell's tin is behind the Nutella jar
+with a thumbnail of red and white label showing, and a person has to be told it is there. clut2 is
+the one photograph where asking alone saw something the census did not, naming the peanut butter
+jar on one look of three.
+
+Requirement 3 on this corpus is close to what the photograph holds, and the lever is not the
+prompt. Left as it is.
+
+### Painting the neighbours out of the crop, 2026-09-14
+
+The table above, "Something else to separate the packages", records two framings that separate
+clut4's and clut5's touching pairs every time and cannot ship, and one note explaining why:
+
+> it counts a lid that belongs to the neighbour. The clut4 Nutella crop is the clearest case, five
+> false alarms of five: the crop holds one Nutella jar, and the red lid at its left edge is the
+> marinara sauce.
+
+Every false alarm there is a different product bleeding into the crop. That is a property of the
+crop and not a limit of the reader, and the pipeline already knows where the neighbours are,
+because the census boxed each of them in the same pass that boxed this one. `CROP_PADDING` was cut
+from 12% to 8% for the same reason, which is the blunt version of the same idea.
+
+`mask-neighbours.ts` fills them in. Three arms on the crops the phone actually cuts:
+
+|  | what is filled |
+|---|---|
+| plain | nothing; the crop as it ships |
+| masked | every other census box, whole, where it falls inside the crop |
+| ring | the same, clipped to the part of the crop outside the subject's own box |
+
+A box the census gave the same product name is never filled under either arm: another package of
+this product is the whole thing being counted. Without that rule the census's two boxes over one
+bag of quinoa painted half of it out and the check answered "no packages" five times of five.
+
+Five looks per crop per scale, at the shipped 1536 and 1024, over the two pairs this corpus has and
+the singles around them:
+
+| arm | separated a real pair | false alarms on one package |
+|---|---|---|
+| plain | 5/20 | 5/110 |
+| masked | 9/20 | **0/110** |
+| ring | 9/20 | 2/110 |
+
+`masked` and `ring` reach the same separation from opposite ends: on clut4 masked reads the pair in
+7 looks of 10 and ring in 3, on clut5 ring reads it in 6 and masked in 2. The reason is visible in
+the crop. Census boxes overlap freely, and on clut5 the whole-rectangle fill covered the bottom
+third of the crop and took the bottoms off both bags of the pair it was there to separate. Nothing
+outside the subject's own box is the subject, so `ring` cannot do that, and a bounded failure is
+worth more than two false alarms on a corpus this size.
+
+**`ring` ships.** Repeated on a second, independent census draw of the same two photographs, since
+the boxes move between runs and the fill is computed from them:
+
+| arm | separated, draw 1 | draw 2 | both | false alarms, both |
+|---|---|---|---|---|
+| plain | 5/20 | 4/10 | 9/30 | 13/210 |
+| ring | 9/20 | 5/10 | **14/30** | **5/210** |
+
+Separation up by half, false alarms down by more than half, on both draws, for no extra call: it
+changes the pixels rather than the question.
+
+**End to end it does not show, and cannot.** The seven basket photographs came back at 1/21
+asserted lines wrong with the fill and 1/21 without it, and recall moved 33/37 to 31/37, which is
+one bad census draw on clut7 rather than anything the check did (the check is doubt-only and cannot
+lose a line). A change worth five points of separation on a gate that fires on three lines a
+photograph is invisible in seven photographs, and three consecutive runs of this corpus have now
+been decided by which boxes the census happened to draw. The crop-level number is the measurement;
+the end-to-end run is the check that nothing broke.

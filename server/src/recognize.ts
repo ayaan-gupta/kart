@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from "openai";
 import { clientFor, MODELS } from "./openai.js";
-import { compositeMarks, orientedSize, type Box, type Mark } from "./compositor.js";
+import { compositeMarks, maskPatches, neighbourPatches, orientedSize, type Box, type Mark } from "./compositor.js";
 import {
   CensusResponse,
   IdentifyResponse,
@@ -101,8 +101,14 @@ function dataUrl(jpeg: Buffer): string {
  * `padding` widens the box by that fraction of its own size on every side. A tight crop of a
  * cereal box with the brand mark clipped off is measurably harder to identify than the same
  * crop with a little of the shelf around it.
+ *
+ * `CROP_PADDING` is also what the phone pads by (`src/engine/liveVision/uploadImage.ts`), and the
+ * two have to stay equal: `withNeighboursPainted` works out where a neighbour falls inside a crop
+ * the phone cut, and it can only do that from the box if it knows how wide the cut was.
  */
-export async function cropToBox(image: Buffer, box: Box, padding = 0.08): Promise<Buffer> {
+export const CROP_PADDING = 0.08;
+
+export async function cropToBox(image: Buffer, box: Box, padding = CROP_PADDING): Promise<Buffer> {
   const base = sharp(image).rotate(); // honour EXIF orientation, as compositeMarks does
   // Post-rotation dimensions. Against the stored pair this threw "bad extract area" outright on
   // an orientation 6 photograph, so identify never got to look at anything the census flagged.
@@ -872,6 +878,44 @@ const PHOTO_DETAIL = detailFromEnv("KART_PHOTO_DETAIL", "high");
  */
 const VERIFY_DETAIL = detailFromEnv("KART_VERIFY_DETAIL", "high");
 const VERIFY_MODEL = (): string => process.env.KART_VERIFY_MODEL?.trim() || MODELS.photo;
+/**
+ * Two census names for one product. The wide pass names the same thing differently from one box to
+ * the next ("rigatoni", "Priano Rigatoni Authentic Italian"), so containment either way is the
+ * test, which is the same rule the corpus labels are matched with.
+ */
+function sameProduct(a: string, b: string): boolean {
+  const left = a.trim().toLowerCase();
+  const right = b.trim().toLowerCase();
+  return left.length > 0 && right.length > 0 && (left.includes(right) || right.includes(left));
+}
+
+/**
+ * The crop the check counts: this product's, with its neighbours painted out.
+ *
+ * The census boxed every product in the photograph in the pass that boxed this one, so where the
+ * neighbours fall inside this crop is already known and nothing has to be asked. A box the census
+ * gave the same product name is not a neighbour: another package of this product is the whole
+ * thing being counted. See `neighbourPatches` for the rest of the rule and what it measured.
+ *
+ * Failure here is the unpainted crop rather than no check at all: the paint buys sensitivity, and
+ * losing it leaves the check exactly as good as it was before any of this existed.
+ */
+async function withNeighboursPainted(item: VerifyItemInput, items: VerifyItemInput[]): Promise<Buffer> {
+  const box = item.box ?? null;
+  if (box === null) return item.crop;
+  const others = items
+    .filter((other) => other !== item && other.box != null && !sameProduct(other.wide.description, item.wide.description))
+    .map((other) => other.box as Box);
+  if (others.length === 0) return item.crop;
+  try {
+    const size = orientedSize(await sharp(item.crop).metadata());
+    return await maskPatches(item.crop, neighbourPatches(box, others, size, CROP_PADDING));
+  } catch (error) {
+    console.warn(`[recognize] painting neighbours out of ${JSON.stringify(item.id)} failed:`, error);
+    return item.crop;
+  }
+}
+
 /** The package check's reader, overridable for the harnesses exactly as the others are. */
 const CHECK_MODEL = (): string => process.env.KART_CHECK_MODEL?.trim() || MODELS.check;
 
@@ -1308,9 +1352,10 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
   const checked = await Promise.allSettled(
     items.map(async (item, i): Promise<number> => {
       if (!reconciled[i].sure) return 0;
+      const crop = await withNeighboursPainted(item, items);
       const looks = await Promise.allSettled(
         CHECK_LONG_EDGES.map(async (edge): Promise<number> => {
-          const small = await sharp(item.crop)
+          const small = await sharp(crop)
             .resize({ width: edge, height: edge, fit: "inside", withoutEnlargement: true })
             .jpeg({ quality: 90 })
             .toBuffer();

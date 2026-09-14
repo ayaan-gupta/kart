@@ -1,0 +1,541 @@
+{
+ "ranAt": "2026-09-14T06:05:52.584Z",
+ "model": "openai/gpt-5.6-luna",
+ "scales": [
+  1536,
+  1024
+ ],
+ "samples": 5,
+ "arms": [
+  "plain",
+  "masked"
+ ],
+ "maxCover": 0.4,
+ "runs": [
+  "server/eval/clut-photos-asphone-3scale.json"
+ ],
+ "calls": 260,
+ "summary": {
+  "plain": {
+   "pairs": 20,
+   "separated": 5,
+   "singles": 110,
+   "falseAlarms": 5
+  },
+  "masked": {
+   "pairs": 20,
+   "separated": 9,
+   "singles": 110,
+   "falseAlarms": 0
+  }
+ },
+ "probes": [
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 0,
+   "name": "Bob's Red Mill Organic Quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "painted": 2,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     0,
+     0,
+     1,
+     0,
+     0
+    ],
+    "masked@1536": [
+     1,
+     1,
+     0,
+     0,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 1,
+   "name": "Bob's Red Mill Grains of Discovery Quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "painted": 1,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 2,
+   "name": "farro",
+   "label": "Bob's Red Mill farro",
+   "truth": 1,
+   "painted": 5,
+   "looks": {
+    "plain@1536": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     0,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 3,
+   "name": "rigatoni",
+   "label": "Priano rigatoni",
+   "truth": 2,
+   "painted": 3,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     2,
+     2,
+     2,
+     1,
+     2
+    ],
+    "masked@1024": [
+     2,
+     1,
+     2,
+     1,
+     2
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 4,
+   "name": "bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "painted": 3,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 5,
+   "name": "marinara sauce",
+   "label": "Simply Nature marinara",
+   "truth": 1,
+   "painted": 2,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut4",
+   "pass": 1,
+   "index": 6,
+   "name": "hazelnut spread",
+   "label": "Nutella",
+   "truth": 1,
+   "painted": 2,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 0,
+   "name": "quinoa",
+   "label": "Bob's Red Mill quinoa",
+   "truth": 1,
+   "painted": 2,
+   "looks": {
+    "plain@1536": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "plain@1024": [
+     1,
+     0,
+     0,
+     0,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     0,
+     0,
+     0
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 1,
+   "name": "farro",
+   "label": "Bob's Red Mill farro",
+   "truth": 1,
+   "painted": 4,
+   "looks": {
+    "plain@1536": [
+     1,
+     2,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     2,
+     2,
+     1,
+     2,
+     2
+    ],
+    "masked@1536": [
+     1,
+     0,
+     0,
+     0,
+     0
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 2,
+   "name": "bronze cut pasta",
+   "label": "Priano bronze cut pasta",
+   "truth": 1,
+   "painted": 2,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 3,
+   "name": "rigatoni",
+   "label": "Priano rigatoni",
+   "truth": 2,
+   "painted": 3,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     2,
+     2,
+     2,
+     2,
+     2
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     2,
+     1,
+     1,
+     1,
+     2
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 4,
+   "name": "marinara pasta sauce",
+   "label": "Simply Nature marinara",
+   "truth": 1,
+   "painted": 3,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "clut5",
+   "pass": 1,
+   "index": 5,
+   "name": "nutella",
+   "label": "Nutella",
+   "truth": 1,
+   "painted": 3,
+   "looks": {
+    "plain@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "plain@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1536": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "masked@1024": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  }
+ ]
+}
