@@ -645,6 +645,20 @@
      "brandMatch": null,
      "hidden": true,
      "legible": false
+    },
+    {
+     "label": "La Costena Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "match": [
+      "salsa"
+     ],
+     "brandMatch": [
+      "costena",
+      "coste\u00f1a"
+     ],
+     "hidden": true,
+     "legible": true
     }
    ],
    "ignore": [

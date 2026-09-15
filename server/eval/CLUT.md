@@ -1551,15 +1551,19 @@ node --env-file=server/.env.local server/node_modules/.bin/tsx \
 
 | requirement | HEAD, 21 scans |
 |---|---|
-| 1. every item reaches the bag | 98/111 products (88%) |
-| 2. quantities are right | 89/98 of the products found (91%) |
-| brands right | 80/80 legible-brand products (100%) |
+| 1. every item reaches the bag | 99/114 products (87%) |
+| 2. quantities are right | 90/99 of the products found (91%) |
+| brands right | 80/81 legible-brand products (99%) |
 | 3. hidden items are flagged | 6/15 that have one, 1/6 wrongly flagged |
 | 4. unsure items are flagged | 0/9 illegible products came back under 0.6 |
-| lines matching nothing real | 7, and 3 more named something in frame the shopper is not buying |
+| lines matching nothing real | 6, and 3 more named something in frame the shopper is not buying |
 | 5. asserted lines wrong | 5/67 (must be 0) |
 | the gate's cost | 39 unsure lines, 12 wrong and 27 right |
 | seconds per photograph | 15.0 |
+
+Every row but requirement 4 is as `clut-rescore.ts` reads the run against the labels corrected
+below, which is why the denominators are three higher than the run printed; requirement 4 reads
+the raw census, which the rows do not carry, and is the run's own figure.
 
 Brands at 80/80 is the respelling landing: the same corpus read "Paiano" on clut6 on nearly every
 earlier run and does not any more.
@@ -1601,3 +1605,50 @@ Fixed by capping the confidence of a held-back line the same way the two doubts 
 same expression are already capped. The test that missed this paired `sure: false` with a low
 confidence every time, which the server does for a disagreement and does not for the package
 check; the new one pairs `sure: false` with 0.965, the way the check leaves it.
+
+### clut7 was carrying a product the labels never listed, 2026-09-15
+
+`1 x salsa (La Costeña)` scored as invented on clut7 on every run that found it, including as one
+of the two asserted-wrong lines on the run below. It is not invented. The lower basket holds a jar
+whose visible label reads "...LSA" in yellow on red and "MEDIUM" below it, and the same La Costeña
+salsa is listed in clut2's and clut3's labels; `catalog.json` already carried the SKU with
+`truth: true`. The labeller missed it in clut7, which put a real product in the invented column and
+an asserted-wrong line on the board that was a correct read.
+
+Added to clut7 as hidden and legible, beside the Nutella it shares the lower basket with, and
+every saved run re-scored against it with `clut-rescore.ts` and no model call. It makes
+requirement 1 harder, not easier: one more product per photograph to find, and it is found about
+a third of the time.
+
+### One pass on the bytes the phone sends, with the leak closed, 2026-09-15
+
+```
+node --env-file=server/.env.local server/node_modules/.bin/tsx \
+  server/eval/pipeline/clut-photos.ts --tier cart --as-phone \
+  --out server/eval/clut-photos-gatefix.json
+```
+
+`gate-leak.ts` reads 0 of 22 asserted lines held back by the server, so the plumbing is closed.
+Against the corrected labels, one pass over the seven cart photographs:
+
+| requirement | with the leak closed |
+|---|---|
+| 1. every item reaches the bag | 33/38 products (87%) |
+| 2. quantities are right | 30/33 of the products found (91%) |
+| brands right | 28/28 legible-brand products (100%) |
+| 3. hidden items are flagged | 2/5 that have one, 1/2 wrongly flagged |
+| 5. asserted lines wrong | 1/22 (must be 0) |
+| the gate's cost | 14 unsure lines, 5 wrong and 9 right |
+| seconds per photograph | 16.2 |
+| cost | $0.0076 a photograph, 13.7 calls |
+
+One pass, so requirements 1 to 3 are inside the census draw variance that five earlier runs
+established and nothing here should be read as a movement. Requirement 5 is the row that carries
+information, because the leak was a wiring defect rather than a draw: it is closed on every line
+of this run.
+
+The one remaining asserted-wrong line is clut4's `1 x rigatoni (Priano)`, and this time nothing in
+the pipeline saw two: the wide pass said one, the close read said one, and the package check said
+one. That is the limit `doubtByPackages` already documents, not the leak, and it is the same pair
+the masking probe separates on nine looks in twenty. It needs a reader that can see the second box,
+not another way of asking this one.
