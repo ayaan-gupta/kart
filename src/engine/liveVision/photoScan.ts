@@ -274,8 +274,15 @@ export async function scanPhoto(
       const qty = line ? Math.max(1, line.count) : item.qty;
       // A line the close read agreed with is still unsure when the wide pass listed the object
       // twice: the listing itself was the doubt.
+      //
+      // The gate's verdict and its confidence are two different things, and the bag can only see
+      // the confidence: `bagLines` has no other input to decide a line by. Both readings agreeing
+      // leaves ~0.96 on the line, and `doubtByPackages` can take the certainty away afterwards
+      // without touching that number, so a line the server held back arrived in the bag looking
+      // settled. Held back is held back, whichever exit did it, so it is capped here like the
+      // other two doubts beside it.
       const confidence = Math.min(
-        line ? line.confidence : Math.min(item.confidence, UNSURE_BELOW - 0.1),
+        line ? (line.sure ? line.confidence : Math.min(line.confidence, UNSURE_BELOW - 0.1)) : Math.min(item.confidence, UNSURE_BELOW - 0.1),
         doubted.has(index) ? UNSURE_BELOW - 0.1 : 1,
       );
 

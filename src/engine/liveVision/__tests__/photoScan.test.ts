@@ -370,6 +370,26 @@ describe('scanPhoto with a close read', () => {
     expect(outcome.lines[0].unsure).toBe(false);
   });
 
+  /**
+   * The gate's verdict is not the same thing as its confidence, and the bag had only ever been
+   * shown the confidence. A line both readings agreed on carries their average, ~0.96, and the
+   * package check can still take its certainty away afterwards without touching that number
+   * (`doubtByPackages` in server/src/reconcile.ts, which may only ever doubt). The review screen
+   * read `line.sure` and showed amber; the bag read the confidence alone and asserted it. On the
+   * fifteen clut photographs this was every one of the remaining asserted-wrong lines: two boxes
+   * of Priano rigatoni leaning together, doubted by the check and asserted by the bag anyway.
+   */
+  it('holds a doubted line back in the bag too, though both readings were confident', async () => {
+    const census = stubCensus([boxedReply([{ name: 'rigatoni', brand: 'Priano', confidence: 0.97 }])]);
+    const verify = verifier({ rigatoni: { confidence: 0.965, sure: false, agreed: true } });
+    const outcome = await scanPhoto(createPhotoScanState(), 'IMG', { ...census, crop, requestVerify: verify.requestVerify });
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.items[0].status).toBe('unsure');
+    expect(outcome.lines[0].unsure).toBe(true);
+  });
+
   it('shows a disagreement as unsure, in the bag and in the review', async () => {
     const census = stubCensus([boxedReply([{ name: 'rigatoni', brand: 'Piano', confidence: 0.97 }])]);
     const verify = verifier({ rigatoni: { brand: 'Priano', confidence: 0.5, sure: false, agreed: false } });

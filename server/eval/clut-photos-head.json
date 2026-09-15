@@ -1,0 +1,6008 @@
+{
+ "ranAt": "2026-09-14T07:32:11.090Z",
+ "arms": {
+  "asPhone": true,
+  "verify": true
+ },
+ "cost": {
+  "usd": 0.1533,
+  "perPhotoUsd": 0.0073,
+  "callsPerPhoto": 13.14,
+  "billedUsd": 0.1467
+ },
+ "summary": {
+  "all": {
+   "photographs": 21,
+   "catalog": {
+    "matched": 67,
+    "not-reached": 25,
+    "absent": 18
+   },
+   "listed": 112,
+   "boxed": 112,
+   "labelled": 111,
+   "found": 98,
+   "qtyRight": 89,
+   "brandRight": 80,
+   "brandScored": 80,
+   "invented": 7,
+   "ignored": 3,
+   "gated": 0,
+   "kindRight": 18,
+   "hiddenImages": 15,
+   "hiddenFlagged": 6,
+   "openImages": 6,
+   "openFlagged": 1,
+   "unsure": 9,
+   "unsureFlagged": 0,
+   "secondsAvg": 14.97,
+   "gate": {
+    "assertedRight": 62,
+    "assertedWrong": 5,
+    "unsureRight": 27,
+    "unsureWrong": 12,
+    "gated": 21
+   }
+  },
+  "cart": {
+   "photographs": 21,
+   "catalog": {
+    "matched": 67,
+    "not-reached": 25,
+    "absent": 18
+   },
+   "listed": 112,
+   "boxed": 112,
+   "labelled": 111,
+   "found": 98,
+   "qtyRight": 89,
+   "brandRight": 80,
+   "brandScored": 80,
+   "invented": 7,
+   "ignored": 3,
+   "gated": 0,
+   "kindRight": 18,
+   "hiddenImages": 15,
+   "hiddenFlagged": 6,
+   "openImages": 6,
+   "openFlagged": 1,
+   "unsure": 9,
+   "unsureFlagged": 0,
+   "secondsAvg": 14.97,
+   "gate": {
+    "assertedRight": 62,
+    "assertedWrong": 5,
+    "unsureRight": 27,
+    "unsureWrong": 12,
+    "gated": 21
+   }
+  },
+  "storage": {
+   "photographs": 0,
+   "catalog": {},
+   "listed": 0,
+   "boxed": 0,
+   "labelled": 0,
+   "found": 0,
+   "qtyRight": 0,
+   "brandRight": 0,
+   "brandScored": 0,
+   "invented": 0,
+   "ignored": 0,
+   "gated": 0,
+   "kindRight": 0,
+   "hiddenImages": 0,
+   "hiddenFlagged": 0,
+   "openImages": 0,
+   "openFlagged": 0,
+   "unsure": 0,
+   "unsureFlagged": 0,
+   "secondsAvg": 0
+  }
+ },
+ "rows": [
+  {
+   "pass": 1,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 10.786,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Hawaiian Brioche Buns",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.249,
+      "w": 0.428,
+      "h": 0.356
+     }
+    },
+    {
+     "name": "Hawaiian Brioche Buns",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.197,
+      "y": 0.37,
+      "w": 0.56,
+      "h": 0.4
+     }
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.593,
+      "y": 0.435,
+      "w": 0.406,
+      "h": 0.302
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    "right"
+   ],
+   "censusSeconds": 5.76,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "Rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Hawaiian Brioche Buns",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "Hawaiian Brioche Buns",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Fusilli Bucati",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano fusilli bucati"
+      },
+      "line": {
+       "description": "Fusilli Bucati",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 14.462,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.012,
+      "y": 0.219,
+      "w": 0.395,
+      "h": 0.53
+     }
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.37,
+      "y": 0.395,
+      "w": 0.244,
+      "h": 0.251
+     }
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.385,
+      "y": 0.588,
+      "w": 0.221,
+      "h": 0.159
+     }
+    },
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.66,
+      "y": 0.504,
+      "w": 0.26,
+      "h": 0.231
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.542,
+      "y": 0.234,
+      "w": 0.354,
+      "h": 0.344
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    null,
+    "right",
+    "right"
+   ],
+   "censusSeconds": 9.64,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup."
+      },
+      "line": {
+       "description": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "roasted salted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.9,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 10.412,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 5,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.099,
+      "y": 0.319,
+      "w": 0.356,
+      "h": 0.496
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.604,
+      "y": 0.341,
+      "w": 0.324,
+      "h": 0.325
+     }
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.432,
+      "y": 0.507,
+      "w": 0.229,
+      "h": 0.309
+     }
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.8999999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.695,
+      "y": 0.641,
+      "w": 0.266,
+      "h": 0.201
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 6.02,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Roasted Almonds Salted with Sea Salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican style salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup"
+      },
+      "line": {
+       "description": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.8999999999999999,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 15.045,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "Bob's Red Mill Organic Whole Grain Quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Bob's Red Mill Grains-of-Discovery Quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Bob's Red Mill Organic Whole Grain Quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.07615999999999999,
+      "y": 0.23099999999999998,
+      "w": 0.17,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "Bob's Red Mill Grains-of-Discovery Quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.17,
+      "y": 0.23099999999999998,
+      "w": 0.17,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "unsure",
+     "box": {
+      "x": 0.219,
+      "y": 0.29,
+      "w": 0.367,
+      "h": 0.328
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "unsure",
+     "box": {
+      "x": 0.574,
+      "y": 0.235,
+      "w": 0.424,
+      "h": 0.343
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.054,
+      "y": 0.578,
+      "w": 0.363,
+      "h": 0.187
+     }
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.438,
+      "y": 0.495,
+      "w": 0.211,
+      "h": 0.223
+     }
+    },
+    {
+     "name": "nutella",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.622,
+      "y": 0.502,
+      "w": 0.298,
+      "h": 0.253
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "wrong",
+    "wrong",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    null,
+    null,
+    "right",
+    "wrong",
+    "right",
+    "right",
+    null
+   ],
+   "censusSeconds": 7.2,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Bob's Red Mill Organic Whole Grain Quinoa",
+        "x": 474,
+        "y": 510
+       },
+       {
+        "label": "Bob's Red Mill Grains-of-Discovery Quinoa",
+        "x": 822,
+        "y": 590
+       }
+      ],
+      "split": [
+       {
+        "description": "Bob's Red Mill Organic Whole Grain Quinoa",
+        "brand": "Bob's Red Mill",
+        "count": 1,
+        "confidence": 0.5,
+        "sure": false,
+        "agreed": false,
+        "sku": null,
+        "catalog": "not-reached",
+        "box": {
+         "x": 0.07615999999999999,
+         "y": 0.23099999999999998,
+         "w": 0.17,
+         "h": 0.36
+        }
+       },
+       {
+        "description": "Bob's Red Mill Grains-of-Discovery Quinoa",
+        "brand": "Bob's Red Mill",
+        "count": 1,
+        "confidence": 0.5,
+        "sure": false,
+        "agreed": false,
+        "sku": null,
+        "catalog": "not-reached",
+        "box": {
+         "x": 0.17,
+         "y": 0.23099999999999998,
+         "w": 0.17,
+         "h": 0.36
+        }
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": false,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": false,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "nutella",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Bob's Red Mill quinoa",
+     "expected": "1",
+     "actual": 2
+    },
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 1,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 13.224,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 2,
+     "sure": false
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.17,
+      "w": 0.359,
+      "h": 0.349
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.234,
+      "y": 0.25,
+      "w": 0.366,
+      "h": 0.325
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 2,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.033,
+      "y": 0.503,
+      "w": 0.397,
+      "h": 0.184
+     }
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.448,
+      "y": 0.39,
+      "w": 0.24,
+      "h": 0.285
+     }
+    },
+    {
+     "name": "Nutella",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.665,
+      "y": 0.354,
+      "w": 0.334,
+      "h": 0.323
+     }
+    },
+    {
+     "name": "condensed soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.67,
+      "y": 0.58,
+      "w": 0.307,
+      "h": 0.097
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    null,
+    "right",
+    null,
+    "right",
+    null,
+    "right"
+   ],
+   "censusSeconds": 6.17,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Bob's Red Mill Organic Quinoa",
+        "x": 450,
+        "y": 500
+       },
+       {
+        "label": "Bob's Red Mill Quinoa",
+        "x": 800,
+        "y": 600
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "organic farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 2,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "Nutella",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "condensed soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "condensed soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's condensed tomato soup",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Priano rigatoni"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano bronze cut pasta",
+     "expected": "1",
+     "actual": 2
+    }
+   ],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Campbell's condensed soup",
+     "confidence": 0.9,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 9.213,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "jarred sauce",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.149,
+      "y": 0.325,
+      "w": 0.327,
+      "h": 0.265
+     }
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.506,
+      "y": 0.317,
+      "w": 0.187,
+      "h": 0.448
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.073,
+      "y": 0.57,
+      "w": 0.389,
+      "h": 0.186
+     }
+    },
+    {
+     "name": "jarred sauce",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.4,
+     "status": "unsure",
+     "box": {
+      "x": 0.677,
+      "y": 0.498,
+      "w": 0.207,
+      "h": 0.211
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    null,
+    null
+   ],
+   "censusSeconds": 5.28,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla penne"
+      },
+      "line": {
+       "description": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla penne",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla linguine"
+      },
+      "line": {
+       "description": "linguine pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla linguine",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PAIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "legible": false,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "jarred sauce",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.7,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 1,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 24.602,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 4,
+   "labelled": 6,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbells",
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "sure": false
+    },
+    {
+     "name": "pesto",
+     "brand": "Primo",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "nut butter",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "jam",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbell's",
+     "qty": 2,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.218,
+      "y": 0.195,
+      "w": 0.362,
+      "h": 0.277
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.576,
+      "y": 0.171,
+      "w": 0.244,
+      "h": 0.278
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.195,
+      "y": 0.415,
+      "w": 0.389,
+      "h": 0.248
+     }
+    },
+    {
+     "name": "pesto",
+     "brand": "Primo",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.57,
+      "y": 0.456,
+      "w": 0.195,
+      "h": 0.221
+     }
+    },
+    {
+     "name": "nut butter",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.595,
+      "y": 0.514,
+      "w": 0.378,
+      "h": 0.173
+     }
+    },
+    {
+     "name": "jam",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.768,
+      "y": 0.32,
+      "w": 0.22,
+      "h": 0.234
+     }
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.4,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.302,
+      "w": 0.197,
+      "h": 0.212
+     }
+    },
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.181,
+      "w": 0.18,
+      "h": 0.189
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "invented",
+    "invented",
+    "ignored"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "censusSeconds": 11.47,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup."
+      },
+      "line": {
+       "description": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      },
+      "units": [
+       {
+        "label": "Cream of Mushroom SOUP",
+        "x": 646,
+        "y": 511
+       },
+       {
+        "label": "Cream of Mushroom",
+        "x": 226,
+        "y": 426
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans"
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 5,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 3,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans"
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 5,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 250,
+        "y": 470
+       },
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 650,
+        "y": 430
+       }
+      ]
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Pesto Alla Genovese",
+       "brand": "Primo",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "pesto",
+       "brand": "Primo",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "nut butter",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "nut butter",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.75,
+       "legible": true,
+       "matchesHint": false,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "chips",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "legible": false,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "chips",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "seeds",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.75,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "seeds",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "jam",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "misses": [
+    "jar of pasta sauce",
+    "unlabelled pull-tab tin"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Simply Nature black beans",
+     "expected": "3-4",
+     "actual": 5
+    }
+   ],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 9.786,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brioche buns",
+     "brand": "Hawaiian",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.25,
+      "w": 0.428,
+      "h": 0.355
+     }
+    },
+    {
+     "name": "brioche buns",
+     "brand": "Hawaiian",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.197,
+      "y": 0.371,
+      "w": 0.559,
+      "h": 0.4
+     }
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.595,
+      "y": 0.435,
+      "w": 0.404,
+      "h": 0.302
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    "right"
+   ],
+   "censusSeconds": 4.91,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "Rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Hawaiian Brioche Buns",
+       "brand": "Hawaiian",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "brioche buns",
+       "brand": "Hawaiian",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Fusilli Bucati",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano fusilli bucati"
+      },
+      "line": {
+       "description": "Fusilli Bucati",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 11.657,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.012,
+      "y": 0.217,
+      "w": 0.393,
+      "h": 0.53
+     }
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.369,
+      "y": 0.394,
+      "w": 0.246,
+      "h": 0.258
+     }
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.8999999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.386,
+      "y": 0.589,
+      "w": 0.22,
+      "h": 0.159
+     }
+    },
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.658,
+      "y": 0.503,
+      "w": 0.264,
+      "h": 0.232
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.54,
+      "y": 0.233,
+      "w": 0.359,
+      "h": 0.349
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 6.3,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "organic peanut butter",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic peanut butter"
+      },
+      "line": {
+       "description": "peanut butter",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.8999999999999999,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic peanut butter",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup."
+      },
+      "line": {
+       "description": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.85,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 12.221,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 5,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.099,
+      "y": 0.317,
+      "w": 0.354,
+      "h": 0.496
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.6,
+      "y": 0.341,
+      "w": 0.326,
+      "h": 0.329
+     }
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.433,
+      "y": 0.505,
+      "w": 0.227,
+      "h": 0.31
+     }
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.8999999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.695,
+      "y": 0.641,
+      "w": 0.264,
+      "h": 0.201
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 7.21,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Roasted Almonds Salted with Sea Salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Mexican Style Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican style salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup"
+      },
+      "line": {
+       "description": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.8999999999999999,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 16.962,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.23,
+      "w": 0.345,
+      "h": 0.362
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.22,
+      "y": 0.29,
+      "w": 0.366,
+      "h": 0.328
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.95,
+     "status": "unsure",
+     "box": {
+      "x": 0.572,
+      "y": 0.252,
+      "w": 0.427,
+      "h": 0.334
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.052,
+      "y": 0.578,
+      "w": 0.366,
+      "h": 0.185
+     }
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.438,
+      "y": 0.493,
+      "w": 0.211,
+      "h": 0.224
+     }
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.624,
+      "y": 0.503,
+      "w": 0.297,
+      "h": 0.25
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    null,
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 9.03,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Bob's Red Mill Organic Quinoa",
+        "x": 470,
+        "y": 483
+       },
+       {
+        "label": "Bob's Red Mill Quinoa",
+        "x": 793,
+        "y": 567
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.95,
+       "agreed": true,
+       "sure": false,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "hazelnut spread",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Nutella hazelnut spread"
+      },
+      "line": {
+       "description": "hazelnut spread",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Nutella hazelnut spread",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 15.579,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 7,
+   "labelled": 7,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "condensed milk",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.17,
+      "w": 0.359,
+      "h": 0.349
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.233,
+      "y": 0.249,
+      "w": 0.37,
+      "h": 0.325
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.96,
+     "status": "sure",
+     "box": {
+      "x": 0.031,
+      "y": 0.503,
+      "w": 0.393,
+      "h": 0.184
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "unsure",
+     "box": {
+      "x": 0.628,
+      "y": 0.185,
+      "w": 0.371,
+      "h": 0.238
+     }
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.446,
+      "y": 0.39,
+      "w": 0.245,
+      "h": 0.285
+     }
+    },
+    {
+     "name": "Nutella",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.67,
+      "y": 0.353,
+      "w": 0.329,
+      "h": 0.322
+     }
+    },
+    {
+     "name": "condensed milk",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.67,
+      "y": 0.583,
+      "w": 0.308,
+      "h": 0.092
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    null,
+    "right",
+    "right",
+    "wrong",
+    "right",
+    null,
+    null
+   ],
+   "censusSeconds": 6.97,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Bob's Red Mill Organic Quinoa",
+        "x": 450,
+        "y": 500
+       },
+       {
+        "label": "Bob's Red Mill Quinoa",
+        "x": 800,
+        "y": 600
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "organic farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.96,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.975,
+       "agreed": true,
+       "sure": false,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "Nutella",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "hazelnut spread with cocoa",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": false,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "hazelnut spread with cocoa",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 7,
+   "brandScored": 7,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Campbell's condensed soup",
+     "confidence": null,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 2,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 10.946,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 4,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "coconut milk",
+     "brand": "Thai Kitchen",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.148,
+      "y": 0.325,
+      "w": 0.327,
+      "h": 0.262
+     }
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.507,
+      "y": 0.316,
+      "w": 0.187,
+      "h": 0.447
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.075,
+      "y": 0.569,
+      "w": 0.385,
+      "h": 0.188
+     }
+    },
+    {
+     "name": "coconut milk",
+     "brand": "Thai Kitchen",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.68,
+      "y": 0.497,
+      "w": 0.204,
+      "h": 0.208
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "invented"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    null,
+    null
+   ],
+   "censusSeconds": 5.34,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla penne"
+      },
+      "line": {
+       "description": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla penne",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla linguine"
+      },
+      "line": {
+       "description": "linguine pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla linguine",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PAIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "coconut milk",
+       "brand": "Thai Kitchen",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "coconut milk",
+       "brand": "Thai Kitchen",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "coconut milk",
+     "brand": "Thai Kitchen",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "jar of pesto"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 2,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 19.985,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 4,
+   "labelled": 6,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbells",
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 4,
+     "sure": false
+    },
+    {
+     "name": "pesto",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "nut butter",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "salsa",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbell's",
+     "qty": 2,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.216,
+      "y": 0.196,
+      "w": 0.365,
+      "h": 0.278
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 4,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.195,
+      "y": 0.412,
+      "w": 0.386,
+      "h": 0.246
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 4,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.573,
+      "y": 0.171,
+      "w": 0.249,
+      "h": 0.275
+     }
+    },
+    {
+     "name": "pesto",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.566,
+      "y": 0.457,
+      "w": 0.198,
+      "h": 0.222
+     }
+    },
+    {
+     "name": "nut butter",
+     "brand": "Nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.606,
+      "y": 0.512,
+      "w": 0.368,
+      "h": 0.176
+     }
+    },
+    {
+     "name": "salsa",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.77,
+      "y": 0.322,
+      "w": 0.218,
+      "h": 0.233
+     }
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.3,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.302,
+      "w": 0.199,
+      "h": 0.22
+     }
+    },
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.181,
+      "w": 0.182,
+      "h": 0.205
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "invented",
+    "invented",
+    "ignored"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "censusSeconds": 11.18,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup."
+      },
+      "line": {
+       "description": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      },
+      "units": [
+       {
+        "label": "Campbell's Cream of Mushroom",
+        "x": 666,
+        "y": 509
+       },
+       {
+        "label": "Cream of Mushroom",
+        "x": 228,
+        "y": 418
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans"
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 4,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 257,
+        "y": 494
+       },
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 668,
+        "y": 480
+       }
+      ]
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans"
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 4,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Pesto Alla Genovese",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.85,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "pesto",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "hazelnut spread",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "nut butter",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "salsa",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.85,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "salsa",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "chips",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.3,
+       "legible": false,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "chips",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.3,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "seeds",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.75,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "seeds",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "salsa",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "chips",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "seeds",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "misses": [
+    "jar of pasta sauce",
+    "unlabelled pull-tab tin"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut1",
+   "tier": "cart",
+   "seconds": 10.495,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 3,
+   "labelled": 3,
+   "qtyRight": 3,
+   "lines": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "brioche buns",
+     "brand": "Hawaiian",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "Rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.248,
+      "w": 0.43,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "brioche buns",
+     "brand": "Hawaiian",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.196,
+      "y": 0.37,
+      "w": 0.556,
+      "h": 0.401
+     }
+    },
+    {
+     "name": "Fusilli Bucati",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.594,
+      "y": 0.432,
+      "w": 0.405,
+      "h": 0.307
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    "right"
+   ],
+   "censusSeconds": 5.23,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "Rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Hawaiian Brioche Buns",
+       "brand": "Hawaiian",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "brioche buns",
+       "brand": "Hawaiian",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Fusilli Bucati",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano fusilli bucati"
+      },
+      "line": {
+       "description": "Fusilli Bucati",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 2,
+   "brandScored": 2,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut2",
+   "tier": "cart",
+   "seconds": 18.147,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 5,
+   "labelled": 5,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.012,
+      "y": 0.216,
+      "w": 0.397,
+      "h": 0.533
+     }
+    },
+    {
+     "name": "Mexican salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.37,
+      "y": 0.393,
+      "w": 0.245,
+      "h": 0.257
+     }
+    },
+    {
+     "name": "peanut butter",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.387,
+      "y": 0.599,
+      "w": 0.222,
+      "h": 0.152
+     }
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.662,
+      "y": 0.504,
+      "w": 0.258,
+      "h": 0.233
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.541,
+      "y": 0.233,
+      "w": 0.357,
+      "h": 0.353
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    null,
+    "right",
+    "right"
+   ],
+   "censusSeconds": 9.95,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger::peanut butter"
+      },
+      "line": {
+       "description": "peanut butter",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Cream of Mushroom Soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup"
+      },
+      "line": {
+       "description": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "roasted salted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "peanut butter jar",
+     "confidence": 0.9,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut3",
+   "tier": "cart",
+   "seconds": 11.871,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 5,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "organic bananas",
+     "brand": "Robinson Fresh",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costena",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "organic bananas",
+     "brand": "robinson FRESH",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.099,
+      "y": 0.317,
+      "w": 0.355,
+      "h": 0.498
+     }
+    },
+    {
+     "name": "roasted almonds",
+     "brand": "Kroger",
+     "qty": 1,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.6,
+      "y": 0.34,
+      "w": 0.326,
+      "h": 0.33
+     }
+    },
+    {
+     "name": "Mexican style salsa",
+     "brand": "La Costeña",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.433,
+      "y": 0.506,
+      "w": 0.229,
+      "h": 0.309
+     }
+    },
+    {
+     "name": "cream of mushroom soup",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.8999999999999999,
+     "status": "sure",
+     "box": {
+      "x": 0.697,
+      "y": 0.64,
+      "w": 0.262,
+      "h": 0.2
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 6.39,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "bananas"
+      },
+      "line": {
+       "description": "organic bananas",
+       "brand": "robinson FRESH",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "bananas",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Roasted Almonds Salted with Sea Salt",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Kroger roasted salted almonds"
+      },
+      "line": {
+       "description": "roasted almonds",
+       "brand": "Kroger",
+       "count": 1,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Kroger roasted salted almonds",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "La Costeña salsa casera medium"
+      },
+      "line": {
+       "description": "Mexican style salsa",
+       "brand": "La Costeña",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "La Costeña salsa casera medium",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup"
+      },
+      "line": {
+       "description": "cream of mushroom soup",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.8999999999999999,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [
+    "peanut butter jar"
+   ],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut4",
+   "tier": "cart",
+   "seconds": 21.673,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 6,
+   "labelled": 7,
+   "qtyRight": 5,
+   "lines": [
+    {
+     "name": "Bob's Red Mill Organic Quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": true
+    }
+   ],
+   "items": [
+    {
+     "name": "Bob's Red Mill Organic Quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.076725,
+      "y": 0.23199999999999998,
+      "w": 0.1705,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.1705,
+      "y": 0.23199999999999998,
+      "w": 0.1705,
+      "h": 0.36
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.22,
+      "y": 0.291,
+      "w": 0.361,
+      "h": 0.328
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "unsure",
+     "box": {
+      "x": 0.571,
+      "y": 0.237,
+      "w": 0.428,
+      "h": 0.325
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "sure",
+     "box": {
+      "x": 0.054,
+      "y": 0.58,
+      "w": 0.363,
+      "h": 0.184
+     }
+    },
+    {
+     "name": "marinara sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.97,
+     "status": "sure",
+     "box": {
+      "x": 0.437,
+      "y": 0.494,
+      "w": 0.21,
+      "h": 0.223
+     }
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.622,
+      "y": 0.504,
+      "w": 0.299,
+      "h": 0.249
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "invented",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    null,
+    null,
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "censusSeconds": 12.43,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Bob's Red Mill Organic Quinoa",
+        "x": 475,
+        "y": 500
+       },
+       {
+        "label": "Bob's Red Mill Grains of Discovery",
+        "x": 808,
+        "y": 573
+       }
+      ],
+      "split": [
+       {
+        "description": "Bob's Red Mill Organic Quinoa",
+        "brand": "Bob's Red Mill",
+        "count": 1,
+        "confidence": 0.5,
+        "sure": false,
+        "agreed": false,
+        "sku": null,
+        "catalog": "not-reached",
+        "box": {
+         "x": 0.076725,
+         "y": 0.23199999999999998,
+         "w": 0.1705,
+         "h": 0.36
+        }
+       },
+       {
+        "description": "Bob's Red Mill Grains of Discovery",
+        "brand": "Bob's Red Mill",
+        "count": 1,
+        "confidence": 0.5,
+        "sure": false,
+        "agreed": false,
+        "sku": null,
+        "catalog": "not-reached",
+        "box": {
+         "x": 0.1705,
+         "y": 0.23199999999999998,
+         "w": 0.1705,
+         "h": 0.36
+        }
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.975,
+       "agreed": true,
+       "sure": false,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.975,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "Marinara Pasta Sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.97,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "hazelnut spread",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Nutella hazelnut spread"
+      },
+      "line": {
+       "description": "hazelnut spread",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Nutella hazelnut spread",
+       "catalog": "matched"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [],
+   "misses": [
+    "Campbell's condensed soup"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 6,
+   "brandScored": 6,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": []
+  },
+  {
+   "pass": 3,
+   "id": "clut5",
+   "tier": "cart",
+   "seconds": 18.624,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 7,
+   "labelled": 7,
+   "qtyRight": 6,
+   "lines": [
+    {
+     "name": "quinoa",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "farro",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "nutella",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "condensed milk",
+     "brand": "Campbells",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "quinoa",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0,
+      "y": 0.17,
+      "w": 0.359,
+      "h": 0.347
+     }
+    },
+    {
+     "name": "farro",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "unsure",
+     "box": {
+      "x": 0.233,
+      "y": 0.25,
+      "w": 0.367,
+      "h": 0.325
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "sure",
+     "box": {
+      "x": 0.03,
+      "y": 0.504,
+      "w": 0.402,
+      "h": 0.181
+     }
+    },
+    {
+     "name": "rigatoni",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.975,
+     "status": "unsure",
+     "box": {
+      "x": 0.631,
+      "y": 0.143,
+      "w": 0.368,
+      "h": 0.309
+     }
+    },
+    {
+     "name": "marinara pasta sauce",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.447,
+      "y": 0.391,
+      "w": 0.24,
+      "h": 0.284
+     }
+    },
+    {
+     "name": "nutella",
+     "brand": "nutella",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.666,
+      "y": 0.355,
+      "w": 0.333,
+      "h": 0.322
+     }
+    },
+    {
+     "name": "condensed milk",
+     "brand": "Campbell's",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.67,
+      "y": 0.588,
+      "w": 0.302,
+      "h": 0.089
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    "right",
+    "wrong",
+    "right",
+    null,
+    null
+   ],
+   "censusSeconds": 11.02,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "organic white quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic white quinoa"
+      },
+      "line": {
+       "description": "quinoa",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Bob's Red Mill organic white quinoa",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "organic farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Bob's Red Mill organic farro"
+      },
+      "line": {
+       "description": "farro",
+       "brand": "Bob's Red Mill",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": false,
+       "sku": "Bob's Red Mill organic farro",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano bronze cut mafalde"
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.975,
+       "agreed": true,
+       "sure": true,
+       "sku": "Priano fusilli bucati",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Rigatoni",
+       "brand": "PRIANO",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Priano rigatoni"
+      },
+      "line": {
+       "description": "rigatoni",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.975,
+       "agreed": true,
+       "sure": false,
+       "sku": "Priano rigatoni",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic marinara pasta sauce"
+      },
+      "line": {
+       "description": "marinara pasta sauce",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Simply Nature organic marinara pasta sauce",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "Hazelnut Spread with Cocoa",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "nutella",
+       "brand": "nutella",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "hazelnut spread with cocoa",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": false,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "hazelnut spread with cocoa",
+       "brand": "Campbell's",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [
+    {
+     "label": "Priano rigatoni",
+     "expected": "2",
+     "actual": 1
+    }
+   ],
+   "brandRight": 7,
+   "brandScored": 7,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "Campbell's condensed soup",
+     "confidence": null,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut6",
+   "tier": "cart",
+   "seconds": 13.003,
+   "subjectKind": "cart",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "none",
+   "occlusionFlag": false,
+   "found": 4,
+   "labelled": 4,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "jarred spread",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "penne pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.147,
+      "y": 0.325,
+      "w": 0.329,
+      "h": 0.261
+     }
+    },
+    {
+     "name": "linguine pasta",
+     "brand": "Barilla",
+     "qty": 1,
+     "confidence": 0.98,
+     "status": "sure",
+     "box": {
+      "x": 0.506,
+      "y": 0.316,
+      "w": 0.189,
+      "h": 0.447
+     }
+    },
+    {
+     "name": "bronze cut pasta",
+     "brand": "Priano",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.073,
+      "y": 0.57,
+      "w": 0.388,
+      "h": 0.185
+     }
+    },
+    {
+     "name": "jarred spread",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.677,
+      "y": 0.498,
+      "w": 0.203,
+      "h": 0.208
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "right",
+    "right",
+    "right"
+   ],
+   "assertedOutcomes": [
+    "right",
+    "right",
+    null,
+    null
+   ],
+   "censusSeconds": 7.52,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla penne"
+      },
+      "line": {
+       "description": "penne pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla penne",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "linguine",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Barilla linguine"
+      },
+      "line": {
+       "description": "linguine pasta",
+       "brand": "Barilla",
+       "count": 1,
+       "confidence": 0.98,
+       "agreed": true,
+       "sure": true,
+       "sku": "Barilla linguine",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Bronze Cut Pasta",
+       "brand": "PAIANO",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "bronze cut pasta",
+       "brand": "Priano",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "jarred spread",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.5,
+       "legible": false,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "jarred spread",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [],
+   "ignoredLines": [],
+   "misses": [],
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": false,
+   "unsureScored": [
+    {
+     "label": "jar of pesto",
+     "confidence": 0.85,
+     "flagged": false
+    }
+   ]
+  },
+  {
+   "pass": 3,
+   "id": "clut7",
+   "tier": "cart",
+   "seconds": 25.706,
+   "subjectKind": "product",
+   "expectSubjectKind": "cart",
+   "gated": false,
+   "occlusionSeverity": "some",
+   "occlusionFlag": true,
+   "found": 5,
+   "labelled": 6,
+   "qtyRight": 4,
+   "lines": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbells",
+     "qty": 2,
+     "sure": true
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "sure": false
+    },
+    {
+     "name": "pesto",
+     "brand": "Primo",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "sure": true
+    },
+    {
+     "name": "jarred sauce",
+     "brand": "Aldi",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "bagged greens",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "bagged seed",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "items": [
+    {
+     "name": "Cream of Mushroom soup",
+     "brand": "Campbell's",
+     "qty": 2,
+     "confidence": 0.965,
+     "status": "sure",
+     "box": {
+      "x": 0.216,
+      "y": 0.196,
+      "w": 0.367,
+      "h": 0.276
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.576,
+      "y": 0.173,
+      "w": 0.245,
+      "h": 0.272
+     }
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 5,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.198,
+      "y": 0.415,
+      "w": 0.386,
+      "h": 0.249
+     }
+    },
+    {
+     "name": "pesto",
+     "brand": "PRIMO",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.567,
+      "y": 0.457,
+      "w": 0.201,
+      "h": 0.221
+     }
+    },
+    {
+     "name": "hazelnut spread",
+     "brand": "Nutella",
+     "qty": 1,
+     "confidence": 0.925,
+     "status": "sure",
+     "box": {
+      "x": 0.598,
+      "y": 0.512,
+      "w": 0.376,
+      "h": 0.174
+     }
+    },
+    {
+     "name": "jarred sauce",
+     "brand": "ALDI",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.772,
+      "y": 0.322,
+      "w": 0.217,
+      "h": 0.235
+     }
+    },
+    {
+     "name": "bagged greens",
+     "brand": null,
+     "qty": 1,
+     "confidence": 0.4,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.302,
+      "w": 0.202,
+      "h": 0.221
+     }
+    },
+    {
+     "name": "bagged seed",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.182,
+      "w": 0.181,
+      "h": 0.195
+     }
+    }
+   ],
+   "lineOutcomes": [
+    "right",
+    "wrong",
+    "right",
+    "right",
+    "right",
+    "invented",
+    "ignored"
+   ],
+   "assertedOutcomes": [
+    "right",
+    null,
+    null,
+    "right",
+    null,
+    null,
+    null
+   ],
+   "censusSeconds": 17.96,
+   "verify": {
+    "items": [
+     {
+      "id": "p0",
+      "close": {
+       "name": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Campbell's cream of mushroom condensed soup"
+      },
+      "line": {
+       "description": "Cream of Mushroom soup",
+       "brand": "Campbell's",
+       "count": 2,
+       "confidence": 0.965,
+       "agreed": true,
+       "sure": true,
+       "sku": "Campbell's cream of mushroom condensed soup",
+       "catalog": "matched"
+      },
+      "units": [
+       {
+        "label": "Campbell's Cream of Mushroom",
+        "x": 650,
+        "y": 500
+       },
+       {
+        "label": "Cream of Mushroom",
+        "x": 220,
+        "y": 490
+       }
+      ]
+     },
+     {
+      "id": "p1",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.98,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans."
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 5,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p2",
+      "close": {
+       "name": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 2,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Simply Nature organic black beans"
+      },
+      "line": {
+       "description": "Black Beans",
+       "brand": "Simply Nature",
+       "count": 5,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      },
+      "units": [
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 660,
+        "y": 547
+       },
+       {
+        "label": "Simply Nature ORGANIC BLACK BEANS",
+        "x": 225,
+        "y": 480
+       }
+      ]
+     },
+     {
+      "id": "p3",
+      "close": {
+       "name": "Pesto Alla Genovese",
+       "brand": "PRIMO",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "pesto",
+       "brand": "PRIMO",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p4",
+      "close": {
+       "name": "hazelnut spread",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.95,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": "Nutella hazelnut spread"
+      },
+      "line": {
+       "description": "hazelnut spread",
+       "brand": "Nutella",
+       "count": 1,
+       "confidence": 0.925,
+       "agreed": true,
+       "sure": true,
+       "sku": "Nutella hazelnut spread",
+       "catalog": "matched"
+      }
+     },
+     {
+      "id": "p5",
+      "close": {
+       "name": "organic tomato sauce",
+       "brand": "ALDI",
+       "count": 1,
+       "confidence": 0.75,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "jarred sauce",
+       "brand": "ALDI",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     },
+     {
+      "id": "p6",
+      "close": {
+       "name": "greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "legible": false,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "bagged greens",
+       "brand": null,
+       "count": 1,
+       "confidence": 0.4,
+       "sure": false,
+       "agreed": false,
+       "sku": null,
+       "catalog": "not-reached"
+      }
+     },
+     {
+      "id": "p7",
+      "close": {
+       "name": "seed",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.85,
+       "legible": true,
+       "matchesHint": true,
+       "catalogSku": null
+      },
+      "line": {
+       "description": "bagged seed",
+       "brand": "Simply Nature",
+       "count": 1,
+       "confidence": 0.5,
+       "sure": false,
+       "agreed": true,
+       "sku": null,
+       "catalog": "absent"
+      }
+     }
+    ]
+   },
+   "unmatchedLines": [
+    {
+     "name": "bagged greens",
+     "brand": null,
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "ignoredLines": [
+    {
+     "name": "bagged seed",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    }
+   ],
+   "misses": [
+    "unlabelled pull-tab tin"
+   ],
+   "qtyWrong": [
+    {
+     "label": "Simply Nature black beans",
+     "expected": "3-4",
+     "actual": 5
+    }
+   ],
+   "brandRight": 3,
+   "brandScored": 3,
+   "brandWrong": [],
+   "hiddenExpected": true,
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": 0.7,
+     "flagged": false
+    }
+   ]
+  }
+ ]
+}

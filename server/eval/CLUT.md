@@ -1536,3 +1536,68 @@ and costs six of the right settles, which is the trade the whole table is made o
 Worth keeping from it: the check agreed with the wide count 12 times and the close count 8, so
 neither reading is the better witness to a count in general, and there is nothing here to prefer
 one by. The gate is right to hold these lines back.
+
+### The shipped path on the bytes the phone sends, three passes, 2026-09-14
+
+Five single-pass runs had each been dominated by census draw variance, so nothing said what HEAD
+actually does. Three passes over the seven cart photographs, 21 scans, at the 2048 long edge and
+JPEG 0.85 the phone encodes at:
+
+```
+node --env-file=server/.env.local server/node_modules/.bin/tsx \
+  server/eval/pipeline/clut-photos.ts --tier cart --as-phone --repeat 3 --resume \
+  --out server/eval/clut-photos-head.json
+```
+
+| requirement | HEAD, 21 scans |
+|---|---|
+| 1. every item reaches the bag | 98/111 products (88%) |
+| 2. quantities are right | 89/98 of the products found (91%) |
+| brands right | 80/80 legible-brand products (100%) |
+| 3. hidden items are flagged | 6/15 that have one, 1/6 wrongly flagged |
+| 4. unsure items are flagged | 0/9 illegible products came back under 0.6 |
+| lines matching nothing real | 7, and 3 more named something in frame the shopper is not buying |
+| 5. asserted lines wrong | 5/67 (must be 0) |
+| the gate's cost | 39 unsure lines, 12 wrong and 27 right |
+| seconds per photograph | 15.0 |
+
+Brands at 80/80 is the respelling landing: the same corpus read "Paiano" on clut6 on nearly every
+earlier run and does not any more.
+
+Requirement 5 is the one that matters and it is not met. Every one of the five is the same line,
+`1 x rigatoni (Priano)` on clut4 and clut5, which is two boxes leaning together read as one. What
+that turned out to be is the next section, and it is not a reading failure at all.
+
+### The gate held those five lines back and the bag asserted them anyway, 2026-09-14
+
+The saved run carries the server's verdict per crop beside the bag line it became, and they
+disagree. On clut4 pass 1 the rigatoni crop came back `sure: false, confidence: 0.965` and the bag
+line reads sure.
+
+`reconcile` answers with two separate things, a confidence and a verdict, and the bag had only
+ever been shown the first. `bagLines` decides a line by `identity.confidence < UNSURE_BELOW` and
+there is nothing else in fusion to decide it by, so a verdict has to reach the bag as a capped
+confidence. `photoScan` capped it for the line nothing read twice and for the folded duplicate,
+and not for the line the gate itself held back. Both readings agreeing leaves about 0.96 on the
+line, and `doubtByPackages` takes its certainty away without touching that number, so the review
+screen showed amber and the bag asserted it. The neighbour masking was working the whole time and
+the doubt it produced was being dropped one layer later.
+
+`gate-leak.ts` counts it on every run already paid for, with no model call: each crop is matched
+to its line by the same `productKey` fold fusion used to key it.
+
+| | lines |
+|---|---|
+| lines the bag asserted, every saved clut run | 900 |
+| of those, lines the server had held back | 32 |
+| of those, wrong | 13 |
+| of those, right (the cost of closing it) | 19 |
+
+On the three-pass HEAD run above it is 7 of 67, and five of the seven are the five asserted-wrong
+lines. Requirement 5 goes 5/67 to 0/60 and the two right ones move to the unsure column, which is
+the gate's cost and is what the gate is for.
+
+Fixed by capping the confidence of a held-back line the same way the two doubts beside it in the
+same expression are already capped. The test that missed this paired `sure: false` with a low
+confidence every time, which the server does for a disagreement and does not for the package
+check; the new one pairs `sure: false` with 0.965, the way the check leaves it.
