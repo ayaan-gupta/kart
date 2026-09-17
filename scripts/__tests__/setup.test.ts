@@ -68,6 +68,10 @@ interface Machine {
   phoneAfterCalls: number;
   phoneOs: string;
   sdk: string;
+  /** What `xcodebuild -version` names, without the word Xcode. */
+  xcode: string;
+  /** What `node --version` answers, when it should differ from the node running these tests. */
+  nodeVersion?: string;
   /** What arrives on stdin: the key prompt reads one line. */
   stdin: string;
 }
@@ -84,6 +88,7 @@ const DEFAULT: Machine = {
   phoneAfterCalls: 0,
   phoneOs: '26.0',
   sdk: '26.0',
+  xcode: '26.4',
   stdin: 'sk-test-0123456789\n',
 };
 
@@ -158,6 +163,7 @@ class Rig {
     if (m.xcodeApp) fs.mkdirSync(path.join(this.xcodeApps, 'Xcode.app', 'Contents', 'Developer'), { recursive: true });
     if (m.firstLaunchDone) fs.writeFileSync(path.join(this.state, 'first-launch-done'), '');
     fs.writeFileSync(path.join(this.state, 'sdk'), m.sdk);
+    fs.writeFileSync(path.join(this.state, 'xcode'), m.xcode);
     fs.writeFileSync(path.join(this.state, 'phone-after-calls'), String(m.phoneAfterCalls));
     fs.writeFileSync(path.join(this.state, 'phone-os'), m.phoneOs);
     fs.writeFileSync(path.join(this.state, 'xctrace-calls'), '0');
@@ -186,7 +192,7 @@ class Rig {
 esac`);
     this.tool('xcodebuild', `echo "xcodebuild $*" >> "$LOG"
 case "$1" in
-  -version) echo "Xcode 26.3"; echo "Build version 17E200";;
+  -version) echo "Xcode $(cat "$STATE/xcode")"; echo "Build version 17E200";;
   -checkFirstLaunchStatus) [ -f "$STATE/first-launch-done" ];;
   -runFirstLaunch) touch "$STATE/first-launch-done";;
   -license) exit 0;;
@@ -284,7 +290,14 @@ esac
     // PATH: the fakes, the system, and node only when the machine has it. Homebrew's own bin is
     // deliberately absent even when brew exists, which is how a fresh terminal on a Mac with
     // Homebrew installed but not yet in the profile looks.
-    const pathParts = [this.bin, ...(m.node ? [realNodeDir] : []), '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+    // A node that reports another version is a wrapper in front of the real one, which still
+    // runs everything else, because serve.sh needs a node that works.
+    const wrapDir = path.join(this.root, 'nodewrap');
+    if (m.node && m.nodeVersion) {
+      this.tool('node', `[ "\${1:-}" = "--version" ] && { echo "${m.nodeVersion}"; exit 0; }\nexec "${realNode}" "$@"`, wrapDir);
+    }
+    const nodeDirs = m.node ? [...(m.nodeVersion ? [wrapDir] : []), realNodeDir] : [];
+    const pathParts = [this.bin, ...nodeDirs, '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
     return { PATH: pathParts.join(':'), realNode };
   }
 
@@ -439,6 +452,29 @@ describe('scripts/setup.sh on a Mac that is missing things', () => {
     expect(r.out).toMatch(/not attached/i);
     expect(rig.read('server/.env.local')).toContain('KART_QWEN_KEY=');
     expect(rig.calls().filter((c) => /^xcodebuild .* build/.test(c))).toEqual([]);
+  });
+
+  it('stops before installing anything on an Xcode older than Expo SDK 57 builds with', async () => {
+    // Xcode 16 with an iOS 18 phone passes every other check here, and then fails inside the
+    // build. Expo documents Xcode 26.4 as the minimum for SDK 57.
+    const r = await rig.run({ xcode: '16.4', sdk: '18.5', phoneOs: '18.5' });
+    expect(r.status).not.toBe(0);
+    expect(r.out).toMatch(/Xcode 16\.4/);
+    expect(r.out).toMatch(/[Uu]pdate Xcode/);
+    expect(rig.calls().filter((c) => /^(npm|pod install)/.test(c))).toEqual([]);
+  });
+
+  it('builds on Xcode 26.3, which built this app, and says 26.4 is the documented minimum', async () => {
+    const r = await rig.run({ xcode: '26.3' });
+    expect(r.out).toMatch(/26\.4/);
+    expect(r.out).toMatch(/Installed\./);
+  });
+
+  it('stops before installing anything on a Node older than Expo SDK 57 supports', async () => {
+    const r = await rig.run({ nodeVersion: 'v22.12.0' });
+    expect(r.status).not.toBe(0);
+    expect(r.out).toMatch(/22\.13/);
+    expect(rig.calls().filter((c) => /^(npm|pod install)/.test(c))).toEqual([]);
   });
 
   it('stops when the phone runs an iOS newer than this Xcode can build for', async () => {

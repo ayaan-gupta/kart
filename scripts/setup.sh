@@ -172,13 +172,26 @@ else
   warn "SDK older than iOS 17 will fail at compile time rather than here."
 fi
 
-# React Native 0.86 and Expo SDK 57 are built and tested against Xcode 16. Older may work and is
-# not refused, because this is a number that goes stale and a wrong guess here would stop a
-# machine that would have built fine. Said out loud so an odd build failure has a first suspect.
-XCODE_MAJOR="$(xcodebuild -version 2>/dev/null | sed -nE '1s/^Xcode ([0-9]+).*/\1/p')"
-if printf '%s' "$XCODE_MAJOR" | grep -qE '^[0-9]+$' && [ "$XCODE_MAJOR" -lt 16 ]; then
-  warn "Xcode $XCODE_MAJOR. React Native 0.86 expects Xcode 16 or newer; this may still build,"
-  warn "but if it fails in a way that mentions Swift or the toolchain, update Xcode first."
+# Expo SDK 57 documents Xcode 26.4 as its minimum (docs.expo.dev/versions/v57.0.0). This said
+# "Xcode 16" and only warned below that, so an Xcode 16 or 18 passed every check here and failed
+# minutes later inside the build, with a Swift error that names neither Xcode nor Expo. Below 26
+# is refused before anything is installed. 26.0 to 26.3 is warned about and allowed, because
+# 26.3 is what built and installed this app on 2026-08-27, and refusing a Mac that builds is the
+# wrong answer to the right question.
+XCODE_VERSION="$(xcodebuild -version 2>/dev/null | sed -nE '1s/^Xcode ([0-9]+(\.[0-9]+)*).*/\1/p')"
+XCODE_MAJOR="$(printf '%s' "$XCODE_VERSION" | cut -d. -f1)"
+XCODE_MINOR="$(printf '%s' "$XCODE_VERSION" | cut -s -d. -f2)"
+if printf '%s' "$XCODE_MAJOR" | grep -qE '^[0-9]+$'; then
+  if [ "$XCODE_MAJOR" -lt 26 ]; then
+    fail "This is Xcode $XCODE_VERSION, and Kart is built with Expo SDK 57, which needs Xcode 26.4 or
+newer. An older Xcode gets through the installs and then fails inside the build.
+
+  Update Xcode from the App Store, open it once, then run this again."
+  fi
+  if [ "$XCODE_MAJOR" -eq 26 ] && [ "${XCODE_MINOR:-0}" -lt 4 ] 2>/dev/null; then
+    warn "Xcode $XCODE_VERSION. Expo SDK 57 documents 26.4 as its minimum. 26.3 has built this app,"
+    warn "so this carries on, but if the build fails in Swift, update Xcode first."
+  fi
 fi
 
 # Homebrew is how Node and CocoaPods get onto a Mac that has neither. A Mac that has it but not
@@ -208,7 +221,9 @@ ensure_brew() {
   fi
 }
 
-# Node 22, not 20: `npm run serve` reads the key with --env-file-if-exists, which landed in 22.
+# Node 22.13 or newer: `npm run serve` reads the key with --env-file-if-exists, which landed in
+# 22, and Expo SDK 57 documents 22.13 as its minimum. Checking only the major let 22.0 to 22.12
+# through, to fail later in the bundler.
 if ! command -v node >/dev/null 2>&1; then
   if [ "$CHECK" = 1 ]; then
     warn "Node is not on this shell's PATH. A real run installs it with Homebrew. (If you use nvm,"
@@ -222,7 +237,9 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 if command -v node >/dev/null 2>&1; then
   NODE_MAJOR="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
-  [ "$NODE_MAJOR" -ge 22 ] 2>/dev/null || fail "Node $(node --version) is too old. This needs Node 22 or newer: \`brew install node\`, then open a new terminal."
+  NODE_MINOR="$(node --version 2>/dev/null | sed -E 's/^v[0-9]+\.([0-9]+).*/\1/')"
+  { [ "$NODE_MAJOR" -gt 22 ] || { [ "$NODE_MAJOR" -eq 22 ] && [ "$NODE_MINOR" -ge 13 ]; }; } 2>/dev/null \
+    || fail "Node $(node --version) is too old. This needs Node 22.13 or newer: \`brew install node\`, then open a new terminal."
   ok "Node: $(node --version)"
 fi
 

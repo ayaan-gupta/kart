@@ -65,7 +65,7 @@ Clone it, plug an iPhone in with a cable, unlock the phone, and run:
 ./scripts/setup.sh
 ```
 
-That is the whole thing. It asks for an OpenAI key first, so the slow part runs unattended,
+That is the whole thing. It asks for an OpenRouter key first, so the slow part runs unattended,
 then installs whatever the Mac is missing (Homebrew, Node, CocoaPods, the command line tools
 pointed at Xcode, Xcode's first launch), works out your Apple team and gives this clone its own
 bundle identifier, installs the app and service dependencies and the pods, points the app at
@@ -74,15 +74,17 @@ and installs on it. The only other things it asks for are your Mac password, whe
 Homebrew require it. Re-running it is safe, and is how you pick up a changed network, a
 different phone, or a re-signed build after a free Apple ID's seven days run out.
 
-It needs Xcode, not just the Command Line Tools, because the app carries its own Swift modules.
-Expo Go cannot load them, so there is no way around a real build.
+It needs Xcode 26.4 or newer, not just the Command Line Tools, because the app carries its own
+Swift modules and Expo SDK 57 documents 26.4 as its minimum. The script refuses an Xcode older
+than 26 before installing anything, rather than letting the build fail. Expo Go cannot load the
+app's Swift modules, so there is no way around a real build.
 
 Four things it cannot do for you, because Apple does not allow it. The script checks for each
 one and stops with the exact thing to click rather than a build error:
 
 | | what you do | when |
 |---|---|---|
-| 1 | Install Xcode from the App Store | if it is not installed; the script does the rest |
+| 1 | Install or update Xcode from the App Store, 26.4 or newer | if it is missing or older; the script does the rest |
 | 2 | Xcode, Settings, Accounts, add your Apple ID | first clone on a Mac |
 | 3 | On the phone: Settings, Privacy & Security, Developer Mode, on, then reboot | first iPhone |
 | 4 | On the phone: Settings, General, VPN & Device Management, trust the certificate | first install |
