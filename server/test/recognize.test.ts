@@ -1824,4 +1824,43 @@ describe("runVerify checks the packages in a line it is about to assert", () => 
     expect(item.line.sure).toBe(false);
     expect(create).toHaveBeenCalledTimes(1);
   });
+
+  it("checks one crop without waiting for another crop's unit pass", async () => {
+    // The three stages used to run as waves: every check waited for every unit pass, so one crop
+    // holding two packages held back the check of every crop holding one, and the shopper waited
+    // for the slowest close read, then the slowest unit pass, then the slowest check, added up.
+    let releaseUnits!: () => void;
+    const unitsHeld = new Promise<void>((resolve) => { releaseUnits = resolve; });
+    const pairAnswer = { name: "crackers", brand: "Savoritz", count: 2, confidence: 0.95, legible: true, matchesHint: true, catalogSku: null };
+    create.mockImplementation(async (params: any) => {
+      const hint: string = params.input[1].content[0].text;
+      switch (params.text.format.name) {
+        case "verify":
+          return { output_text: JSON.stringify(hint.includes("crackers") ? pairAnswer : closeAnswer) };
+        case "units":
+          await unitsHeld;
+          return { output_text: JSON.stringify({ units: [] }) };
+        case "package_check":
+          return { output_text: JSON.stringify(packages("Priano Rigatoni")) };
+        default:
+          throw new Error(`unexpected call ${params.text.format.name}`);
+      }
+    });
+    const crop = await blankJpeg();
+    const pairWide = { description: "crackers", productKey: "savoritz::crackers", brand: "Savoritz", count: 2, confidence: 0.9 };
+    const done = runVerify([
+      { id: "pair", crop, box: { x: 0, y: 0, w: 0.3, h: 0.3 }, wide: pairWide },
+      { id: "one", crop, box, wide },
+    ]);
+    try {
+      await vi.waitFor(() => {
+        expect(create.mock.calls.filter((c: any[]) => c[0].text.format.name === "package_check")).toHaveLength(2);
+      });
+    } finally {
+      releaseUnits();
+    }
+    const [pair, one] = await done;
+    expect(one.line.sure).toBe(true);
+    expect(pair.line.sure).toBe(false);
+  });
 });

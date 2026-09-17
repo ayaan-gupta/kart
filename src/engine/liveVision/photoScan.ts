@@ -347,3 +347,30 @@ export async function scanPhoto(
     occlusion: census.occlusion,
   };
 }
+
+/** More names than this and the line under the photograph starts covering the photograph. */
+const SUMMARY_NAMES = 4;
+
+function listed(items: PhotoItem[]): string {
+  const names = items.map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name));
+  if (names.length <= SUMMARY_NAMES) return names.join(', ');
+  return `${names.slice(0, SUMMARY_NAMES).join(', ')} and ${names.length - SUMMARY_NAMES} more`;
+}
+
+/**
+ * The line under one photograph's review: what it put in the cart, by name.
+ *
+ * Every item a photograph reads goes in the cart, green or amber, and the amber ones are flagged
+ * there as not sure. The screen used to say "Added 3 items" beside the amber notice and a button
+ * reading "Photograph it again", and a shopper read that as the green items waiting on another
+ * photograph. Naming both, and saying the amber ones are in the cart already, is what makes a
+ * second photograph the optional thing it always was.
+ */
+export function photoSummary(items: PhotoItem[]): string {
+  const sure = items.filter((item) => item.status === 'sure');
+  const unsure = items.filter((item) => item.status !== 'sure');
+  if (sure.length === 0 && unsure.length === 0) return 'Nothing found in that one';
+  if (sure.length === 0) return `In your cart, not sure yet: ${listed(unsure)}`;
+  if (unsure.length === 0) return `In your cart: ${listed(sure)}`;
+  return `In your cart: ${listed(sure)}\nAlso in your cart, not sure yet: ${listed(unsure)}`;
+}

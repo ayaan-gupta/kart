@@ -32,4 +32,14 @@ describe('photo.tsx shows the shopper their photograph with each item outlined',
   it('shows the boxes as soon as the census answers, before the close read', () => {
     expect(PHOTO).toMatch(/onCensus/);
   });
+
+  // 2026-09-17: the owner read "Photograph it again" beside green items as those items waiting on
+  // a retake. They were already in the cart; the screen now says so by name.
+  it('names what the photograph put in the cart, green and amber alike', () => {
+    expect(PHOTO).toContain('photoSummary(');
+  });
+
+  it('does not word the next photograph as a retake the cart is waiting on', () => {
+    expect(PHOTO).not.toContain('Photograph it again');
+  });
 });

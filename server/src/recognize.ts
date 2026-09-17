@@ -1238,6 +1238,13 @@ export interface VerifiedItem {
    * these instead, and one that does not is no worse off than before the field existed.
    */
   split?: SplitLine[];
+  /**
+   * How long each stage took for this crop, in milliseconds: the close read, the unit pass (zero
+   * when it was not asked) and the package check (zero when the line was not about to be
+   * asserted). For the harnesses, which save the answer and time the stages from it; the app
+   * ignores it.
+   */
+  ms?: { close: number; units: number; check: number };
 }
 
 /**
@@ -1267,158 +1274,172 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
   // The share of the budget leaves room for the answer to be assembled and sent: the request's
   // own deadline in api/verify.ts is the backstop, and it should not be what fires.
   const perItemMs = Math.max(1, Math.floor(configuredTimeoutMs() * 0.8));
-  const settled = await Promise.allSettled(
-    items.map(async (item): Promise<VerifyResponse> => {
-      const outputText = await withTimeout(requestOutputText("runVerify", {
-        model: VERIFY_MODEL(),
-        prompt_cache_key: "kart-verify",
-        reasoning: { effort: PHOTO_EFFORT },
-        ...outputCap(VERIFY_MAX_OUTPUT_TOKENS),
-        input: [
-          { role: "system", content: VERIFY_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: verifyUserText(
-                  { description: item.wide.description, productKey: item.wide.productKey },
-                  // Every brand the wide pass read on the other items, not this one's own.
-                  brandsInPhoto.filter((b) => b.toLowerCase() !== (item.wide.brand ?? "").toLowerCase()),
-                  shortlist({ name: item.wide.description, brand: item.wide.brand }, catalog).map((c) => c.sku),
-                ),
-              },
-              { type: "input_image", image_url: dataUrl(item.crop), detail: VERIFY_DETAIL },
-            ],
-          },
-        ],
-        text: {
-          format: { type: "json_schema", name: "verify", strict: true, schema: verifyJsonSchema },
-        },
-      }), perItemMs);
-      const parsed = VerifyResponse.parse(JSON.parse(outputText));
-      return { ...parsed, brand: normalizeBrand(parsed.brand) };
-    }),
-  );
 
-  const closes = items.map((_, i) => (settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<VerifyResponse>).value : null));
+  const closeRead = async (item: VerifyItemInput): Promise<VerifyResponse> => {
+    const outputText = await withTimeout(requestOutputText("runVerify", {
+      model: VERIFY_MODEL(),
+      prompt_cache_key: "kart-verify",
+      reasoning: { effort: PHOTO_EFFORT },
+      ...outputCap(VERIFY_MAX_OUTPUT_TOKENS),
+      input: [
+        { role: "system", content: VERIFY_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: verifyUserText(
+                { description: item.wide.description, productKey: item.wide.productKey },
+                // Every brand the wide pass read on the other items, not this one's own.
+                brandsInPhoto.filter((b) => b.toLowerCase() !== (item.wide.brand ?? "").toLowerCase()),
+                shortlist({ name: item.wide.description, brand: item.wide.brand }, catalog).map((c) => c.sku),
+              ),
+            },
+            { type: "input_image", image_url: dataUrl(item.crop), detail: VERIFY_DETAIL },
+          ],
+        },
+      ],
+      text: {
+        format: { type: "json_schema", name: "verify", strict: true, schema: verifyJsonSchema },
+      },
+    }), perItemMs);
+    const parsed = VerifyResponse.parse(JSON.parse(outputText));
+    return { ...parsed, brand: normalizeBrand(parsed.brand) };
+  };
 
   // The unit pass, asked only of the crops the close read says hold more than one package. That
   // is where a hidden variety can be and where the count gate is holding a line back, and it is
   // about a sixth of the boxes on the fifteen clut photographs, so the stage costs a sixth of
-  // what asking at every box would. Everything else here is unchanged: a crop with one package
-  // is answered by the two readings alone, exactly as before.
-  const counted = await Promise.allSettled(
-    items.map(async (item, i): Promise<UnitReading[]> => {
-      const close = closes[i];
-      if (close === null || !countNeedsCheck(close.count)) return [];
-      const small = await sharp(item.crop)
-        .resize({ width: UNITS_LONG_EDGE, height: UNITS_LONG_EDGE, fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 90 })
-        .toBuffer();
-      const outputText = await withTimeout(requestOutputText("runUnits", {
-        model: VERIFY_MODEL(),
-        prompt_cache_key: "kart-units",
-        reasoning: { effort: PHOTO_EFFORT },
-        ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
-        input: [
-          { role: "system", content: UNITS_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "input_text", text: unitsUserText(item.wide.description) },
-              { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
-            ],
-          },
-        ],
-        text: {
-          format: { type: "json_schema", name: "units", strict: true, schema: unitsJsonSchema },
+  // what asking at every box would. A crop with one package is answered by the two readings alone.
+  const unitPass = async (item: VerifyItemInput, close: VerifyResponse | null): Promise<UnitReading[]> => {
+    if (close === null || !countNeedsCheck(close.count)) return [];
+    const small = await sharp(item.crop)
+      .resize({ width: UNITS_LONG_EDGE, height: UNITS_LONG_EDGE, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    const outputText = await withTimeout(requestOutputText("runUnits", {
+      model: VERIFY_MODEL(),
+      prompt_cache_key: "kart-units",
+      reasoning: { effort: PHOTO_EFFORT },
+      ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
+      input: [
+        { role: "system", content: UNITS_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: unitsUserText(item.wide.description) },
+            { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
+          ],
         },
-      }), perItemMs);
-      return UnitsResponse.parse(JSON.parse(outputText)).units;
-    }),
-  );
+      ],
+      text: {
+        format: { type: "json_schema", name: "units", strict: true, schema: unitsJsonSchema },
+      },
+    }), perItemMs);
+    return UnitsResponse.parse(JSON.parse(outputText)).units;
+  };
 
-  const reconciled = items.map((item, i) => {
-    const unitsResult = counted[i];
-    const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
-    return reconcile(item.wide, closes[i], catalog, units);
-  });
-
-  // The package check, asked only of the lines that are about to be asserted. An unsure line is
+  // The package check, asked only of a line that is about to be asserted. An unsure line is
   // already in front of the shopper, so a second opinion on it buys nothing and costs a call; on
   // the fifteen clut photographs that is 94 of 196 crops. See `MODELS.check` for why it is a
   // different reader, and `doubtByPackages` for why it may only ever take certainty away.
-  const checked = await Promise.allSettled(
-    items.map(async (item, i): Promise<number> => {
-      if (!reconciled[i].sure) return 0;
-      const crop = await withNeighboursPainted(item, items);
-      const looks = await Promise.allSettled(
-        CHECK_LONG_EDGES.map(async (edge): Promise<number> => {
-          const small = await sharp(crop)
-            .resize({ width: edge, height: edge, fit: "inside", withoutEnlargement: true })
-            .jpeg({ quality: 90 })
-            .toBuffer();
-          const outputText = await withTimeout(requestOutputText("runPackageCheck", {
-            model: CHECK_MODEL(),
-            prompt_cache_key: "kart-package-check",
-            reasoning: { effort: "none" },
-            ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
-            input: [
-              { role: "system", content: PACKAGE_CHECK_SYSTEM_PROMPT },
-              {
-                role: "user",
-                content: [
-                  { type: "input_text", text: packageCheckUserText(item.wide.description) },
-                  { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
-                ],
-              },
-            ],
-            text: {
-              format: { type: "json_schema", name: "package_check", strict: true, schema: packageCheckJsonSchema },
+  const packageCheck = async (item: VerifyItemInput): Promise<number> => {
+    const crop = await withNeighboursPainted(item, items);
+    const looks = await Promise.allSettled(
+      CHECK_LONG_EDGES.map(async (edge): Promise<number> => {
+        const small = await sharp(crop)
+          .resize({ width: edge, height: edge, fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality: 90 })
+          .toBuffer();
+        const outputText = await withTimeout(requestOutputText("runPackageCheck", {
+          model: CHECK_MODEL(),
+          prompt_cache_key: "kart-package-check",
+          reasoning: { effort: "none" },
+          ...outputCap(UNITS_MAX_OUTPUT_TOKENS),
+          input: [
+            { role: "system", content: PACKAGE_CHECK_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: packageCheckUserText(item.wide.description) },
+                { type: "input_image", image_url: dataUrl(small), detail: VERIFY_DETAIL },
+              ],
             },
-          }), perItemMs);
-          return PackageCheckResponse.parse(JSON.parse(outputText)).packages.length;
-        }),
-      );
-      // The most any look found. A look that failed contributes nothing, which is what a look that
-      // found nothing also contributes, and both leave the line as the two readings left it.
-      return looks.reduce((most, look) => (look.status === "fulfilled" ? Math.max(most, look.value) : most), 0);
+          ],
+          text: {
+            format: { type: "json_schema", name: "package_check", strict: true, schema: packageCheckJsonSchema },
+          },
+        }), perItemMs);
+        return PackageCheckResponse.parse(JSON.parse(outputText)).packages.length;
+      }),
+    );
+    // The most any look found. A look that failed contributes nothing, which is what a look that
+    // found nothing also contributes, and both leave the line as the two readings left it.
+    return looks.reduce((most, look) => (look.status === "fulfilled" ? Math.max(most, look.value) : most), 0);
+  };
+
+  // Every crop goes through its own stages on its own: close read, then the unit pass if it holds
+  // more than one package, then the check if the line is about to be asserted. Nothing one crop
+  // asks depends on what another crop answered, so nothing waits for it.
+  //
+  // Until 2026-09-17 the stages ran as three waves across the whole request: every unit pass
+  // waited for the slowest close read and every check waited for the slowest unit pass, so the
+  // shopper waited for the three slowest calls added together, each from whichever crop was
+  // slowest at that stage, even when no single crop took that long. The lines are the same either
+  // way; only the wait changed.
+  return Promise.all(
+    items.map(async (item): Promise<VerifiedItem> => {
+      const started = Date.now();
+      const closeResult = await settle(closeRead(item));
+      const closeMs = Date.now() - started;
+      if (closeResult.status === "rejected") {
+        // Logged here, once, in the safe form `toSafeError` produced; the item itself carries no
+        // message, so nothing about the failure can reach the client.
+        console.warn(`[recognize] close read of ${JSON.stringify(item.id)} failed:`, closeResult.reason);
+      }
+      const close = closeResult.status === "fulfilled" ? closeResult.value : null;
+
+      // A failed unit pass is no units, which is what a crop that was never asked also carries,
+      // and both mean the line stands on the two readings alone. It can only ever add certainty
+      // or separate a line, so losing it costs nothing that was there before.
+      const unitsStarted = Date.now();
+      const unitsResult = await settle(unitPass(item, close));
+      const unitsMs = Date.now() - unitsStarted;
+      if (unitsResult.status === "rejected") {
+        console.warn(`[recognize] unit pass of ${JSON.stringify(item.id)} failed:`, unitsResult.reason);
+      }
+      const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
+      const reconciled = reconcile(item.wide, close, catalog, units);
+
+      // A failed check is no packages, and no packages is silence rather than a count of zero:
+      // the line stands exactly as the two readings left it. See `doubtByPackages`.
+      const checkStarted = Date.now();
+      const checkResult = reconciled.sure ? await settle(packageCheck(item)) : { status: "fulfilled" as const, value: 0 };
+      const checkMs = Date.now() - checkStarted;
+      if (checkResult.status === "rejected") {
+        console.warn(`[recognize] package check of ${JSON.stringify(item.id)} failed:`, checkResult.reason);
+      }
+      const packages = checkResult.status === "fulfilled" ? checkResult.value : 0;
+
+      const line = doubtByPackages(reconciled, packages);
+      const box = item.box ?? null;
+      const split = box === null ? null : splitByUnits(line, units, box);
+      return {
+        id: item.id,
+        close,
+        line,
+        ...(units.length > 0 ? { units } : {}),
+        ...(split === null ? {} : { split }),
+        ms: { close: closeMs, units: unitsMs, check: checkMs },
+      };
     }),
   );
+}
 
-  return items.map((item, i) => {
-    const result = settled[i];
-    if (result.status === "rejected") {
-      // Logged here, once, in the safe form `toSafeError` produced; the item itself carries no
-      // message, so nothing about the failure can reach the client.
-      console.warn(`[recognize] close read of ${JSON.stringify(item.id)} failed:`, result.reason);
-    }
-    const close = closes[i];
-    // A failed unit pass is no units, which is what a crop that was never asked also carries, and
-    // both mean the line stands on the two readings alone. It can only ever add certainty or
-    // separate a line, so losing it costs nothing that was there before.
-    const unitsResult = counted[i];
-    if (unitsResult.status === "rejected") {
-      console.warn(`[recognize] unit pass of ${JSON.stringify(item.id)} failed:`, unitsResult.reason);
-    }
-    const units = unitsResult.status === "fulfilled" ? unitsResult.value : [];
-    // A failed check is no packages, and no packages is silence rather than a count of zero: the
-    // line stands exactly as the two readings left it. See `doubtByPackages`.
-    const checkResult = checked[i];
-    if (checkResult.status === "rejected") {
-      console.warn(`[recognize] package check of ${JSON.stringify(item.id)} failed:`, checkResult.reason);
-    }
-    const packages = checkResult.status === "fulfilled" ? checkResult.value : 0;
-    const line = doubtByPackages(reconciled[i], packages);
-    const box = item.box ?? null;
-    const split = box === null ? null : splitByUnits(line, units, box);
-    return {
-      id: item.id,
-      close,
-      line,
-      ...(units.length > 0 ? { units } : {}),
-      ...(split === null ? {} : { split }),
-    };
-  });
+/** A promise's outcome as `Promise.allSettled` reports it, for one promise awaited on its own. */
+function settle<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
+  return promise.then(
+    (value) => ({ status: "fulfilled", value }),
+    (reason: unknown) => ({ status: "rejected", reason }),
+  );
 }

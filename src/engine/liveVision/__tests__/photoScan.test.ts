@@ -1,6 +1,8 @@
 import {
   createPhotoScanState,
+  photoSummary,
   scanPhoto,
+  type PhotoItem,
   type PhotoScanDeps,
 } from '../photoScan';
 import type { CensusPayload, UnmarkedItem } from '../recognitionClient';
@@ -543,5 +545,54 @@ describe('scanPhoto folds two boxes on one object', () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.items).toHaveLength(2);
+  });
+});
+
+/**
+ * What the screen says under the photograph once both readings are in.
+ *
+ * On 2026-09-17 the owner, testing on a phone, asked for the green items to go in the cart
+ * "instead of having me take another picture". They already went in: every line of every
+ * photograph reaches the bag. What the screen said was "Added 3 items" beside the amber notice
+ * and a button reading "Photograph it again", which reads as the green ones waiting on a retake.
+ * So the line names what is in the cart, and names the amber items as in it too.
+ */
+describe('photoSummary', () => {
+  const item = (name: string, status: PhotoItem['status'], qty = 1): PhotoItem => ({
+    id: name,
+    key: `::${name}`,
+    name,
+    brand: null,
+    qty,
+    confidence: status === 'sure' ? 0.9 : 0.5,
+    status,
+    box: null,
+  });
+
+  it('names the green items as in the cart', () => {
+    expect(photoSummary([item('Rigatoni', 'sure'), item('Fusilli Bucati', 'sure', 2)])).toBe(
+      'In your cart: Rigatoni, Fusilli Bucati x2',
+    );
+  });
+
+  it('says the amber items are in the cart too, not held back for another photo', () => {
+    expect(photoSummary([item('Rigatoni', 'sure'), item('Brioche Buns', 'unsure')])).toBe(
+      'In your cart: Rigatoni\nAlso in your cart, not sure yet: Brioche Buns',
+    );
+  });
+
+  it('says so when nothing was sure', () => {
+    expect(photoSummary([item('Brioche Buns', 'unsure'), item('Salsa', 'unsure')])).toBe(
+      'In your cart, not sure yet: Brioche Buns, Salsa',
+    );
+  });
+
+  it('shortens a long list rather than covering the photograph with it', () => {
+    const names = ['A', 'B', 'C', 'D', 'E', 'F'];
+    expect(photoSummary(names.map((n) => item(n, 'sure')))).toBe('In your cart: A, B, C, D and 2 more');
+  });
+
+  it('says a photograph found nothing', () => {
+    expect(photoSummary([])).toBe('Nothing found in that one');
   });
 });

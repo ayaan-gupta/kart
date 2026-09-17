@@ -14,6 +14,11 @@ import { cropRect, type Manipulator } from './uploadImage';
  * `renderAsync` returns, so the original is decoded once per photograph and every crop is cut
  * from that decoded image; its `width` and `height` are the oriented ones, which is what
  * `cropRect` needs and what the camera's own reported size is not guaranteed to be.
+ *
+ * The upload is resized from that same decoded image. Until 2026-09-17 it decoded the file on its
+ * own, so a photograph was decoded twice, and the second decode happened after the census had
+ * answered, while the shopper was waiting on the close read. Decoding once, first, means the crops
+ * are ready to cut the moment the boxes arrive.
  */
 let decoded: { uri: string; ref: ImageRef } | null = null;
 
@@ -26,7 +31,7 @@ async function decodedOriginal(uri: string): Promise<ImageRef> {
 
 export const deviceManipulator: Manipulator = {
   async toJpegBase64(uri, size, quality) {
-    const context = ImageManipulator.manipulate(uri);
+    const context = ImageManipulator.manipulate(await decodedOriginal(uri));
     if (size !== null) context.resize(size);
     const image = await context.renderAsync();
     const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: quality, base64: true });

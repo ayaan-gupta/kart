@@ -15,7 +15,7 @@ import { color, radius, space } from '../design/tokens';
 import { Caption } from '../design/type';
 import { PHOTO_REQUEST_TIMEOUT_MS } from '../engine/liveVision/config';
 import { deviceManipulator } from '../engine/liveVision/deviceManipulator';
-import { createPhotoScanState, scanPhoto, type PhotoItem } from '../engine/liveVision/photoScan';
+import { createPhotoScanState, photoSummary, scanPhoto, type PhotoItem } from '../engine/liveVision/photoScan';
 import { lastRecognitionEndpoint, requestCensus, requestVerify } from '../engine/liveVision/recognitionClient';
 import { describeScanFailure, type PhotoFailure } from '../engine/liveVision/scanFailure';
 import { prepareCrops, prepareUpload, type SourcePhoto } from '../engine/liveVision/uploadImage';
@@ -57,7 +57,12 @@ export default function PhotoScreen() {
 
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<PhotoFailure | null>(null);
-  const [added, setAdded] = useState<number | null>(null);
+  /**
+   * What the last photograph put in the cart, by name. Every item it read is in the cart, green and
+   * amber alike; saying so is what keeps an amber notice from reading as the green items waiting
+   * on another photograph. See `photoSummary`.
+   */
+  const [summary, setSummary] = useState<string | null>(null);
 
   // What the last photograph said about things buried under other things. Held per photograph
   // rather than for the session, because the remedy the notice asks for is another photograph:
@@ -143,7 +148,7 @@ export default function PhotoScreen() {
       if (outcome.ok) {
         session.current = outcome.state;
         setBag(outcome.lines, {});
-        setAdded(outcome.added);
+        setSummary(photoSummary(outcome.items));
         setOccluded(outcome.occlusion.itemsLikelyHidden);
         setReview((current) => (current ? { ...current, items: outcome.items } : current));
         setVerifyFailure(outcome.verifyFailure ?? null);
@@ -161,7 +166,7 @@ export default function PhotoScreen() {
     }
   };
 
-  /** Back to the live camera. The bag keeps what the photograph put in it either way. */
+  /** Back to the live camera. The cart keeps everything the photograph put in it. */
   const retake = () => setReview(null);
 
   const pick = async () => {
@@ -291,15 +296,11 @@ export default function PhotoScreen() {
               </Caption>
             </View>
           </GlassSurface>
-        ) : added !== null ? (
-          <GlassSurface radius={radius.pill}>
+        ) : summary !== null ? (
+          <GlassSurface radius={radius.row}>
             <View style={styles.status}>
-              <Caption color={color.white}>
-                {added === 0
-                  ? 'Nothing new in that one'
-                  : added === 1
-                    ? 'Added 1 item'
-                    : `Added ${added} items`}
+              <Caption color={color.white} style={styles.detail}>
+                {summary}
               </Caption>
             </View>
           </GlassSurface>
@@ -312,11 +313,13 @@ export default function PhotoScreen() {
             </View>
           </PressableScale>
           {review !== null && !busy ? (
+            // "Next photo" whatever the review holds. It used to ask for the photograph again when
+            // an item was amber, and that read as the whole photograph waiting on a retake, green
+            // items included. Everything is already in the cart; the next photograph is where an
+            // amber item can be confirmed, and where the rest of the cart can be photographed.
             <PressableScale onPress={retake} accessibilityLabel="Take another photo">
               <View style={styles.secondary}>
-                <Caption color={color.white}>
-                  {review.items.some((item) => item.status === 'unsure') ? 'Photograph it again' : 'Next photo'}
-                </Caption>
+                <Caption color={color.white}>Next photo</Caption>
               </View>
             </PressableScale>
           ) : null}
