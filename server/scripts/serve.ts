@@ -111,8 +111,23 @@ async function send(res: ServerResponse, response: Response, origin?: string | n
     res.setHeader("access-control-allow-origin", origin);
     res.setHeader("vary", "origin");
   }
-  const buffer = Buffer.from(await response.arrayBuffer());
-  res.end(buffer);
+  // Chunk by chunk, as the handler writes them, not gathered into one buffer first: the close read
+  // streams each crop's line the moment it is done (api/verify.ts), and buffering here would hold
+  // every quick line back until the slowest crop came in, which is the wait the stream removes.
+  if (response.body === null) {
+    res.end();
+    return;
+  }
+  const reader = response.body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+  } finally {
+    res.end();
+  }
 }
 
 /** Every IPv4 address a phone on the same network could plausibly dial. */

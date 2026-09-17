@@ -1825,6 +1825,38 @@ describe("runVerify checks the packages in a line it is about to assert", () => 
     expect(create).toHaveBeenCalledTimes(1);
   });
 
+  it("hands each crop's line over as soon as that crop is done, before the slowest crop", async () => {
+    let releaseSlow!: () => void;
+    const slowHeld = new Promise<void>((resolve) => { releaseSlow = resolve; });
+    const handed: string[] = [];
+    create.mockImplementation(async (params: any) => {
+      const hint: string = params.input[1].content[0].text;
+      if (params.text.format.name === "verify" && hint.includes("slowpoke")) {
+        await slowHeld;
+        return { output_text: JSON.stringify({ ...closeAnswer, name: "slowpoke" }) };
+      }
+      if (params.text.format.name === "verify") return { output_text: JSON.stringify(closeAnswer) };
+      return { output_text: JSON.stringify(packages("Priano Rigatoni")) };
+    });
+    const crop = await blankJpeg();
+    const done = runVerify(
+      [
+        { id: "slow", crop, box, wide: { ...wide, description: "slowpoke" } },
+        { id: "quick", crop, box, wide },
+      ],
+      [],
+      (item) => handed.push(item.id),
+    );
+    try {
+      await vi.waitFor(() => expect(handed).toEqual(["quick"]));
+    } finally {
+      releaseSlow();
+    }
+    const items = await done;
+    expect(handed).toEqual(["quick", "slow"]);
+    expect(items.map((i) => i.id)).toEqual(["slow", "quick"]);
+  });
+
   it("checks one crop without waiting for another crop's unit pass", async () => {
     // The three stages used to run as waves: every check waited for every unit pass, so one crop
     // holding two packages held back the check of every crop holding one, and the shopper waited

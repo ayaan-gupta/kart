@@ -67,7 +67,15 @@ export interface PhotoScanDeps {
    * stands on its own and every line is what it read.
    */
   crop?: (box: Box) => Promise<string | null>;
-  requestVerify?: (request: VerifyRequest) => Promise<ClientResult<VerifyPayload>>;
+  /**
+   * `onItem`, when the caller passes it on, is how one crop's line arrives before the others: the
+   * phone's client streams the answer and hands each line over as it lands. A stub that never
+   * calls it answers all at once, which is what every caller got before.
+   */
+  requestVerify?: (
+    request: VerifyRequest,
+    onItem?: (item: VerifyPayload['items'][number]) => void,
+  ) => Promise<ClientResult<VerifyPayload>>;
 }
 
 export interface PhotoScanOptions {
@@ -78,6 +86,14 @@ export interface PhotoScanOptions {
    * the review can draw the photograph at once and colour the boxes when the close read lands.
    */
   onCensus?: (items: PhotoItem[]) => void;
+  /**
+   * Called each time a close read lands, with the whole bag as it now stands and this photograph's
+   * items, so the screen can put an item in the cart when its own reading is in rather than when
+   * the slowest crop's is. Items still waiting are `checking` in `items` and not yet in `lines`.
+   * The outcome is what counts: every line here is recomputed from the bag as it was before this
+   * photograph, so the last call and the outcome agree, and nothing shown in between can stick.
+   */
+  onProgress?: (progress: { lines: BagLine[]; items: PhotoItem[] }) => void;
 }
 
 /** What one photograph showed: one entry per product, with where it is and whether it is sure. */
@@ -239,90 +255,114 @@ export async function scanPhoto(
     const sent = items.filter((_, i) => crops[i] !== null);
     const lines = new Map<string, VerifyPayload['items'][number]['line']>();
     const splits = new Map<string, NonNullable<VerifyPayload['items'][number]['split']>>();
-    if (sent.length > 0) {
-      const brands = [...new Set(items.map((item) => item.brand).filter((b): b is string => b !== null))];
-      const verified = await deps.requestVerify({
-        brands,
-        items: sent.map((item) => ({
-          id: item.id,
-          imageBase64: crops[items.indexOf(item)] as string,
-          box: item.box,
-          wide: {
-            description: item.name,
-            productKey: products[Number(item.id.slice(1))].productKey,
-            brand: item.brand,
-            count: item.qty,
-            confidence: item.confidence,
-          },
-        })),
-      });
-      if (verified.ok) {
-        for (const entry of verified.value.items) {
-          lines.set(entry.id, entry.line);
-          if (entry.split !== undefined) splits.set(entry.id, entry.split);
-        }
-      } else verifyFailure = verified.failure;
-    }
+    const censusItems = items;
+    const record = (entry: VerifyPayload['items'][number]) => {
+      lines.set(entry.id, entry.line);
+      if (entry.split !== undefined) splits.set(entry.id, entry.split);
+      else splits.delete(entry.id);
+    };
 
     // What fusion is given is the reconciled reading, not the census's. A line nothing read
     // twice is capped below the unsure line, so the bag flags it the same way a disagreement is.
-    const unmarkedItems: UnmarkedItem[] = [];
-    const inViewCounts: CensusPayload['inViewCounts'] = [];
-    items = items.flatMap((item, index) => {
-      const line = lines.get(item.id);
-      const brand = line ? line.brand : item.brand;
-      const qty = line ? Math.max(1, line.count) : item.qty;
-      // A line the close read agreed with is still unsure when the wide pass listed the object
-      // twice: the listing itself was the doubt.
-      //
-      // The gate's verdict and its confidence are two different things, and the bag can only see
-      // the confidence: `bagLines` has no other input to decide a line by. Both readings agreeing
-      // leaves ~0.96 on the line, and `doubtByPackages` can take the certainty away afterwards
-      // without touching that number, so a line the server held back arrived in the bag looking
-      // settled. Held back is held back, whichever exit did it, so it is capped here like the
-      // other two doubts beside it.
-      const confidence = Math.min(
-        line ? (line.sure ? line.confidence : Math.min(line.confidence, UNSURE_BELOW - 0.1)) : Math.min(item.confidence, UNSURE_BELOW - 0.1),
-        doubted.has(index) ? UNSURE_BELOW - 0.1 : 1,
-      );
+    //
+    // `final` is false while close reads are still arriving: an item whose line has not landed is
+    // left `checking` and kept out of the bag, rather than put in it as unsure and then changed.
+    const fold = (final: boolean): { items: PhotoItem[]; payload: CensusPayload } => {
+      const unmarkedItems: UnmarkedItem[] = [];
+      const inViewCounts: CensusPayload['inViewCounts'] = [];
+      const folded = censusItems.flatMap((item, index) => {
+        const line = lines.get(item.id);
+        if (!final && line === undefined) return [item];
+        const brand = line ? line.brand : item.brand;
+        const qty = line ? Math.max(1, line.count) : item.qty;
+        // A line the close read agreed with is still unsure when the wide pass listed the object
+        // twice: the listing itself was the doubt.
+        //
+        // The gate's verdict and its confidence are two different things, and the bag can only see
+        // the confidence: `bagLines` has no other input to decide a line by. Both readings agreeing
+        // leaves ~0.96 on the line, and `doubtByPackages` can take the certainty away afterwards
+        // without touching that number, so a line the server held back arrived in the bag looking
+        // settled. Held back is held back, whichever exit did it, so it is capped here like the
+        // other two doubts beside it.
+        const confidence = Math.min(
+          line ? (line.sure ? line.confidence : Math.min(line.confidence, UNSURE_BELOW - 0.1)) : Math.min(item.confidence, UNSURE_BELOW - 0.1),
+          doubted.has(index) ? UNSURE_BELOW - 0.1 : 1,
+        );
 
-      // One crop that held two varieties becomes one item per variety, each with its share of the
-      // box so the review points at the right half of the pair. The crop's own line is dropped:
-      // it named the pair as several of the front one, which is the error being corrected. None
-      // of them is asserted, because only the unit pass has read these names.
-      const split = splits.get(item.id);
-      if (split !== undefined && split.length > 1) {
-        return split.map((piece, n) => {
-          const pieceKey = productKey(piece.description, piece.brand);
-          const pieceQty = Math.max(1, piece.count);
-          unmarkedItems.push({
-            ...products[index],
-            description: piece.description,
-            productKey: `${piece.brand ?? ''}::${piece.description}`,
-            box: piece.box,
-            confidence: piece.confidence,
+        // One crop that held two varieties becomes one item per variety, each with its share of the
+        // box so the review points at the right half of the pair. The crop's own line is dropped:
+        // it named the pair as several of the front one, which is the error being corrected. None
+        // of them is asserted, because only the unit pass has read these names.
+        const split = splits.get(item.id);
+        if (split !== undefined && split.length > 1) {
+          return split.map((piece, n) => {
+            const pieceKey = productKey(piece.description, piece.brand);
+            const pieceQty = Math.max(1, piece.count);
+            unmarkedItems.push({
+              ...products[index],
+              description: piece.description,
+              productKey: `${piece.brand ?? ''}::${piece.description}`,
+              box: piece.box,
+              confidence: piece.confidence,
+            });
+            inViewCounts.push({ productKey: pieceKey, count: pieceQty });
+            return {
+              ...item,
+              id: `${item.id}u${n}`,
+              key: pieceKey,
+              name: piece.description,
+              brand: piece.brand,
+              qty: pieceQty,
+              confidence: piece.confidence,
+              box: piece.box,
+              status: 'unsure' as const,
+            };
           });
-          inViewCounts.push({ productKey: pieceKey, count: pieceQty });
-          return {
-            ...item,
-            id: `${item.id}u${n}`,
-            key: pieceKey,
-            name: piece.description,
-            brand: piece.brand,
-            qty: pieceQty,
-            confidence: piece.confidence,
-            box: piece.box,
-            status: 'unsure' as const,
-          };
-        });
-      }
+        }
 
-      const key = productKey(item.name, brand);
-      unmarkedItems.push({ ...products[index], productKey: `${brand ?? ''}::${item.name}`, confidence });
-      inViewCounts.push({ productKey: key, count: qty });
-      return [{ ...item, key, brand, qty, confidence, status: confidence >= UNSURE_BELOW && line?.sure ? 'sure' : 'unsure' } as PhotoItem];
-    });
-    payload = { ...census, unmarkedItems, inViewCounts };
+        const key = productKey(item.name, brand);
+        unmarkedItems.push({ ...products[index], productKey: `${brand ?? ''}::${item.name}`, confidence });
+        inViewCounts.push({ productKey: key, count: qty });
+        return [{ ...item, key, brand, qty, confidence, status: confidence >= UNSURE_BELOW && line?.sure ? 'sure' : 'unsure' } as PhotoItem];
+      });
+      return { items: folded, payload: { ...census, unmarkedItems, inViewCounts } };
+    };
+
+    if (sent.length > 0) {
+      const brands = [...new Set(items.map((item) => item.brand).filter((b): b is string => b !== null))];
+      const onProgress = options.onProgress;
+      const verified = await deps.requestVerify(
+        {
+          brands,
+          items: sent.map((item) => ({
+            id: item.id,
+            imageBase64: crops[items.indexOf(item)] as string,
+            box: item.box,
+            wide: {
+              description: item.name,
+              productKey: products[Number(item.id.slice(1))].productKey,
+              brand: item.brand,
+              count: item.qty,
+              confidence: item.confidence,
+            },
+          })),
+        },
+        onProgress === undefined
+          ? undefined
+          : (entry) => {
+              record(entry);
+              const progress = fold(false);
+              onProgress({ lines: bagLines(applyCensus(state.fusion, progress.payload, {}, [], false, {})), items: progress.items });
+            },
+      );
+      // Lines that arrived before a failure stand: each is a complete reading of its own crop.
+      if (verified.ok) for (const entry of verified.value.items) record(entry);
+      else verifyFailure = verified.failure;
+    }
+
+    const folded = fold(true);
+    items = folded.items;
+    payload = folded.payload;
   } else if (doubted.size > 0) {
     // No close read, but a folded duplicate still carries its doubt into the bag.
     const unmarkedItems = products.map((u, index) => (doubted.has(index) ? { ...u, confidence: Math.min(u.confidence, UNSURE_BELOW - 0.1) } : u));
@@ -352,7 +392,16 @@ export async function scanPhoto(
 const SUMMARY_NAMES = 4;
 
 function listed(items: PhotoItem[]): string {
-  const names = items.map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name));
+  // One name per product. The census can box one product twice, and the cart holds it as one
+  // line under one key, so the sentence about the cart does too.
+  const seen = new Set<string>();
+  const once: PhotoItem[] = [];
+  for (const item of items) {
+    if (seen.has(item.key)) continue;
+    seen.add(item.key);
+    once.push(item);
+  }
+  const names = once.map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name));
   if (names.length <= SUMMARY_NAMES) return names.join(', ');
   return `${names.slice(0, SUMMARY_NAMES).join(', ')} and ${names.length - SUMMARY_NAMES} more`;
 }
@@ -368,7 +417,8 @@ function listed(items: PhotoItem[]): string {
  */
 export function photoSummary(items: PhotoItem[]): string {
   const sure = items.filter((item) => item.status === 'sure');
-  const unsure = items.filter((item) => item.status !== 'sure');
+  const sureKeys = new Set(sure.map((item) => item.key));
+  const unsure = items.filter((item) => item.status !== 'sure' && !sureKeys.has(item.key));
   if (sure.length === 0 && unsure.length === 0) return 'Nothing found in that one';
   if (sure.length === 0) return `In your cart, not sure yet: ${listed(unsure)}`;
   if (unsure.length === 0) return `In your cart: ${listed(sure)}`;

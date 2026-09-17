@@ -42,4 +42,11 @@ describe('photo.tsx shows the shopper their photograph with each item outlined',
   it('does not word the next photograph as a retake the cart is waiting on', () => {
     expect(PHOTO).not.toContain('Photograph it again');
   });
+
+  // 2026-09-17: close reads in one photograph came back between 2s and 10s apart, and the cart
+  // waited for the slowest. The screen now takes each line as it lands.
+  it('puts each item in the cart as its own close read lands', () => {
+    expect(PHOTO).toMatch(/onProgress:/);
+    expect(PHOTO).toMatch(/onItem/);
+  });
 });

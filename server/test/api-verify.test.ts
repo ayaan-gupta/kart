@@ -113,3 +113,72 @@ describe("POST /api/verify", () => {
     expect(await res.json()).toEqual({ error: "Recognition failed" });
   });
 });
+
+/**
+ * A phone that asks for NDJSON gets each crop's line the moment that crop is done, so a product
+ * read in two seconds goes in the cart then, rather than when the slowest crop in the photograph
+ * comes back ten seconds later. Measured on 2026-09-17: in one request some close reads take 2s
+ * and others 7 to 10s.
+ */
+describe("POST /api/verify, streamed", () => {
+  function streamed(body: unknown): Request {
+    return new Request("http://localhost/api/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/x-ndjson" },
+      body: JSON.stringify(body),
+    });
+  }
+  const line = (id: string) => ({ id, close: null, line: { description: id, brand: null, count: 1, confidence: 0.9, sure: true, agreed: true } });
+
+  it("writes one line per crop as runVerify hands it over, then a line saying it is done", async () => {
+    runVerifyMock.mockImplementationOnce(async (_items, _brands, onItem: (item: unknown) => void) => {
+      onItem(line("b"));
+      onItem(line("a"));
+      return [line("a"), line("b")];
+    });
+    const res = await handler(streamed({ items: [{ id: "a", image, wide }, { id: "b", image, wide }] }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/x-ndjson");
+    const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+    expect(lines).toEqual([{ item: line("b") }, { item: line("a") }, { ok: true, done: true }]);
+  });
+
+  it("sends each line before the slowest crop is done", async () => {
+    let finish!: () => void;
+    const held = new Promise<void>((resolve) => { finish = resolve; });
+    runVerifyMock.mockImplementationOnce(async (_items, _brands, onItem: (item: unknown) => void) => {
+      onItem(line("quick"));
+      await held;
+      onItem(line("slow"));
+      return [line("quick"), line("slow")];
+    });
+    const res = await handler(streamed({ items: [{ id: "quick", image, wide }, { id: "slow", image, wide }] }));
+    const reader = res.body!.getReader();
+    const first = new TextDecoder().decode((await reader.read()).value);
+    expect(JSON.parse(first.trim())).toEqual({ item: line("quick") });
+    finish();
+    let rest = "";
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      rest += new TextDecoder().decode(chunk.value);
+    }
+    expect(rest.trim().split("\n").map((l) => JSON.parse(l))).toEqual([{ item: line("slow") }, { ok: true, done: true }]);
+  });
+
+  it("ends with a failure line that carries no upstream message when runVerify fails", async () => {
+    runVerifyMock.mockImplementationOnce(async (_items, _brands, onItem: (item: unknown) => void) => {
+      onItem(line("a"));
+      throw new Error("sk-secret leaked in a message");
+    });
+    const res = await handler(streamed({ items: [{ id: "a", image, wide }, { id: "b", image, wide }] }));
+    const text = await res.text();
+    expect(text).not.toContain("sk-secret");
+    expect(text.trim().split("\n").map((l) => JSON.parse(l))).toEqual([{ item: line("a") }, { ok: false, error: "Recognition failed" }]);
+  });
+
+  it("still rejects a malformed request with a plain 400 before streaming anything", async () => {
+    const res = await handler(streamed({ items: "nope" }));
+    expect(res.status).toBe(400);
+  });
+});

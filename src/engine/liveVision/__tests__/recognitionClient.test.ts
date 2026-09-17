@@ -472,3 +472,107 @@ describe('requestVerify', () => {
     expect(f).toHaveBeenCalled();
   });
 });
+
+/**
+ * The close read, one crop at a time. On 2026-09-17 one request's close reads took 2s for some
+ * crops and 7 to 10s for others, and reading the answer whole held every quick line back until the
+ * slowest came in. With `onItem`, each line is handed over as it arrives.
+ */
+describe('requestVerify, streamed', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  const item = {
+    id: 'a',
+    imageBase64: 'Q1JPUA==',
+    wide: { description: 'Rigatoni', productKey: 'priano::rigatoni', brand: 'Priano', count: 1, confidence: 0.9 },
+  };
+  const entry = (id: string, description = 'Rigatoni') => ({
+    id,
+    close: null,
+    line: { description, brand: 'Priano', count: 1, confidence: 0.9, sure: true, agreed: true },
+  });
+  const parsedLine = (description = 'Rigatoni') => ({ description, brand: 'Priano', count: 1, confidence: 0.9, sure: true, agreed: true });
+
+  /** A response body read through `getReader`, in exactly these byte chunks, each released by `gate`. */
+  function body(chunks: Uint8Array[], gate: (Promise<void> | undefined)[] = []) {
+    let i = 0;
+    return {
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          async read() {
+            if (gate[i]) await gate[i];
+            return i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined };
+          },
+        }),
+      },
+    };
+  }
+  const bytes = (text: string) => new TextEncoder().encode(text);
+
+  it('asks for the answer one crop at a time', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue(body([bytes(`${JSON.stringify({ ok: true, done: true })}\n`)])));
+    await requestVerify({ items: [item] }, undefined, { onItem: () => {} });
+    expect(f.mock.calls[0][1].headers.accept).toBe('application/x-ndjson');
+  });
+
+  it('does not ask for a stream when nobody is listening for lines', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { items: [] } }) }));
+    await requestVerify({ items: [item] });
+    expect(f.mock.calls[0][1].headers.accept).toBeUndefined();
+  });
+
+  it('hands over each line as it arrives, across chunks that split a line and a character', async () => {
+    const text = `${JSON.stringify({ item: entry('b', '샘표 soy sauce') })}\n${JSON.stringify({ item: entry('a') })}\n${JSON.stringify({ ok: true, done: true })}\n`;
+    const all = bytes(text);
+    // Cut inside the first line's Korean, so a chunk ends partway through a character.
+    const cut = bytes(text.slice(0, text.indexOf('표'))).length + 1;
+    mockFetch(jest.fn().mockResolvedValue(body([all.slice(0, cut), all.slice(cut)])));
+    const handed: { id: string; line: unknown }[] = [];
+    const res = await requestVerify({ items: [item] }, undefined, { onItem: (it) => handed.push(it) });
+    expect(handed).toEqual([{ id: 'b', line: parsedLine('샘표 soy sauce') }, { id: 'a', line: parsedLine() }]);
+    expect(res).toEqual({ ok: true, value: { items: handed } });
+  });
+
+  it('hands over the first line before the rest of the answer has arrived', async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    mockFetch(jest.fn().mockResolvedValue(body(
+      [bytes(`${JSON.stringify({ item: entry('quick') })}\n`), bytes(`${JSON.stringify({ item: entry('slow') })}\n${JSON.stringify({ ok: true, done: true })}\n`)],
+      [Promise.resolve(), held],
+    )));
+    const handed: string[] = [];
+    const done = requestVerify({ items: [item] }, undefined, { onItem: (it) => handed.push(it.id) });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(handed).toEqual(['quick']);
+    release();
+    await done;
+    expect(handed).toEqual(['quick', 'slow']);
+  });
+
+  it('keeps the lines already handed over, and reports a server failure, when the answer ends in one', async () => {
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(`${JSON.stringify({ item: entry('a') })}\n${JSON.stringify({ ok: false, error: 'Recognition failed' })}\n`)])));
+    const handed: string[] = [];
+    const res = await requestVerify({ items: [item] }, undefined, { onItem: (it) => handed.push(it.id) });
+    expect(handed).toEqual(['a']);
+    expect(res).toEqual({ ok: false, failure: 'server' });
+  });
+
+  it('reports malformed when the answer stops without saying it is done', async () => {
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(`${JSON.stringify({ item: entry('a') })}\n`)])));
+    const res = await requestVerify({ items: [item] }, undefined, { onItem: () => {} });
+    expect(res).toEqual({ ok: false, failure: 'malformed' });
+  });
+
+  it('works against a server that answers in one piece, handing over every line', async () => {
+    const whole = { ok: true, result: { items: [entry('a')] } };
+    mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, body: null, text: async () => JSON.stringify(whole) }));
+    const handed: string[] = [];
+    const res = await requestVerify({ items: [item] }, undefined, { onItem: (it) => handed.push(it.id) });
+    expect(handed).toEqual(['a']);
+    expect(res.ok).toBe(true);
+  });
+});

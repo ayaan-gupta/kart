@@ -324,6 +324,102 @@ describe('scanPhoto with a close read', () => {
     };
   }
 
+  /**
+   * 2026-09-17: one request's close reads took 2s for some crops and 7 to 10s for others, and the
+   * bag waited for the slowest. Each item now goes in the bag when its own line lands.
+   */
+  describe('as each line arrives', () => {
+    const other = { x: 0.6, y: 0.6, w: 0.3, h: 0.3 };
+    const lineFor = (id: string, description: string, brand: string | null, sure = true) => ({
+      id,
+      line: { description, brand, count: 1, confidence: sure ? 0.95 : 0.5, sure, agreed: sure },
+    });
+    const twoProducts = () => boxedReply([
+      { name: 'rigatoni', brand: 'Priano', box },
+      { name: 'salsa', brand: 'Primo', box: other },
+    ]);
+
+    it('puts an item in the bag the moment its close read lands, before the others', async () => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      const progress: { lines: string[]; statuses: string[] }[] = [];
+      const done = scanPhoto(
+        createPhotoScanState(),
+        'IMG',
+        {
+          ...stubCensus([twoProducts()]),
+          crop,
+          async requestVerify(_request, onItem) {
+            onItem?.(lineFor('p1', 'salsa', 'Primo'));
+            await held;
+            onItem?.(lineFor('p0', 'rigatoni', 'Priano'));
+            return { ok: true, value: { items: [lineFor('p0', 'rigatoni', 'Priano'), lineFor('p1', 'salsa', 'Primo')] } };
+          },
+        },
+        {
+          onProgress: ({ lines, items }) => progress.push({
+            lines: lines.map((l) => `${l.name}:${l.unsure ? 'unsure' : 'sure'}`),
+            statuses: items.map((i) => `${i.name}:${i.status}`),
+          }),
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(progress).toEqual([{ lines: ['salsa:sure'], statuses: ['rigatoni:checking', 'salsa:sure'] }]);
+      release();
+      const outcome = await done;
+      expect(progress[1]).toEqual({ lines: ['rigatoni:sure', 'salsa:sure'], statuses: ['rigatoni:sure', 'salsa:sure'] });
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni', 'salsa']);
+    });
+
+    it('ends with the same bag and review whether the lines arrived one by one or all at once', async () => {
+      const answers = [lineFor('p0', 'rigatoni', 'Priano'), lineFor('p1', 'salsa', 'Primo', false)];
+      const whole = await scanPhoto(createPhotoScanState(), 'IMG', {
+        ...stubCensus([twoProducts()]),
+        crop,
+        async requestVerify() {
+          return { ok: true, value: { items: answers } };
+        },
+      });
+      const streamed = await scanPhoto(
+        createPhotoScanState(),
+        'IMG',
+        {
+          ...stubCensus([twoProducts()]),
+          crop,
+          async requestVerify(_request, onItem) {
+            for (const answer of [...answers].reverse()) onItem?.(answer);
+            return { ok: true, value: { items: answers } };
+          },
+        },
+        { onProgress: () => {} },
+      );
+      expect(streamed).toEqual(whole);
+    });
+
+    it('keeps the lines that arrived when the close read fails partway', async () => {
+      const outcome = await scanPhoto(
+        createPhotoScanState(),
+        'IMG',
+        {
+          ...stubCensus([twoProducts()]),
+          crop,
+          async requestVerify(_request, onItem) {
+            onItem?.(lineFor('p0', 'rigatoni', 'Priano'));
+            return { ok: false, failure: 'timeout' };
+          },
+        },
+        { onProgress: () => {} },
+      );
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.items.map((i) => `${i.name}:${i.status}`)).toEqual(['rigatoni:sure', 'salsa:unsure']);
+      expect(outcome.lines.map((l) => `${l.name}:${l.unsure ? 'unsure' : 'sure'}`)).toEqual(['rigatoni:sure', 'salsa:unsure']);
+      expect(outcome.verifyFailure).toBe('timeout');
+    });
+  });
+
   it('sends the box the crop was cut at, so a split line has a share of it to point at', async () => {
     const census = stubCensus([boxedReply([{ name: 'crackers', brand: 'Savoritz', count: 2 }])]);
     const verify = verifier({});
@@ -590,6 +686,13 @@ describe('photoSummary', () => {
   it('shortens a long list rather than covering the photograph with it', () => {
     const names = ['A', 'B', 'C', 'D', 'E', 'F'];
     expect(photoSummary(names.map((n) => item(n, 'sure')))).toBe('In your cart: A, B, C, D and 2 more');
+  });
+
+  it('names a product once when the photograph boxed it twice, as the cart does', () => {
+    // clut7 on 2026-09-17: two boxes on the black beans read "Black Beans x5, Black Beans x5".
+    expect(photoSummary([item('Black Beans', 'unsure', 5), item('Black Beans', 'unsure', 5), item('Salsa', 'unsure')])).toBe(
+      'In your cart, not sure yet: Black Beans x5, Salsa',
+    );
   });
 
   it('says a photograph found nothing', () => {

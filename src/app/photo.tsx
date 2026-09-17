@@ -136,13 +136,22 @@ export default function PhotoScreen() {
           // The close read. Each box is cut from the original photograph on the device, because
           // the label the wide pass misread is written in the pixels the upload bound discards.
           crop: async (box) => (await prepareCrops(photo, [box], { manipulator: deviceManipulator }))[0],
-          requestVerify: (request) => requestVerify(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
+          // Streamed: each crop's line is handed over as it lands, so a product read in two
+          // seconds goes in the cart then and not when the slowest crop in the photograph is done.
+          requestVerify: (request, onItem) =>
+            requestVerify(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS, onItem }),
         },
         {
           confirming,
           // The boxes go on the photograph as soon as the census places them, in the plain
           // outline of "checking", and take their colour when the close read lands.
           onCensus: (items) => setReview((current) => (current ? { ...current, items } : current)),
+          // One item's close read has landed: it goes in the cart and its box takes its colour,
+          // while the rest are still being read.
+          onProgress: ({ lines, items }) => {
+            setBag(lines, {});
+            setReview((current) => (current ? { ...current, items } : current));
+          },
         },
       );
       if (outcome.ok) {
@@ -270,7 +279,7 @@ export default function PhotoScreen() {
             <View style={styles.status}>
               <ActivityIndicator color={color.white} />
               <Caption color={color.white}>
-                {review !== null && review.items.length > 0 ? 'Taking a closer look…' : 'Looking at your photo…'}
+                {checkingCaption(review?.items ?? null)}
               </Caption>
             </View>
           </GlassSurface>
@@ -281,7 +290,11 @@ export default function PhotoScreen() {
           <GlassSurface radius={radius.row}>
             <View style={styles.status}>
               <Caption color={color.white} style={styles.detail}>
-                {`The closer look did not happen, so nothing here is confirmed. ${describeScanFailure(verifyFailure, lastRecognitionEndpoint())}`}
+                {`${
+                  review?.items.some((item) => item.status === 'sure')
+                    ? 'The closer look did not finish, so the items in amber are not confirmed.'
+                    : 'The closer look did not happen, so nothing here is confirmed.'
+                } ${describeScanFailure(verifyFailure, lastRecognitionEndpoint())}`}
               </Caption>
             </View>
           </GlassSurface>
@@ -329,6 +342,17 @@ export default function PhotoScreen() {
       <BagTray onFinish={finish} />
     </View>
   );
+}
+
+/**
+ * What the spinner says. Before the census answers there is nothing to count; after, the count of
+ * items already checked is the one sign that a long wait is moving, and each of those is already
+ * in the cart.
+ */
+function checkingCaption(items: PhotoItem[] | null): string {
+  if (items === null || items.length === 0) return 'Looking at your photo…';
+  const checked = items.filter((item) => item.status !== 'checking').length;
+  return checked === 0 ? 'Taking a closer look…' : `Checked ${checked} of ${items.length}…`;
 }
 
 const styles = StyleSheet.create({

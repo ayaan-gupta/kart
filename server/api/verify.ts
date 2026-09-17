@@ -123,10 +123,44 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (items.length === 0) return json({ ok: true, result: { items: [] } });
 
+  if ((req.headers.get("accept") ?? "").includes(NDJSON)) return streamed(items, brands);
+
   try {
     const verified = await withTimeout(runVerify(items, brands));
     return json({ ok: true, result: { items: verified } });
   } catch (err) {
     return fail(err);
   }
+}
+
+const NDJSON = "application/x-ndjson";
+
+/**
+ * The same answer, one crop at a time: a line `{"item": ...}` the moment each crop is done, in the
+ * order they finish, then `{"ok": true, "done": true}`. A failure after the first line has been
+ * sent cannot become a status code any more, so it is the last line instead, worded exactly as
+ * `fail` words it for a JSON caller, with nothing from upstream in it.
+ *
+ * Asked for with `Accept: application/x-ndjson`. On 2026-09-17, one request's close reads took
+ * 2s for some crops and 7 to 10s for others, and a phone reading the whole answer at once held
+ * every quick line back until the slowest crop came in. A caller that does not ask gets the one
+ * JSON answer it always did.
+ */
+function streamed(items: VerifyItemInput[], brands: string[]): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const write = (value: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+      try {
+        await withTimeout(runVerify(items, brands, (item) => write({ item })));
+        write({ ok: true, done: true });
+      } catch (err) {
+        console.error("[recognition]", err);
+        write({ ok: false, error: "Recognition failed" });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(body, { status: 200, headers: { "content-type": NDJSON, "cache-control": "no-store" } });
 }

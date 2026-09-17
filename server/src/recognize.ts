@@ -1260,7 +1260,16 @@ export interface VerifiedItem {
  * misread exactly those; a second reading by a model that makes the same mistake would agree
  * with the first and assert it.
  */
-export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[] = []): Promise<VerifiedItem[]> {
+export async function runVerify(
+  items: VerifyItemInput[],
+  brandsInPhoto: string[] = [],
+  /**
+   * Called with each crop's answer the moment that crop is done, in the order they finish, so a
+   * caller can pass a quick line on while a slow one is still out. Everything is still returned
+   * at the end, in the order the crops were given.
+   */
+  onItem?: (item: VerifiedItem) => void,
+): Promise<VerifiedItem[]> {
   // The shop, if this deployment has one. Retrieval happens here, from the text the wide pass
   // already produced: each crop is shown the shop's own closest rows so the close read can settle
   // which variety of a range it is, which is the question a crop answers and text cannot.
@@ -1424,7 +1433,7 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
       const line = doubtByPackages(reconciled, packages);
       const box = item.box ?? null;
       const split = box === null ? null : splitByUnits(line, units, box);
-      return {
+      const verified: VerifiedItem = {
         id: item.id,
         close,
         line,
@@ -1432,6 +1441,14 @@ export async function runVerify(items: VerifyItemInput[], brandsInPhoto: string[
         ...(split === null ? {} : { split }),
         ms: { close: closeMs, units: unitsMs, check: checkMs },
       };
+      try {
+        onItem?.(verified);
+      } catch (error) {
+        // A listener that cannot take the line (a phone that hung up mid-answer) must not cost the
+        // other crops theirs.
+        console.warn(`[recognize] handing over ${JSON.stringify(item.id)} failed:`, error);
+      }
+      return verified;
     }),
   );
 }

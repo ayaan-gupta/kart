@@ -269,6 +269,38 @@ async function post<T>(
   signal?: AbortSignal,
   options?: RequestOptions,
 ): Promise<ClientResult<T>> {
+  return send(path, body, {}, signal, options, async (response) => {
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      // A 200 carrying HTML is the classic signature of hitting a deployment's login wall or a
+      // stale route, and JSON.parse throwing inside a frame handler must not surface as a crash.
+      return { ok: false, failure: 'malformed' };
+    }
+
+    const envelope = payload as { ok?: unknown; result?: unknown };
+    if (envelope?.ok !== true) return { ok: false, failure: 'malformed' };
+
+    const parsed = parse(envelope.result, envelope as Record<string, unknown>);
+    return parsed === null ? { ok: false, failure: 'malformed' } : { ok: true, value: parsed };
+  });
+}
+
+/**
+ * The part of a POST every route shares: the address, the deadline, the caller's abort, and every
+ * way of never getting an answer folded into a failure. `read` turns a response that arrived with
+ * a success status into the result, and runs inside the deadline, so a body still streaming when
+ * time runs out is cut off like a request that never answered.
+ */
+async function send<T>(
+  path: string,
+  body: unknown,
+  headers: Record<string, string>,
+  signal: AbortSignal | undefined,
+  options: RequestOptions | undefined,
+  read: (response: Response) => Promise<ClientResult<T>>,
+): Promise<ClientResult<T>> {
   const base = await resolveBase();
   lastEndpoint = base === '' ? null : base;
   if (base === '') return { ok: false, failure: 'unconfigured' };
@@ -290,7 +322,7 @@ async function post<T>(
   try {
     const response = await fetch(`${base}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -299,20 +331,7 @@ async function post<T>(
       return { ok: false, failure: response.status >= 500 ? 'server' : 'rejected' };
     }
 
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      // A 200 carrying HTML is the classic signature of hitting a deployment's login wall or a
-      // stale route, and JSON.parse throwing inside a frame handler must not surface as a crash.
-      return { ok: false, failure: 'malformed' };
-    }
-
-    const envelope = payload as { ok?: unknown; result?: unknown };
-    if (envelope?.ok !== true) return { ok: false, failure: 'malformed' };
-
-    const parsed = parse(envelope.result, envelope as Record<string, unknown>);
-    return parsed === null ? { ok: false, failure: 'malformed' } : { ok: true, value: parsed };
+    return await read(response);
   } catch (error) {
     const name = (error as { name?: string } | null)?.name;
     // A request that never reached a server is the signal that this address died: the laptop
@@ -446,47 +465,54 @@ function parseVerify(value: unknown): VerifyPayload | null {
   if (!isRecord(value) || !Array.isArray(value.items)) return null;
   const items: VerifyPayload['items'] = [];
   for (const raw of value.items) {
-    if (!isRecord(raw) || typeof raw.id !== 'string' || !isRecord(raw.line)) return null;
-    const line = raw.line;
-    if (typeof line.description !== 'string') return null;
-    const parsed: VerifyPayload['items'][number] = {
-      id: raw.id,
-      line: {
-        description: line.description,
-        brand: nullableStr(line.brand),
-        count: Math.max(0, Math.round(num(line.count))),
-        confidence: Math.min(1, Math.max(0, num(line.confidence))),
-        sure: line.sure === true,
-        agreed: line.agreed === true,
-      },
-    };
-    // Absent on every answer but the few where one crop held two varieties, and absent from any
-    // server that predates the unit pass, so it is read leniently: a malformed entry is dropped
-    // and the line it came with still stands.
-    if (Array.isArray(raw.split)) {
-      const split: SplitLine[] = [];
-      for (const entry of raw.split) {
-        if (!isRecord(entry) || typeof entry.description !== 'string' || !isRecord(entry.box)) continue;
-        split.push({
-          description: entry.description,
-          brand: nullableStr(entry.brand),
-          count: Math.max(0, Math.round(num(entry.count))),
-          confidence: Math.min(1, Math.max(0, num(entry.confidence))),
-          sure: entry.sure === true,
-          agreed: entry.agreed === true,
-          box: {
-            x: num(entry.box.x),
-            y: num(entry.box.y),
-            w: num(entry.box.w),
-            h: num(entry.box.h),
-          },
-        });
-      }
-      if (split.length > 1) parsed.split = split;
-    }
+    const parsed = parseVerifyItem(raw);
+    if (parsed === null) return null;
     items.push(parsed);
   }
   return { items };
+}
+
+/** One crop's answer, or null when it has no id or no line to show. */
+function parseVerifyItem(raw: unknown): VerifyPayload['items'][number] | null {
+  if (!isRecord(raw) || typeof raw.id !== 'string' || !isRecord(raw.line)) return null;
+  const line = raw.line;
+  if (typeof line.description !== 'string') return null;
+  const parsed: VerifyPayload['items'][number] = {
+    id: raw.id,
+    line: {
+      description: line.description,
+      brand: nullableStr(line.brand),
+      count: Math.max(0, Math.round(num(line.count))),
+      confidence: Math.min(1, Math.max(0, num(line.confidence))),
+      sure: line.sure === true,
+      agreed: line.agreed === true,
+    },
+  };
+  // Absent on every answer but the few where one crop held two varieties, and absent from any
+  // server that predates the unit pass, so it is read leniently: a malformed entry is dropped
+  // and the line it came with still stands.
+  if (Array.isArray(raw.split)) {
+    const split: SplitLine[] = [];
+    for (const entry of raw.split) {
+      if (!isRecord(entry) || typeof entry.description !== 'string' || !isRecord(entry.box)) continue;
+      split.push({
+        description: entry.description,
+        brand: nullableStr(entry.brand),
+        count: Math.max(0, Math.round(num(entry.count))),
+        confidence: Math.min(1, Math.max(0, num(entry.confidence))),
+        sure: entry.sure === true,
+        agreed: entry.agreed === true,
+        box: {
+          x: num(entry.box.x),
+          y: num(entry.box.y),
+          w: num(entry.box.w),
+          h: num(entry.box.h),
+        },
+      });
+    }
+    if (split.length > 1) parsed.split = split;
+  }
+  return parsed;
 }
 
 function parseIdentify(value: unknown): IdentifyResult | null {
@@ -523,28 +549,110 @@ export function requestCensus(
 }
 
 /** The close read: every crop with what the census said about it, answered as reconciled lines. */
+export interface VerifyOptions extends RequestOptions {
+  /**
+   * Called with each crop's line the moment it arrives, in the order the server finishes them.
+   * Asking for it asks the server to stream (`Accept: application/x-ndjson`), so a product read in
+   * two seconds is handed over then rather than when the slowest crop in the photograph is done.
+   * Lines handed over stand even when the answer later fails or runs out of time.
+   */
+  onItem?: (item: VerifyPayload['items'][number]) => void;
+}
+
 export function requestVerify(
   req: VerifyRequest,
   signal?: AbortSignal,
-  options?: RequestOptions,
+  options?: VerifyOptions,
 ): Promise<ClientResult<VerifyPayload>> {
-  return post(
-    '/api/verify',
-    {
-      items: req.items.map((item) => ({
-        id: item.id,
-        image: item.imageBase64,
-        wide: item.wide,
-        // The rectangle the crop was cut at, so a crop the server separates into two varieties
-        // comes back with a share of it on each line and the review has something to draw.
-        ...(item.box ? { box: item.box } : {}),
-      })),
-      ...(req.brands && req.brands.length > 0 ? { brands: req.brands } : {}),
-    },
-    parseVerify,
-    signal,
-    options,
-  );
+  const body = {
+    items: req.items.map((item) => ({
+      id: item.id,
+      image: item.imageBase64,
+      wide: item.wide,
+      // The rectangle the crop was cut at, so a crop the server separates into two varieties
+      // comes back with a share of it on each line and the review has something to draw.
+      ...(item.box ? { box: item.box } : {}),
+    })),
+    ...(req.brands && req.brands.length > 0 ? { brands: req.brands } : {}),
+  };
+  const onItem = options?.onItem;
+  if (onItem === undefined) return post('/api/verify', body, parseVerify, signal, options);
+  return send('/api/verify', body, { accept: 'application/x-ndjson' }, signal, options, (response) => readVerifyLines(response, onItem));
+}
+
+/**
+ * Reads a streamed verify answer: one JSON line per crop, `{"item": ...}`, then `{"ok": true,
+ * "done": true}`, or `{"ok": false}` when it failed partway (server/api/verify.ts).
+ *
+ * The chunks are decoded as one UTF-8 stream, so a brand written in another script and cut
+ * between two chunks arrives whole. A runtime whose response has no readable body, and a server
+ * that predates streaming and answers with the one JSON envelope, are both read whole; every line
+ * is still handed over, just all at once.
+ */
+async function readVerifyLines(
+  response: Response,
+  onItem: (item: VerifyPayload['items'][number]) => void,
+): Promise<ClientResult<VerifyPayload>> {
+  const items: VerifyPayload['items'] = [];
+  let finished = false;
+  let failed = false;
+  let malformed = false;
+
+  const take = (text: string) => {
+    if (text.trim().length === 0) return;
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      malformed = true;
+      return;
+    }
+    if (!isRecord(value)) {
+      malformed = true;
+      return;
+    }
+    const hand = (raw: unknown) => {
+      const parsed = parseVerifyItem(raw);
+      if (parsed === null) {
+        malformed = true;
+        return;
+      }
+      items.push(parsed);
+      onItem(parsed);
+    };
+    if ('item' in value) hand(value.item);
+    else if (value.ok === true && value.done === true) finished = true;
+    else if (value.ok === true && isRecord(value.result) && Array.isArray(value.result.items)) {
+      for (const raw of value.result.items) hand(raw);
+      finished = true;
+    } else if (value.ok === false) failed = true;
+    else malformed = true;
+  };
+
+  const stream = (response as { body?: { getReader?: unknown } | null }).body;
+  if (stream && typeof stream.getReader === 'function') {
+    const reader = (stream as ReadableStream<Uint8Array>).getReader();
+    const decoder = new TextDecoder();
+    let pending = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      let newline = pending.indexOf('\n');
+      while (newline >= 0) {
+        take(pending.slice(0, newline));
+        pending = pending.slice(newline + 1);
+        newline = pending.indexOf('\n');
+      }
+    }
+    take(pending + decoder.decode());
+  } else {
+    for (const text of (await response.text()).split('\n')) take(text);
+  }
+
+  if (failed) return { ok: false, failure: 'server' };
+  if (!finished || malformed) return { ok: false, failure: 'malformed' };
+  return { ok: true, value: { items } };
 }
 
 export function requestIdentify(req: IdentifyRequest, signal?: AbortSignal): Promise<ClientResult<IdentifyResult>> {
