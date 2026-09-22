@@ -303,6 +303,17 @@ const IDENTIFY_EFFORT: "none" | "low" | "medium" | "high" = (() => {
  * A provider is part of the configuration and inherits nothing from a measurement of a different
  * model, which is the mistake the first version of this line made.
  *
+ * All five upstreams re-probed on 2026-09-22 on one cart photograph, looking for a faster wide
+ * pass (`server/eval/pipeline/provider-probe.ts`, `server/eval/provider-probe.json`):
+ *
+ *     Parasail     11.0 s    9 products    4,187 input tokens
+ *     Alibaba       9.5 s    0 products    empty answer, retried, empty again
+ *     Novita       11.1 s    0 products    empty answer, retried, empty again
+ *     Venice       22.5 s    5 products    hit the deadline mid-answer
+ *     DeepInfra    22.5 s    4 products    hit the deadline mid-answer
+ *
+ * So the pin stays, and the wait the shopper feels is this model's, not this routing's.
+ *
  * `KART_OPENROUTER_PROVIDER` overrides it, and only the eval harnesses have reason to.
  */
 const OPENROUTER_PROVIDER = process.env.KART_OPENROUTER_PROVIDER?.trim() || "Parasail";

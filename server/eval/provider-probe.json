@@ -1,0 +1,87 @@
+{
+ "ranAt": "2026-09-22T05:16:22.353Z",
+ "image": "clut7",
+ "rows": [
+  {
+   "provider": "Parasail",
+   "ok": true,
+   "seconds": 11.02,
+   "items": 9,
+   "subjectKind": "product",
+   "occlusion": "some",
+   "named": [
+    "Cream of Mushroom Soup",
+    "Black Beans",
+    "Black Beans",
+    "Pesto alla Genovese",
+    "Hazelnut Spread",
+    "Pasta Sauce",
+    "Chia Seeds",
+    "Snack Bags",
+    "Organic Flaxseed"
+   ],
+   "inputTokens": 4187,
+   "outputTokens": 604,
+   "usd": 0.002
+  },
+  {
+   "provider": "Venice",
+   "ok": true,
+   "seconds": 22.53,
+   "items": 5,
+   "subjectKind": "product",
+   "occlusion": "some",
+   "named": [
+    "Cream of Mushroom Soup",
+    "Black Beans",
+    "Pesto",
+    "Hazelnut Spread",
+    "Salsa"
+   ],
+   "inputTokens": 0,
+   "outputTokens": 0,
+   "usd": 0
+  },
+  {
+   "provider": "Alibaba",
+   "ok": true,
+   "seconds": 9.48,
+   "items": 0,
+   "subjectKind": "product",
+   "occlusion": "many",
+   "named": [],
+   "inputTokens": 7224,
+   "outputTokens": 100,
+   "usd": 0.0017
+  },
+  {
+   "provider": "Novita",
+   "ok": true,
+   "seconds": 11.11,
+   "items": 0,
+   "subjectKind": "product",
+   "occlusion": "many",
+   "named": [],
+   "inputTokens": 7224,
+   "outputTokens": 100,
+   "usd": 0.0017
+  },
+  {
+   "provider": "DeepInfra",
+   "ok": true,
+   "seconds": 22.53,
+   "items": 4,
+   "subjectKind": "product",
+   "occlusion": "some",
+   "named": [
+    "Cream of Mushroom Soup",
+    "Black Beans",
+    "Pesto",
+    "Nutella"
+   ],
+   "inputTokens": 0,
+   "outputTokens": 0,
+   "usd": 0
+  }
+ ]
+}
