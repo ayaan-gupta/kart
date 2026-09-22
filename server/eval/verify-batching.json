@@ -1,0 +1,110 @@
+{
+ "ranAt": "2026-09-22T07:29:07.875Z",
+ "image": "clut7",
+ "crops": [
+  {
+   "name": "Cream of Mushroom soup",
+   "bytes": 437885
+  },
+  {
+   "name": "Black Beans",
+   "bytes": 407820
+  },
+  {
+   "name": "Black Beans",
+   "bytes": 282744
+  },
+  {
+   "name": "pesto",
+   "bytes": 194588
+  },
+  {
+   "name": "hazelnut spread",
+   "bytes": 216013
+  },
+  {
+   "name": "jam",
+   "bytes": 197789
+  },
+  {
+   "name": "chips",
+   "bytes": 200396
+  },
+  {
+   "name": "seeds",
+   "bytes": 141883
+  }
+ ],
+ "arms": [
+  {
+   "arm": "one call per crop, 1 at once",
+   "concurrency": 1,
+   "wallSeconds": 58.23,
+   "perCallSeconds": [
+    58.23
+   ],
+   "read": [
+    "Campbell's Cream of Mushroom SOUP x2"
+   ]
+  },
+  {
+   "arm": "one call per crop, 2 at once",
+   "concurrency": 2,
+   "wallSeconds": 3.09,
+   "perCallSeconds": [
+    2.3,
+    3.09
+   ],
+   "read": [
+    "Campbell's Cream of Mushroom SOUP x2",
+    "Simply Nature Black Beans x3"
+   ]
+  },
+  {
+   "arm": "one call per crop, 4 at once",
+   "concurrency": 4,
+   "wallSeconds": 2.52,
+   "perCallSeconds": [
+    2.35,
+    2.46,
+    2.46,
+    2.52
+   ],
+   "read": [
+    "Campbell's Cream of Mushroom SOUP x2",
+    "Simply Nature Black Beans x3",
+    "Simply Nature Black Beans x1",
+    "Bionaturae Pesto Alla Genovese x1"
+   ]
+  },
+  {
+   "arm": "one call per crop, 8 at once",
+   "concurrency": 8,
+   "wallSeconds": 5.16,
+   "perCallSeconds": [
+    5.1,
+    2.9,
+    2.71,
+    2.95,
+    5.16,
+    5.12,
+    2.89,
+    2.88
+   ],
+   "read": [
+    "Campbell's Cream of Mushroom SOUP x2",
+    "Simply Nature Black Beans x3",
+    "Simply Nature Black Beans x1",
+    "PRIMO Pesto Alla Genovese x1",
+    "Nutella hazelnut spread x1",
+    "Mason organic tomato sauce x1",
+    "- chips x1",
+    "- seed x1"
+   ]
+  },
+  {
+   "arm": "one call carrying all 8 crops",
+   "failed": "terminated"
+  }
+ ]
+}

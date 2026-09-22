@@ -1,0 +1,35 @@
+{
+ "ranAt": "2026-09-22T07:29:48.705Z",
+ "image": "clut7",
+ "crops": [
+  {
+   "name": "Cream of Mushroom soup",
+   "bytes": 437885
+  },
+  {
+   "name": "Black Beans",
+   "bytes": 407820
+  },
+  {
+   "name": "Black Beans",
+   "bytes": 282744
+  },
+  {
+   "name": "pesto",
+   "bytes": 194588
+  }
+ ],
+ "arms": [
+  {
+   "arm": "one call carrying all 4 crops",
+   "concurrency": 1,
+   "wallSeconds": 6.27,
+   "read": [
+    "0: Campbell's Cream of Mushroom SOUP x2",
+    "1: Simply Nature BLACK BEANS x2",
+    "2: Simply Nature BLACK BEANS x1",
+    "3: - PESTO ALLA GENOVESE x1"
+   ]
+  }
+ ]
+}

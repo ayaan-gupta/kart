@@ -1,0 +1,42 @@
+{
+ "ranAt": "2026-09-22T07:39:10.019Z",
+ "image": "clut7",
+ "firstTokenSeconds": 2.11,
+ "totalSeconds": 9.44,
+ "characters": 1191,
+ "items": [
+  {
+   "at": 2.9,
+   "wrote": "Cream of Mushroom soup"
+  },
+  {
+   "at": 3.58,
+   "wrote": "Black Beans"
+  },
+  {
+   "at": 4.45,
+   "wrote": "Black Beans"
+  },
+  {
+   "at": 5.23,
+   "wrote": "pesto"
+  },
+  {
+   "at": 5.96,
+   "wrote": "hazelnut spread"
+  },
+  {
+   "at": 7.23,
+   "wrote": "salsa"
+  },
+  {
+   "at": 8.06,
+   "wrote": "chips"
+  },
+  {
+   "at": 8.93,
+   "wrote": "seeds"
+  }
+ ],
+ "lastBoxSeconds": 8.93
+}
