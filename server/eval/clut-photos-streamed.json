@@ -1,14 +1,15 @@
 {
- "ranAt": "2026-09-23T02:17:41.843Z",
+ "ranAt": "2026-09-23T02:27:21.746Z",
  "arms": {
   "asPhone": true,
-  "verify": true
+  "verify": true,
+  "streamed": true
  },
  "cost": {
-  "usd": 0.0542,
-  "perPhotoUsd": 0.0077,
-  "callsPerPhoto": 14.29,
-  "billedUsd": 0.0456
+  "usd": 0.0508,
+  "perPhotoUsd": 0.0073,
+  "callsPerPhoto": 13.14,
+  "billedUsd": 0.0425
  },
  "summary": {
   "all": {
@@ -16,14 +17,14 @@
    "catalog": {
     "matched": 7
    },
-   "listed": 37,
-   "boxed": 37,
+   "listed": 38,
+   "boxed": 38,
    "labelled": 38,
-   "found": 33,
+   "found": 32,
    "qtyRight": 30,
-   "brandRight": 28,
-   "brandScored": 28,
-   "invented": 2,
+   "brandRight": 26,
+   "brandScored": 26,
+   "invented": 4,
    "ignored": 1,
    "gated": 0,
    "kindRight": 0,
@@ -31,14 +32,14 @@
    "hiddenFlagged": 0,
    "openImages": 2,
    "openFlagged": 0,
-   "unsure": 2,
+   "unsure": 3,
    "unsureFlagged": 0,
-   "secondsAvg": 18.16,
+   "secondsAvg": 16.31,
    "gate": {
-    "assertedRight": 23,
-    "assertedWrong": 2,
-    "unsureRight": 7,
-    "unsureWrong": 3,
+    "assertedRight": 20,
+    "assertedWrong": 0,
+    "unsureRight": 11,
+    "unsureWrong": 6,
     "gated": 7
    }
   },
@@ -47,14 +48,14 @@
    "catalog": {
     "matched": 7
    },
-   "listed": 37,
-   "boxed": 37,
+   "listed": 38,
+   "boxed": 38,
    "labelled": 38,
-   "found": 33,
+   "found": 32,
    "qtyRight": 30,
-   "brandRight": 28,
-   "brandScored": 28,
-   "invented": 2,
+   "brandRight": 26,
+   "brandScored": 26,
+   "invented": 4,
    "ignored": 1,
    "gated": 0,
    "kindRight": 0,
@@ -62,14 +63,14 @@
    "hiddenFlagged": 0,
    "openImages": 2,
    "openFlagged": 0,
-   "unsure": 2,
+   "unsure": 3,
    "unsureFlagged": 0,
-   "secondsAvg": 18.16,
+   "secondsAvg": 16.31,
    "gate": {
-    "assertedRight": 23,
-    "assertedWrong": 2,
-    "unsureRight": 7,
-    "unsureWrong": 3,
+    "assertedRight": 20,
+    "assertedWrong": 0,
+    "unsureRight": 11,
+    "unsureWrong": 6,
     "gated": 7
    }
   },
@@ -101,7 +102,7 @@
    "pass": 1,
    "id": "clut1",
    "tier": "cart",
-   "seconds": 13.354,
+   "seconds": 14.839,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -124,7 +125,7 @@
      "sure": false
     },
     {
-     "name": "Fusilli Bucaati",
+     "name": "Fusilli Bucati",
      "brand": "Priano",
      "qty": 1,
      "sure": true
@@ -135,12 +136,12 @@
      "name": "Rigatoni",
      "brand": "Priano",
      "qty": 1,
-     "confidence": 0.965,
+     "confidence": 0.98,
      "status": "sure",
      "box": {
       "x": 0,
       "y": 0.247,
-      "w": 0.433,
+      "w": 0.431,
       "h": 0.357
      }
     },
@@ -153,21 +154,21 @@
      "box": {
       "x": 0.195,
       "y": 0.37,
-      "w": 0.564,
-      "h": 0.396
+      "w": 0.561,
+      "h": 0.402
      }
     },
     {
-     "name": "Fusilli Bucaati",
+     "name": "Fusilli Bucati",
      "brand": "Priano",
      "qty": 1,
-     "confidence": 0.965,
+     "confidence": 0.98,
      "status": "sure",
      "box": {
-      "x": 0.594,
+      "x": 0.592,
       "y": 0.43,
-      "w": 0.405,
-      "h": 0.306
+      "w": 0.407,
+      "h": 0.309
      }
     }
    ],
@@ -181,7 +182,7 @@
     null,
     "right"
    ],
-   "censusSeconds": 7.95,
+   "censusSeconds": 8.6,
    "verify": {
     "items": [
      {
@@ -196,19 +197,19 @@
        "catalogSku": "Priano fusilli bucati"
       },
       "line": {
-       "description": "Fusilli Bucaati",
+       "description": "Fusilli Bucati",
        "brand": "Priano",
        "count": 1,
-       "confidence": 0.965,
+       "confidence": 0.98,
        "agreed": true,
        "sure": true,
        "sku": "Priano fusilli bucati",
        "catalog": "matched"
       },
       "ms": {
-       "close": 2810,
+       "close": 3485,
        "units": 0,
-       "check": 2507
+       "check": 2668
       }
      }
     ]
@@ -227,7 +228,7 @@
    "pass": 1,
    "id": "clut2",
    "tier": "cart",
-   "seconds": 15.593,
+   "seconds": 18.379,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -244,19 +245,19 @@
      "sure": true
     },
     {
-     "name": "Mexican Salsa",
+     "name": "Mexican salsa",
      "brand": "La Costena",
      "qty": 1,
      "sure": true
     },
     {
      "name": "peanut butter",
-     "brand": "Kraft",
+     "brand": "Kroger",
      "qty": 1,
      "sure": false
     },
     {
-     "name": "Cream of Mushroom Soup",
+     "name": "Cream of Mushroom soup",
      "brand": "Campbells",
      "qty": 1,
      "sure": true
@@ -273,65 +274,65 @@
      "name": "organic bananas",
      "brand": "robinson FRESH",
      "qty": 1,
-     "confidence": 0.965,
+     "confidence": 0.98,
      "status": "sure",
      "box": {
       "x": 0.012,
-      "y": 0.217,
+      "y": 0.218,
       "w": 0.393,
       "h": 0.531
      }
     },
     {
-     "name": "Mexican Salsa",
+     "name": "Mexican salsa",
      "brand": "La Costeña",
      "qty": 1,
-     "confidence": 0.965,
+     "confidence": 0.96,
      "status": "sure",
      "box": {
-      "x": 0.369,
+      "x": 0.367,
       "y": 0.394,
-      "w": 0.248,
+      "w": 0.247,
       "h": 0.256
      }
     },
     {
      "name": "peanut butter",
-     "brand": "Kraft",
+     "brand": "Kroger",
      "qty": 1,
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.389,
-      "y": 0.597,
-      "w": 0.22,
-      "h": 0.15
+      "x": 0.385,
+      "y": 0.589,
+      "w": 0.223,
+      "h": 0.163
      }
     },
     {
-     "name": "Cream of Mushroom Soup",
+     "name": "Cream of Mushroom soup",
      "brand": "Campbell's",
      "qty": 1,
-     "confidence": 0.965,
+     "confidence": 0.975,
      "status": "sure",
      "box": {
       "x": 0.658,
-      "y": 0.504,
-      "w": 0.264,
-      "h": 0.231
+      "y": 0.503,
+      "w": 0.262,
+      "h": 0.234
      }
     },
     {
      "name": "roasted almonds",
      "brand": "Kroger",
      "qty": 1,
-     "confidence": 0.925,
+     "confidence": 0.945,
      "status": "sure",
      "box": {
-      "x": 0.541,
+      "x": 0.539,
       "y": 0.233,
       "w": 0.358,
-      "h": 0.348
+      "h": 0.345
      }
     }
    ],
@@ -349,34 +350,34 @@
     "right",
     "right"
    ],
-   "censusSeconds": 9.55,
+   "censusSeconds": 12.25,
    "verify": {
     "items": [
      {
-      "id": "e4",
+      "id": "e1",
       "close": {
-       "name": "roasted almonds",
-       "brand": "Kroger",
+       "name": "Homestyle Mexican Salsa",
+       "brand": "La Costeña",
        "count": 1,
        "confidence": 0.95,
        "legible": true,
        "matchesHint": true,
-       "catalogSku": "Kroger roasted salted almonds"
+       "catalogSku": "La Costeña salsa casera medium"
       },
       "line": {
-       "description": "roasted almonds",
-       "brand": "Kroger",
+       "description": "Mexican salsa",
+       "brand": "La Costeña",
        "count": 1,
-       "confidence": 0.925,
+       "confidence": 0.96,
        "agreed": true,
        "sure": true,
-       "sku": "Kroger roasted salted almonds",
+       "sku": "La Costeña salsa casera medium",
        "catalog": "matched"
       },
       "ms": {
-       "close": 2812,
+       "close": 3499,
        "units": 0,
-       "check": 3126
+       "check": 2555
       }
      }
     ]
@@ -401,7 +402,7 @@
    "pass": 1,
    "id": "clut3",
    "tier": "cart",
-   "seconds": 14.535,
+   "seconds": 16.92,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -444,10 +445,10 @@
      "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.1,
-      "y": 0.317,
-      "w": 0.354,
-      "h": 0.496
+      "x": 0.099,
+      "y": 0.319,
+      "w": 0.358,
+      "h": 0.495
      }
     },
     {
@@ -457,10 +458,10 @@
      "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.603,
-      "y": 0.34,
-      "w": 0.322,
-      "h": 0.328
+      "x": 0.601,
+      "y": 0.341,
+      "w": 0.325,
+      "h": 0.334
      }
     },
     {
@@ -471,8 +472,8 @@
      "status": "sure",
      "box": {
       "x": 0.434,
-      "y": 0.506,
-      "w": 0.226,
+      "y": 0.505,
+      "w": 0.229,
       "h": 0.309
      }
     },
@@ -484,9 +485,9 @@
      "status": "sure",
      "box": {
       "x": 0.697,
-      "y": 0.64,
-      "w": 0.261,
-      "h": 0.201
+      "y": 0.641,
+      "w": 0.263,
+      "h": 0.2
      }
     }
    ],
@@ -502,34 +503,34 @@
     "right",
     "right"
    ],
-   "censusSeconds": 7.63,
+   "censusSeconds": 11.62,
    "verify": {
     "items": [
      {
-      "id": "e1",
+      "id": "e2",
       "close": {
-       "name": "roasted almonds salted with sea salt",
-       "brand": "Kroger",
+       "name": "Mexican Style Salsa",
+       "brand": "La Costeña",
        "count": 1,
-       "confidence": 0.98,
+       "confidence": 0.95,
        "legible": true,
        "matchesHint": true,
-       "catalogSku": "Kroger roasted salted almonds"
+       "catalogSku": "La Costeña salsa casera medium"
       },
       "line": {
-       "description": "roasted almonds",
-       "brand": "Kroger",
+       "description": "Mexican style salsa",
+       "brand": "La Costeña",
        "count": 1,
-       "confidence": 0.965,
+       "confidence": 0.925,
        "agreed": true,
        "sure": true,
-       "sku": "Kroger roasted salted almonds",
+       "sku": "La Costeña salsa casera medium",
        "catalog": "matched"
       },
       "ms": {
-       "close": 3242,
+       "close": 2867,
        "units": 0,
-       "check": 3590
+       "check": 2351
       }
      }
     ]
@@ -550,7 +551,7 @@
    "pass": 1,
    "id": "clut4",
    "tier": "cart",
-   "seconds": 19.043,
+   "seconds": 15.142,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -561,10 +562,16 @@
    "qtyRight": 5,
    "lines": [
     {
-     "name": "quinoa",
+     "name": "Bob's Red Mill Organic Quinoa",
      "brand": "Bobs Red Mill",
      "qty": 1,
-     "sure": true
+     "sure": false
+    },
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
     },
     {
      "name": "farro",
@@ -599,28 +606,41 @@
    ],
    "items": [
     {
-     "name": "quinoa",
+     "name": "Bob's Red Mill Organic Quinoa",
      "brand": "Bob's Red Mill",
      "qty": 1,
-     "confidence": 0.965,
-     "status": "sure",
+     "confidence": 0.5,
+     "status": "unsure",
      "box": {
-      "x": 0,
-      "y": 0.232,
-      "w": 0.344,
-      "h": 0.359
+      "x": 0.07843000000000001,
+      "y": 0.22999999999999998,
+      "w": 0.1705,
+      "h": 0.365
+     }
+    },
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bob's Red Mill",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.1705,
+      "y": 0.22999999999999998,
+      "w": 0.1705,
+      "h": 0.365
      }
     },
     {
      "name": "farro",
      "brand": "Bob's Red Mill",
      "qty": 1,
-     "confidence": 0.98,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.222,
-      "y": 0.291,
-      "w": 0.364,
+      "x": 0.22,
+      "y": 0.29,
+      "w": 0.362,
       "h": 0.329
      }
     },
@@ -631,23 +651,23 @@
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.573,
-      "y": 0.232,
-      "w": 0.426,
-      "h": 0.333
+      "x": 0.572,
+      "y": 0.234,
+      "w": 0.427,
+      "h": 0.351
      }
     },
     {
      "name": "bronze cut pasta",
      "brand": "Priano",
      "qty": 1,
-     "confidence": 0.97,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.055,
+      "x": 0.053,
       "y": 0.58,
-      "w": 0.36,
-      "h": 0.187
+      "w": 0.347,
+      "h": 0.184
      }
     },
     {
@@ -657,28 +677,29 @@
      "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.437,
-      "y": 0.495,
-      "w": 0.211,
-      "h": 0.224
+      "x": 0.438,
+      "y": 0.494,
+      "w": 0.209,
+      "h": 0.225
      }
     },
     {
      "name": "hazelnut spread",
      "brand": "Nutella",
      "qty": 1,
-     "confidence": 0.975,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.622,
-      "y": 0.505,
-      "w": 0.298,
-      "h": 0.248
+      "x": 0.625,
+      "y": 0.504,
+      "w": 0.295,
+      "h": 0.249
      }
     }
    ],
    "lineOutcomes": [
     "right",
+    "invented",
     "right",
     "wrong",
     "right",
@@ -686,46 +707,54 @@
     "right"
    ],
    "assertedOutcomes": [
-    "right",
+    null,
+    null,
     "right",
     null,
     "right",
     "right",
     "right"
    ],
-   "censusSeconds": 11.55,
+   "censusSeconds": 9.75,
    "verify": {
     "items": [
      {
-      "id": "e0",
+      "id": "e5",
       "close": {
-       "name": "organic white quinoa",
-       "brand": "Bob's Red Mill",
+       "name": "hazelnut spread",
+       "brand": "nutella",
        "count": 1,
-       "confidence": 0.95,
+       "confidence": 0.98,
        "legible": true,
        "matchesHint": true,
-       "catalogSku": "Bob's Red Mill organic white quinoa"
+       "catalogSku": "Nutella hazelnut spread"
       },
       "line": {
-       "description": "quinoa",
-       "brand": "Bob's Red Mill",
+       "description": "hazelnut spread",
+       "brand": "Nutella",
        "count": 1,
        "confidence": 0.965,
        "agreed": true,
        "sure": true,
-       "sku": "Bob's Red Mill organic white quinoa",
+       "sku": "Nutella hazelnut spread",
        "catalog": "matched"
       },
       "ms": {
-       "close": 3831,
+       "close": 2766,
        "units": 0,
-       "check": 3580
+       "check": 2515
       }
      }
     ]
    },
-   "unmatchedLines": [],
+   "unmatchedLines": [
+    {
+     "name": "Bob's Red Mill Grains of Discovery",
+     "brand": "Bobs Red Mill",
+     "qty": 1,
+     "sure": false
+    }
+   ],
    "ignoredLines": [],
    "misses": [
     "Campbell's condensed soup"
@@ -747,39 +776,33 @@
    "pass": 1,
    "id": "clut5",
    "tier": "cart",
-   "seconds": 19.2,
+   "seconds": 15.76,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
    "occlusionSeverity": "unknown",
    "occlusionFlag": false,
-   "found": 7,
+   "found": 6,
    "labelled": 7,
-   "qtyRight": 6,
+   "qtyRight": 5,
    "lines": [
     {
      "name": "quinoa",
      "brand": "Bobs Red Mill",
      "qty": 1,
-     "sure": true
+     "sure": false
     },
     {
      "name": "farro",
      "brand": "Bobs Red Mill",
      "qty": 1,
-     "sure": false
+     "sure": true
     },
     {
      "name": "bronze cut pasta",
      "brand": "Priano",
-     "qty": 1,
-     "sure": true
-    },
-    {
-     "name": "rigatoni",
-     "brand": "Priano",
-     "qty": 1,
-     "sure": true
+     "qty": 2,
+     "sure": false
     },
     {
      "name": "marinara pasta sauce",
@@ -788,7 +811,7 @@
      "sure": true
     },
     {
-     "name": "nutella",
+     "name": "Nutella",
      "brand": "Nutella",
      "qty": 1,
      "sure": false
@@ -805,78 +828,65 @@
      "name": "quinoa",
      "brand": "Bob's Red Mill",
      "qty": 1,
-     "confidence": 0.965,
-     "status": "sure",
+     "confidence": 0.5,
+     "status": "unsure",
      "box": {
       "x": 0,
       "y": 0.17,
-      "w": 0.359,
-      "h": 0.345
+      "w": 0.357,
+      "h": 0.356
      }
     },
     {
      "name": "farro",
      "brand": "Bob's Red Mill",
      "qty": 1,
-     "confidence": 0.5,
-     "status": "unsure",
+     "confidence": 0.965,
+     "status": "sure",
      "box": {
-      "x": 0.235,
-      "y": 0.249,
-      "w": 0.365,
-      "h": 0.326
+      "x": 0.233,
+      "y": 0.248,
+      "w": 0.37,
+      "h": 0.327
      }
     },
     {
      "name": "bronze cut pasta",
      "brand": "Priano",
-     "qty": 1,
-     "confidence": 0.96,
-     "status": "sure",
+     "qty": 2,
+     "confidence": 0.5,
+     "status": "unsure",
      "box": {
       "x": 0.031,
-      "y": 0.502,
-      "w": 0.398,
-      "h": 0.184
-     }
-    },
-    {
-     "name": "rigatoni",
-     "brand": "Priano",
-     "qty": 1,
-     "confidence": 0.975,
-     "status": "sure",
-     "box": {
-      "x": 0.63,
-      "y": 0.142,
-      "w": 0.369,
-      "h": 0.325
+      "y": 0.501,
+      "w": 0.402,
+      "h": 0.185
      }
     },
     {
      "name": "marinara pasta sauce",
      "brand": "Simply Nature",
      "qty": 1,
-     "confidence": 0.98,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.447,
-      "y": 0.39,
-      "w": 0.241,
+      "x": 0.451,
+      "y": 0.389,
+      "w": 0.236,
       "h": 0.286
      }
     },
     {
-     "name": "nutella",
+     "name": "Nutella",
      "brand": "nutella",
      "qty": 1,
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.672,
-      "y": 0.353,
-      "w": 0.327,
-      "h": 0.323
+      "x": 0.665,
+      "y": 0.354,
+      "w": 0.334,
+      "h": 0.321
      }
     },
     {
@@ -886,15 +896,14 @@
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.672,
-      "y": 0.59,
-      "w": 0.301,
-      "h": 0.086
+      "x": 0.668,
+      "y": 0.587,
+      "w": 0.299,
+      "h": 0.088
      }
     }
    ],
    "lineOutcomes": [
-    "right",
     "right",
     "right",
     "wrong",
@@ -903,19 +912,18 @@
     "right"
    ],
    "assertedOutcomes": [
-    "right",
     null,
     "right",
-    "wrong",
+    null,
     "right",
     null,
     null
    ],
-   "censusSeconds": 12.33,
+   "censusSeconds": 10.54,
    "verify": {
     "items": [
      {
-      "id": "e4",
+      "id": "e3",
       "close": {
        "name": "marinara pasta sauce",
        "brand": "Simply Nature",
@@ -929,32 +937,34 @@
        "description": "marinara pasta sauce",
        "brand": "Simply Nature",
        "count": 1,
-       "confidence": 0.98,
+       "confidence": 0.965,
        "agreed": true,
        "sure": true,
        "sku": "Simply Nature organic marinara pasta sauce",
        "catalog": "matched"
       },
       "ms": {
-       "close": 3530,
+       "close": 2951,
        "units": 0,
-       "check": 3227
+       "check": 2182
       }
      }
     ]
    },
    "unmatchedLines": [],
    "ignoredLines": [],
-   "misses": [],
+   "misses": [
+    "Priano rigatoni"
+   ],
    "qtyWrong": [
     {
-     "label": "Priano rigatoni",
-     "expected": "2",
-     "actual": 1
+     "label": "Priano bronze cut pasta",
+     "expected": "1",
+     "actual": 2
     }
    ],
-   "brandRight": 7,
-   "brandScored": 7,
+   "brandRight": 6,
+   "brandScored": 6,
    "brandWrong": [],
    "hiddenExpected": true,
    "unsureScored": [
@@ -969,7 +979,7 @@
    "pass": 1,
    "id": "clut6",
    "tier": "cart",
-   "seconds": 19.387,
+   "seconds": 12.058,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -1009,26 +1019,26 @@
      "name": "penne pasta",
      "brand": "Barilla",
      "qty": 1,
-     "confidence": 0.98,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
-      "x": 0.148,
-      "y": 0.325,
-      "w": 0.327,
-      "h": 0.265
+      "x": 0.149,
+      "y": 0.328,
+      "w": 0.325,
+      "h": 0.26
      }
     },
     {
      "name": "linguine pasta",
      "brand": "Barilla",
      "qty": 1,
-     "confidence": 0.98,
+     "confidence": 0.965,
      "status": "sure",
      "box": {
       "x": 0.506,
       "y": 0.317,
-      "w": 0.186,
-      "h": 0.448
+      "w": 0.187,
+      "h": 0.447
      }
     },
     {
@@ -1038,10 +1048,10 @@
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.075,
-      "y": 0.571,
-      "w": 0.384,
-      "h": 0.186
+      "x": 0.074,
+      "y": 0.57,
+      "w": 0.386,
+      "h": 0.187
      }
     },
     {
@@ -1053,8 +1063,8 @@
      "box": {
       "x": 0.677,
       "y": 0.499,
-      "w": 0.202,
-      "h": 0.208
+      "w": 0.201,
+      "h": 0.206
      }
     }
    ],
@@ -1070,34 +1080,34 @@
     null,
     null
    ],
-   "censusSeconds": 12,
+   "censusSeconds": 7.27,
    "verify": {
     "items": [
      {
-      "id": "e1",
+      "id": "e0",
       "close": {
-       "name": "LINGUINE",
+       "name": "penne",
        "brand": "Barilla",
        "count": 1,
        "confidence": 0.98,
        "legible": true,
        "matchesHint": true,
-       "catalogSku": "Barilla linguine"
+       "catalogSku": "Barilla penne"
       },
       "line": {
-       "description": "linguine pasta",
+       "description": "penne pasta",
        "brand": "Barilla",
        "count": 1,
-       "confidence": 0.98,
+       "confidence": 0.965,
        "agreed": true,
        "sure": true,
-       "sku": "Barilla linguine",
+       "sku": "Barilla penne",
        "catalog": "matched"
       },
       "ms": {
-       "close": 3508,
+       "close": 3048,
        "units": 0,
-       "check": 3801
+       "check": 1670
       }
      }
     ]
@@ -1125,7 +1135,7 @@
    "pass": 1,
    "id": "clut7",
    "tier": "cart",
-   "seconds": 26.01,
+   "seconds": 21.067,
    "subjectKind": "unknown",
    "expectSubjectKind": "cart",
    "gated": false,
@@ -1133,7 +1143,7 @@
    "occlusionFlag": false,
    "found": 5,
    "labelled": 7,
-   "qtyRight": 4,
+   "qtyRight": 5,
    "lines": [
     {
      "name": "Cream of Mushroom soup",
@@ -1142,14 +1152,26 @@
      "sure": true
     },
     {
-     "name": "Black Beans",
+     "name": "Simply Nature ORGANIC BLACK BEANS",
      "brand": "Simply Nature",
      "qty": 2,
-     "sure": true
+     "sure": false
+    },
+    {
+     "name": "Nutrition Facts",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "Black Beans",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
     },
     {
      "name": "pesto",
-     "brand": "Simply Nature",
+     "brand": "Primo",
      "qty": 1,
      "sure": false
     },
@@ -1160,19 +1182,19 @@
      "sure": true
     },
     {
-     "name": "salsa",
-     "brand": "La Costena",
-     "qty": 1,
-     "sure": true
-    },
-    {
-     "name": "chips",
-     "brand": null,
+     "name": "jarred sauce",
+     "brand": "Aldi",
      "qty": 1,
      "sure": false
     },
     {
-     "name": "seeds",
+     "name": "bagged greens",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "bagged seed",
      "brand": "Simply Nature",
      "qty": 1,
      "sure": false
@@ -1186,22 +1208,35 @@
      "confidence": 0.98,
      "status": "sure",
      "box": {
-      "x": 0.217,
+      "x": 0.216,
       "y": 0.196,
-      "w": 0.367,
-      "h": 0.278
+      "w": 0.365,
+      "h": 0.28
      }
     },
     {
-     "name": "Black Beans",
+     "name": "Simply Nature ORGANIC BLACK BEANS",
      "brand": "Simply Nature",
-     "qty": 3,
+     "qty": 2,
      "confidence": 0.5,
      "status": "unsure",
      "box": {
-      "x": 0.198,
-      "y": 0.412,
-      "w": 0.39,
+      "x": 0.19670200000000002,
+      "y": 0.4109999999999999,
+      "w": 0.193,
+      "h": 0.249
+     }
+    },
+    {
+     "name": "Nutrition Facts",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0.372718,
+      "y": 0.4109999999999999,
+      "w": 0.193,
       "h": 0.249
      }
     },
@@ -1209,84 +1244,86 @@
      "name": "Black Beans",
      "brand": "Simply Nature",
      "qty": 1,
-     "confidence": 0.97,
-     "status": "sure",
+     "confidence": 0.5,
+     "status": "unsure",
      "box": {
-      "x": 0.576,
+      "x": 0.573,
       "y": 0.172,
-      "w": 0.246,
-      "h": 0.274
+      "w": 0.249,
+      "h": 0.28
      }
     },
     {
      "name": "pesto",
-     "brand": "Simply Nature",
+     "brand": "PRIMO",
      "qty": 1,
      "confidence": 0.5,
      "status": "unsure",
      "box": {
       "x": 0.565,
-      "y": 0.457,
-      "w": 0.202,
-      "h": 0.221
+      "y": 0.458,
+      "w": 0.198,
+      "h": 0.22
      }
     },
     {
      "name": "hazelnut spread",
      "brand": "Nutella",
      "qty": 1,
-     "confidence": 0.935,
+     "confidence": 0.925,
      "status": "sure",
      "box": {
-      "x": 0.608,
+      "x": 0.596,
       "y": 0.513,
-      "w": 0.366,
-      "h": 0.176
+      "w": 0.377,
+      "h": 0.174
      }
     },
     {
-     "name": "salsa",
-     "brand": "La Costeña",
+     "name": "jarred sauce",
+     "brand": "ALDI",
      "qty": 1,
-     "confidence": 0.915,
-     "status": "sure",
+     "confidence": 0.5,
+     "status": "unsure",
      "box": {
-      "x": 0.765,
+      "x": 0.763,
       "y": 0.321,
       "w": 0.224,
       "h": 0.237
      }
     },
     {
-     "name": "chips",
-     "brand": null,
-     "qty": 1,
-     "confidence": 0.4,
-     "status": "unsure",
-     "box": {
-      "x": 0,
-      "y": 0.302,
-      "w": 0.199,
-      "h": 0.23
-     }
-    },
-    {
-     "name": "seeds",
+     "name": "bagged greens",
      "brand": "Simply Nature",
      "qty": 1,
      "confidence": 0.5,
      "status": "unsure",
      "box": {
       "x": 0,
-      "y": 0.181,
-      "w": 0.182,
-      "h": 0.207
+      "y": 0.302,
+      "w": 0.199,
+      "h": 0.222
+     }
+    },
+    {
+     "name": "bagged seed",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "confidence": 0.5,
+     "status": "unsure",
+     "box": {
+      "x": 0,
+      "y": 0.183,
+      "w": 0.18,
+      "h": 0.196
      }
     }
    ],
    "lineOutcomes": [
     "right",
-    "wrong",
+    "right",
+    "invented",
+    "right",
     "right",
     "right",
     "right",
@@ -1295,14 +1332,16 @@
    ],
    "assertedOutcomes": [
     "right",
-    "wrong",
+    null,
+    null,
+    null,
     null,
     "right",
-    "right",
+    null,
     null,
     null
    ],
-   "censusSeconds": 17.79,
+   "censusSeconds": 13.34,
    "verify": {
     "items": [
      {
@@ -1328,56 +1367,62 @@
       },
       "units": [
        {
-        "label": "Campbell's Cream of Mushroom",
-        "x": 651,
-        "y": 507
+        "label": "Campbell's Cream of Mushroom SOUP",
+        "x": 654,
+        "y": 497
        },
        {
         "label": "Cream of Mushroom",
-        "x": 234,
-        "y": 421
+        "x": 233,
+        "y": 436
        }
       ],
       "ms": {
-       "close": 3055,
-       "units": 2728,
-       "check": 2330
+       "close": 3183,
+       "units": 2610,
+       "check": 1830
       }
      }
     ]
    },
    "unmatchedLines": [
     {
-     "name": "chips",
-     "brand": null,
+     "name": "Nutrition Facts",
+     "brand": "Simply Nature",
+     "qty": 1,
+     "sure": false
+    },
+    {
+     "name": "bagged greens",
+     "brand": "Simply Nature",
      "qty": 1,
      "sure": false
     }
    ],
    "ignoredLines": [
     {
-     "name": "seeds",
+     "name": "bagged seed",
      "brand": "Simply Nature",
      "qty": 1,
      "sure": false
     }
    ],
    "misses": [
-    "jar of pasta sauce",
-    "unlabelled pull-tab tin"
+    "unlabelled pull-tab tin",
+    "La Costena Mexican salsa"
    ],
-   "qtyWrong": [
-    {
-     "label": "Simply Nature black beans",
-     "expected": "3-4",
-     "actual": 2
-    }
-   ],
-   "brandRight": 4,
-   "brandScored": 4,
+   "qtyWrong": [],
+   "brandRight": 3,
+   "brandScored": 3,
    "brandWrong": [],
    "hiddenExpected": true,
-   "unsureScored": []
+   "unsureScored": [
+    {
+     "label": "jar of pasta sauce",
+     "confidence": null,
+     "flagged": false
+    }
+   ]
   }
  ]
 }
