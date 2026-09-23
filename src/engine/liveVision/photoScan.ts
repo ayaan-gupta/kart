@@ -264,7 +264,10 @@ export async function scanPhoto(
     known.push({ box: at, description: product.description, brand });
     const id = `e${early.size}`;
     early.set(key, (async (): Promise<VerifyPayload['items'][number] | null> => {
-      const cut = await deps.crop!(at);
+      // A crop the device cannot cut, or a client that threw rather than answered, costs this one
+      // product its second reading and nothing else: it is read once, by the census, and the bag
+      // shows it unsure. Before this the rejection took the whole photograph down with it.
+      const cut = await deps.crop!(at).catch(() => null);
       if (cut === null) return null;
       const answer = await deps.requestVerify!({
         brands,
@@ -287,7 +290,10 @@ export async function scanPhoto(
         return null;
       }
       return answer.value.items[0] ?? null;
-    })());
+    })().catch((error: unknown) => {
+      console.warn('[photoScan] reading a crop early failed:', error);
+      return null;
+    }));
   };
 
   const result = await deps.requestCensus(

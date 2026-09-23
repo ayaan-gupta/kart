@@ -1445,6 +1445,22 @@ describe("the photo census hands over each product as it writes it", () => {
     expect(result.unmarkedItems.map((i) => i.description)).toEqual(["Rigatoni"]);
   });
 
+  it("hands over every product the finished answer holds, described the same way", async () => {
+    const handed: { description: string; productKey: string; box: unknown }[] = [];
+    const items = [
+      { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, bbox_2d: [5, 100, 205, 300] },
+      { name: "hazelnut spread", brand: "Nutella", count: 1, confidence: 0.8, isProduct: true, bbox_2d: [210, 100, 410, 300] },
+      { name: "Black Beans", brand: "Simply Nature", count: 3, confidence: 0.7, isProduct: true, bbox_2d: [420, 100, 620, 300] },
+    ];
+    create.mockImplementationOnce(async () =>
+      streamOf(`{"subjectKind":"cart","items":[${items.map((i) => JSON.stringify(i)).join(",")}],"occlusion":{"severity":"none","reason":""}}`),
+    );
+    const result = await runCensus(await blankJpeg(), [], undefined, [], [], (item) => handed.push(item));
+    const shape = (u: { description: string; productKey: string; box?: unknown }) =>
+      `${u.description}|${u.productKey}|${JSON.stringify(u.box)}`;
+    expect(result.unmarkedItems.map(shape)).toEqual(handed.map(shape));
+  });
+
   it("does not stream a census the client brought its own marks for", async () => {
     const handed: unknown[] = [];
     mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" } });

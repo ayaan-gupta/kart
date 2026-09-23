@@ -441,6 +441,20 @@ describe('scanPhoto with a close read', () => {
       expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni', 'salsa']);
     });
 
+    it('keeps the photograph when cutting a crop early throws', async () => {
+      const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
+        ...streamingCensus(),
+        crop: async () => { throw new Error('the manipulator gave up'); },
+        async requestVerify(request) {
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni', 'salsa']);
+      expect(outcome.items.every((i) => i.status === 'unsure')).toBe(true);
+    });
+
     it('says the close read did not finish when an early request failed', async () => {
       const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
         ...streamingCensus(),

@@ -28,6 +28,9 @@
  *     --quality <q>   with --as-phone, likewise for the JPEG quality, 0 to 1
  *     --no-verify     the wide pass alone: no crops, no close read, every line is the census's
  *                     own word. The shipped path reads twice; this is the "before" arm.
+ *     --no-stream     wait for the whole census before cutting any crop, and send the crops in
+ *                     one request, which is what the phone did before 2026-09-22. The control
+ *                     arm for the streamed one, to be run the same day on the same upstream.
  *     --append        keep the rows already in --out and add these, replacing any with the same
  *                     id. A photograph that timed out is re-run with --only and folded back into
  *                     the run it belongs to, rather than paying for the other fourteen again.
@@ -84,6 +87,11 @@ const { orientedSize } = await import('../../src/compositor');
  */
 const asPhone = argv.includes('--as-phone');
 const noVerify = argv.includes('--no-verify');
+// The arm before 2026-09-22: the phone waits for the whole census before it cuts any crop, and
+// sends them together. Kept so the streamed path can be scored against it on the same day, on
+// the same upstream: the provider's own speed moves between days by more than this change is
+// worth, so a comparison across two dates measures the provider.
+const noStream = argv.includes('--no-stream');
 async function imageBase64(file: string): Promise<string> {
   if (!asPhone) return readFileSync(file).toString('base64');
   const { width, height } = orientedSize(await sharp(file).metadata());
@@ -308,7 +316,7 @@ function costField(cost: { usd: number; calls: number } | null, scans: number, b
 async function checkpoint(): Promise<void> {
   const all = [...kept(), ...rows];
   const cost = costField(await spent(), resume ? all.length : rows.length, await billed());
-  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, partial: true, cost, summary: null, rows: all }, null, 1)}\n`);
+  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify, streamed: !noStream }, partial: true, cost, summary: null, rows: all }, null, 1)}\n`);
 }
 
 // The model is not deterministic: two scans of one photograph can differ in a name, a count, and
@@ -339,7 +347,7 @@ for (const image of wanted) {
     state,
     base64,
     {
-      requestCensus: (request, onItem) => requestCensus(request, undefined, { ...photoCall, onItem }),
+      requestCensus: (request, onItem) => requestCensus(request, undefined, { ...photoCall, ...(noStream ? {} : { onItem }) }),
       ...(noVerify
         ? {}
         : {
@@ -560,6 +568,6 @@ if (billedUsd !== null) console.log(`  billed by OpenRouter: $${billedUsd.toFixe
 if (rows.length === 0 && !(resume && earlier.length > 0)) {
   console.log(`\n  nothing was scanned, so ${out} is left as it was`);
 } else {
-  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify }, cost: costField(cost, scored.length, billedUsd), summary, rows: [...kept(), ...rows] }, null, 1)}\n`);
+  writeFileSync(out, `${JSON.stringify({ ranAt: new Date().toISOString(), arms: { asPhone, verify: !noVerify, streamed: !noStream }, cost: costField(cost, scored.length, billedUsd), summary, rows: [...kept(), ...rows] }, null, 1)}\n`);
   console.log(`\n  written to ${out}`);
 }
