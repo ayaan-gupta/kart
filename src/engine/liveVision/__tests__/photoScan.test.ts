@@ -399,6 +399,31 @@ describe('scanPhoto with a close read', () => {
       expect(neighbours[1]).toEqual([[{ box, description: 'rigatoni' }]]);
     });
 
+    it('holds back an early reading that was made against a different count', async () => {
+      // The same product boxed twice: each line the census writes counts its own box, and the
+      // finished answer counts two of it under one key. The crop sent early was asked about one,
+      // so its agreement is not agreement about the two the bag will hold.
+      const payload = boxedReply([
+        { name: 'rigatoni', brand: 'Priano', box, count: 2 },
+        { name: 'rigatoni', brand: 'Priano', box: other, count: 2 },
+      ]);
+      const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
+        async requestCensus(_request: unknown, onItem?: (p: unknown) => void) {
+          onItem?.(streamedProduct('rigatoni', 'Priano', box));
+          onItem?.({ ...streamedProduct('rigatoni', 'Priano', other) });
+          return { ok: true as const, value: payload };
+        },
+        crop,
+        async requestVerify(request) {
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.items.map((i) => i.status)).toEqual(['unsure', 'unsure']);
+      expect(outcome.lines.every((l) => l.unsure)).toBe(true);
+    });
+
     it('drops an early reading of a product the finished census does not hold', async () => {
       const payload = boxedReply([{ name: 'rigatoni', brand: 'Priano', box }]);
       const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {

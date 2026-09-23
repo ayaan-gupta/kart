@@ -27,7 +27,7 @@ vi.mock("../src/openai.js", () => ({
 }));
 
 const { MODELS } = await import("../src/openai.js");
-const { runCensus, runIdentify, runVerify, cropToBox, CROP_PADDING } = await import("../src/recognize.js");
+const { runCensus, runIdentify, runVerify, cropToBox, resetRecentCloseReads, CROP_PADDING } = await import("../src/recognize.js");
 
 
 async function blankJpeg(w = 200, h = 150): Promise<Buffer> {
@@ -1446,7 +1446,7 @@ describe("the photo census hands over each product as it writes it", () => {
   });
 
   it("hands over every product the finished answer holds, described the same way", async () => {
-    const handed: { description: string; productKey: string; box: unknown }[] = [];
+    const handed: { description: string; productKey: string; box?: unknown }[] = [];
     const items = [
       { name: "Rigatoni", brand: "Priano", count: 2, confidence: 0.9, isProduct: true, bbox_2d: [5, 100, 205, 300] },
       { name: "hazelnut spread", brand: "Nutella", count: 1, confidence: 0.8, isProduct: true, bbox_2d: [210, 100, 410, 300] },
@@ -1458,7 +1458,7 @@ describe("the photo census hands over each product as it writes it", () => {
     const result = await runCensus(await blankJpeg(), [], undefined, [], [], (item) => handed.push(item));
     const shape = (u: { description: string; productKey: string; box?: unknown }) =>
       `${u.description}|${u.productKey}|${JSON.stringify(u.box)}`;
-    expect(result.unmarkedItems.map(shape)).toEqual(handed.map(shape));
+    expect(result.unmarkedItems.map((u) => shape(u))).toEqual(handed.map((u) => shape(u)));
   });
 
   it("does not stream a census the client brought its own marks for", async () => {
@@ -2015,7 +2015,33 @@ describe("runVerify checks the packages in a line it is about to assert", () => 
     }
   });
 
-  it("does not ask a crop twice while no other crop has answered", async () => {
+  it("asks a crop sent on its own again, when the upstream answered another crop quickly a moment ago", async () => {
+    const asked: string[] = [];
+    let releaseFirst!: () => void;
+    const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    create.mockImplementation(async (params: any) => {
+      if (params.text.format.name !== "verify") return { output_text: JSON.stringify(packages("Priano Rigatoni")) };
+      asked.push("close");
+      if (asked.length === 2) await firstHeld; // the crop sent on its own, first asking
+      return { output_text: JSON.stringify(closeAnswer) };
+    });
+    const crop = await blankJpeg();
+    try {
+      // One photograph's crop answers quickly, which is what tells the next request the upstream
+      // is quick right now. The phone sends one crop per request since 2026-09-22, so without
+      // this the gate could never open.
+      await withHedge("20", () => runVerify([{ id: "quick", crop, box, wide }]));
+      const [item] = await withHedge("20", () => runVerify([{ id: "alone", crop, box, wide }]));
+      // The second asking answered while the first was still held, and its reading is the line.
+      expect(item.close).not.toBeNull();
+      expect(asked).toHaveLength(3);
+    } finally {
+      releaseFirst();
+    }
+  });
+
+  it("does not ask a crop twice while nothing has answered quickly", async () => {
+    resetRecentCloseReads();
     let release!: () => void;
     const held = new Promise<void>((resolve) => { release = resolve; });
     create.mockImplementation(async (params: any) => {

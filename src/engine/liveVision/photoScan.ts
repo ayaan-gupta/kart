@@ -246,6 +246,8 @@ export async function scanPhoto(
   // arrives, and the finished census is still the answer: a reading of a product the envelope
   // does not hold is dropped, and a product the stream never carried is read the old way below.
   const early = new Map<string, Promise<VerifyPayload['items'][number] | null>>();
+  /** What each early crop was told the photograph held of its product, to check against the end. */
+  const askedAbout = new Map<string, number>();
   const known: { box: Box; description: string; brand: string | null }[] = [];
   let earlyFailure: ClientFailure | undefined;
 
@@ -263,6 +265,8 @@ export async function scanPhoto(
     const brands = [...new Set(known.map((other) => other.brand).filter((b): b is string => b !== null))];
     known.push({ box: at, description: product.description, brand });
     const id = `e${early.size}`;
+    const count = Math.max(1, product.count);
+    askedAbout.set(key, count);
     early.set(key, (async (): Promise<VerifyPayload['items'][number] | null> => {
       // A crop the device cannot cut, or a client that threw rather than answered, costs this one
       // product its second reading and nothing else: it is read once, by the census, and the bag
@@ -279,7 +283,7 @@ export async function scanPhoto(
             description: product.description,
             productKey: product.productKey,
             brand,
-            count: Math.max(1, product.count),
+            count,
             confidence: product.confidence,
           },
           ...(neighbours.length > 0 ? { neighbours } : {}),
@@ -437,7 +441,14 @@ export async function scanPhoto(
       // The answer came back under the id the early request gave it, which nothing after the
       // census knows: joined back to this item by hand, so the fold reads it like any other.
       if (entry === null) return;
-      record({ ...entry, id: item.id });
+      // A crop sent early was told what the census had counted of its product by then, and the
+      // finished answer counts every box of that product together: two boxes of one pasta are
+      // two, and the crop was asked about one. The readings agreed about a different question, so
+      // the line is not asserted, which is exactly where it lands when the counts disagree in one
+      // request. Without this, both boxes of the rigatoni came back sure and said one.
+      const asked = askedAbout.get(signature({ ...products[index], box: item.box }));
+      const same = asked !== undefined && asked === item.qty;
+      record(same ? { ...entry, id: item.id } : { ...entry, id: item.id, line: { ...entry.line, sure: false } });
       handed();
     });
 

@@ -960,6 +960,34 @@ const hedgeAfterMs = (): number => {
   return Number.isFinite(raw) && raw > 0 ? raw : 4_000;
 };
 
+/**
+ * How recently another crop has to have been read quickly for a stalled crop to be asked again.
+ *
+ * The evidence the gate needs is "the upstream is quick right now", and since 2026-09-22 a
+ * request usually holds one crop: the phone sends each one as the census writes it, so there is
+ * no other crop in this request to have answered. The evidence therefore lives in the process,
+ * across requests, and ages out, because an upstream that was quick a minute ago says nothing
+ * about one that has been slow since.
+ */
+const QUICK_WITHIN_MS = 60_000;
+let recentCloseReads: { at: number; ms: number }[] = [];
+
+function recordCloseRead(ms: number): void {
+  const now = Date.now();
+  recentCloseReads = [...recentCloseReads.filter((seen) => now - seen.at < QUICK_WITHIN_MS), { at: now, ms }];
+}
+
+/** Whether any crop has been read inside the hedge threshold recently enough to still mean it. */
+function upstreamIsQuick(threshold: number): boolean {
+  const now = Date.now();
+  return recentCloseReads.some((seen) => now - seen.at < QUICK_WITHIN_MS && seen.ms < threshold);
+}
+
+/** Forgets what the upstream has recently done. For tests and harnesses, which share a process. */
+export function resetRecentCloseReads(): void {
+  recentCloseReads = [];
+}
+
 /** The package check's reader, overridable for the harnesses exactly as the others are. */
 const CHECK_MODEL = (): string => process.env.KART_CHECK_MODEL?.trim() || MODELS.check;
 
@@ -1431,13 +1459,20 @@ export async function runVerify(
   const closeReadRacingItself = async (item: VerifyItemInput): Promise<VerifyResponse> => {
     const startedAt = Date.now();
     const first = settle(closeRead(item));
-    void first.then((result) => { if (result.status === "fulfilled") cropLanded(); });
+    void first.then((result) => {
+      if (result.status !== "fulfilled") return;
+      recordCloseRead(Date.now() - startedAt);
+      cropLanded();
+    });
     let waking: ReturnType<typeof setTimeout> | undefined;
-    const trigger = landed.then(
-      () => new Promise<"hedge">((resolve) => {
-        waking = setTimeout(() => resolve("hedge"), Math.max(0, hedgeMs - (Date.now() - startedAt)));
-      }),
-    );
+    // Long enough out to be worth asking again, and then only on evidence that asking again would
+    // be quicker: another crop of this photograph already back, or one read quickly moments ago.
+    const trigger = new Promise<void>((resolve) => {
+      waking = setTimeout(resolve, Math.max(0, hedgeMs - (Date.now() - startedAt)));
+    }).then(async (): Promise<"hedge"> => {
+      if (!upstreamIsQuick(hedgeMs)) await landed;
+      return "hedge";
+    });
     try {
       const early = await Promise.race([first, trigger]);
       if (early !== "hedge") return unwrap(early);
