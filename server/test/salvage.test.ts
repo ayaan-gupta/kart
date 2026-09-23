@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { UNSURE_BELOW } from "../src/reconcile.js";
-import { loopedProduct, salvagePhoto, stalled } from "../src/salvage.js";
+import { loopedProduct, salvagePhoto, stalled, writtenItems } from "../src/salvage.js";
 
 /**
  * The shapes below are the ones Qwen 3 VL 235B actually wrote when it was stopped, taken from the
@@ -18,6 +18,23 @@ const milk = (y: number) =>
   `{"name": "lactose free milk", "brand": "Friendly Farms", "count": 1, "confidence": 0.98, "isProduct": true, "bbox_2d": [340,  \n\n\n\n${y}, 520, 360]}`;
 const beforeLoop = [item("probiotic drink", null, 5), item("cream cheese", null, 60, { count: 2 })];
 const clut12 = `${head}${[...beforeLoop, milk(180), milk(190), milk(180), milk(190)].join(", ")}, {"name": "lactose free milk", "brand": "Friendly Farms", "count`;
+
+describe("writtenItems", () => {
+  it("reports the products whose entry is finished, and not the one still being written", () => {
+    const half = `${head}${beforeLoop.join(", ")}, {"name": "lactose free mi`;
+    expect(writtenItems(half).map((i) => i.name)).toEqual(["probiotic drink", "cream cheese"]);
+  });
+
+  it("reports nothing before the first product is closed", () => {
+    expect(writtenItems(`${head}{"name": "probiotic drink", "brand": null`)).toEqual([]);
+    expect(writtenItems('{"subjectKind": "cart"')).toEqual([]);
+  });
+
+  it("carries each product's rectangle, which is what a crop is cut at", () => {
+    const [first] = writtenItems(`${head}${beforeLoop.join(", ")}`);
+    expect(first.bbox_2d).toEqual([5, 180, 185, 280]);
+  });
+});
 
 describe("salvagePhoto", () => {
   it("keeps every product written before a loop, and the looped one once", () => {

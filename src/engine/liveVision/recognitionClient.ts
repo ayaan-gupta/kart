@@ -55,6 +55,17 @@ export interface UnmarkedItem {
  * capture path the device never ran a detector, so without this there is nothing to draw an
  * outline around and nothing for the tracker to follow. `id` matches `marks[].id`.
  */
+/**
+ * One product of a census, handed over while the rest of the photograph is still being read.
+ *
+ * The same shape as an `unmarkedItems` entry with its count beside it, because a product on its
+ * own has nowhere to carry `inViewCounts`. The envelope at the end of the stream is still the
+ * answer; this is one of its products arriving early enough to cut a crop from.
+ */
+export interface CensusProduct extends UnmarkedItem {
+  count: number;
+}
+
 export interface CensusRegion {
   id: number;
   box: Box;
@@ -109,7 +120,19 @@ export interface WideReading {
 }
 
 export interface VerifyRequest {
-  items: { id: string; imageBase64: string; wide: WideReading; box?: Box | null }[];
+  items: {
+    id: string;
+    imageBase64: string;
+    wide: WideReading;
+    box?: Box | null;
+    /**
+     * The other products in the same photograph, so the server can paint them out of this crop
+     * even when it is the only crop in the request. The crop is cut wider than the product and
+     * catches its neighbours' edges; unpainted, the package check reads one of those as a second
+     * package and holds a right line back (`server/eval/mask-neighbours.json`).
+     */
+    neighbours?: { box: Box; description: string }[];
+  }[];
   /** Every brand the census read in the same photograph, so a logo crumpled on one bag can be read off the bag beside it. */
   brands?: string[];
 }
@@ -360,6 +383,28 @@ const num = (v: unknown, fallback = 0): number => (typeof v === 'number' && Numb
  * an older deployment. Anything unrecognised is dropped rather than allowed to reach fusion,
  * because a mark with a string id would silently never match a track.
  */
+function parseUnmarkedItem(raw: unknown): UnmarkedItem | null {
+  if (!isRecord(raw) || typeof raw.description !== 'string') return null;
+  return {
+    description: raw.description,
+    // An older server, or a model that skipped the field, leaves this empty and fusion
+    // falls back to keying off the description.
+    productKey: typeof raw.productKey === 'string' ? raw.productKey : '',
+    catalogSku: nullableStr(raw.catalogSku),
+    approxLocation: str(raw.approxLocation),
+    confidence: Math.min(1, Math.max(0, num(raw.confidence))),
+    isProduct: raw.isProduct !== false,
+    box: parseBox(raw.box),
+  };
+}
+
+/** One product of a streamed census: the same item, with the count the whole answer carries. */
+function parseCensusProduct(raw: unknown): CensusProduct | null {
+  const item = parseUnmarkedItem(raw);
+  if (item === null || !isRecord(raw)) return null;
+  return { ...item, count: Math.max(1, Math.round(num(raw.count, 1))) };
+}
+
 function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusPayload | null {
   if (!isRecord(value) || !Array.isArray(value.marks)) return null;
 
@@ -395,18 +440,8 @@ function parseCensus(value: unknown, envelope: Record<string, unknown>): CensusP
   const unmarkedItems: UnmarkedItem[] = [];
   if (Array.isArray(value.unmarkedItems)) {
     for (const raw of value.unmarkedItems) {
-      if (!isRecord(raw) || typeof raw.description !== 'string') continue;
-      unmarkedItems.push({
-        description: raw.description,
-        // An older server, or a model that skipped the field, leaves this empty and fusion
-        // falls back to keying off the description.
-        productKey: typeof raw.productKey === 'string' ? raw.productKey : '',
-        catalogSku: nullableStr(raw.catalogSku),
-        approxLocation: str(raw.approxLocation),
-        confidence: Math.min(1, Math.max(0, num(raw.confidence))),
-        isProduct: raw.isProduct !== false,
-        box: parseBox(raw.box),
-      });
+      const item = parseUnmarkedItem(raw);
+      if (item !== null) unmarkedItems.push(item);
     }
   }
 
@@ -527,25 +562,74 @@ function parseIdentify(value: unknown): IdentifyResult | null {
   };
 }
 
+/** The wide pass, with `onItem` for a caller that can use a product before the answer is whole. */
+export interface CensusOptions extends RequestOptions {
+  /**
+   * Called with each product the moment the census writes it, rectangle and all. Asking for it
+   * asks the server to stream (`Accept: application/x-ndjson`), so the phone can cut a crop and
+   * start its close read while the rest of the photograph is still being read. The answer this
+   * call returns is still the whole census, and it is what the bag is filled from.
+   */
+  onItem?: (product: CensusProduct) => void;
+}
+
 export function requestCensus(
   req: CensusRequest,
   signal?: AbortSignal,
-  options?: RequestOptions,
+  options?: CensusOptions,
 ): Promise<ClientResult<CensusPayload>> {
   // Marks are sent only when the client has them. An absent field and an empty array both mean
   // "you find them", which is what the capture path wants.
-  return post(
-    '/api/census',
-    {
-      image: req.imageBase64,
-      marks: req.marks ?? [],
-      counted: req.counted ?? [],
-      ...(req.confirming && req.confirming.length > 0 ? { confirming: req.confirming } : {}),
-    },
-    parseCensus,
-    signal,
-    options,
+  const body = {
+    image: req.imageBase64,
+    marks: req.marks ?? [],
+    counted: req.counted ?? [],
+    ...(req.confirming && req.confirming.length > 0 ? { confirming: req.confirming } : {}),
+  };
+  const onItem = options?.onItem;
+  if (onItem === undefined) return post('/api/census', body, parseCensus, signal, options);
+  return send('/api/census', body, { accept: 'application/x-ndjson' }, signal, options, (response) =>
+    readCensusLines(response, onItem),
   );
+}
+
+/**
+ * Reads a streamed census: a line `{"item": ...}` as each product is written, then the whole
+ * envelope as the last line, or `{"ok": false}` when it failed partway (server/api/census.ts).
+ *
+ * A product line that cannot be read is dropped rather than failing the photograph: the envelope
+ * carries every product again, so nothing is lost by ignoring an early copy of one. An answer
+ * that never carried an envelope is malformed, which is what reaching the wrong server looks
+ * like.
+ */
+async function readCensusLines(
+  response: Response,
+  onItem: (product: CensusProduct) => void,
+): Promise<ClientResult<CensusPayload>> {
+  let census: CensusPayload | null = null;
+  let failed = false;
+
+  await eachLine(response, (text) => {
+    if (text.trim().length === 0) return;
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (!isRecord(value)) return;
+    if ('item' in value) {
+      const product = parseCensusProduct(value.item);
+      if (product !== null) onItem(product);
+    } else if (value.ok === true) {
+      census = parseCensus(value.result, value);
+    } else if (value.ok === false) {
+      failed = true;
+    }
+  });
+
+  if (failed) return { ok: false, failure: 'server' };
+  return census === null ? { ok: false, failure: 'malformed' } : { ok: true, value: census };
 }
 
 /** The close read: every crop with what the census said about it, answered as reconciled lines. */
@@ -572,12 +656,44 @@ export function requestVerify(
       // The rectangle the crop was cut at, so a crop the server separates into two varieties
       // comes back with a share of it on each line and the review has something to draw.
       ...(item.box ? { box: item.box } : {}),
+      ...(item.neighbours && item.neighbours.length > 0 ? { neighbours: item.neighbours } : {}),
     })),
     ...(req.brands && req.brands.length > 0 ? { brands: req.brands } : {}),
   };
   const onItem = options?.onItem;
   if (onItem === undefined) return post('/api/verify', body, parseVerify, signal, options);
   return send('/api/verify', body, { accept: 'application/x-ndjson' }, signal, options, (response) => readVerifyLines(response, onItem));
+}
+
+/**
+ * Hands `take` one line of an NDJSON answer at a time, as the bytes arrive.
+ *
+ * The chunks are decoded as one UTF-8 stream, so a brand written in another script and cut
+ * between two chunks arrives whole. A runtime whose response has no readable body (and a server
+ * that answered with one JSON object rather than lines) is read whole instead; every line still
+ * reaches `take`, just all at once.
+ */
+async function eachLine(response: Response, take: (text: string) => void): Promise<void> {
+  const stream = (response as { body?: { getReader?: unknown } | null }).body;
+  if (stream && typeof stream.getReader === 'function') {
+    const reader = (stream as ReadableStream<Uint8Array>).getReader();
+    const decoder = new TextDecoder();
+    let pending = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      let newline = pending.indexOf('\n');
+      while (newline >= 0) {
+        take(pending.slice(0, newline));
+        pending = pending.slice(newline + 1);
+        newline = pending.indexOf('\n');
+      }
+    }
+    take(pending + decoder.decode());
+  } else {
+    for (const text of (await response.text()).split('\n')) take(text);
+  }
 }
 
 /**
@@ -629,26 +745,7 @@ async function readVerifyLines(
     else malformed = true;
   };
 
-  const stream = (response as { body?: { getReader?: unknown } | null }).body;
-  if (stream && typeof stream.getReader === 'function') {
-    const reader = (stream as ReadableStream<Uint8Array>).getReader();
-    const decoder = new TextDecoder();
-    let pending = '';
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      pending += decoder.decode(value, { stream: true });
-      let newline = pending.indexOf('\n');
-      while (newline >= 0) {
-        take(pending.slice(0, newline));
-        pending = pending.slice(newline + 1);
-        newline = pending.indexOf('\n');
-      }
-    }
-    take(pending + decoder.decode());
-  } else {
-    for (const text of (await response.text()).split('\n')) take(text);
-  }
+  await eachLine(response, take);
 
   if (failed) return { ok: false, failure: 'server' };
   if (!finished || malformed) return { ok: false, failure: 'malformed' };

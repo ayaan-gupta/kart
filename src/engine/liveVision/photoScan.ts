@@ -37,6 +37,7 @@ import {
 } from './fusion';
 import type {
   CensusPayload,
+  CensusProduct,
   CensusRequest,
   ClientFailure,
   ClientResult,
@@ -60,7 +61,16 @@ export interface PhotoScanState {
 }
 
 export interface PhotoScanDeps {
-  requestCensus: (request: CensusRequest) => Promise<ClientResult<CensusPayload>>;
+  /**
+   * `onItem`, when the caller passes it on, is how a product arrives before the census is
+   * finished: the phone's client streams the answer and hands over each product as the model
+   * writes it, rectangle and all. A stub that never calls it answers all at once, which is what
+   * every caller got before, and then nothing is read early.
+   */
+  requestCensus: (
+    request: CensusRequest,
+    onItem?: (product: CensusProduct) => void,
+  ) => Promise<ClientResult<CensusPayload>>;
   /**
    * Cuts one box out of the original photograph, as a base64 JPEG, or null when it cannot. With
    * `requestVerify`, this is what turns the census into two readings; without both, the census
@@ -153,6 +163,17 @@ function canonicalKey(item: { description: string; productKey: string }): string
   return productKey(name.length > 0 ? name : item.description, brand.length > 0 ? brand : null);
 }
 
+/**
+ * A product's identity across the two answers a streamed census gives: the products written one
+ * by one, and the whole envelope at the end. Both are folded from the same model answer by the
+ * same code (`censusFromPhoto`), so the description, the key and the rectangle are identical
+ * characters, and anything that is not matched is simply read the ordinary way.
+ */
+function signature(product: { description: string; productKey: string; box?: Box | null }): string {
+  const at = product.box;
+  return `${product.description}|${product.productKey}|${at ? `${at.x},${at.y},${at.w},${at.h}` : ''}`;
+}
+
 /** The line below which a wide reading on its own is shown as unsure; the bag's own line. */
 function statusOf(confidence: number): PhotoItem['status'] {
   return confidence >= UNSURE_BELOW ? 'sure' : 'unsure';
@@ -214,15 +235,71 @@ export async function scanPhoto(
   // so it has the same failure: one bag arriving as "packaged apples", then "red apples", then
   // "bag of apples", opening three lines nothing downstream can join.
   const confirming = options.confirming ?? [];
-  const result = await deps.requestCensus({
-    imageBase64,
-    counted: before.map((line) => line.name),
-    ...(confirming.length > 0 ? { confirming } : {}),
-  });
-
-  if (!result.ok) return { ok: false, failure: result.failure, state };
 
   const verifying = deps.crop !== undefined && deps.requestVerify !== undefined;
+  // One product's close read, started while the census is still writing the rest.
+  //
+  // The census writes about one product a second and the phone used to wait for the whole answer
+  // before cutting a single crop: measured on clut7, the first rectangle landed 2.9 seconds into
+  // a 9.4 second answer (`server/eval/census-timeline.json`), so six seconds were spent holding a
+  // crop that could already have been read. Each product is cut and sent on its own as it
+  // arrives, and the finished census is still the answer: a reading of a product the envelope
+  // does not hold is dropped, and a product the stream never carried is read the old way below.
+  const early = new Map<string, Promise<VerifyPayload['items'][number] | null>>();
+  const known: { box: Box; description: string; brand: string | null }[] = [];
+  let earlyFailure: ClientFailure | undefined;
+
+  const readEarly = (product: CensusProduct): void => {
+    const at = product.box ?? null;
+    if (at === null || product.isProduct === false || deps.crop === undefined || deps.requestVerify === undefined) return;
+    const key = signature(product);
+    if (early.has(key)) return;
+    const brand = brandFromKey(canonicalKey(product));
+    // What this photograph has shown so far: the brands as a hint for reading a crumpled logo,
+    // and the rectangles so the package check can paint this crop's neighbours out of it. Both
+    // are what the census has written by now rather than the whole photograph, which is the one
+    // thing reading early costs.
+    const neighbours = known.map(({ box: beside, description }) => ({ box: beside, description }));
+    const brands = [...new Set(known.map((other) => other.brand).filter((b): b is string => b !== null))];
+    known.push({ box: at, description: product.description, brand });
+    const id = `e${early.size}`;
+    early.set(key, (async (): Promise<VerifyPayload['items'][number] | null> => {
+      const cut = await deps.crop!(at);
+      if (cut === null) return null;
+      const answer = await deps.requestVerify!({
+        brands,
+        items: [{
+          id,
+          imageBase64: cut,
+          box: at,
+          wide: {
+            description: product.description,
+            productKey: product.productKey,
+            brand,
+            count: Math.max(1, product.count),
+            confidence: product.confidence,
+          },
+          ...(neighbours.length > 0 ? { neighbours } : {}),
+        }],
+      });
+      if (!answer.ok) {
+        earlyFailure = earlyFailure ?? answer.failure;
+        return null;
+      }
+      return answer.value.items[0] ?? null;
+    })());
+  };
+
+  const result = await deps.requestCensus(
+    {
+      imageBase64,
+      counted: before.map((line) => line.name),
+      ...(confirming.length > 0 ? { confirming } : {}),
+    },
+    verifying ? readEarly : undefined,
+  );
+
+  if (!result.ok) return { ok: false, failure: result.failure, state };
   const census = result.value;
   // Typed through the client's own shape: `CensusPayload` intersects fusion's looser
   // `CensusResult`, and `filter` on the intersection would otherwise pick the looser element.
@@ -251,7 +328,13 @@ export async function scanPhoto(
   let verifyFailure: ClientFailure | undefined;
   let payload: CensusPayload = census;
   if (verifying && deps.crop && deps.requestVerify) {
-    const crops = await Promise.all(items.map((item) => (item.box ? deps.crop!(item.box) : Promise.resolve(null))));
+    // What is already out: one request per product the census wrote early. The rest, a product
+    // with no rectangle to cut, or one from a server that does not stream, is cut and sent here
+    // exactly as the whole photograph used to be.
+    const waiting = items.map((item, index) => early.get(signature({ ...products[index], box: item.box })) ?? null);
+    const crops = await Promise.all(
+      items.map((item, index) => (waiting[index] === null && item.box ? deps.crop!(item.box) : Promise.resolve(null))),
+    );
     const sent = items.filter((_, i) => crops[i] !== null);
     const lines = new Map<string, VerifyPayload['items'][number]['line']>();
     const splits = new Map<string, NonNullable<VerifyPayload['items'][number]['split']>>();
@@ -328,37 +411,69 @@ export async function scanPhoto(
       return { items: folded, payload: { ...census, unmarkedItems, inViewCounts } };
     };
 
-    if (sent.length > 0) {
+    const onProgress = options.onProgress;
+    const handed = () => {
+      if (onProgress === undefined) return;
+      const progress = fold(false);
+      onProgress({ lines: bagLines(applyCensus(state.fusion, progress.payload, {}, [], false, {})), items: progress.items });
+    };
+
+    // Every product in the photograph, for the crops sent from here: the server paints a crop's
+    // neighbours out of it before the package check, and this request may no longer hold them.
+    const around = items
+      .filter((item) => item.box !== null)
+      .map((item) => ({ box: item.box as Box, description: item.name }));
+
+    const earlySettled = items.map(async (item, index) => {
+      const pending = waiting[index];
+      if (pending === null) return;
+      const entry = await pending;
+      // The answer came back under the id the early request gave it, which nothing after the
+      // census knows: joined back to this item by hand, so the fold reads it like any other.
+      if (entry === null) return;
+      record({ ...entry, id: item.id });
+      handed();
+    });
+
+    const batch = (async () => {
+      if (sent.length === 0) return;
       const brands = [...new Set(items.map((item) => item.brand).filter((b): b is string => b !== null))];
-      const onProgress = options.onProgress;
-      const verified = await deps.requestVerify(
+      const verified = await deps.requestVerify!(
         {
           brands,
-          items: sent.map((item) => ({
-            id: item.id,
-            imageBase64: crops[items.indexOf(item)] as string,
-            box: item.box,
-            wide: {
-              description: item.name,
-              productKey: products[Number(item.id.slice(1))].productKey,
-              brand: item.brand,
-              count: item.qty,
-              confidence: item.confidence,
-            },
-          })),
+          items: sent.map((item) => {
+            const neighbours = around.filter((other) => other.description !== item.name);
+            return {
+              id: item.id,
+              imageBase64: crops[items.indexOf(item)] as string,
+              box: item.box,
+              wide: {
+                description: item.name,
+                productKey: products[Number(item.id.slice(1))].productKey,
+                brand: item.brand,
+                count: item.qty,
+                confidence: item.confidence,
+              },
+              ...(neighbours.length > 0 ? { neighbours } : {}),
+            };
+          }),
         },
         onProgress === undefined
           ? undefined
           : (entry) => {
               record(entry);
-              const progress = fold(false);
-              onProgress({ lines: bagLines(applyCensus(state.fusion, progress.payload, {}, [], false, {})), items: progress.items });
+              handed();
             },
       );
       // Lines that arrived before a failure stand: each is a complete reading of its own crop.
       if (verified.ok) for (const entry of verified.value.items) record(entry);
       else verifyFailure = verified.failure;
-    }
+    })();
+
+    await Promise.all([...earlySettled, batch]);
+    // A crop read early that never came back leaves the same mark a failed request does: the
+    // screen says the closer look did not finish, and every line it did not reach is unsure.
+    if (verifyFailure === undefined) verifyFailure = earlyFailure;
 
     const folded = fold(true);
     items = folded.items;

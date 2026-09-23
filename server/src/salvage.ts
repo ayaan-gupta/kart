@@ -205,6 +205,19 @@ export function stalled(text: string): boolean {
  * that far, and reported as "some" when it did not: an answer that stopped cannot say nothing is
  * hidden, and a shopper asked to check is the cheap mistake.
  */
+/**
+ * The products an unfinished answer has finished writing, in the order it wrote them.
+ *
+ * Same walk as `salvagePhoto`, and deliberately not the same answer: this one excludes the
+ * product still being written and does not de-duplicate or mark anything unsure, because it is
+ * read while the answer is still arriving rather than after it was stopped. `bbox_2d` is last in
+ * every item (see `photoJsonSchema`), so a product whose entry has closed carries everything a
+ * crop needs, and the phone can cut it out while the rest of the photograph is still being read.
+ */
+export function writtenItems(text: string): PhotoItem[] {
+  return readWritten(text).items;
+}
+
 export function salvagePhoto(text: string): PhotoResponse | null {
   try {
     const whole = PhotoResponse.safeParse(JSON.parse(text));

@@ -45,7 +45,7 @@ import {
   type WideReading,
 } from "./reconcile.js";
 import { installUsageReporter, recordUsage } from "./usage.js";
-import { loopedProduct, salvagePhoto, stalled } from "./salvage.js";
+import { loopedProduct, salvagePhoto, stalled, writtenItems } from "./salvage.js";
 
 /**
  * The badged frame is sent at this long edge. 1024 was chosen before there was a photograph to
@@ -411,6 +411,8 @@ async function requestOutputText(
 async function streamPhotoText(
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
   deadlineAt: number,
+  /** The answer so far, after every delta, so a caller can read a product the moment it closes. */
+  onText?: (text: string) => void,
 ): Promise<{ text: string; stopped: string | null }> {
   installUsageReporter();
   const sent = pinned(params);
@@ -449,6 +451,9 @@ async function streamPhotoText(
       const event = next.value;
       if (event.type === "response.output_text.delta") {
         text += event.delta;
+        // Before the stall and loop checks below, which stop the answer: everything written
+        // before the stop is kept (see salvage.ts), so it is also worth handing over.
+        if (onText !== undefined && event.delta.includes("}")) onText(text);
         if (stalled(text)) {
           stopped = "stall";
           break;
@@ -914,9 +919,16 @@ function sameProduct(a: string, b: string): boolean {
 async function withNeighboursPainted(item: VerifyItemInput, items: VerifyItemInput[]): Promise<Buffer> {
   const box = item.box ?? null;
   if (box === null) return item.crop;
-  const others = items
-    .filter((other) => other !== item && other.box != null && !sameProduct(other.wide.description, item.wide.description))
-    .map((other) => other.box as Box);
+  // The other products in the photograph, which is not the same thing as the other crops in this
+  // request: since 2026-09-22 the phone sends a crop the moment the census writes it, so a request
+  // often holds one crop and the neighbours come named with it. Falling back to the request's own
+  // other crops keeps a caller that sends them all together painting exactly as it did.
+  const around = item.neighbours ?? items
+    .filter((other) => other !== item && other.box != null)
+    .map((other) => ({ box: other.box as Box, description: other.wide.description }));
+  const others = around
+    .filter((other) => !sameProduct(other.description, item.wide.description))
+    .map((other) => other.box);
   if (others.length === 0) return item.crop;
   try {
     const size = orientedSize(await sharp(item.crop).metadata());
@@ -926,6 +938,27 @@ async function withNeighboursPainted(item: VerifyItemInput, items: VerifyItemInp
     return item.crop;
   }
 }
+
+/**
+ * How long one crop's close read may go unanswered, once another crop in the same photograph has
+ * been answered, before that crop is asked a second time and the two race.
+ *
+ * The stage is already per-crop parallel, so a slow crop is not our queueing. Measured on clut7
+ * on 2026-09-17, eight crops in one request: three answered in 2.1 seconds and the other five
+ * took 9.1 to 10.0, and the photograph took 22 seconds because of them. Measured again on
+ * 2026-09-22 (`server/eval/verify-batching.json`), eight of the same crops answered in 2.7 to
+ * 5.2 seconds, and one call out of sixteen took 58. The upstream is not evenly fast, and which
+ * crop gets the slow seat is luck.
+ *
+ * Asking again is the only lever over that, and the gate is what keeps it cheap: a second asking
+ * is sent only where another crop has already come back, which is the evidence that the upstream
+ * is serving quickly right now and that this one crop is the unlucky one. When the whole
+ * photograph is slow nothing is asked twice, because a second asking would be just as slow.
+ */
+const hedgeAfterMs = (): number => {
+  const raw = Number(process.env.KART_HEDGE_AFTER_MS?.trim());
+  return Number.isFinite(raw) && raw > 0 ? raw : 4_000;
+};
 
 /** The package check's reader, overridable for the harnesses exactly as the others are. */
 const CHECK_MODEL = (): string => process.env.KART_CHECK_MODEL?.trim() || MODELS.check;
@@ -983,6 +1016,19 @@ async function photoImage(image: Buffer): Promise<Buffer> {
  * unaffected. Pass an (empty-array-initialised) CensusDiagnostics object to have this call
  * populate it with how inViewCounts productKeys were resolved.
  */
+/** One product of a photograph census, as it is handed over mid-answer: its own count with it. */
+export interface CensusProduct {
+  description: string;
+  productKey: string;
+  catalogSku: string | null;
+  approxLocation: string;
+  confidence: number;
+  isProduct?: boolean;
+  box?: Box | null;
+  /** How many units of this product the answer counted, which `inViewCounts` carries at the end. */
+  count: number;
+}
+
 export async function runCensus(
   image: Buffer,
   marks: Mark[],
@@ -991,6 +1037,14 @@ export async function runCensus(
   alreadyCounted: string[] = [],
   /** Names the review showed in amber, which this photograph was taken to confirm. */
   confirming: string[] = [],
+  /**
+   * Called with each product of a photograph census the moment the model finishes writing it,
+   * rectangle and all, so the phone can cut that crop while the rest is still being read. Only
+   * the photograph path streams, and only products the answer placed a rectangle on are handed
+   * over: a product with no rectangle is nothing the phone can cut, and a second asking's
+   * products are not handed over at all, because the first asking's were.
+   */
+  onItem?: (product: CensusProduct) => void,
 ): Promise<CensusResponse> {
   // The local fallback, for an account with no credit. Unset is the normal state: when
   // LOCAL_CENSUS_URL is empty this branch never runs and everything below is unchanged. See
@@ -1021,7 +1075,29 @@ export async function runCensus(
   // composite of it. See MODELS.photo for the measurement and PHOTO_SYSTEM_PROMPT for the prompt.
   if (marks.length === 0) {
     const photo = await photoImage(image);
-    const askPhoto = async (deadlineAt: number): Promise<PhotoResponse> => {
+    // Products already handed over, by their place in the answer, so each is handed over once
+    // however many deltas arrive after it. Only the first asking hands anything over: a second
+    // asking happens only where the first named nothing or placed no rectangle, and in both of
+    // those cases it handed nothing over, so the phone can never be given one product twice.
+    let handedOver = 0;
+    const handOver = (text: string): void => {
+      const written = writtenItems(text);
+      for (let index = handedOver; index < written.length; index += 1) {
+        const item = written[index];
+        if (item.bbox_2d === null) continue;
+        const folded = censusFromPhoto({ subjectKind: "cart", items: [item], occlusion: { severity: "none", reason: "" } });
+        const product = folded.unmarkedItems[0];
+        if (product === undefined || product.box === null || product.box === undefined) continue;
+        try {
+          onItem?.({ ...product, count: Math.max(1, folded.inViewCounts[0]?.count ?? 1) });
+        } catch (error) {
+          // A phone that hung up mid-answer must not cost this census the rest of its products.
+          console.warn("[recognize] handing a photograph's product over failed:", error);
+        }
+      }
+      handedOver = written.length;
+    };
+    const askPhoto = async (deadlineAt: number, hand: boolean): Promise<PhotoResponse> => {
       const { text, stopped } = await streamPhotoText({
         model: MODELS.photo,
         prompt_cache_key: "kart-photo",
@@ -1045,7 +1121,7 @@ export async function runCensus(
             schema: photoJsonSchema,
           },
         },
-      }, deadlineAt);
+      }, deadlineAt, hand ? handOver : undefined);
       if (stopped === null) return PhotoResponse.parse(JSON.parse(text));
       // Stopped part way: every product whose writing was finished is kept, once, and the one it
       // could not stop writing is kept unsure. See salvage.ts for the measurement.
@@ -1064,7 +1140,7 @@ export async function runCensus(
     // A tenth of the budget is left for the answer to get back. Both askings answer by this time,
     // each with what it had written by then, so neither can take the request past its deadline.
     const deadlineAt = startedAt + Math.floor(budgetMs * 0.9);
-    let answer = await askPhoto(deadlineAt);
+    let answer = await askPhoto(deadlineAt, onItem !== undefined);
     const firstCallMs = Date.now() - startedAt;
     // A photograph of several products where the model placed no box on any of them. `box` is
     // nullable for the product no rectangle contains, which is a per-product judgement; a whole
@@ -1095,7 +1171,7 @@ export async function runCensus(
       // asking that misses or fails leaves the first standing.
       let second: PhotoResponse | null = null;
       try {
-        second = await askPhoto(deadlineAt);
+        second = await askPhoto(deadlineAt, false);
       } catch (err) {
         console.warn(
           `[recognize] photo census's second asking did not answer (${err instanceof Error ? err.message : String(err)}); keeping the first answer`,
@@ -1233,6 +1309,17 @@ export interface VerifyItemInput {
    * nothing to point at.
    */
   box?: Box | null;
+  /**
+   * The other products the photograph holds, as the client knows them, so the package check can
+   * paint them out of this crop even when this request carries no other crop.
+   *
+   * The crop is cut a little wider than the product and catches the edge of whatever is beside
+   * it; unpainted, the check counted a neighbour's package as a second package of this product
+   * and held a right line back. Measured over 110 single-product crops: five false alarms
+   * unpainted, none painted (`server/eval/mask-neighbours.json`). Absent means "use the other
+   * crops in this request", which is what every caller sent before one crop per request existed.
+   */
+  neighbours?: { box: Box; description: string }[];
 }
 
 export interface VerifiedItem {
@@ -1331,6 +1418,41 @@ export async function runVerify(
   // is where a hidden variety can be and where the count gate is holding a line back, and it is
   // about a sixth of the boxes on the fifteen clut photographs, so the stage costs a sixth of
   // what asking at every box would. A crop with one package is answered by the two readings alone.
+  // The gate for a second asking: resolved the first time any crop in this request comes back.
+  const hedgeMs = hedgeAfterMs();
+  let cropLanded: () => void = () => {};
+  const landed = new Promise<void>((resolve) => { cropLanded = resolve; });
+
+  /**
+   * One crop's close read, asked a second time if it is still out after `hedgeAfterMs` and some
+   * other crop has already answered. Whichever asking answers first is the reading; the other is
+   * dropped, answer and all. Both failing fails the crop exactly as one failing used to.
+   */
+  const closeReadRacingItself = async (item: VerifyItemInput): Promise<VerifyResponse> => {
+    const startedAt = Date.now();
+    const first = settle(closeRead(item));
+    void first.then((result) => { if (result.status === "fulfilled") cropLanded(); });
+    let waking: ReturnType<typeof setTimeout> | undefined;
+    const trigger = landed.then(
+      () => new Promise<"hedge">((resolve) => {
+        waking = setTimeout(() => resolve("hedge"), Math.max(0, hedgeMs - (Date.now() - startedAt)));
+      }),
+    );
+    try {
+      const early = await Promise.race([first, trigger]);
+      if (early !== "hedge") return unwrap(early);
+      console.warn(`[recognize] close read of ${JSON.stringify(item.id)} is still out after ${hedgeMs}ms while another crop has answered; asking again`);
+      const second = settle(closeRead(item));
+      const winner = await Promise.race([first, second]);
+      if (winner.status === "fulfilled") return winner.value;
+      // The quicker asking failed. The other one is still the crop's only chance of a reading.
+      const both = await Promise.all([first, second]);
+      return unwrap(both.find((result) => result.status === "fulfilled") ?? both[0]);
+    } finally {
+      if (waking !== undefined) clearTimeout(waking);
+    }
+  };
+
   const unitPass = async (item: VerifyItemInput, close: VerifyResponse | null): Promise<UnitReading[]> => {
     if (close === null || !countNeedsCheck(close.count)) return [];
     const small = await sharp(item.crop)
@@ -1410,7 +1532,7 @@ export async function runVerify(
   return Promise.all(
     items.map(async (item): Promise<VerifiedItem> => {
       const started = Date.now();
-      const closeResult = await settle(closeRead(item));
+      const closeResult = await settle(closeReadRacingItself(item));
       const closeMs = Date.now() - started;
       if (closeResult.status === "rejected") {
         // Logged here, once, in the safe form `toSafeError` produced; the item itself carries no
@@ -1465,6 +1587,12 @@ export async function runVerify(
 }
 
 /** A promise's outcome as `Promise.allSettled` reports it, for one promise awaited on its own. */
+/** The value a settled result holds, or its failure thrown again, so a caller can await it. */
+function unwrap<T>(result: PromiseSettledResult<T>): T {
+  if (result.status === "fulfilled") return result.value;
+  throw result.reason;
+}
+
 function settle<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
   return promise.then(
     (value) => ({ status: "fulfilled", value }),

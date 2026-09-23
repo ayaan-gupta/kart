@@ -1,4 +1,4 @@
-import { runCensus } from "../src/recognize.js";
+import { runCensus, type CensusProduct } from "../src/recognize.js";
 import { enumerateRegions, marksFromRegions, type EnumeratedRegion } from "../src/enumerate.js";
 import type { Mark } from "../src/compositor.js";
 import {
@@ -112,48 +112,98 @@ export default async function handler(req: Request): Promise<Response> {
     return fail(err, 400);
   }
 
+  if ((req.headers.get("accept") ?? "").includes(NDJSON)) return streamed(image, marks, counted, confirming);
+
   try {
-    // Capture then process. A client that sends no marks is not telling us there is nothing in
-    // the frame, it is telling us it does not know: live per-item segmentation on the phone was
-    // measured dead (docs/detector-decision.md), so finding the regions is the server's job now.
-    // A client that does send marks keeps the old behaviour exactly, which is what lets the
-    // on-device path and the captured path coexist while the transition lands.
-    let regions: EnumeratedRegion[] = [];
-    let degraded: string | null = null;
-    let enumeratedHere = false;
-    if (marks.length === 0) {
-      enumeratedHere = true;
-      const enumerated = await enumerateRegions(image);
-      regions = enumerated.regions;
-      degraded = enumerated.degraded;
-      if (degraded !== null) console.warn("[census] enumeration degraded:", degraded);
-      // Through marksFromRegions, not by hand: it carries each region's catalog shortlist
-      // across as candidates, and building the marks here without it silently drops them, which
-      // turns the question the model is asked back into open-world naming.
-      marks = marksFromRegions(regions);
-    }
-
-    const result = await withTimeout(runCensus(image, marks, undefined, counted, confirming));
-
-    // The geometry goes back with the identifications. The device no longer has it: it never ran
-    // a detector, so without this there is nothing to draw an outline around and nothing for the
-    // tracker to follow. Ids match marks[].id by construction, so the client can join the two
-    // without trusting anything the model echoed.
-    return json({
-      ok: true,
-      result,
-      regions: regions.map((region, index) => ({
-        id: index + 1,
-        box: region.box,
-        polygon: region.polygon,
-        score: region.score,
-      })),
-      // Stated rather than hidden, and distinguishing the three real cases: the client brought
-      // its own regions, the server found them, or the server tried and could not, in which case
-      // the census still names what it can see and the client is running without outlines.
-      enumeration: !enumeratedHere ? "client" : degraded === null ? "ok" : "degraded",
-    });
+    return json(await answer(image, marks, counted, confirming));
   } catch (err) {
     return fail(err);
   }
+}
+
+const NDJSON = "application/x-ndjson";
+
+/**
+ * One census, as the envelope every caller has always been given.
+ *
+ * `onItem` is handed each product of a photograph census the moment the model finishes writing
+ * it, which only the streamed answer below has any use for. The envelope is unchanged either
+ * way, and it is the authoritative answer: a streamed product is the same product arriving
+ * early, not a separate reading, and anything the census decides at the end (a second asking, a
+ * looped product dropped) is settled in the envelope.
+ */
+async function answer(
+  image: Buffer,
+  marks: Mark[],
+  counted: string[],
+  confirming: string[],
+  onItem?: (product: CensusProduct) => void,
+): Promise<Record<string, unknown>> {
+  // Capture then process. A client that sends no marks is not telling us there is nothing in
+  // the frame, it is telling us it does not know: live per-item segmentation on the phone was
+  // measured dead (docs/detector-decision.md), so finding the regions is the server's job now.
+  // A client that does send marks keeps the old behaviour exactly, which is what lets the
+  // on-device path and the captured path coexist while the transition lands.
+  let regions: EnumeratedRegion[] = [];
+  let degraded: string | null = null;
+  let enumeratedHere = false;
+  if (marks.length === 0) {
+    enumeratedHere = true;
+    const enumerated = await enumerateRegions(image);
+    regions = enumerated.regions;
+    degraded = enumerated.degraded;
+    if (degraded !== null) console.warn("[census] enumeration degraded:", degraded);
+    // Through marksFromRegions, not by hand: it carries each region's catalog shortlist
+    // across as candidates, and building the marks here without it silently drops them, which
+    // turns the question the model is asked back into open-world naming.
+    marks = marksFromRegions(regions);
+  }
+
+  const result = await withTimeout(runCensus(image, marks, undefined, counted, confirming, onItem));
+
+  // The geometry goes back with the identifications. The device no longer has it: it never ran
+  // a detector, so without this there is nothing to draw an outline around and nothing for the
+  // tracker to follow. Ids match marks[].id by construction, so the client can join the two
+  // without trusting anything the model echoed.
+  return {
+    ok: true,
+    result,
+    regions: regions.map((region, index) => ({
+      id: index + 1,
+      box: region.box,
+      polygon: region.polygon,
+      score: region.score,
+    })),
+    // Stated rather than hidden, and distinguishing the three real cases: the client brought
+    // its own regions, the server found them, or the server tried and could not, in which case
+    // the census still names what it can see and the client is running without outlines.
+    enumeration: !enumeratedHere ? "client" : degraded === null ? "ok" : "degraded",
+  };
+}
+
+/**
+ * The same answer, one product at a time: a line `{"item": ...}` as each product is written,
+ * then the whole envelope as the last line.
+ *
+ * Asked for with `Accept: application/x-ndjson`, and the rest of the answer is unchanged, so a
+ * client that does not ask gets the one JSON answer it always did. A failure after the first
+ * line has been sent cannot become a status code any more, so it is the last line instead,
+ * worded exactly as `fail` words it, with nothing from upstream in it.
+ */
+function streamed(image: Buffer, marks: Mark[], counted: string[], confirming: string[]): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const write = (value: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+      try {
+        write(await answer(image, marks, counted, confirming, (item) => write({ item })));
+      } catch (err) {
+        console.error("[recognition]", err);
+        write({ ok: false, error: "Recognition failed" });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(body, { status: 200, headers: { "content-type": NDJSON, "cache-control": "no-store" } });
 }

@@ -43,6 +43,18 @@ function mockOutput(body: unknown): void {
   create.mockImplementationOnce(async (params: { stream?: boolean }) => (params.stream ? streamOf(text) : { output_text: text }));
 }
 
+/** Runs with the hedge threshold set to `ms`, so a test need not wait the shipped four seconds. */
+async function withHedge<T>(ms: string, run: () => Promise<T>): Promise<T> {
+  const previous = process.env.KART_HEDGE_AFTER_MS;
+  process.env.KART_HEDGE_AFTER_MS = ms;
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) delete process.env.KART_HEDGE_AFTER_MS;
+    else process.env.KART_HEDGE_AFTER_MS = previous;
+  }
+}
+
 /** Runs with the request's budget set to `ms`, as RECOGNITION_TIMEOUT_MS does for the service. */
 async function withBudget<T>(ms: string, run: () => Promise<T>): Promise<T> {
   const previous = process.env.RECOGNITION_TIMEOUT_MS;
@@ -1382,6 +1394,66 @@ describe("a looping answer is cut off rather than paid for", () => {
 });
 
 /**
+ * The phone cannot cut a crop it has not been given a rectangle for, and until 2026-09-22 it was
+ * given every rectangle at once, when the census finished. Measured on clut7 that day
+ * (`server/eval/census-timeline.json`): the first product's rectangle was written 2.9 seconds in
+ * and the answer ended at 9.4, so the first crop waited six and a half seconds for nothing.
+ */
+describe("the photo census hands over each product as it writes it", () => {
+  const product = (name: string, x: number, boxed = true) => ({
+    name, brand: null, count: 1, confidence: 0.9, isProduct: true, bbox_2d: boxed ? [x, 100, x + 200, 300] : null,
+  });
+  const answer = (...items: unknown[]) =>
+    `{"subjectKind":"cart","items":[${items.map((i) => JSON.stringify(i)).join(",")}],"occlusion":{"severity":"none","reason":""}}`;
+
+  it("hands a product over before the whole answer has arrived", async () => {
+    const handed: { description: string }[] = [];
+    create.mockImplementationOnce(async () =>
+      streamOf(answer(product("Rigatoni", 5), product("Hazelnut spread", 40)), { hang: true }),
+    );
+    const image = await blankJpeg();
+    const done = withBudget("400", () => runCensus(image, [], undefined, [], [], (item) => handed.push(item)));
+    await vi.waitFor(() => expect(handed.map((i) => i.description)).toEqual(["Rigatoni", "Hazelnut spread"]));
+    const result = await done;
+    expect(result.unmarkedItems.map((i) => i.description)).toEqual(["Rigatoni", "Hazelnut spread"]);
+  });
+
+  it("hands over the rectangle and the count the crop needs", async () => {
+    const handed: { box?: unknown; count: number; productKey: string }[] = [];
+    create.mockImplementationOnce(async () => streamOf(answer({ ...product("Rigatoni", 5), count: 2 })));
+    await runCensus(await blankJpeg(), [], undefined, [], [], (item) => handed.push(item));
+    expect(handed).toHaveLength(1);
+    expect(handed[0].count).toBe(2);
+    expect(handed[0].productKey).toBe("::Rigatoni");
+    expect(handed[0].box).toEqual(expect.objectContaining({ x: expect.any(Number), w: expect.any(Number) }));
+  });
+
+  it("hands over nothing a crop cannot be cut from", async () => {
+    const handed: unknown[] = [];
+    create.mockImplementationOnce(async () => streamOf(answer(product("Rigatoni", 5, false))));
+    const result = await runCensus(await blankJpeg(), [], undefined, [], [], (item) => handed.push(item));
+    expect(handed).toEqual([]);
+    expect(result.unmarkedItems).toHaveLength(1);
+  });
+
+  it("hands nothing over from a second asking, whose products the first answer never had", async () => {
+    const handed: unknown[] = [];
+    create.mockImplementationOnce(async () => streamOf(answer()));
+    create.mockImplementationOnce(async () => streamOf(answer(product("Rigatoni", 5))));
+    const result = await runCensus(await blankJpeg(), [], undefined, [], [], (item) => handed.push(item));
+    expect(handed).toEqual([]);
+    expect(result.unmarkedItems.map((i) => i.description)).toEqual(["Rigatoni"]);
+  });
+
+  it("does not stream a census the client brought its own marks for", async () => {
+    const handed: unknown[] = [];
+    mockOutput({ marks: [], unmarkedItems: [], inViewCounts: [], occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" } });
+    await runCensus(await blankJpeg(), [{ id: 1, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } }], undefined, [], [], (item) => handed.push(item));
+    expect(handed).toEqual([]);
+  });
+});
+
+/**
  * On 2026-09-11 clut12 and clut9 each listed their first products correctly and then wrote one
  * product over and over; at Parasail's 29 tokens a second the answer reached no cap before the
  * request's deadline, so the shopper got a failure and none of the good products. Streamed, the
@@ -1855,6 +1927,96 @@ describe("runVerify checks the packages in a line it is about to assert", () => 
     const items = await done;
     expect(handed).toEqual(["quick", "slow"]);
     expect(items.map((i) => i.id)).toEqual(["slow", "quick"]);
+  });
+
+  it("paints out the neighbours the caller named, when its request holds this crop alone", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    const crop = await blankJpeg(400, 400);
+    await runVerify([
+      {
+        id: "a",
+        crop,
+        box: { x: 0.2, y: 0.2, w: 0.4, h: 0.4 },
+        wide,
+        neighbours: [{ box: { x: 0.5, y: 0.2, w: 0.3, h: 0.4 }, description: "Hazelnut spread" }],
+      },
+    ]);
+    const checks = create.mock.calls.filter((c: any[]) => c[0].text.format.name === "package_check");
+    const sent = Buffer.from(String(checks[0][0].input[1].content[1].image_url).split(",")[1], "base64");
+    const painted = await sharp(sent).stats();
+    // A painted crop is not the flat grey it was cut as; nothing else in this call could change it.
+    expect(painted.channels[0].stdev).toBeGreaterThan(0);
+  });
+
+  it("leaves a crop alone when the caller named a neighbour that is the same product", async () => {
+    mockOutput(closeAnswer);
+    mockOutput(packages("Priano Rigatoni"));
+    mockOutput(packages("Priano Rigatoni"));
+    const crop = await blankJpeg(400, 400);
+    await runVerify([
+      {
+        id: "a",
+        crop,
+        box: { x: 0.2, y: 0.2, w: 0.4, h: 0.4 },
+        wide,
+        neighbours: [{ box: { x: 0.5, y: 0.2, w: 0.3, h: 0.4 }, description: "Rigatoni" }],
+      },
+    ]);
+    const checks = create.mock.calls.filter((c: any[]) => c[0].text.format.name === "package_check");
+    const sent = Buffer.from(String(checks[0][0].input[1].content[1].image_url).split(",")[1], "base64");
+    expect((await sharp(sent).stats()).channels[0].stdev).toBe(0);
+  });
+
+  it("asks a slow crop again once another crop has answered, and keeps whichever answers first", async () => {
+    const asked: string[] = [];
+    let releaseFirst!: () => void;
+    const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    create.mockImplementation(async (params: any) => {
+      const hint: string = params.input[1].content[0].text;
+      if (params.text.format.name === "verify" && hint.includes("slowpoke")) {
+        asked.push("slow");
+        // The first asking never answers on its own; only the hedge can finish this crop.
+        if (asked.filter((a) => a === "slow").length === 1) await firstHeld;
+        return { output_text: JSON.stringify({ ...closeAnswer, name: "slowpoke" }) };
+      }
+      if (params.text.format.name === "verify") return { output_text: JSON.stringify(closeAnswer) };
+      return { output_text: JSON.stringify(packages("Priano Rigatoni")) };
+    });
+    const crop = await blankJpeg();
+    try {
+      const items = await withHedge("20", () =>
+        runVerify([
+          { id: "slow", crop, box, wide: { ...wide, description: "slowpoke" } },
+          { id: "quick", crop, box, wide },
+        ]),
+      );
+      expect(items.find((i) => i.id === "slow")?.close?.name).toBe("slowpoke");
+      expect(asked.filter((a) => a === "slow")).toHaveLength(2);
+    } finally {
+      releaseFirst();
+    }
+  });
+
+  it("does not ask a crop twice while no other crop has answered", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    create.mockImplementation(async (params: any) => {
+      if (params.text.format.name !== "verify") return { output_text: JSON.stringify(packages("Priano Rigatoni")) };
+      await held;
+      return { output_text: JSON.stringify(closeAnswer) };
+    });
+    const crop = await blankJpeg();
+    const done = withHedge("20", () => runVerify([{ id: "only", crop, box, wide }]));
+    try {
+      // Long enough for the hedge to have fired if nothing gated it.
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      expect(create.mock.calls.filter((c: any[]) => c[0].text.format.name === "verify")).toHaveLength(1);
+    } finally {
+      release();
+    }
+    await done;
   });
 
   it("checks one crop without waiting for another crop's unit pass", async () => {

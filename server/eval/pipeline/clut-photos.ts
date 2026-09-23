@@ -339,7 +339,7 @@ for (const image of wanted) {
     state,
     base64,
     {
-      requestCensus: (request) => requestCensus(request, undefined, photoCall),
+      requestCensus: (request, onItem) => requestCensus(request, undefined, { ...photoCall, onItem }),
       ...(noVerify
         ? {}
         : {

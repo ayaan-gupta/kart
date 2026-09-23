@@ -42,7 +42,12 @@ const { PHOTO_REQUEST_TIMEOUT_MS } = await import('../../../src/engine/liveVisio
 // (src/app/photo.tsx), and until 2026-09-11 this harness used the live one: every photograph that
 // took 20 to 25 seconds was scored as a timeout the phone would not have had.
 const photoCall = { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS };
-const photoCensus: typeof requestCensus = (request) => requestCensus(request, undefined, photoCall);
+// The phone's own call: one request per photograph, with each product handed over as the census
+// writes it, so this harness waits exactly as the phone waits.
+const photoCensus = (
+  request: Parameters<typeof requestCensus>[0],
+  onItem?: NonNullable<Parameters<typeof requestCensus>[2]>['onItem'],
+): ReturnType<typeof requestCensus> => requestCensus(request, undefined, { ...photoCall, onItem });
 
 const IMAGES = join(import.meta.dirname, '../.cache/kart/images');
 

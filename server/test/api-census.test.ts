@@ -188,7 +188,7 @@ describe("POST /api/census: marks validation", () => {
     });
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, [], []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), [], undefined, [], [], undefined);
   });
 
   it("rejects marks that is not an array", async () => {
@@ -294,7 +294,7 @@ describe("POST /api/census: marks validation", () => {
     ];
     const res = await handler(post({ image: validImage, marks }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, [], []);
+    expect(runCensusMock).toHaveBeenCalledWith(expect.any(Buffer), marks, undefined, [], [], undefined);
   });
 });
 
@@ -441,7 +441,7 @@ describe("POST /api/census: the capture path, where the server finds the regions
 
     const res = await handler(post({ image: validImage }));
     expect(res.status).toBe(200);
-    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, [], []);
+    expect(runCensusMock).toHaveBeenCalledWith(validImageBuffer(), [], undefined, [], [], undefined);
     const body = await res.json();
     expect(body.enumeration).toBe("degraded");
     expect(body.regions).toEqual([]);
@@ -569,5 +569,93 @@ describe("POST /api/census: confirming", () => {
     await handler(post({ image: validImage }));
     expect(runCensusMock.mock.calls[0][4]).toEqual([]);
     expect((await handler(post({ image: validImage, confirming: "Rigatoni" }))).status).toBe(400);
+  });
+});
+
+/**
+ * The phone cannot cut a crop from a rectangle it has not been given. Measured on clut7 on
+ * 2026-09-22 (`server/eval/census-timeline.json`), the first rectangle was written 2.9 seconds
+ * into a 9.4 second answer, so a client handed the whole answer at once waited six seconds
+ * holding a crop it could already have been reading.
+ */
+describe("POST /api/census, streamed", () => {
+  const product = (description: string) => ({
+    description,
+    productKey: `::${description}`,
+    catalogSku: null,
+    approxLocation: "",
+    confidence: 0.9,
+    isProduct: true,
+    box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
+    count: 1,
+  });
+  const census = (...descriptions: string[]) => ({
+    marks: [],
+    unmarkedItems: descriptions.map((d) => ({ ...product(d), count: undefined })),
+    inViewCounts: [],
+    occlusion: { itemsLikelyHidden: false, severity: "none", reason: "" },
+  });
+  function streamedPost(body: unknown): Request {
+    return post(body, { accept: "application/x-ndjson" });
+  }
+
+  it("writes one line per product as the census hands it over, then the whole answer", async () => {
+    runCensusMock.mockImplementationOnce(async (_image, _marks, _diag, _counted, _confirming, onItem: (p: unknown) => void) => {
+      onItem(product("Rigatoni"));
+      onItem(product("Pesto"));
+      return census("Rigatoni", "Pesto");
+    });
+    const res = await handler(streamedPost({ image: validImage }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/x-ndjson");
+    const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+    expect(lines.slice(0, 2)).toEqual([{ item: product("Rigatoni") }, { item: product("Pesto") }]);
+    expect(lines[2].ok).toBe(true);
+    expect(lines[2].result.unmarkedItems.map((u: { description: string }) => u.description)).toEqual(["Rigatoni", "Pesto"]);
+    expect(lines[2].enumeration).toBe("degraded");
+  });
+
+  it("sends a product before the census has finished", async () => {
+    let finish!: () => void;
+    const held = new Promise<void>((resolve) => { finish = resolve; });
+    runCensusMock.mockImplementationOnce(async (_image, _marks, _diag, _counted, _confirming, onItem: (p: unknown) => void) => {
+      onItem(product("Rigatoni"));
+      await held;
+      return census("Rigatoni");
+    });
+    const res = await handler(streamedPost({ image: validImage }));
+    const reader = res.body!.getReader();
+    const first = new TextDecoder().decode((await reader.read()).value);
+    expect(JSON.parse(first.trim())).toEqual({ item: product("Rigatoni") });
+    finish();
+    let rest = "";
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      rest += new TextDecoder().decode(chunk.value);
+    }
+    expect(JSON.parse(rest.trim()).ok).toBe(true);
+  });
+
+  it("ends with a failure line when the census fails after a product was sent", async () => {
+    runCensusMock.mockImplementationOnce(async (_image, _marks, _diag, _counted, _confirming, onItem: (p: unknown) => void) => {
+      onItem(product("Rigatoni"));
+      throw new Error("upstream said sk-secret in its message");
+    });
+    const res = await handler(streamedPost({ image: validImage }));
+    expect(res.status).toBe(200);
+    const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+    expect(lines[0]).toEqual({ item: product("Rigatoni") });
+    expect(lines[1]).toEqual({ ok: false, error: "Recognition failed" });
+    expect(JSON.stringify(lines)).not.toContain("sk-secret");
+  });
+
+  it("answers a caller that did not ask for lines exactly as it always did", async () => {
+    runCensusMock.mockResolvedValueOnce(census("Rigatoni"));
+    const res = await handler(post({ image: validImage }));
+    expect(res.headers.get("content-type")).toContain("application/json");
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(runCensusMock.mock.calls[0][5]).toBeUndefined();
   });
 });

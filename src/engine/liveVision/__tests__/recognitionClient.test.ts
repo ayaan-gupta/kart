@@ -478,6 +478,33 @@ describe('requestVerify', () => {
  * crops and 7 to 10s for others, and reading the answer whole held every quick line back until the
  * slowest came in. With `onItem`, each line is handed over as it arrives.
  */
+describe('requestVerify neighbours', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  it('sends the other products in the photograph with a crop, so one crop alone can still be painted', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { items: [] } }) }));
+    const neighbours = [{ box: { x: 0.5, y: 0.2, w: 0.3, h: 0.4 }, description: 'Hazelnut spread' }];
+    await requestVerify({
+      items: [{
+        id: 'a',
+        imageBase64: 'Q1JPUA==',
+        box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
+        wide: { description: 'Rigatoni', productKey: 'priano::rigatoni', brand: 'Priano', count: 1, confidence: 0.9 },
+        neighbours,
+      }],
+    });
+    expect(JSON.parse(f.mock.calls[0][1].body).items[0].neighbours).toEqual(neighbours);
+  });
+
+  it('sends no neighbours field when the caller named none', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, result: { items: [] } }) }));
+    await requestVerify({ items: [{ id: 'a', imageBase64: 'Q1JPUA==', wide: { description: 'Rigatoni', productKey: 'priano::rigatoni', brand: null, count: 1, confidence: 0.9 } }] });
+    expect(JSON.parse(f.mock.calls[0][1].body).items[0]).not.toHaveProperty('neighbours');
+  });
+});
+
 describe('requestVerify, streamed', () => {
   beforeEach(() => {
     process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
@@ -573,6 +600,108 @@ describe('requestVerify, streamed', () => {
     const handed: string[] = [];
     const res = await requestVerify({ items: [item] }, undefined, { onItem: (it) => handed.push(it.id) });
     expect(handed).toEqual(['a']);
+    expect(res.ok).toBe(true);
+  });
+});
+
+/**
+ * The census writes one product about every 0.8 seconds and the phone can cut a crop the moment
+ * a product's rectangle lands (`server/eval/census-timeline.json`, clut7: first rectangle at
+ * 2.9s, answer finished at 9.4s). The envelope is still the answer; the lines are the same
+ * products arriving early.
+ */
+describe('requestCensus, streamed', () => {
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_KART_API_URL = 'https://kart.test';
+  });
+
+  const product = (description: string) => ({
+    description,
+    productKey: `::${description}`,
+    catalogSku: null,
+    approxLocation: '',
+    confidence: 0.9,
+    isProduct: true,
+    box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },
+    count: 2,
+  });
+  function body(chunks: Uint8Array[], gate: (Promise<void> | undefined)[] = []) {
+    let i = 0;
+    return {
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          async read() {
+            if (gate[i]) await gate[i];
+            return i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined };
+          },
+        }),
+      },
+    };
+  }
+  const bytes = (text: string) => new TextEncoder().encode(text);
+  const envelope = `${JSON.stringify(okCensus)}\n`;
+
+  it('asks for the answer one product at a time', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue(body([bytes(envelope)])));
+    await requestCensus(req, undefined, { onItem: () => {} });
+    expect(f.mock.calls[0][1].headers.accept).toBe('application/x-ndjson');
+  });
+
+  it('does not ask for a stream when nobody is listening for products', async () => {
+    const f = mockFetch(jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => okCensus }));
+    await requestCensus(req);
+    expect(f.mock.calls[0][1].headers.accept).toBeUndefined();
+  });
+
+  it('hands each product over as it arrives, then answers with the whole census', async () => {
+    const text = `${JSON.stringify({ item: product('Rigatoni') })}\n${JSON.stringify({ item: product('Pesto') })}\n${envelope}`;
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(text)])));
+    const handed: { description: string; count: number }[] = [];
+    const res = await requestCensus(req, undefined, { onItem: (item) => handed.push(item) });
+    expect(handed.map((h) => h.description)).toEqual(['Rigatoni', 'Pesto']);
+    expect(handed[0].count).toBe(2);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.value.marks[0].name).toBe('Bananas');
+  });
+
+  it('hands the first product over before the rest of the answer has arrived', async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    mockFetch(jest.fn().mockResolvedValue(body(
+      [bytes(`${JSON.stringify({ item: product('Rigatoni') })}\n`), bytes(envelope)],
+      [undefined, held],
+    )));
+    const handed: { description: string }[] = [];
+    const done = requestCensus(req, undefined, { onItem: (item) => handed.push(item) });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(handed.map((h) => h.description)).toEqual(['Rigatoni']);
+    release();
+    expect((await done).ok).toBe(true);
+  });
+
+  it('reads a server that answers with one JSON envelope and no lines', async () => {
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(envelope)])));
+    const handed: unknown[] = [];
+    const res = await requestCensus(req, undefined, { onItem: (item) => handed.push(item) });
+    expect(handed).toEqual([]);
+    expect(res.ok).toBe(true);
+  });
+
+  it('reports the server failing partway as a failure, not as a census', async () => {
+    const text = `${JSON.stringify({ item: product('Rigatoni') })}\n${JSON.stringify({ ok: false, error: 'Recognition failed' })}\n`;
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(text)])));
+    const res = await requestCensus(req, undefined, { onItem: () => {} });
+    expect(res).toEqual({ ok: false, failure: 'server' });
+  });
+
+  it('drops a product line it cannot read rather than handing over a half-parsed one', async () => {
+    const text = `${JSON.stringify({ item: { description: 7 } })}\n${envelope}`;
+    mockFetch(jest.fn().mockResolvedValue(body([bytes(text)])));
+    const handed: unknown[] = [];
+    const res = await requestCensus(req, undefined, { onItem: (item) => handed.push(item) });
+    expect(handed).toEqual([]);
     expect(res.ok).toBe(true);
   });
 });

@@ -132,7 +132,7 @@ export default function PhotoScreen() {
           // A photograph gets its own budget: the shopper is waiting on this one call, and it has
           // to outlast the service's 25 second race so the server's answer arrives before the
           // phone gives up on it.
-          requestCensus: (request) => requestCensus(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS }),
+          requestCensus: (request, onItem) => requestCensus(request, undefined, { timeoutMs: PHOTO_REQUEST_TIMEOUT_MS, onItem }),
           // The close read. Each box is cut from the original photograph on the device, because
           // the label the wide pass misread is written in the pixels the upload bound discards.
           crop: async (box) => (await prepareCrops(photo, [box], { manipulator: deviceManipulator }))[0],

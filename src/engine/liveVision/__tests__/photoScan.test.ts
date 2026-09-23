@@ -328,6 +328,134 @@ describe('scanPhoto with a close read', () => {
    * 2026-09-17: one request's close reads took 2s for some crops and 7 to 10s for others, and the
    * bag waited for the slowest. Each item now goes in the bag when its own line lands.
    */
+  /**
+   * Measured on clut7 on 2026-09-22 (`server/eval/census-timeline.json`): the census writes the
+   * first product's rectangle 2.9 seconds in and finishes at 9.4, about 0.8 seconds a product.
+   * Waiting for the whole answer before cutting the first crop spends those seconds on nothing.
+   */
+  describe('while the census is still writing', () => {
+    const other = { x: 0.6, y: 0.6, w: 0.3, h: 0.3 };
+    const streamedProduct = (name: string, brand: string, at: typeof box) => ({
+      description: name,
+      productKey: `${brand.toLowerCase()}::${name}`,
+      catalogSku: null,
+      approxLocation: 'centre of frame',
+      confidence: 0.9,
+      isProduct: true,
+      box: at,
+      count: 1,
+    });
+
+    /** A census that writes its products, then answers with the same two. */
+    function streamingCensus(hold?: Promise<void>) {
+      const payload = boxedReply([
+        { name: 'rigatoni', brand: 'Priano', box },
+        { name: 'salsa', brand: 'Primo', box: other },
+      ]);
+      return {
+        async requestCensus(_request: unknown, onItem?: (p: unknown) => void) {
+          onItem?.(streamedProduct('rigatoni', 'Priano', box));
+          onItem?.(streamedProduct('salsa', 'Primo', other));
+          if (hold) await hold;
+          return { ok: true as const, value: payload };
+        },
+      };
+    }
+
+    it('reads a crop before the census has finished, one request per crop', async () => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => { release = resolve; });
+      const sent: string[][] = [];
+      const done = scanPhoto(createPhotoScanState(), 'IMG', {
+        ...streamingCensus(held),
+        crop,
+        async requestVerify(request) {
+          sent.push(request.items.map((i) => i.wide.description));
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(sent).toEqual([['rigatoni'], ['salsa']]);
+      release();
+      const outcome = await done;
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni', 'salsa']);
+      // The crops read early are not read again when the census lands.
+      expect(sent).toEqual([['rigatoni'], ['salsa']]);
+    });
+
+    it('names the products it already knows about as the neighbours of the crop it sends', async () => {
+      const neighbours: unknown[][] = [];
+      await scanPhoto(createPhotoScanState(), 'IMG', {
+        ...streamingCensus(),
+        crop,
+        async requestVerify(request) {
+          neighbours.push(request.items.map((i) => i.neighbours ?? []));
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      expect(neighbours[0]).toEqual([[]]);
+      expect(neighbours[1]).toEqual([[{ box, description: 'rigatoni' }]]);
+    });
+
+    it('drops an early reading of a product the finished census does not hold', async () => {
+      const payload = boxedReply([{ name: 'rigatoni', brand: 'Priano', box }]);
+      const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
+        async requestCensus(_request: unknown, onItem?: (p: unknown) => void) {
+          onItem?.(streamedProduct('rigatoni', 'Priano', box));
+          onItem?.(streamedProduct('salsa', 'Primo', other));
+          return { ok: true as const, value: payload };
+        },
+        crop,
+        async requestVerify(request) {
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni']);
+      expect(outcome.items.map((i) => `${i.name}:${i.status}`)).toEqual(['rigatoni:sure']);
+    });
+
+    it('reads a crop the census never wrote early in one request with the rest', async () => {
+      const payload = boxedReply([
+        { name: 'rigatoni', brand: 'Priano', box },
+        { name: 'salsa', brand: 'Primo', box: other },
+      ]);
+      const sent: string[][] = [];
+      const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
+        async requestCensus(_request: unknown, onItem?: (p: unknown) => void) {
+          onItem?.(streamedProduct('rigatoni', 'Priano', box));
+          return { ok: true as const, value: payload };
+        },
+        crop,
+        async requestVerify(request) {
+          sent.push(request.items.map((i) => i.wide.description));
+          return { ok: true, value: { items: request.items.map((i) => ({ id: i.id, line: { description: i.wide.description, brand: i.wide.brand, count: 1, confidence: 0.95, sure: true, agreed: true } })) } };
+        },
+      } as PhotoScanDeps);
+      expect(sent).toEqual([['rigatoni'], ['salsa']]);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.lines.map((l) => l.name)).toEqual(['rigatoni', 'salsa']);
+    });
+
+    it('says the close read did not finish when an early request failed', async () => {
+      const outcome = await scanPhoto(createPhotoScanState(), 'IMG', {
+        ...streamingCensus(),
+        crop,
+        async requestVerify() {
+          return { ok: false, failure: 'timeout' as const };
+        },
+      } as PhotoScanDeps);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) return;
+      expect(outcome.verifyFailure).toBe('timeout');
+      expect(outcome.items.every((i) => i.status === 'unsure')).toBe(true);
+    });
+  });
+
   describe('as each line arrives', () => {
     const other = { x: 0.6, y: 0.6, w: 0.3, h: 0.3 };
     const lineFor = (id: string, description: string, brand: string | null, sure = true) => ({

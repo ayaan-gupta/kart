@@ -67,6 +67,26 @@ function text(value: unknown, field: string): string {
   return value.trim().slice(0, MAX_TEXT_CHARS);
 }
 
+/**
+ * The other products in the photograph, as the client knows them when it sends this crop.
+ *
+ * Bounded like the crops themselves and validated the same way: these boxes are painted onto an
+ * image, and the description is compared with this crop's own, so neither reaches a model as
+ * text. A photograph holds at most a cartful, which is what `MAX_VERIFY_ITEMS` already says.
+ */
+function parseNeighbours(value: unknown, index: number): { box: { x: number; y: number; w: number; h: number }; description: string }[] {
+  if (!Array.isArray(value)) throw new Error(`items[${index}].neighbours must be an array`);
+  return value.slice(0, MAX_VERIFY_ITEMS).map((raw, n) => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error(`items[${index}].neighbours[${n}] is malformed`);
+    }
+    const neighbour = raw as Record<string, unknown>;
+    const box = parseBox(neighbour.box, index);
+    if (box === null) throw new Error(`items[${index}].neighbours[${n}].box is malformed`);
+    return { box, description: text(neighbour.description, `items[${index}].neighbours[${n}].description`) };
+  });
+}
+
 async function parseItem(raw: unknown, index: number): Promise<VerifyItemInput> {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) throw new Error(`items[${index}] is malformed`);
   const item = raw as Record<string, unknown>;
@@ -92,6 +112,7 @@ async function parseItem(raw: unknown, index: number): Promise<VerifyItemInput> 
     id: item.id,
     crop,
     box: parseBox(item.box, index),
+    ...(item.neighbours === undefined ? {} : { neighbours: parseNeighbours(item.neighbours, index) }),
     wide: {
       description: text(w.description, `items[${index}].wide.description`),
       productKey: text(w.productKey, `items[${index}].wide.productKey`),

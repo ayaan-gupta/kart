@@ -67,6 +67,21 @@ describe("POST /api/verify", () => {
     expect(handed[0].wide).toEqual(wide);
   });
 
+  it("carries the neighbours a crop names, so a request holding one crop can still paint them out", async () => {
+    runVerifyMock.mockResolvedValueOnce([]);
+    const neighbours = [{ box: { x: 0.5, y: 0.2, w: 0.3, h: 0.4 }, description: "Hazelnut spread" }];
+    await handler(post({ items: [{ id: "a", image, wide, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, neighbours }] }));
+    expect(runVerifyMock.mock.calls[0][0][0].neighbours).toEqual(neighbours);
+  });
+
+  it("bounds the neighbours and rejects a malformed one", async () => {
+    runVerifyMock.mockResolvedValueOnce([]);
+    const many = Array.from({ length: MAX_VERIFY_ITEMS + 5 }, () => ({ box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 }, description: "Pesto" }));
+    await handler(post({ items: [{ id: "a", image, wide, neighbours: many }] }));
+    expect(runVerifyMock.mock.calls[0][0][0].neighbours.length).toBeLessThanOrEqual(MAX_VERIFY_ITEMS);
+    expect((await handler(post({ items: [{ id: "a", image, wide, neighbours: [{ box: { x: 5, y: 0, w: 1, h: 1 }, description: "Pesto" }] }] }))).status).toBe(400);
+  });
+
   it("answers an empty list with an empty list and no model call", async () => {
     const res = await handler(post({ items: [] }));
     expect(res.status).toBe(200);
